@@ -3,28 +3,29 @@
 | ID | Requisito | Prioridade | Plataforma |
 | --- | --- | --- | --- |
 | RF-01 | O leitor busca livros no catálogo informando título, autor ou ISBN. | Alta | Ambos |
-| RF-02 | O leitor autentica-se na plataforma utilizando e-mail e senha. | Alta | Ambos |
-| RF-03 | O leitor deve ser capaz de seguir e deixar de seguir outros leitores cadastrados na plataforma. | Alta | Ambos |
-| RF-04 | O leitor configura a visibilidade do seu perfil, escolhendo entre as opções: público ou privado. | Média | Ambos |
-| RF-05 | O leitor adiciona um livro à sua estante, selecionando um dos seguintes status de leitura: Quero Ler, Lendo, Relendo, Lido ou Abandonei. | Alta | Ambos |
-| RF-06 | O leitor atualiza o status de leitura e a página atual de um livro em sua estante. | Alta | Ambos |
-| RF-07 | O leitor registra e edita uma avaliação para um livro em sua estante, atribuindo uma nota de 1 a 5 estrelas e, opcionalmente, um comentário em texto ou imagens. | Média | Ambos |
-| RF-08 | O leitor cria uma comunidade de leitura vinculada a um único livro já existente no catálogo da plataforma. | Alta | Ambos |
-| RF-09 | O leitor ingressa em uma comunidade de leitura existente. | Alta | Ambos |
-| RF-10 | O leitor atualiza sua página atual de leitura dentro de uma comunidade. Esse progresso é independente do progresso registrado na estante pessoal. | Alta | Ambos |
-| RF-11 | O leitor visualiza o progresso coletivo da comunidade, composto pela média de página atual, percentual médio de leitura e total de membros ativos. | Média | Ambos |
-| RF-12 | O leitor publica um comentário em uma comunidade, ancorado à sua página de leitura atual no momento da publicação. A página de referência do comentário não pode ser alterada após a criação. | Alta | Ambos |
-| RF-13 | O leitor visualiza o conteúdo completo de comentários cuja página de referência seja igual ou inferior ao seu progresso atual. Comentários com página de referência superior devem aparecer com o conteúdo ocultado, acompanhados de um aviso de spoiler e da opção de revelá-los sob sua própria escolha. | Alta | Ambos |
-| RF-14 | O leitor responde a um comentário publicado em uma comunidade da qual é membro. | Média | Ambos |
-| RF-15 | O leitor exclui um comentário de sua autoria em uma comunidade. O sistema deve substituir o conteúdo do comentário por [comentário removido], preservando a estrutura da conversa. | Média | Ambos |
-| RF-16 | O leitor visualiza em seu feed social os seguintes eventos dos leitores que segue: livro adicionado, leitura iniciada, leitura concluída, avaliação registrada, mudança de status de leitura, ingresso em comunidade, início de leitura coletiva e conclusão de leitura coletiva. | Alta | Ambos |
-| RF-17 | O leitor visualiza no feed apenas eventos de leitores com visibilidade público ou somente seguidores, desde que seja seguidor do autor do evento. Eventos de leitores com visibilidade privado não devem ser exibidos. | Alta | Ambos |
-| RF-18 | O leitor curte um item do feed, sem que essa ação altere dados nos módulos de estante, comunidades ou livros. | Média | Ambos |
-| RF-19 | O leitor recebe em tempo real novos itens de feed e notificações de curtidas em seus itens, enquanto estiver conectado na plataforma. | Alta | Ambos |
-| RF-20 | O leitor deve ter um perfil literário analítico (DNA Literário) gerado automaticamente pela plataforma, com base em seu histórico de leitura registrado. | Alta | Ambos |
-| RF-21 | O leitor deve ter em seu DNA Literário vetor de afinidade por gênero, gêneros dominantes, autores dominantes e total de livros concluídos. | Média | Web |
-| RF-22 | O leitor recebe listas de recomendação de livros personalizadas e pré-computadas, excluindo títulos que já concluiu ou está lendo atualmente. | Alta | Ambos |
-| RF-23 | O leitor importa sua biblioteca do Goodreads por meio do upload de um arquivo CSV exportado diretamente da plataforma. | Baixa | Web |
+| RF-02 | O leitor cadastra-se na plataforma informando nome, e-mail e senha. | Alta | Ambos |
+| RF-03 | O leitor autentica-se na plataforma utilizando e-mail e senha. | Alta | Ambos |
+| RF-04 | O leitor deve ser capaz de seguir e deixar de seguir outros leitores cadastrados na plataforma. | Alta | Ambos |
+| RF-05 | O leitor configura a visibilidade do seu perfil, escolhendo entre as opções: público ou privado. | Média | Ambos |
+| RF-06 | O leitor adiciona um livro à sua estante, selecionando um dos seguintes status de leitura: Quero Ler, Lendo, Relendo, Lido ou Abandonei. | Alta | Ambos |
+| RF-07 | O leitor atualiza o status de leitura e a página atual de um livro em sua estante. | Alta | Ambos |
+| RF-08 | O leitor registra e edita uma avaliação para um livro em sua estante, atribuindo uma nota de 1 a 5 estrelas e, opcionalmente, um comentário em texto ou imagens. | Média | Ambos |
+| RF-09 | O leitor cria uma comunidade de leitura vinculada a um único livro já existente no catálogo da plataforma. | Alta | Ambos |
+| RF-10 | O leitor ingressa em uma comunidade de leitura existente. | Alta | Ambos |
+| RF-11 | O leitor atualiza sua página atual de leitura dentro de uma comunidade. Esse progresso é independente do progresso registrado na estante pessoal. | Alta | Ambos |
+| RF-12 | O leitor visualiza o progresso coletivo da comunidade, composto pela média de página atual, percentual médio de leitura e total de membros ativos. | Média | Ambos |
+| RF-13 | O leitor publica um comentário em uma comunidade, ancorado à sua página de leitura atual no momento da publicação. A página de referência do comentário não pode ser alterada após a criação. | Alta | Ambos |
+| RF-14 | O leitor visualiza o conteúdo completo de comentários cuja página de referência seja igual ou inferior ao seu progresso atual. Comentários com página de referência superior devem aparecer com o conteúdo ocultado, acompanhados de um aviso de spoiler e da opção de revelá-los sob sua própria escolha. | Alta | Ambos |
+| RF-15 | O leitor responde a um comentário publicado em uma comunidade da qual é membro. | Média | Ambos |
+| RF-16 | O leitor exclui um comentário de sua autoria em uma comunidade. O sistema deve substituir o conteúdo do comentário por [comentário removido], preservando a estrutura da conversa. | Média | Ambos |
+| RF-17 | O leitor visualiza em seu feed social os seguintes eventos dos leitores que segue: livro adicionado, leitura iniciada, leitura concluída, avaliação registrada, mudança de status de leitura, ingresso em comunidade, início de leitura coletiva e conclusão de leitura coletiva. | Alta | Ambos |
+| RF-18 | O leitor visualiza no feed apenas eventos de leitores com visibilidade público ou somente seguidores, desde que seja seguidor do autor do evento. Eventos de leitores com visibilidade privado não devem ser exibidos. | Alta | Ambos |
+| RF-19 | O leitor curte um item do feed, sem que essa ação altere dados nos módulos de estante, comunidades ou livros. | Média | Ambos |
+| RF-20 | O leitor recebe em tempo real novos itens de feed e notificações de curtidas em seus itens, enquanto estiver conectado na plataforma. | Alta | Ambos |
+| RF-21 | O leitor deve ter um perfil literário analítico (DNA Literário) gerado automaticamente pela plataforma, com base em seu histórico de leitura registrado. | Alta | Ambos |
+| RF-22 | O leitor deve ter em seu DNA Literário vetor de afinidade por gênero, gêneros dominantes, autores dominantes e total de livros concluídos. | Média | Web |
+| RF-23 | O leitor recebe listas de recomendação de livros personalizadas e pré-computadas, excluindo títulos que já concluiu ou está lendo atualmente. | Alta | Ambos |
+| RF-24 | O leitor importa sua biblioteca do Goodreads por meio do upload de um arquivo CSV exportado diretamente da plataforma. | Baixa | Web |
 
 ## Requisitos Não Funcionais
 
