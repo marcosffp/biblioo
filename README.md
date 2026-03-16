@@ -18,6 +18,7 @@ Além disso, a plataforma busca promover a interação entre leitores por meio d
 
 * Cleiton Silva Tavares
 * Cristiano de Macêdo Neto
+* João Paulo Carneiro Aramuni
 
 ## Instruções de utilização
 
