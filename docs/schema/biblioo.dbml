@@ -1,0 +1,262 @@
+// ============================================================
+// BIBLIOO — DBML CORRIGIDO PARA DBDIAGRAM
+// ============================================================
+
+// ================= ENUMS =================
+
+Enum reading_status {
+  WANT_TO_READ
+  READING
+  COMPLETED
+  ABANDONED
+}
+
+Enum trail_type {
+  BECAUSE_YOU_READ
+  FAVORITE_GENRE
+  SURPRISE
+  TRENDING
+  SIMILAR_AUTHORS
+  PENDING_READS
+}
+
+// ================= AUTH =================
+
+Table users {
+  id bigint [pk, increment]
+  username varchar(50) [unique, not null]
+  email varchar(255) [unique, not null]
+  password_hash varchar(255) [not null]
+  bio varchar(500)
+  avatar_url varchar(500)
+  banner_url varchar(512)
+  is_private bool [not null, default: false]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table refresh_tokens {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  token_hash varchar(64) [unique, not null]
+  expires_at timestamp [not null]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table user_follows {
+  follower_id bigint [not null, ref: > users.id]
+  followed_id bigint [not null, ref: > users.id]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (follower_id, followed_id) [unique, pk]
+  }
+}
+
+
+// ================= BOOKS =================
+
+Table books {
+  id bigint [pk, increment]
+  isbn varchar(20) [unique]
+  title varchar(500) [not null]
+  authors json [not null]
+  publisher varchar(300)
+  published_at date
+  description text
+  cover_url varchar(1000)
+  page_count smallint
+  average_rating float [default: 0]
+  rating_count int [not null, default: 0]
+  reader_count int [not null, default: 0]
+  language varchar(10)
+  source varchar(20) [not null, default: "manual"]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table categories {
+  id bigint [pk, increment]
+  name varchar(100) [unique, not null]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table book_categories {
+  book_id bigint [not null, ref: > books.id]
+  category_id bigint [not null, ref: > categories.id]
+
+  indexes {
+    (book_id, category_id) [pk]
+  }
+}
+
+
+// ================= SHELF =================
+
+Table shelves {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  name varchar(100) [not null]
+  description varchar(500)
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  total_pages int
+
+  indexes {
+    (user_id, name) [unique]
+  }
+}
+
+Table shelf_items {
+  shelf_id bigint [not null, ref: > shelves.id]
+  book_id bigint [not null, ref: > books.id]
+  status reading_status [not null, default: "WANT_TO_READ"]
+  current_page smallint [not null, default: 0]
+  total_pages smallint
+  progress_percent tinyint
+  started_at date
+  finished_at date
+  rating tinyint
+  review_text text
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp
+
+  indexes {
+    (shelf_id, book_id) [pk, unique]
+    (shelf_id, status, updated_at)
+  }
+}
+
+
+// ================= COMMUNITY =================
+
+Table communities {
+  id bigint [pk, increment]
+  nome varchar(150) [not null]
+  descricao varchar(500)
+  book_id bigint [not null, ref: > books.id]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table community_members {
+  id bigint [pk, increment]
+  community_id bigint [not null, ref: > communities.id]
+  user_id bigint [not null, ref: > users.id]
+  joined_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  indexes {
+    (user_id, community_id) [unique]
+  }
+}
+
+Table community_comments {
+  id bigint [pk, increment]
+  community_id bigint [not null, ref: > communities.id]
+  member_id bigint [not null, ref: > community_members.id]
+  type varchar(20) [not null, default: "COMMENT"] // "COMMENT" ou "REVIEW"
+  texto text [not null]
+  flags json // { "spoiler": false, "edited": false, ... }
+  page_ref smallint
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+Table community_comment_reactions {
+  id bigint [pk, increment]
+  comment_id bigint [not null, ref: > community_comments.id]
+  member_id bigint [not null, ref: > community_members.id]
+  reaction varchar(10) [not null] // LIKE ou DISLIKE
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (comment_id, member_id) [unique]
+  }
+}
+
+Table community_reviews {
+  id bigint [pk, increment]
+  community_id bigint [not null, ref: > communities.id]
+  member_id bigint [not null, ref: > community_members.id]
+  rating tinyint [not null]
+  comment text
+  reviewed_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+// ================= DNA =================
+
+Table reader_identity_events {
+  id varchar(36) [pk]
+
+  user_id bigint [not null, ref: > users.id]
+
+  event_type varchar(50) [not null]
+  // BOOK_STARTED
+  // BOOK_FINISHED
+
+  payload json
+
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (user_id, created_at)
+  }
+}
+
+Table reader_identity_profiles {
+  user_id bigint [pk, ref: > users.id]
+
+  books_completed int [not null, default: 0]
+
+  soul_genre varchar(120)
+  // ex: "Explorador de Mundos"
+
+  shadow_author varchar(200)
+  // autor mais frequente
+
+  reading_velocity float
+  // livros por mês
+
+  reading_percentile tinyint
+  // ex: 78 -> leu mais que 78%
+
+  most_intense_month varchar(20)
+  // ex: "2026-03"
+
+  genre_shift bool [not null, default: false]
+  // se explorou gênero novo
+
+  period_phrase text
+  // frase narrativa do período
+
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+
+
+// ================= RECOMMENDATION =================
+
+Table recommendation_results {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  trail_type trail_type [not null]
+  books json [not null]
+  computed_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+ 
+  indexes {
+    (user_id, trail_type) [unique]
+  }
+}
+ 
+Table recommendation_event_log {
+  id bigint [pk, increment]
+  event_id varchar(64) [unique, not null]
+  event_type varchar(60) [not null]
+  user_id bigint [not null]
+  payload json [not null]
+  processed_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
+ 
+Table trending_scores {
+  book_id bigint [pk, not null, ref: > books.id]
+  score float [not null, default: 0]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+}
