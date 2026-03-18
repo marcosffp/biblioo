@@ -17,7 +17,9 @@
 Professores:
 
 Cleiton Silva Tavares
+
 Cristiano de Macêdo Neto
+
 João Paulo Carneiro Aramuni
 
 ---
