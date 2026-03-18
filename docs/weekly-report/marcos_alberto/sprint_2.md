@@ -8,7 +8,8 @@
 
 ### Links dos Pull Requests:
 - [PR #24](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/24)
-- [PR #25](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/29)
+- [PR #29](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/29)
+- [PR #30](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/30)
 - [TASK #18](https://github.com/orgs/ICEI-PUC-Minas-PPLES-TI/projects/769?pane=issue&itemId=164180472&issue=ICEI-PUC-Minas-PPLES-TI%7Cplf-es-2026-1-ti5-0492100-biblioo%7C18)
 
 
