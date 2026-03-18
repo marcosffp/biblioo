@@ -16,10 +16,9 @@
 
 Professores:
 
-**Prof. Nome do Prof 1**
-
-**Prof. Nome do Prof 2**
-
+Cleiton Silva Tavares
+Cristiano de Macêdo Neto
+João Paulo Carneiro Aramuni
 
 ---
 
