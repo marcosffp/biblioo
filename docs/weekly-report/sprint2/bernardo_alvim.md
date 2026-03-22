@@ -15,7 +15,9 @@
 ## Semana 2 (16/03/2026 - 23/03/2026)
 
 ### O que foi feito:
-- 
+- Atualização do Modelo Relacional
+- Criação do _schema_ .puml do diagrama de componentes
+- Atualizando imagem no .md
 
 ### Links dos Pull Requests:
--
+- [PR #32](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/32)
