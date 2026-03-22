@@ -1,5 +1,5 @@
 // ============================================================
-// BIBLIOO — DBML CORRIGIDO PARA DBDIAGRAM
+// BIBLIOO — DBML ATUALIZADO
 // ============================================================
 
 // ================= ENUMS =================
@@ -7,6 +7,7 @@
 Enum reading_status {
   WANT_TO_READ
   READING
+  REREADING
   COMPLETED
   ABANDONED
 }
@@ -20,6 +21,12 @@ Enum trail_type {
   PENDING_READS
 }
 
+Enum post_type {
+  REVIEW
+  COMMENT
+  REPLY
+}
+
 // ================= AUTH =================
 
 Table users {
@@ -30,6 +37,7 @@ Table users {
   bio varchar(500)
   avatar_url varchar(500)
   banner_url varchar(512)
+  invite_url varchar(512)
   is_private bool [not null, default: false]
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
@@ -49,7 +57,7 @@ Table user_follows {
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
   indexes {
-    (follower_id, followed_id) [unique, pk]
+    (follower_id, followed_id) [pk]
   }
 }
 
@@ -92,13 +100,34 @@ Table book_categories {
 
 // ================= SHELF =================
 
-Table shelves {
+Table collections {
   id bigint [pk, increment]
   user_id bigint [not null, ref: > users.id]
   name varchar(100) [not null]
   description varchar(500)
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (user_id, name) [unique]
+  }
+}
+
+Table collection_shelves {
+  collection_id bigint [not null, ref: > collections.id]
+  shelf_id bigint [not null, ref: > shelves.id]
+
+  indexes {
+    (collection_id, shelf_id) [pk]
+  }
+}
+
+Table shelves {
+  id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
+  name varchar(100) [not null]
+  description varchar(500)
   total_pages int
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
   indexes {
     (user_id, name) [unique]
@@ -121,7 +150,7 @@ Table shelf_items {
   deleted_at timestamp
 
   indexes {
-    (shelf_id, book_id) [pk, unique]
+    (shelf_id, book_id) [pk]
     (shelf_id, status, updated_at)
   }
 }
@@ -131,9 +160,11 @@ Table shelf_items {
 
 Table communities {
   id bigint [pk, increment]
-  nome varchar(150) [not null]
-  descricao varchar(500)
+  name varchar(150) [not null]
+  description varchar(500)
   book_id bigint [not null, ref: > books.id]
+  is_private bool [not null, default: false]
+  invite_link varchar(512)
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 }
@@ -142,59 +173,50 @@ Table community_members {
   id bigint [pk, increment]
   community_id bigint [not null, ref: > communities.id]
   user_id bigint [not null, ref: > users.id]
+  shelf_item_id bigint [ref: > shelf_items.shelf_id] // referência ao item de leitura do membro
   joined_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
   indexes {
     (user_id, community_id) [unique]
   }
 }
 
-Table community_comments {
+Table posts {
   id bigint [pk, increment]
+  user_id bigint [not null, ref: > users.id]
   community_id bigint [not null, ref: > communities.id]
-  member_id bigint [not null, ref: > community_members.id]
-  type varchar(20) [not null, default: "COMMENT"] // "COMMENT" ou "REVIEW"
-  texto text [not null]
+  parent_id bigint [ref: > posts.id] // null = post raiz, preenchido = reply
+  type post_type [not null]
+  text text [not null]
+  spoiler_data json
+  rating tinyint
   flags json // { "spoiler": false, "edited": false, ... }
   page_ref smallint
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 }
 
-Table community_comment_reactions {
+Table post_likes {
   id bigint [pk, increment]
-  comment_id bigint [not null, ref: > community_comments.id]
-  member_id bigint [not null, ref: > community_members.id]
-  reaction varchar(10) [not null] // LIKE ou DISLIKE
+  post_id bigint [not null, ref: > posts.id]
+  user_id bigint [not null, ref: > users.id]
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
   indexes {
-    (comment_id, member_id) [unique]
+    (post_id, user_id) [unique]
   }
 }
 
-Table community_reviews {
-  id bigint [pk, increment]
-  community_id bigint [not null, ref: > communities.id]
-  member_id bigint [not null, ref: > community_members.id]
-  rating tinyint [not null]
-  comment text
-  reviewed_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
-  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
-}
 
 // ================= DNA =================
 
 Table reader_identity_events {
   id varchar(36) [pk]
-
   user_id bigint [not null, ref: > users.id]
-
   event_type varchar(50) [not null]
   // BOOK_STARTED
   // BOOK_FINISHED
-
   payload json
-
   created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 
   indexes {
@@ -204,30 +226,21 @@ Table reader_identity_events {
 
 Table reader_identity_profiles {
   user_id bigint [pk, ref: > users.id]
-
   books_completed int [not null, default: 0]
-
   soul_genre varchar(120)
   // ex: "Explorador de Mundos"
-
   shadow_author varchar(200)
   // autor mais frequente
-
   reading_velocity float
   // livros por mês
-
   reading_percentile tinyint
   // ex: 78 -> leu mais que 78%
-
   most_intense_month varchar(20)
   // ex: "2026-03"
-
   genre_shift bool [not null, default: false]
   // se explorou gênero novo
-
   period_phrase text
   // frase narrativa do período
-
   updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 }
 
@@ -240,12 +253,12 @@ Table recommendation_results {
   trail_type trail_type [not null]
   books json [not null]
   computed_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
- 
+
   indexes {
     (user_id, trail_type) [unique]
   }
 }
- 
+
 Table recommendation_event_log {
   id bigint [pk, increment]
   event_id varchar(64) [unique, not null]
@@ -254,7 +267,7 @@ Table recommendation_event_log {
   payload json [not null]
   processed_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
 }
- 
+
 Table trending_scores {
   book_id bigint [pk, not null, ref: > books.id]
   score float [not null, default: 0]
