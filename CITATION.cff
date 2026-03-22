@@ -1,31 +1,37 @@
 cff-version: 1.0.1
 message: Please cite this software using these metadata.
-title: 
+title: Biblioo
 authors:
-  - family-names: 
-    given-names: 
-  - family-names: 
-    given-names: 
-  - family-names: 
-    given-names: 
-  - family-names: 
-    given-names: 
-  - family-names: 
-    given-names: 
-  - family-names: 
-    given-names:
+  - family-names: Souza Alvim
+    given-names: Bernardo
+  - family-names: Gomes Batista Figueiredo
+    given-names: Carlos José
+  - family-names: Alvarenga Cardoso
+    given-names: Gabriela
+  - family-names: Feirreira Pinto
+    given-names: Marcos Alberto
+  - family-names: Araújo Santos
+    given-names: Mateus
+  - family-names: Ganascini de Moura
+    given-names: Rafael
   - name-suffix: Professor
     affiliation: PUC Minas
-    family-names: 
-    given-names: 
+    family-names: Silva Tavares
+    given-names: Cleiton
   - name-suffix: Professor
     affiliation: PUC Minas
-    family-names: 
-    given-names: 
+    family-names: de Macêdo Neto
+    given-names: Cristiano
+  - name-suffix: Professor
+    affiliation: PUC Minas
+    family-names: Carneiro Aramuni
+    given-names: João Paulo
 keywords:
-  - 
-  - 
-repository-code: 
+  - leitura
+  - livros
+  - recomendação de livros
+  - rede social literária
+repository-code: https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo
 license: CC-BY-4.0
 version: 1.0.0
 date-released: 2026-07-10

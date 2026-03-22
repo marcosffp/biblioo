@@ -16,10 +16,11 @@
 
 Professores:
 
-**Prof. Nome do Prof 1**
+Cleiton Silva Tavares
 
-**Prof. Nome do Prof 2**
+Cristiano de Macêdo Neto
 
+João Paulo Carneiro Aramuni
 
 ---
 
