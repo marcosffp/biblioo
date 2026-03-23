@@ -15,7 +15,9 @@
 ### O que foi feito:
 - Corrigi as Histórias de Usuários após avaliação do professor.
 - Desenvolvi o TAP.
+- Desenvolvi a ATA de Reunião Semanal.
 
 ### Links dos Pull Requests:
 - [PR #31](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/31)
 - [PR #34](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/34)
+- [PR #36](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/36)
