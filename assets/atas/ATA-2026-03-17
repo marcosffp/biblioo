@@ -1,0 +1,46 @@
+# Ata de Reunião Semanal - Projeto
+
+## Informações
+**Data/hora:** 17/03/2026 - 17:00  
+**Local:** Online  
+**Motivo da reunião:** Revisão das entregas da Sprint 2 e definição das tarefas da Sprint 3  
+**Secretário:** Gabriela Alvarenga Cardoso  
+
+## Participantes
+Estiveram presentes na reunião:
+- Bernardo Souza Alvim
+- Carlos José Gomes Batista Figueiredo
+- Gabriela Alvarenga Cardoso
+- Marcos Alberto Feirreira Pinto
+- Mateus Araújo Santos
+- Rafael Ganascini de Moura
+
+## Pauta
+
+Item | Descrição
+---- | ----
+Revisão da Sprint 2 | • Apresentação dos artefatos produzidos <br>• Verificação dos requisitos e histórias de usuário <br>• Validação da modelagem e arquitetura <br>• Análise das correções solicitadas pelo professor <br>• Avaliação geral da sprint
+Planejamento da Sprint 3 | • Definição de novos requisitos <br>• Refinamento dos requisitos existentes <br>• Priorização das atividades <br>• Distribuição de responsabilidades <br>• Definição dos objetivos da sprint
+
+## Notas e Decisões
+Item | Quem | Anotações |
+---- | ---- | ---- |
+Modelagem de dados | Bernardo Souza Alvim | Atualização do modelo relacional, especificação do modelo de dados e criação de schemas (.dbml e .puml) |
+Requisitos e histórias | Gabriela Alvarenga Cardoso | Desenvolvimento e correção das histórias de usuário após feedback do professor |
+Documentação do projeto | Carlos José Gomes Batista Figueiredo | Elaboração do TAP e organização das seções de requisitos no documento |
+Arquitetura da solução | Marcos Alberto Feirreira Pinto | Desenvolvimento da modelagem arquitetural e descrição dos componentes do sistema |
+Apresentação e documentação | Mateus Araújo Santos | Organização da apresentação e revisão de documentos como requisitos, modelagem e produto |
+Diagramas e modelagem | Rafael Ganascini de Moura | Desenvolvimento e ajustes de diagramas, incluindo diagrama de classes e apoio à modelagem |
+
+## Ações e pendências
+| Feito (S/N)? | Item | Responsável | Data para solução |
+| ---- | ---- | ---- | ---- |
+| S | Revisar e consolidar requisitos da Sprint 2 | Gabriela Alvarenga Cardoso | 17/03/2026 |
+| S | Atualizar modelo de dados e diagramas | Bernardo Souza Alvim | 17/03/2026 |
+| S | Refinar requisitos para definição do backlog da Sprint 3 | Equipe | 18/03/2026 |
+| S | Evoluir documentação do projeto (TAP, requisitos e modelagem) | Carlos José Gomes Batista Figueiredo | 19/03/2026 |
+| S | Ajustar arquitetura e diagramas conforme novos requisitos | Marcos e Rafael | 20/03/2026 |
+| S | Atualizar apresentação e consolidar entregas da sprint | Mateus Araújo Santos | 20/03/2026 |
+
+## Outras notas e informações
+N/A
