@@ -1,20 +1,26 @@
-# TITULO DO PROJETO
+# Biblioo
 
+**Bernardo Souza Alvim, bernardo.alvim@sga.pucminas.b**
 
-**Nome completo do Aluno 1, email do aluno 1**
+**Carlos José Gomes Batista Figueiredo, carlos.figueiredo.1507022@sga.pucminas.br**
 
-**Nome completo do Aluno 2, email do aluno 2**
+**Gabriela Alvarenga Cardoso, gabriela.cardoso.1026227@sga.pucminas.br**
 
-**Nome completo do Aluno 3, email do aluno 3**
+**Marcos Alberto Ferreira Pinto, mafpinto@sga.pucminas.br**
+
+**Mateus Araujo Santos, mateus.santos.1487920@sga.pucminas.br**
+
+**Rafael Ganascini de Moura, rafael.ganascini@sga.pucminas.br**
 
 ---
 
 Professores:
 
-**Prof. Nome do Prof 1**
+Cleiton Silva Tavares
 
-**Prof. Nome do Prof 2**
+Cristiano de Macêdo Neto
 
+João Paulo Carneiro Aramuni
 
 ---
 
