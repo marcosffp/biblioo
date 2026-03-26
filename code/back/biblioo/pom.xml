@@ -16,6 +16,10 @@
 
 	<properties>
 		<java.version>25</java.version>
+		<mapstruct.version>1.6.3</mapstruct.version>
+		<resilience4j.version>2.3.0</resilience4j.version>
+		<opensearch-client.version>3.1.0</opensearch-client.version>
+		<testcontainers.version>1.20.4</testcontainers.version>
 	</properties>
 
 
@@ -78,6 +82,123 @@
 			<artifactId>springboot4-dotenv</artifactId>
 			<version>5.1.0</version>
 		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- WebFlux — WebClient para chamadas HTTP externas (Google Books API) -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- RabbitMQ — eventos BOOK_IMPORTED, BOOK_STARTED, BOOK_FINISHED -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- OpenSearch Java Client 3.x — busca fulltext   -->
+		<!-- jackson-databind já está no classpath via web  -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>org.opensearch.client</groupId>
+			<artifactId>opensearch-java</artifactId>
+			<version>${opensearch-client.version}</version>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- MapStruct — mapeamento DTO ↔ Entity em compile-time -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>${mapstruct.version}</version>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- Flyway — migrations versionadas do MySQL       -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- Resilience4j — Circuit Breaker, Retry, Bulkhead, TimeLimiter -->
+		<!-- resilience4j-reactor: integração com WebClient/Reactor        -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot3</artifactId>
+			<version>${resilience4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-reactor</artifactId>
+			<version>${resilience4j.version}</version>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- Actuator — /actuator/health para MySQL, Redis, RabbitMQ, OpenSearch -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- Micrometer Prometheus — métricas de latência, cache hit/miss, CB state -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- Micrometer Tracing OTEL — trace_id distribuído entre serviços -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-otel</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp</artifactId>
+		</dependency>
+
+		<!-- ══════════════════════════════════════════════ -->
+		<!-- Testcontainers — testes de integração com MySQL, Redis, RabbitMQ e OpenSearch reais -->
+		<!-- ══════════════════════════════════════════════ -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-testcontainers</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>mysql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>rabbitmq</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- Redis via Testcontainers usa o módulo genérico -->
+		<dependency>
+			<groupId>com.redis</groupId>
+			<artifactId>testcontainers-redis</artifactId>
+			<version>2.2.2</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+ 		    <artifactId>commons-pool2</artifactId>
+		</dependency>
 	</dependencies>
 
 
@@ -91,6 +212,18 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+						</path>
+						<!-- MapStruct deve vir DEPOIS do Lombok -->
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>${mapstruct.version}</version>
+						</path>
+						<!-- Binding Lombok + MapStruct — elimina warnings de campos não visíveis -->
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok-mapstruct-binding</artifactId>
+							<version>0.2.0</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
