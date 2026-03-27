@@ -1,0 +1,39 @@
+:root {
+  /* Color tokens */
+  --bg-canvas: #e7eee9;
+  --bg-surface: #f4f7f4;
+  --bg-soft: #dfe9e1;
+  --brand-500: #1f8f3a;
+  --brand-600: #17752f;
+  --brand-100: #b7dfbb;
+  --text-primary: #122016;
+  --text-secondary: #4b5e4f;
+  --border-soft: #b6d2b9;
+
+  /* Spacing tokens */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radius tokens */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Elevation tokens */
+  --shadow-soft: 0 10px 24px rgba(18, 32, 22, 0.06);
+
+  /* Motion tokens */
+  --duration-fast: 120ms;
+  --duration-mid: 220ms;
+  --easing-standard: ease-out;
+
+  /* Accessibility token */
+  --focus-ring: 0 0 0 3px rgba(31, 143, 58, 0.35);
+}
