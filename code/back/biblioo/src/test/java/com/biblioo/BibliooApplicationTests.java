@@ -6,8 +6,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class BibliooApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
+  @Test
+  void contextLoads() {}
 }

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Books Search</title>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+      background: #f5f5f5;
+    }
+
+    h1 { text-align: center; }
+
+    .search-bar {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus { border-color: #4a90e2; }
+
+    .status {
+      min-height: 20px;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 16px;
+      padding-left: 4px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.15s;
+      cursor: pointer;
+    }
+
+    .card:hover { transform: scale(1.04); }
+
+    .card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      background: #e0e0e0;
+    }
+
+    .no-cover {
+      width: 100%;
+      height: 200px;
+      background: #e8e8e8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+    }
+
+    .card .info { padding: 10px; }
+
+    .card .title {
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      overflow: hidden;
+    }
+
+    .card .author {
+      font-size: 12px;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 40px 0;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📚 Buscar Livros</h1>
+
+<div class="search-bar">
+  <input
+    type="text"
+    id="query"
+    placeholder="Digite o nome do livro..."
+    autocomplete="off"
+  />
+</div>
+
+<div id="status" class="status"></div>
+<div id="result" class="grid"></div>
+
+<script>
+  const BASE_URL = "http://localhost:8080/books";
+
+  const inputEl  = document.getElementById("query");
+  const resultEl = document.getElementById("result");
+  const statusEl = document.getElementById("status");
+
+  let suggestTimer     = null;
+  let searchTimer      = null;
+  let suggestCtrl      = null;
+  let searchCtrl       = null;
+  let lastQuery        = "";
+
+  // ── Eventos ──────────────────────────────────────────────────────
+
+  inputEl.addEventListener("input", handleInput);
+
+  inputEl.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      clearTimers();
+      const q = inputEl.value.trim();
+      if (q.length >= 2) runSearch(q);
+    }
+  });
+
+  // ── Orquestrador ─────────────────────────────────────────────────
+
+  function handleInput() {
+    const q = inputEl.value.trim();
+    lastQuery = q;
+    clearTimers();
+
+    if (q.length < 2) {
+      cancelAll();
+      clearResults();
+      setStatus("");
+      return;
+    }
+
+    // Suggest: 200ms — parece instantâneo, evita request a cada tecla
+    suggestTimer = setTimeout(() => runSuggest(q), 200);
+
+    // Search: 500ms — dispara quando usuário faz pausa
+    searchTimer = setTimeout(() => runSearch(q), 500);
+  }
+
+  // ── Suggest ───────────────────────────────────────────────────────
+
+  async function runSuggest(q) {
+    if (suggestCtrl) suggestCtrl.abort();
+    suggestCtrl = new AbortController();
+
+    try {
+      const res = await fetch(
+        `${BASE_URL}/suggest?q=${encodeURIComponent(q)}`,
+        { signal: suggestCtrl.signal }
+      );
+
+      if (!res.ok || q !== lastQuery) return;
+
+      const data = await res.json();
+
+      // Só mostra suggest se ainda não chegou resultado de search mais completo
+      if (q === lastQuery && data.length > 0) {
+        render(data);
+      }
+    } catch (e) {
+      if (e.name !== "AbortError") console.error("suggest:", e);
+    }
+  }
+
+  // ── Search ────────────────────────────────────────────────────────
+
+  async function runSearch(q) {
+    if (searchCtrl) searchCtrl.abort();
+    searchCtrl = new AbortController();
+
+    setStatus("Buscando…");
+
+    try {
+      const res = await fetch(
+        `${BASE_URL}/search?q=${encodeURIComponent(q)}`,
+        { signal: searchCtrl.signal }
+      );
+
+      if (!res.ok || q !== lastQuery) { setStatus(""); return; }
+
+      const data = await res.json();
+
+      if (q !== lastQuery) return;
+
+      setStatus("");
+
+      if (data.length === 0) {
+        resultEl.innerHTML = `<p class="empty">Nenhum resultado para "<strong>${escHtml(q)}</strong>"</p>`;
+      } else {
+        render(data);
+      }
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        setStatus("");
+        console.error("search:", e);
+      }
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────
+
+  function render(books) {
+    resultEl.innerHTML = books.map(book => {
+      const cover = book.coverUrl
+        ? `<img src="${escAttr(book.coverUrl)}" alt="${escAttr(book.title)}" loading="lazy" onerror="this.replaceWith(noCover())">`
+        : `<div class="no-cover">📖</div>`;
+
+      const authors = Array.isArray(book.authors) && book.authors.length
+        ? escHtml(book.authors.slice(0, 2).join(", "))
+        : "Autor desconhecido";
+
+      return `
+        <div class="card">
+          ${cover}
+          <div class="info">
+            <div class="title">${escHtml(book.title ?? "Sem título")}</div>
+            <div class="author">${authors}</div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ── Utilitários ───────────────────────────────────────────────────
+
+  function noCover() {
+    const d = document.createElement("div");
+    d.className = "no-cover";
+    d.textContent = "📖";
+    return d;
+  }
+
+  function clearResults() { resultEl.innerHTML = ""; }
+  function setStatus(msg) { statusEl.textContent = msg; }
+  function clearTimers() { clearTimeout(suggestTimer); clearTimeout(searchTimer); }
+  function cancelAll() {
+    if (suggestCtrl) { suggestCtrl.abort(); suggestCtrl = null; }
+    if (searchCtrl)  { searchCtrl.abort();  searchCtrl  = null; }
+  }
+
+  function escHtml(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function escAttr(s) { return escHtml(s); }
+</script>
+
+</body>
+</html>
