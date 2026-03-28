@@ -20,13 +20,16 @@ public class BookService implements BookUseCase {
   private final BookEnrichService enrichService;
 
   /**
-   * Estratégia de busca em quatro camadas: 1. OpenSearch com resultados → retorna direto (caminho
-   * ideal) 2. OpenSearch vazio, DB tem dados → retorna DB e enriquece em background 3. OpenSearch
-   * vazio, DB vazio → busca no Google Books de forma síncrona 4. OpenSearch com poucos resultados →
-   * retorna o que tem e enriquece em background
+   * Estratégia de busca em quatro camadas:
+   * 1. OpenSearch com resultados → retorna direto (caminho ideal)
+   * 2. OpenSearch vazio, DB tem dados → retorna DB e enriquece em background
+   * 3. OpenSearch vazio, DB vazio → busca no Google Books de forma síncrona
+   * 4. OpenSearch com poucos resultados → retorna o que tem e enriquece em background
    *
-   * <p>O fallback para DB evita chamadas lentas à API externa quando o OpenSearch está
-   * temporariamente indisponível mas o banco já tem os dados.
+   * <p>O fallback para DB usa searchByTerm, que consulta a coluna search_text
+   * (título + autores + editora em lowercase), cobrindo mais casos que a busca
+   * anterior por título isolado. Isso melhora o hit-rate do fallback e reduz
+   * chamadas desnecessárias ao Google Books.
    */
   @Override
   @Cacheable(
@@ -37,7 +40,9 @@ public class BookService implements BookUseCase {
     var local = search.search(query);
 
     if (local.isEmpty()) {
-      var db = repository.findByTitleContainingIgnoreCase(query);
+      // searchByTerm substitui findByTitleContainingIgnoreCase:
+      // cobre título, autores e editora em uma única query sobre search_text.
+      var db = repository.searchByTerm(query);
       if (!db.isEmpty()) {
         if (db.size() < 3) {
           enrichService.enrichAsync(query);
@@ -55,11 +60,15 @@ public class BookService implements BookUseCase {
   }
 
   /**
-   * Autocomplete com fallback em duas camadas: 1. OpenSearch → resultado mais rápido e relevante 2.
-   * DB (LIKE no título) → usado quando OpenSearch está fora
+   * Autocomplete com fallback em duas camadas:
+   * 1. OpenSearch → resultado mais rápido e relevante
+   * 2. DB (LIKE no título ordenado) → usado quando OpenSearch está fora
    *
-   * <p>Resultados vazios não são cacheados (unless) para que a busca seja retentada quando
-   * OpenSearch voltar.
+   * <p>Mantém findByTitleContainingIgnoreCaseOrderByTitleAsc para autocomplete:
+   * busca restrita ao título é mais precisa para sugestões curtas (prefix-style),
+   * onde o usuário ainda está digitando e espera ver o título bater diretamente.
+   * Resultados vazios não são cacheados (unless) para que a busca seja
+   * retentada quando OpenSearch voltar.
    */
   @Override
   @Cacheable(
@@ -78,6 +87,7 @@ public class BookService implements BookUseCase {
 
   @Override
   @Transactional(readOnly = true)
+  @Cacheable(value = "book-detail", key = "#id")
   public Book getById(Long id) {
     return repository.findById(id).orElseThrow(() -> new BookNotFoundException(id));
   }

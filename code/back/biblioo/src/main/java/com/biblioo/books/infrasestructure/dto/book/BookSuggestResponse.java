@@ -1,4 +1,4 @@
-package com.biblioo.books.infrasestructure.dto;
+package com.biblioo.books.infrasestructure.dto.book;
 
 import java.util.List;
 

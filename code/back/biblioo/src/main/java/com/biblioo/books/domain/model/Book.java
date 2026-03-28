@@ -3,11 +3,17 @@ package com.biblioo.books.domain.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 @Entity
 @Table(
@@ -36,9 +42,11 @@ public class Book {
   @Column(nullable = false, length = 500)
   private String title; // Título do livro.
 
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "book_authors", joinColumns = @JoinColumn(name = "book_id"))
   @Column(name = "author")
+  @JsonSerialize(as = ArrayList.class)
+  @JsonDeserialize(as = ArrayList.class)
   private List<String> authors; // Lista de autores do livro.
 
   @Column(length = 300)
@@ -68,6 +76,7 @@ public class Book {
   @Column(nullable = false, length = 20)
   private String source; // Origem ou fonte do livro (ex.: "Google Books").
 
+  @JsonIgnore
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "book_categories",
@@ -83,6 +92,13 @@ public class Book {
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt; // Data e hora em que o registro do livro foi criado.
+
+  @PostLoad
+  protected void onLoad() {
+    if (authors != null) {
+      this.authors = new ArrayList<>(authors);
+    }
+  }
 
   @PrePersist
   protected void onCreate() {
