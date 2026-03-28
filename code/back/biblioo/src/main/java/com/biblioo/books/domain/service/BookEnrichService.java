@@ -60,7 +60,7 @@ public class BookEnrichService {
 
   /**
    * Filtra livros que ainda não existem no banco (por ISBN) e os salva. @Transactional garante que
-   * o findAllByIsbn e o saveAll ocorram na mesma unidade de trabalho, reduzindo janelas de race
+   * o findExistingIsbns e o saveAll ocorram na mesma unidade de trabalho, reduzindo janelas de race
    * condition. A constraint UNIQUE de isbn no banco é a última linha de defesa contra inserções
    * duplicadas concorrentes.
    */
@@ -77,8 +77,9 @@ public class BookEnrichService {
 
     if (isbns.isEmpty()) return List.of();
 
-    // Set<String> retornado pelo repo: contains() é O(1)
-    Set<String> existing = repository.findAllByIsbn(isbns);
+    // findExistingIsbns retorna Set<String>: contains() é O(1).
+    // Renomeado de findAllByIsbn para deixar a intenção explícita no callsite.
+    Set<String> existing = repository.findExistingIsbns(isbns);
 
     return books.stream()
         .filter(b -> b.getIsbn() != null)
