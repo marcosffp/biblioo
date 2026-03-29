@@ -1,4 +1,4 @@
-package com.biblioo.user.domain.service;
+package com.biblioo.user.infrastructure.auth;
 
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
@@ -9,33 +9,33 @@ import com.biblioo.user.domain.model.AuthResult;
 import com.biblioo.user.domain.model.RefreshToken;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.AuthUseCase;
-import com.biblioo.user.domain.port.out.PasswordEncoderPort;
 import com.biblioo.user.domain.port.out.RefreshTokenRepositoryPort;
-import com.biblioo.user.domain.port.out.TokenCleanupPort;
-import com.biblioo.user.domain.port.out.TokenGeneratorPort;
 import com.biblioo.user.domain.port.out.UserRepositoryPort;
+import com.biblioo.user.infrastructure.async.TokenCleanupAdapter;
+import com.biblioo.user.infrastructure.security.JwtService;
 import java.time.LocalDateTime;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
-public class AuthService implements AuthUseCase {
+public class AuthServiceImpl implements AuthUseCase {
 
   private final UserRepositoryPort userRepo;
   private final RefreshTokenRepositoryPort tokenRepo;
-  private final PasswordEncoderPort passwordEncoder;
-  private final TokenGeneratorPort tokenGenerator;
-  private final TokenCleanupPort tokenCleanup;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtService jwtService;
+  private final TokenCleanupAdapter tokenCleanup;
   private final int refreshTokenExpirationDays;
 
-  public AuthService(
+  public AuthServiceImpl(
       UserRepositoryPort userRepo,
       RefreshTokenRepositoryPort tokenRepo,
-      PasswordEncoderPort passwordEncoder,
-      TokenGeneratorPort tokenGenerator,
-      TokenCleanupPort tokenCleanup,
+      PasswordEncoder passwordEncoder,
+      JwtService jwtService,
+      TokenCleanupAdapter tokenCleanup,
       int refreshTokenExpirationDays) {
     this.userRepo = userRepo;
     this.tokenRepo = tokenRepo;
     this.passwordEncoder = passwordEncoder;
-    this.tokenGenerator = tokenGenerator;
+    this.jwtService = jwtService;
     this.tokenCleanup = tokenCleanup;
     this.refreshTokenExpirationDays = refreshTokenExpirationDays;
   }
@@ -63,13 +63,14 @@ public class AuthService implements AuthUseCase {
     }
 
     AuthResult result = buildAuthResult(user);
-    tokenCleanup.scheduleCleanup(user.getId()); // fire-and-forget em thread separada
+    tokenCleanup.scheduleCleanup(user.getId());
     return result;
   }
 
   @Override
   public AuthResult refresh(String refreshToken) {
-    RefreshToken token = tokenRepo.findByToken(refreshToken).orElseThrow(InvalidTokenException::new);
+    RefreshToken token =
+        tokenRepo.findByToken(refreshToken).orElseThrow(InvalidTokenException::new);
 
     if (!token.isValid()) throw new InvalidTokenException();
 
@@ -97,8 +98,8 @@ public class AuthService implements AuthUseCase {
 
   private AuthResult buildAuthResult(User user) {
     String accessToken =
-        tokenGenerator.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
-    String rawRefresh = tokenGenerator.generateRefreshToken();
+        jwtService.generateAccessToken(user.getId(), user.getEmail(), user.getUsername());
+    String rawRefresh = jwtService.generateRefreshToken();
 
     RefreshToken refreshToken = new RefreshToken();
     refreshToken.setToken(rawRefresh);

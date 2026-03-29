@@ -31,10 +31,6 @@ public class BookEnrichService {
   private final OpenSearchBookAdapter search;
   private final GoogleBooksAdapter external;
 
-  /**
-   * Versão síncrona: usada quando o OpenSearch está vazio e o usuário precisa de uma resposta
-   * imediata.
-   */
   public List<Book> enrichSync(String query) {
     var externalBooks = external.search(query);
     if (externalBooks.isEmpty()) return List.of();
@@ -42,10 +38,6 @@ public class BookEnrichService {
     return externalBooks;
   }
 
-  /**
-   * Versão assíncrona: enriquece o índice em background para que a próxima busca com o mesmo termo
-   * já encontre resultados locais.
-   */
   @Async("bookEnrichExecutor")
   public CompletableFuture<Void> enrichAsync(String query) {
     try {
@@ -58,12 +50,6 @@ public class BookEnrichService {
     return CompletableFuture.completedFuture(null);
   }
 
-  /**
-   * Filtra livros que ainda não existem no banco (por ISBN) e os salva. @Transactional garante que
-   * o findExistingIsbns e o saveAll ocorram na mesma unidade de trabalho, reduzindo janelas de race
-   * condition. A constraint UNIQUE de isbn no banco é a última linha de defesa contra inserções
-   * duplicadas concorrentes.
-   */
   @Transactional
   public void persistNewBooks(List<Book> books) {
     var newBooks = filterExisting(books);
@@ -77,8 +63,6 @@ public class BookEnrichService {
 
     if (isbns.isEmpty()) return List.of();
 
-    // findExistingIsbns retorna Set<String>: contains() é O(1).
-    // Renomeado de findAllByIsbn para deixar a intenção explícita no callsite.
     Set<String> existing = repository.findExistingIsbns(isbns);
 
     return books.stream()

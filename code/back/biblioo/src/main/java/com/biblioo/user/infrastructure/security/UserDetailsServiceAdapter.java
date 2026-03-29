@@ -22,8 +22,7 @@ public class UserDetailsServiceAdapter implements UserDetailsService {
             .findById(Long.parseLong(userId))
             .orElseThrow(() -> new UsernameNotFoundException("User not found: " + userId));
 
-    return org.springframework.security.core.userdetails.User.withUsername(
-            user.getId().toString())
+    return org.springframework.security.core.userdetails.User.withUsername(user.getId().toString())
         .password(user.getPasswordHash())
         .roles("USER")
         .build();

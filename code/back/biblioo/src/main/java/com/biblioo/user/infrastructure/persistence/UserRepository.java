@@ -14,8 +14,7 @@ public interface UserRepository extends JpaRepository<User, Long>, UserRepositor
    * leitura desnecessária de bio/bannerUrl em caminhos de autenticação.
    */
   @Override
-  @Query(
-      "SELECT u FROM User u WHERE u.email = :email")
+  @Query("SELECT u FROM User u WHERE u.email = :email")
   Optional<User> findByEmail(@Param("email") String email);
 
   /**

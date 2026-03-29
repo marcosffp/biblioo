@@ -2,25 +2,35 @@ package com.biblioo.user.domain.service;
 
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
+import com.biblioo.user.domain.model.ProfileAccess;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.UserUseCase;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
+import com.biblioo.user.domain.port.out.RefreshTokenRepositoryPort;
 import com.biblioo.user.domain.port.out.UserFollowRepositoryPort;
 import com.biblioo.user.domain.port.out.UserRepositoryPort;
+import com.biblioo.user.domain.port.out.UserSearchPort;
+import java.util.List;
 
 public class UserService implements UserUseCase {
 
   private final UserRepositoryPort userRepo;
   private final UserFollowRepositoryPort followRepo;
   private final ProfileImagePort profileImagePort;
+  private final RefreshTokenRepositoryPort tokenRepo;
+  private final UserSearchPort searchPort;
 
   public UserService(
       UserRepositoryPort userRepo,
       UserFollowRepositoryPort followRepo,
-      ProfileImagePort profileImagePort) {
+      ProfileImagePort profileImagePort,
+      RefreshTokenRepositoryPort tokenRepo,
+      UserSearchPort searchPort) {
     this.userRepo = userRepo;
     this.followRepo = followRepo;
     this.profileImagePort = profileImagePort;
+    this.tokenRepo = tokenRepo;
+    this.searchPort = searchPort;
   }
 
   @Override
@@ -34,12 +44,31 @@ public class UserService implements UserUseCase {
   }
 
   @Override
+  public ProfileAccess getProfile(Long viewerId, String username) {
+    User target =
+        userRepo.findByUsername(username).orElseThrow(() -> new UserNotFoundException(username));
+
+    if (!target.isPrivate()) {
+      return new ProfileAccess(target, false);
+    }
+
+    boolean allowed =
+        viewerId != null
+            && (viewerId.equals(target.getId())
+                || followRepo.isFollowing(viewerId, target.getId()));
+
+    return new ProfileAccess(target, !allowed);
+  }
+
+  @Override
   public User updateProfile(Long userId, String bio, String avatarUrl, String bannerUrl) {
     User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
     if (bio != null) user.setBio(bio);
     if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
     if (bannerUrl != null) user.setBannerUrl(bannerUrl);
-    return userRepo.save(user);
+    User saved = userRepo.save(user);
+    searchPort.index(saved);
+    return saved;
   }
 
   @Override
@@ -51,11 +80,12 @@ public class UserService implements UserUseCase {
 
   @Override
   public User uploadAvatar(Long userId, byte[] imageBytes) {
-    // Upload assíncrono no userTaskExecutor; join() aguarda o resultado antes de persistir
     String url = profileImagePort.uploadProfileImage(imageBytes, userId.toString()).join();
     User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
     user.setAvatarUrl(url);
-    return userRepo.save(user);
+    User saved = userRepo.save(user);
+    searchPort.index(saved);
+    return saved;
   }
 
   @Override
@@ -63,7 +93,9 @@ public class UserService implements UserUseCase {
     String url = profileImagePort.uploadBannerImage(imageBytes, userId.toString()).join();
     User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
     user.setBannerUrl(url);
-    return userRepo.save(user);
+    User saved = userRepo.save(user);
+    searchPort.index(saved);
+    return saved;
   }
 
   @Override
@@ -86,5 +118,30 @@ public class UserService implements UserUseCase {
   @Override
   public boolean isFollowing(Long followerId, Long followedId) {
     return followRepo.isFollowing(followerId, followedId);
+  }
+
+  @Override
+  public void deleteAccount(Long userId) {
+    userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    tokenRepo.deleteAllByUserId(userId);
+    followRepo.deleteAllByUser(userId);
+    userRepo.deleteById(userId);
+    searchPort.deleteFromIndex(userId);
+  }
+
+  @Override
+  public List<User> getFollowers(Long userId, int page, int size) {
+    return followRepo.findFollowers(userId, page, size);
+  }
+
+  @Override
+  public List<User> getFollowing(Long userId, int page, int size) {
+    return followRepo.findFollowing(userId, page, size);
+  }
+
+  @Override
+  public List<User> searchUsers(String term, int page, int size) {
+    if (term == null || term.isBlank() || term.length() < 2) return List.of();
+    return searchPort.search(term, page, size);
   }
 }

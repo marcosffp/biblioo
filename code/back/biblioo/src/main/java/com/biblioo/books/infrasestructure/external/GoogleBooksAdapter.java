@@ -232,9 +232,10 @@ public class GoogleBooksAdapter {
   private String extractIsbn(VolumeInfo info) {
     if (info.industryIdentifiers() == null) return null;
 
-    log.info(info.industryIdentifiers().stream()
-        .map(id -> id.type() + ":" + id.identifier())
-        .collect(Collectors.joining(", ", "IDs encontrados: [", "]")));
+    log.info(
+        info.industryIdentifiers().stream()
+            .map(id -> id.type() + ":" + id.identifier())
+            .collect(Collectors.joining(", ", "IDs encontrados: [", "]")));
 
     String isbn13 =
         info.industryIdentifiers().stream()
@@ -293,7 +294,5 @@ public class GoogleBooksAdapter {
       String language,
       Map<String, String> imageLinks) {}
 
-  record IndustryIdentifier(String type, String identifier){
-
-  }
+  record IndustryIdentifier(String type, String identifier) {}
 }

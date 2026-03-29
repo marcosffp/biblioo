@@ -1,4 +1,4 @@
-package com.biblioo.books.infrasestructure.config;
+package com.biblioo.infrastructure.config;
 
 import org.apache.http.HttpHost;
 import org.opensearch.client.RestClient;
@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-// OpenSearchConfig.java
 @Configuration
 public class OpenSearchConfig {
 
@@ -26,7 +25,7 @@ public class OpenSearchConfig {
             .setHttpClientConfigCallback(
                 httpClientBuilder ->
                     httpClientBuilder
-                        .setKeepAliveStrategy((response, context) -> 30_000) // 30s keep-alive
+                        .setKeepAliveStrategy((response, context) -> 30_000)
                         .setConnectionReuseStrategy((response, context) -> true))
             .setRequestConfigCallback(
                 requestConfigBuilder ->

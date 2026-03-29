@@ -8,19 +8,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Cria e popula a tabela stub de usuários em ambiente local.
+ * Popula usuários de teste em ambiente local.
  *
- * Ativo apenas quando dev.user-stub.enabled=true (application-local.properties).
- *
- * O que faz na inicialização:
- *   1. Cria a tabela "users" se ainda não existir — estrutura mínima
- *      com apenas o id, suficiente para satisfazer as foreign keys
- *      das tabelas de estantes, coleções e itens.
- *   2. Insere os usuários de teste (id 1 a 4) se ainda não existirem
- *      — idempotente, pode reiniciar a aplicação sem duplicar.
- *
- * Quando o módulo de usuários for implementado, basta remover este
- * componente e o application-local.properties — nada mais muda.
+ * <p>Ativo apenas quando dev.user-stub.enabled=true (application-local.properties). A tabela
+ * "users" é gerenciada pelo JPA — este seeder apenas insere linhas de teste se ainda não existirem
+ * (idempotente).
  */
 @Slf4j
 @Component
@@ -28,43 +20,35 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "dev.user-stub.enabled", havingValue = "true")
 public class DevUserSeeder {
 
-    private final JdbcTemplate jdbc;
+  private final JdbcTemplate jdbc;
 
-    @PostConstruct
-    public void seed() {
-        createTableIfNotExists();
-        insertStubUsers();
+  @PostConstruct
+  public void seed() {
+    String[][] users = {
+      {"devuser1", "dev1@biblioo.local"},
+      {"devuser2", "dev2@biblioo.local"},
+      {"devuser3", "dev3@biblioo.local"},
+      {"devuser4", "dev4@biblioo.local"},
+    };
+
+    // BCrypt hash de "password123" — pré-calculado para não depender do PasswordEncoder aqui
+    String passwordHash = "$2a$10$7EqJtq98hPqEX7fNZaFWoO9EZUQ2mP6qD8sVKNTVbI3MJx.cLZxAa";
+
+    for (String[] u : users) {
+      int exists =
+          jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE username = ?", Integer.class, u[0]);
+      if (exists == 0) {
+        jdbc.update(
+            "INSERT INTO users (username, email, password_hash, is_private, created_at, updated_at)"
+                + " VALUES (?, ?, ?, ?, NOW(), NOW())",
+            u[0],
+            u[1],
+            passwordHash,
+            false);
+        log.info("[DEV] Usuário stub criado: username={}", u[0]);
+      }
     }
 
-    private void createTableIfNotExists() {
-        jdbc.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id         BIGINT       NOT NULL AUTO_INCREMENT,
-                    name       VARCHAR(100) NOT NULL DEFAULT 'Dev User',
-                    created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    PRIMARY KEY (id)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-                """);
-
-        log.info("[DEV] Tabela 'users' verificada/criada.");
-    }
-
-    private void insertStubUsers() {
-        int[] ids = {1, 2, 3, 4};
-
-        for (int id : ids) {
-            int exists = jdbc.queryForObject(
-                    "SELECT COUNT(*) FROM users WHERE id = ?",
-                    Integer.class, id);
-
-            if (exists == 0) {
-                jdbc.update(
-                        "INSERT INTO users (id, name) VALUES (?, ?)",
-                        id, "Dev User " + id);
-                log.info("[DEV] Usuário stub criado: id={}", id);
-            }
-        }
-
-        log.info("[DEV] Seed de usuários concluído. IDs disponíveis: 1, 2, 3, 4");
-    }
+    log.info("[DEV] Seed de usuários concluído.");
+  }
 }

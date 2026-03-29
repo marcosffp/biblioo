@@ -1,13 +1,11 @@
 package com.biblioo.books.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,47 +32,47 @@ public class Book {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id; // Identificador único do livro no banco de dados.
+  private Long id;
 
   @Column(nullable = false, length = 20, unique = true)
-  private String isbn; // Código único internacional que identifica o livro.
+  private String isbn;
 
   @Column(nullable = false, length = 500)
-  private String title; // Título do livro.
+  private String title;
 
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "book_authors", joinColumns = @JoinColumn(name = "book_id"))
   @Column(name = "author")
   @JsonSerialize(as = ArrayList.class)
   @JsonDeserialize(as = ArrayList.class)
-  private List<String> authors; // Lista de autores do livro.
+  private List<String> authors;
 
   @Column(length = 300)
-  private String publisher; // Nome da editora que publicou o livro.
+  private String publisher;
 
   @Column(name = "published_at")
-  private LocalDate publishedAt; // Data de publicação do livro.
+  private LocalDate publishedAt;
 
   @Lob
   @Basic(fetch = FetchType.LAZY)
-  private String description; // Descrição detalhada ou sinopse do livro.
+  private String description;
 
   @Column(name = "cover_url", length = 1000)
-  private String coverUrl; // URL da imagem da capa do livro.
+  private String coverUrl;
 
-  private Integer pageCount; // Número de páginas do livro.
+  private Integer pageCount;
 
-  private Float averageRating; // Média das avaliações recebidas pelo livro.
+  private Float averageRating;
 
-  private Integer ratingCount; // Número total de avaliações recebidas.
+  private Integer ratingCount;
 
-  private Integer readerCount; // Número de leitores que marcaram o livro como lido.
+  private Integer readerCount;
 
   @Column(length = 10)
-  private String language; // Idioma do livro (código de idioma, como "en" ou "pt").
+  private String language;
 
   @Column(nullable = false, length = 20)
-  private String source; // Origem ou fonte do livro (ex.: "Google Books").
+  private String source;
 
   @JsonIgnore
   @ManyToMany(fetch = FetchType.LAZY)
@@ -82,16 +80,14 @@ public class Book {
       name = "book_categories",
       joinColumns = @JoinColumn(name = "book_id"),
       inverseJoinColumns = @JoinColumn(name = "category_id"))
-  private List<Category> categories; // Lista de categorias ou gêneros associados ao livro.
+  private List<Category> categories;
 
   @Column(columnDefinition = "TEXT")
   private String
-      searchText; // Texto otimizado para buscas rápidas, contendo informações relevantes do
-
-  // livro.
+      searchText;
 
   @Column(name = "created_at", nullable = false, updatable = false)
-  private LocalDateTime createdAt; // Data e hora em que o registro do livro foi criado.
+  private LocalDateTime createdAt;
 
   @PostLoad
   protected void onLoad() {

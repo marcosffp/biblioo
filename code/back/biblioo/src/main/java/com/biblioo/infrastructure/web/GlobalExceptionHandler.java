@@ -1,80 +1,182 @@
 package com.biblioo.infrastructure.web;
 
+import com.biblioo.books.domain.exception.BookNotFoundException;
+import com.biblioo.books.domain.exception.ShelfBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
 import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  // ── User ──────────────────────────────────────────────────────────────────
+
   @ExceptionHandler(UserNotFoundException.class)
-  ResponseEntity<ProblemDetail> handleUserNotFound(UserNotFoundException ex) {
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
-    pd.setTitle("User Not Found");
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+  ResponseEntity<ErrorResponse> handleUserNotFound(
+      UserNotFoundException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
   }
 
   @ExceptionHandler(EmailAlreadyExistsException.class)
-  ResponseEntity<ProblemDetail> handleEmailExists(EmailAlreadyExistsException ex) {
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-    pd.setTitle("Email Already In Use");
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+  ResponseEntity<ErrorResponse> handleEmailExists(
+      EmailAlreadyExistsException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
   @ExceptionHandler(UsernameAlreadyExistsException.class)
-  ResponseEntity<ProblemDetail> handleUsernameExists(UsernameAlreadyExistsException ex) {
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-    pd.setTitle("Username Already In Use");
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+  ResponseEntity<ErrorResponse> handleUsernameExists(
+      UsernameAlreadyExistsException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
   @ExceptionHandler(InvalidCredentialsException.class)
-  ResponseEntity<ProblemDetail> handleInvalidCredentials(InvalidCredentialsException ex) {
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
-    pd.setTitle("Invalid Credentials");
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);
+  ResponseEntity<ErrorResponse> handleInvalidCredentials(
+      InvalidCredentialsException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
   }
 
   @ExceptionHandler(InvalidTokenException.class)
-  ResponseEntity<ProblemDetail> handleInvalidToken(InvalidTokenException ex) {
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
-    pd.setTitle("Invalid Token");
-    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(pd);
+  ResponseEntity<ErrorResponse> handleInvalidToken(
+      InvalidTokenException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
   }
 
   @ExceptionHandler(AlreadyFollowingException.class)
-  ResponseEntity<ProblemDetail> handleAlreadyFollowing(AlreadyFollowingException ex) {
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-    pd.setTitle("Already Following");
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+  ResponseEntity<ErrorResponse> handleAlreadyFollowing(
+      AlreadyFollowingException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  // ── Books ─────────────────────────────────────────────────────────────────
+
+  @ExceptionHandler(BookNotFoundException.class)
+  ResponseEntity<ErrorResponse> handleBookNotFound(
+      BookNotFoundException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(ShelfBusinessException.class)
+  ResponseEntity<ErrorResponse> handleShelfBusiness(
+      ShelfBusinessException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  // ── Validação / Input ─────────────────────────────────────────────────────
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  ResponseEntity<ValidationErrorResponse> handleValidation(
+      MethodArgumentNotValidException ex, HttpServletRequest request) {
+    List<FieldError> errors =
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(fe -> new FieldError(fe.getField(), fe.getDefaultMessage()))
+            .toList();
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(
+            new ValidationErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "Erro de validação",
+                request.getRequestURI(),
+                errors));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  ResponseEntity<ErrorResponse> handleNotReadable(
+      HttpMessageNotReadableException ex, HttpServletRequest request) {
+    String message = "Body da requisição inválido.";
+    Throwable cause = ex.getCause();
+    if (cause instanceof InvalidFormatException ife
+        && ife.getTargetType() != null
+        && ife.getTargetType().isEnum()) {
+      String validValues =
+          Arrays.stream(ife.getTargetType().getEnumConstants())
+              .map(Object::toString)
+              .collect(Collectors.joining(", "));
+      message = "Valor inválido '" + ife.getValue() + "'. Valores aceitos: [" + validValues + "]";
+    }
+    return buildError(HttpStatus.BAD_REQUEST, message, request);
+  }
+
+  @ExceptionHandler(MissingRequestHeaderException.class)
+  ResponseEntity<ErrorResponse> handleMissingHeader(
+      MissingRequestHeaderException ex, HttpServletRequest request) {
+    return buildError(
+        HttpStatus.BAD_REQUEST, "Header obrigatório ausente: " + ex.getHeaderName(), request);
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  ResponseEntity<ErrorResponse> handleTypeMismatch(
+      MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+    String type =
+        ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "tipo desconhecido";
+    return buildError(
+        HttpStatus.BAD_REQUEST,
+        "Parâmetro inválido: '" + ex.getName() + "' deve ser do tipo " + type,
+        request);
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
-  ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
-    pd.setTitle("Bad Request");
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
+  ResponseEntity<ErrorResponse> handleIllegalArgument(
+      IllegalArgumentException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
   }
 
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
-    String detail =
-        ex.getBindingResult().getFieldErrors().stream()
-            .map(FieldError::getDefaultMessage)
-            .findFirst()
-            .orElse("Validation failed");
-    ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
-    pd.setTitle("Validation Error");
-    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  ResponseEntity<ErrorResponse> handleMaxUploadSize(
+      MaxUploadSizeExceededException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, "Arquivo excede o tamanho máximo de 5MB", request);
   }
+
+  @ExceptionHandler(Exception.class)
+  ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
+    return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno. Tente novamente.", request);
+  }
+
+  // ── Helper ────────────────────────────────────────────────────────────────
+
+  private ResponseEntity<ErrorResponse> buildError(
+      HttpStatus status, String message, HttpServletRequest request) {
+    return ResponseEntity.status(status)
+        .body(
+            new ErrorResponse(
+                LocalDateTime.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                request.getRequestURI()));
+  }
+
+  // ── Response DTOs ─────────────────────────────────────────────────────────
+
+  public record ErrorResponse(
+      LocalDateTime timestamp, int status, String error, String message, String path) {}
+
+  public record ValidationErrorResponse(
+      LocalDateTime timestamp,
+      int status,
+      String error,
+      String message,
+      String path,
+      List<FieldError> errors) {}
+
+  public record FieldError(String field, String message) {}
 }

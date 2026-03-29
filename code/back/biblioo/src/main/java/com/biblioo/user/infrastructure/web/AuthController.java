@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/v1/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -25,7 +25,8 @@ public class AuthController {
 
   @PostMapping("/register")
   public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-    AuthResult result = authUseCase.register(request.username(), request.email(), request.password());
+    AuthResult result =
+        authUseCase.register(request.username(), request.email(), request.password());
     return ResponseEntity.status(HttpStatus.CREATED).body(toAuthResponse(result));
   }
 

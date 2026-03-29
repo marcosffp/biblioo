@@ -1,6 +1,5 @@
 package com.biblioo.user.infrastructure.security;
 
-import com.biblioo.user.domain.port.out.TokenGeneratorPort;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -12,7 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class JwtService implements TokenGeneratorPort {
+public class JwtService {
 
   private final SecretKey signingKey;
   private final long accessTokenExpirationSeconds;
@@ -24,7 +23,6 @@ public class JwtService implements TokenGeneratorPort {
     this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
   }
 
-  @Override
   public String generateAccessToken(Long userId, String email, String username) {
     return Jwts.builder()
         .subject(userId.toString())
@@ -36,12 +34,10 @@ public class JwtService implements TokenGeneratorPort {
         .compact();
   }
 
-  @Override
   public String generateRefreshToken() {
     return UUID.randomUUID().toString();
   }
 
-  @Override
   public Long extractUserId(String token) {
     return Long.parseLong(
         Jwts.parser()
@@ -52,7 +48,6 @@ public class JwtService implements TokenGeneratorPort {
             .getSubject());
   }
 
-  @Override
   public boolean isValidAccessToken(String token) {
     try {
       Jwts.parser().verifyWith(signingKey).build().parseSignedClaims(token);

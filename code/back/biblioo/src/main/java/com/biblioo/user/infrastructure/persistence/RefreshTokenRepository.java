@@ -28,8 +28,7 @@ public interface RefreshTokenRepository
   @Query(
       "DELETE FROM RefreshToken t WHERE t.userId = :userId"
           + " AND (t.used = true OR t.expiresAt < :now)")
-  void deleteExpiredOrUsedByUserId(
-      @Param("userId") Long userId, @Param("now") LocalDateTime now);
+  void deleteExpiredOrUsedByUserId(@Param("userId") Long userId, @Param("now") LocalDateTime now);
 
   @Override
   default void deleteExpiredOrUsed(Long userId) {

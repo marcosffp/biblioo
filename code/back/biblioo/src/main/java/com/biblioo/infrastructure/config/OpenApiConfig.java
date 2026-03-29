@@ -14,7 +14,11 @@ class OpenApiConfig {
   @Bean
   OpenAPI openAPI() {
     return new OpenAPI()
-        .info(new Info().title("Biblioo API").version("v1").description("Plataforma literária Biblioo"))
+        .info(
+            new Info()
+                .title("Biblioo API")
+                .version("v1")
+                .description("Plataforma literária Biblioo"))
         .addSecurityItem(new SecurityRequirement().addList("Bearer"))
         .components(
             new Components()
@@ -24,6 +28,6 @@ class OpenApiConfig {
                         .type(SecurityScheme.Type.HTTP)
                         .scheme("bearer")
                         .bearerFormat("JWT")
-                        .description("Insira o access token JWT obtido em /v1/auth/login")));
+                        .description("Insira o access token JWT obtido em /auth/login")));
   }
 }

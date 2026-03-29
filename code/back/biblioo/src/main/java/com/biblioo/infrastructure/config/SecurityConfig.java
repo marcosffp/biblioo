@@ -1,4 +1,4 @@
-package com.biblioo.user.infrastructure.config;
+package com.biblioo.infrastructure.config;
 
 import com.biblioo.user.infrastructure.security.JwtAuthenticationFilter;
 import com.biblioo.user.infrastructure.security.UserDetailsServiceAdapter;
@@ -34,11 +34,20 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/v1/auth/**")
+                auth.requestMatchers("/auth/**")
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/v1/books/**")
+                    .requestMatchers(HttpMethod.GET, "/users")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/books/**")
                     .permitAll()
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html")
+                    .permitAll()
+                    // /me deve ser autenticado — declarado ANTES do wildcard abaixo
+                    .requestMatchers(HttpMethod.GET, "/users/me")
+                    .authenticated()
+                    // Perfis públicos acessíveis sem login; controller trata restrição de privados
+                    .requestMatchers(
+                        HttpMethod.GET, "/users/*", "/users/*/followers", "/users/*/following")
                     .permitAll()
                     .anyRequest()
                     .authenticated())

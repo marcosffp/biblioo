@@ -24,7 +24,8 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
   boolean existsByShelfIdAndBookId(Long shelfId, Long bookId);
 
   @Modifying
-  @Query("""
+  @Query(
+      """
       UPDATE ShelfItem si
       SET si.currentPage    = :currentPage,
           si.updatedAt      = CURRENT_TIMESTAMP
@@ -32,12 +33,14 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
         AND si.bookId  = :bookId
         AND si.deletedAt IS NULL
       """)
-  int updateProgress(@Param("shelfId") Long shelfId,
+  int updateProgress(
+      @Param("shelfId") Long shelfId,
       @Param("bookId") Long bookId,
       @Param("currentPage") Integer currentPage);
 
   @Modifying
-  @Query("""
+  @Query(
+      """
       UPDATE ShelfItem si
       SET si.deletedAt = CURRENT_TIMESTAMP
       WHERE si.shelfId   = :shelfId
@@ -46,14 +49,23 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
   int softDeleteByShelfId(@Param("shelfId") Long shelfId);
 
   @Modifying
-  @Query("""
+  @Query(
+      """
       UPDATE ShelfItem si
       SET si.deletedAt = CURRENT_TIMESTAMP
       WHERE si.shelfId   = :shelfId
         AND si.bookId    = :bookId
         AND si.deletedAt IS NULL
       """)
-  int softDeleteByShelfIdAndBookId(@Param("shelfId") Long shelfId,
-      @Param("bookId") Long bookId);
+  int softDeleteByShelfIdAndBookId(@Param("shelfId") Long shelfId, @Param("bookId") Long bookId);
 
+  @Modifying
+  @Query(
+      """
+      UPDATE ShelfItem si
+      SET si.deletedAt = CURRENT_TIMESTAMP
+      WHERE si.id = :id
+        AND si.deletedAt IS NULL
+      """)
+  int softDelete(@Param("id") Long id);
 }

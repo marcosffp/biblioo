@@ -1,10 +1,11 @@
 package com.biblioo.infrastructure.external.cloudinary;
 
-import com.biblioo.books.domain.port.out.BookCoverPort;
+import com.biblioo.books.domain.port.out.ReviewImagePort;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class CloudinaryStorageAdapter implements ProfileImagePort, BookCoverPort {
+public class CloudinaryStorageAdapter implements ProfileImagePort, ReviewImagePort {
 
   private final Cloudinary cloudinary;
 
@@ -31,9 +32,55 @@ public class CloudinaryStorageAdapter implements ProfileImagePort, BookCoverPort
         upload(imageBytes, "biblioo/users/" + userId + "/banner"));
   }
 
+  @Async("userTaskExecutor")
   @Override
-  public String uploadBookCover(byte[] imageBytes, String isbn) {
-    return upload(imageBytes, "biblioo/books/" + isbn);
+  public CompletableFuture<String> uploadReviewImage(
+      byte[] imageBytes, String reviewId, String imageId) {
+    return CompletableFuture.completedFuture(
+        upload(imageBytes, "biblioo/reviews/" + reviewId + "/" + imageId));
+  }
+
+  @Async("userTaskExecutor")
+  @Override
+  public CompletableFuture<Void> deleteReviewImages(List<String> imageUrls) {
+    if (imageUrls != null) {
+      for (String url : imageUrls) {
+        try {
+          String publicId = extractPublicId(url);
+          if (publicId != null) {
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+          }
+        } catch (Exception e) {
+          // Ignores the exception and continues deleting the rest
+        }
+      }
+    }
+    return CompletableFuture.completedFuture(null);
+  }
+
+  private String extractPublicId(String url) {
+    try {
+      int uploadIndex = url.indexOf("/upload/");
+      if (uploadIndex == -1) return null;
+
+      String path = url.substring(uploadIndex + 8);
+      int versionSlashIndex = path.indexOf('/');
+
+      if (path.startsWith("v") && versionSlashIndex != -1) {
+        String possibleVersion = path.substring(1, versionSlashIndex);
+        if (possibleVersion.matches("\\d+")) {
+          path = path.substring(versionSlashIndex + 1);
+        }
+      }
+
+      int lastDotIndex = path.lastIndexOf('.');
+      if (lastDotIndex != -1) {
+        path = path.substring(0, lastDotIndex);
+      }
+      return path;
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   private String upload(byte[] bytes, String publicId) {

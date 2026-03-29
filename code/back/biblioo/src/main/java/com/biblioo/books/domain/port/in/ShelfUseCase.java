@@ -1,37 +1,43 @@
 package com.biblioo.books.domain.port.in;
 
+import com.biblioo.books.domain.model.ReadingStatus;
 import com.biblioo.books.domain.model.Shelf;
 import com.biblioo.books.domain.model.ShelfItem;
 import java.util.List;
 
-import com.biblioo.books.domain.model.ReadingStatus;
-
 public interface ShelfUseCase {
 
-    List<Shelf> listShelves(Long userId);
+  List<Shelf> listShelves(Long userId);
 
-    Shelf getShelf(Long userId, Long shelfId);
+  Shelf getShelf(Long userId, Long shelfId);
 
-    Shelf createShelf(Long userId, String name, String description);
+  Shelf createShelf(Long userId, String name, String description);
 
-    Shelf updateShelf(Long userId, Long shelfId, String name, String description);
+  Shelf updateShelf(Long userId, Long shelfId, String name, String description);
 
-    void deleteShelf(Long userId, Long shelfId);
+  void deleteShelf(Long userId, Long shelfId);
 
-    ShelfItem addShelfItem(Long userId, Long shelfId, Long bookId, ReadingStatus initialStatus);
+  ShelfItem addShelfItem(Long userId, Long shelfId, Long bookId, ReadingStatus initialStatus);
 
-    void removeShelfItem(Long userId, Long shelfId, Long itemId);
+  void removeShelfItem(Long userId, Long shelfId, Long itemId);
 
-    ShelfItem updateItemProgress(Long userId, Long shelfId, Long itemId, Integer page);
+  ShelfItem updateItemProgress(Long userId, Long shelfId, Long itemId, Integer page);
 
-    ShelfItem changeItemStatus(Long userId, Long shelfId, Long itemId, ReadingStatus newStatus);
+  ShelfItem changeItemStatus(Long userId, Long shelfId, Long itemId, ReadingStatus newStatus);
 
-    void reviewItem(Long userId, Long shelfId, Long itemId, Integer rating, String reviewText);
+  void reviewItem(
+      Long userId,
+      Long shelfId,
+      Long itemId,
+      Integer rating,
+      String reviewText,
+      List<byte[]> reviewImages);
 
-    List<ShelfItem> listShelfItems(Long userId, Long shelfId);
+  void deleteReview(Long userId, Long shelfId, Long itemId);
 
-    ShelfItem getShelfItemById(Long userId, Long shelfId, Long itemId);
+  List<ShelfItem> listShelfItems(Long userId, Long shelfId);
 
-    ShelfItem getShelfItem(Long userId, Long shelfId, Long bookId);
+  ShelfItem getShelfItemById(Long userId, Long shelfId, Long itemId);
 
+  ShelfItem getShelfItem(Long userId, Long shelfId, Long bookId);
 }

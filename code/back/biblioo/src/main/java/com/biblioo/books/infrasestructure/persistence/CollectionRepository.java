@@ -11,29 +11,31 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CollectionRepository extends JpaRepository<Collection, Long> {
 
-  @Query("SELECT DISTINCT c FROM Collection c LEFT JOIN FETCH c.shelves WHERE c.userId = :userId ORDER BY c.updatedAt DESC")
+  @Query(
+      "SELECT DISTINCT c FROM Collection c LEFT JOIN FETCH c.shelves WHERE c.userId = :userId ORDER BY c.updatedAt DESC")
   List<Collection> findAllByUserIdOrderByUpdatedAtDesc(@Param("userId") Long userId);
 
   Optional<Collection> findByIdAndUserId(Long id, Long userId);
 
-  @Query("""
+  @Query(
+      """
       SELECT c FROM Collection c
       LEFT JOIN FETCH c.shelves
       WHERE c.id     = :id
         AND c.userId = :userId
       """)
-  Optional<Collection> findByIdAndUserIdWithShelves(@Param("id") Long id,
-      @Param("userId") Long userId);
+  Optional<Collection> findByIdAndUserIdWithShelves(
+      @Param("id") Long id, @Param("userId") Long userId);
 
   boolean existsByUserIdAndName(Long userId, String name);
 
-  @Query("""
+  @Query(
+      """
       SELECT COUNT(c) > 0 FROM Collection c
       WHERE c.userId = :userId
         AND c.name   = :name
         AND c.id    <> :excludeId
       """)
-  boolean existsByUserIdAndNameExcludingId(@Param("userId") Long userId,
-      @Param("name") String name,
-      @Param("excludeId") Long excludeId);
+  boolean existsByUserIdAndNameExcludingId(
+      @Param("userId") Long userId, @Param("name") String name, @Param("excludeId") Long excludeId);
 }

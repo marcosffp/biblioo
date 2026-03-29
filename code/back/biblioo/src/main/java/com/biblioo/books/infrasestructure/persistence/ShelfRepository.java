@@ -16,28 +16,31 @@ public interface ShelfRepository extends JpaRepository<Shelf, Long> {
 
   Optional<Shelf> findByIdAndUserId(Long id, Long userId);
 
-  @Query("""
+  boolean existsByIdAndUserId(Long id, Long userId);
+
+  @Query(
+      """
       SELECT s FROM Shelf s
       WHERE s.id IN :ids
         AND s.userId = :userId
       """)
-  List<Shelf> findAllByIdsAndUserId(@Param("ids") List<Long> ids,
-      @Param("userId") Long userId);
+  List<Shelf> findAllByIdsAndUserId(@Param("ids") List<Long> ids, @Param("userId") Long userId);
 
   boolean existsByUserIdAndName(Long userId, String name);
 
-  @Query("""
+  @Query(
+      """
       SELECT COUNT(s) > 0 FROM Shelf s
       WHERE s.userId = :userId
         AND s.name   = :name
         AND s.id    <> :excludeId
       """)
-  boolean existsByUserIdAndNameExcludingId(@Param("userId") Long userId,
-      @Param("name") String name,
-      @Param("excludeId") Long excludeId);
+  boolean existsByUserIdAndNameExcludingId(
+      @Param("userId") Long userId, @Param("name") String name, @Param("excludeId") Long excludeId);
 
   @Modifying
-  @Query("""
+  @Query(
+      """
       UPDATE Shelf s
       SET s.deletedAt = CURRENT_TIMESTAMP
       WHERE s.id = :id

@@ -1,4 +1,4 @@
-package com.biblioo.books.infrasestructure.config;
+package com.biblioo.infrastructure.config;
 
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
@@ -23,17 +23,6 @@ import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 @EnableRetry
 public class CacheConfig implements CachingConfigurer {
 
-  /**
-   * CacheManager com TTL configurado por cache.
-   *
-   * <p>Serializer: GenericJacksonJsonRedisSerializer (Jackson 3). enableDefaultTyping grava o campo
-   * "@class" no JSON para que o Jackson desserialize corretamente List<Book> e outros tipos
-   * polimórficos.
-   *
-   * <p>- book-search (5 min) : resultado de buscas no OpenSearch/Google Books - book-suggest (10
-   * min): autocomplete (muda pouco entre requisições) - google-books (10 min): evita chamadas
-   * duplicadas à API externa
-   */
   @Bean
   RedisCacheManager cacheManager(RedisConnectionFactory factory) {
     var typeValidator =
@@ -55,19 +44,15 @@ public class CacheConfig implements CachingConfigurer {
 
     return RedisCacheManager.builder(factory)
         .cacheDefaults(base)
+        // books
         .withCacheConfiguration("book-search", base.entryTtl(Duration.ofMinutes(5)))
         .withCacheConfiguration("book-suggest", base.entryTtl(Duration.ofMinutes(10)))
         .withCacheConfiguration("google-books", base.entryTtl(Duration.ofMinutes(10)))
+        // user
+        .withCacheConfiguration("user-profile", base.entryTtl(Duration.ofMinutes(5)))
         .build();
   }
 
-  /**
-   * Trata erros de cache de forma resiliente: - GET com desserialização corrompida → evicta a chave
-   * e trata como cache miss - PUT/EVICT/CLEAR com Redis indisponível → loga e continua sem cache
-   *
-   * <p>Isso elimina a necessidade de bumpar manualmente versões de prefixo quando o formato de
-   * serialização mudar.
-   */
   @Override
   public CacheErrorHandler errorHandler() {
     return new CacheErrorHandler() {
@@ -114,10 +99,6 @@ public class CacheConfig implements CachingConfigurer {
     };
   }
 
-  /**
-   * RetryTemplate para uso direto em métodos privados onde o proxy Spring não alcança (ex.:
-   * GoogleBooksAdapter.fetchFromApi). 3 tentativas com backoff exponencial: 300ms → 600ms → 1200ms.
-   */
   @Bean
   RetryTemplate retryTemplate() {
     return RetryTemplate.builder()

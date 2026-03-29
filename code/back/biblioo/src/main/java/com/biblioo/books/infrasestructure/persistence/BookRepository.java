@@ -12,26 +12,28 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BookRepository extends JpaRepository<Book, Long> {
 
-    Optional<Book> findByIsbn(String isbn);
+  Optional<Book> findByIsbn(String isbn);
 
-    boolean existsByIsbn(String isbn);
+  boolean existsByIsbn(String isbn);
 
-    @Query("SELECT b.isbn FROM Book b WHERE b.isbn IN :isbns")
-    Set<String> findExistingIsbns(@Param("isbns") List<String> isbns);
+  @Query("SELECT b.isbn FROM Book b WHERE b.isbn IN :isbns")
+  Set<String> findExistingIsbns(@Param("isbns") List<String> isbns);
 
-    List<Book> findByTitleContainingIgnoreCaseOrderByTitleAsc(String title);
+  List<Book> findByTitleContainingIgnoreCaseOrderByTitleAsc(String title);
 
-    @Query("""
+  @Query(
+      """
             SELECT b FROM Book b
             WHERE b.searchText LIKE LOWER(CONCAT('%', :term, '%'))
             ORDER BY b.title ASC
             """)
-    List<Book> searchByTerm(@Param("term") String term);
+  List<Book> searchByTerm(@Param("term") String term);
 
-    @Query("""
+  @Query(
+      """
             SELECT b FROM Book b
             WHERE b.averageRating >= :minRating
             ORDER BY b.averageRating DESC NULLS LAST, b.ratingCount DESC NULLS LAST
             """)
-    List<Book> findTopRated(@Param("minRating") Float minRating);
+  List<Book> findTopRated(@Param("minRating") Float minRating);
 }

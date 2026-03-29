@@ -9,7 +9,10 @@ import lombok.Setter;
 @Entity
 @Table(
     name = "refresh_tokens",
-    indexes = {@Index(name = "idx_refresh_tokens_token", columnList = "token")})
+    indexes = {
+      @Index(name = "idx_refresh_tokens_token", columnList = "token"),
+      @Index(name = "idx_refresh_tokens_user_id", columnList = "user_id")
+    })
 @Getter
 @Setter
 @NoArgsConstructor
