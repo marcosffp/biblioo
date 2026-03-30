@@ -1,9 +1,15 @@
-import { AuthSession, LoginRequest } from "@/types";
+import { AuthSession, LoginRequest, RegisterRequest } from "@/types";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
 export const AUTH_SESSION_STORAGE_KEY = "biblioo.auth.session";
 
-export type AuthErrorCode = "INVALID_CREDENTIALS" | "NETWORK" | "UNKNOWN";
+export type AuthErrorCode =
+  | "INVALID_CREDENTIALS"
+  | "EMAIL_IN_USE"
+  | "USERNAME_IN_USE"
+  | "VALIDATION"
+  | "NETWORK"
+  | "UNKNOWN";
 
 export class AuthApiError extends Error {
   readonly status?: number;
@@ -26,7 +32,6 @@ export async function loginWithEmailPassword(payload: LoginRequest): Promise<Aut
       headers: {
         "Content-Type": "application/json",
       },
-      credentials: "include",
       body: JSON.stringify(payload),
     });
   } catch {
@@ -34,11 +39,7 @@ export async function loginWithEmailPassword(payload: LoginRequest): Promise<Aut
   }
 
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new AuthApiError("INVALID_CREDENTIALS", "Email ou senha invalidos.", response.status);
-    }
-
-    throw new AuthApiError("UNKNOWN", "Nao foi possivel autenticar. Tente novamente.", response.status);
+    throw await mapAuthError(response, "login");
   }
 
   const session = (await response.json()) as AuthSession;
@@ -49,6 +50,73 @@ export async function loginWithEmailPassword(payload: LoginRequest): Promise<Aut
 
   saveAuthSession(session);
   return session;
+}
+
+export async function registerWithEmailPassword(payload: RegisterRequest): Promise<AuthSession> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new AuthApiError("NETWORK", "Nao foi possivel conectar ao servidor.");
+  }
+
+  if (!response.ok) {
+    throw await mapAuthError(response, "register");
+  }
+
+  const session = (await response.json()) as AuthSession;
+
+  if (!session.accessToken || !session.refreshToken) {
+    throw new AuthApiError("UNKNOWN", "Resposta de autenticacao invalida.", response.status);
+  }
+
+  saveAuthSession(session);
+  return session;
+}
+
+async function mapAuthError(response: Response, mode: "login" | "register"): Promise<AuthApiError> {
+  const errorDetails = await readErrorDetails(response);
+
+  if (mode === "login" && (response.status === 401 || response.status === 403)) {
+    return new AuthApiError("INVALID_CREDENTIALS", "Email ou senha invalidos.", response.status);
+  }
+
+  if (mode === "register" && response.status === 409) {
+    const lowered = errorDetails.toLowerCase();
+
+    if (lowered.includes("username") || lowered.includes("usuario")) {
+      return new AuthApiError("USERNAME_IN_USE", "Esse nome de usuario ja esta em uso.", response.status);
+    }
+
+    return new AuthApiError("EMAIL_IN_USE", "Esse email ja esta em uso.", response.status);
+  }
+
+  if (response.status === 400 || response.status === 422) {
+    return new AuthApiError("VALIDATION", "Confira os dados informados e tente novamente.", response.status);
+  }
+
+  return new AuthApiError("UNKNOWN", "Nao foi possivel autenticar. Tente novamente.", response.status);
+}
+
+async function readErrorDetails(response: Response): Promise<string> {
+  try {
+    const data = (await response.clone().json()) as {
+      message?: string;
+      errors?: Array<{ field?: string; message?: string }>;
+    };
+
+    const fieldMessages = data.errors?.map((item) => `${item.field ?? ""} ${item.message ?? ""}`.trim()).join(" ");
+    return `${data.message ?? ""} ${fieldMessages ?? ""}`.trim();
+  } catch {
+    return "";
+  }
 }
 
 export function saveAuthSession(session: AuthSession): void {
