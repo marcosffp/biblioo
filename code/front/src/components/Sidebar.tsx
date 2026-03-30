@@ -27,7 +27,7 @@ export function Sidebar({ items = defaultItems }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 min-h-screen bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 p-4">
+    <aside className="w-64 h-screen sticky top-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 p-5">
       <nav aria-label="Navegacao lateral" className="flex flex-col gap-2">
         {items.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);

@@ -13,8 +13,10 @@ export function AppShell({ children, className }: AppShellProps) {
   return (
     <div className={`min-h-screen bg-slate-50 dark:bg-slate-900 flex ${className ?? ""}`.trim()}>
       <Sidebar />
-      <main className="flex-1 flex flex-col gap-6 py-8 px-10">
-        {children}
+      <main className="flex-1 w-full py-10 px-12">
+        <div className="w-full max-w-[1280px] mx-auto flex flex-col gap-8">
+          {children}
+        </div>
       </main>
     </div>
   );
