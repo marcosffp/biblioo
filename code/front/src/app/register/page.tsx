@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, Eye, EyeOff } from "lucide-react";
+import { BookOpen, Eye, EyeOff, UserPlus } from "lucide-react";
 import { AuthApiError, registerWithEmailPassword } from "@/services";
 
 export default function RegisterPage() {
@@ -97,46 +97,46 @@ export default function RegisterPage() {
 
               <form className="mt-10 space-y-5" onSubmit={handleSubmit}>
                 <label className="block">
-                  <span className="mb-2 block text-lg font-semibold">Nome de usuario</span>
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Nome de usuario</span>
                   <input
                     type="text"
                     placeholder="leitor_123"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     disabled={isLoading}
-                    className="h-13 w-full rounded-xl border border-[var(--border-soft)] bg-[#f6f8f6] px-4 text-base outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(31,143,58,0.18)]"
+                    className="h-14 w-full rounded-2xl border border-[#c2d7c5] bg-gradient-to-b from-[#fbfdfb] to-[#eef5ef] px-4 text-[15px] font-medium text-[var(--text-primary)] outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition placeholder:text-[#8aa08d] focus:border-[var(--brand-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,143,58,0.14)]"
                   />
                   {errors.username ? <span className="mt-2 block text-sm text-red-700">{errors.username}</span> : null}
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 block text-lg font-semibold">E-mail</span>
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">E-mail</span>
                   <input
                     type="email"
                     placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className="h-13 w-full rounded-xl border border-[var(--border-soft)] bg-[#f6f8f6] px-4 text-base outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(31,143,58,0.18)]"
+                    className="h-14 w-full rounded-2xl border border-[#c2d7c5] bg-gradient-to-b from-[#fbfdfb] to-[#eef5ef] px-4 text-[15px] font-medium text-[var(--text-primary)] outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition placeholder:text-[#8aa08d] focus:border-[var(--brand-500)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(31,143,58,0.14)]"
                   />
                   {errors.email ? <span className="mt-2 block text-sm text-red-700">{errors.email}</span> : null}
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 block text-lg font-semibold">Senha</span>
-                  <div className="flex h-13 items-center rounded-xl border border-[var(--border-soft)] bg-[#f6f8f6] px-4 transition focus-within:border-[var(--brand-500)] focus-within:ring-2 focus-within:ring-[rgba(31,143,58,0.18)]">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Senha</span>
+                  <div className="flex h-14 items-center rounded-2xl border border-[#c2d7c5] bg-gradient-to-b from-[#fbfdfb] to-[#eef5ef] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition focus-within:border-[var(--brand-500)] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(31,143,58,0.14)]">
                     <input
                       type={showPassword ? "text" : "password"}
                       placeholder="********"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={isLoading}
-                      className="w-full bg-transparent text-base outline-none"
+                      className="w-full bg-transparent text-[15px] font-medium text-[var(--text-primary)] outline-none placeholder:text-[#8aa08d] focus-visible:shadow-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="ml-2 text-[var(--text-secondary)]"
+                      className="ml-2 rounded-full p-1 text-[var(--text-secondary)] transition hover:bg-[#e6efe7]"
                       aria-label="Alternar exibicao de senha"
                       disabled={isLoading}
                     >
@@ -147,20 +147,20 @@ export default function RegisterPage() {
                 </label>
 
                 <label className="block">
-                  <span className="mb-2 block text-lg font-semibold">Confirmar senha</span>
-                  <div className="flex h-13 items-center rounded-xl border border-[var(--border-soft)] bg-[#f6f8f6] px-4 transition focus-within:border-[var(--brand-500)] focus-within:ring-2 focus-within:ring-[rgba(31,143,58,0.18)]">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">Confirmar senha</span>
+                  <div className="flex h-14 items-center rounded-2xl border border-[#c2d7c5] bg-gradient-to-b from-[#fbfdfb] to-[#eef5ef] px-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition focus-within:border-[var(--brand-500)] focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(31,143,58,0.14)]">
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="********"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={isLoading}
-                      className="w-full bg-transparent text-base outline-none"
+                      className="w-full bg-transparent text-[15px] font-medium text-[var(--text-primary)] outline-none placeholder:text-[#8aa08d] focus-visible:shadow-none"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword((prev) => !prev)}
-                      className="ml-2 text-[var(--text-secondary)]"
+                      className="ml-2 rounded-full p-1 text-[var(--text-secondary)] transition hover:bg-[#e6efe7]"
                       aria-label="Alternar exibicao da confirmacao de senha"
                       disabled={isLoading}
                     >
@@ -175,9 +175,12 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="mt-1 h-13 w-full rounded-xl bg-[var(--brand-500)] text-lg font-semibold text-white transition hover:bg-[var(--brand-600)] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="mt-2 h-14 w-full rounded-2xl bg-gradient-to-r from-[var(--brand-500)] via-[#238f40] to-[var(--brand-600)] text-[1.06rem] font-semibold tracking-[0.01em] text-white shadow-[0_10px_20px_rgba(23,117,47,0.28)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_24px_rgba(23,117,47,0.34)] focus-visible:shadow-[0_0_0_4px_rgba(31,143,58,0.22)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
                 >
-                  {isLoading ? "Criando conta..." : "Criar conta"}
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <span>{isLoading ? "Criando conta..." : "Criar conta"}</span>
+                    <UserPlus size={18} aria-hidden />
+                  </span>
                 </button>
               </form>
 
