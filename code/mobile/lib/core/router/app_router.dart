@@ -1,13 +1,14 @@
+import 'package:biblioo/core/shell/main_shell.dart';
+import 'package:biblioo/screens/_placeholders.dart' show ShelfListScreen, CommunityListScreen, DnaScreen;
+import 'package:biblioo/screens/auth/login_screen.dart';
+import 'package:biblioo/screens/auth/register_screen.dart';
+import 'package:biblioo/screens/feed/feed_screen.dart';
+import 'package:biblioo/screens/profile/edit_profile_screen.dart';
+import 'package:biblioo/screens/profile/profile_screen.dart';
+import 'package:biblioo/screens/recommendation/dice_screen.dart';
+import 'package:biblioo/screens/recommendation/recommendation_screen.dart';
 import 'package:go_router/go_router.dart';
-import '../../screens/auth/login_screen.dart';
-import '../../screens/auth/register_screen.dart';
-import '../../screens/feed/feed_screen.dart';
-import '../../screens/recommendation/recommendation_screen.dart';
-import '../../screens/recommendation/dice_screen.dart';
-import '../../screens/profile/profile_screens.dart';
-import '../../screens/_placeholders.dart'
-    show ShelfListScreen, CommunityListScreen;
-import '../shell/main_shell.dart';
+
 
 final appRouter = GoRouter(
   initialLocation: '/login',

@@ -6,8 +6,6 @@ class FeedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -66,12 +64,18 @@ class _SearchBar extends StatelessWidget {
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.5,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
-              Icon(Icons.search, color: theme.colorScheme.onSurfaceVariant, size: 20),
+              Icon(
+                Icons.search,
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Buscar livros, usuários, comunidades...',
@@ -105,7 +109,13 @@ class _FeedPostPlaceholder extends StatelessWidget {
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Text('AC', style: TextStyle(color: theme.colorScheme.primary, fontSize: 12)),
+                  child: Text(
+                    'AC',
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -113,44 +123,68 @@ class _FeedPostPlaceholder extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Ana Clara', style: theme.textTheme.labelLarge),
-                      Text('2h atrás', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                      Text(
+                        '2h atrás',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                IconButton(icon: const Icon(Icons.more_horiz), onPressed: () {}),
+                IconButton(
+                  icon: const Icon(Icons.more_horiz),
+                  onPressed: () {},
+                ),
               ],
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.4,
+                ),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 40, height: 56,
+                    width: 40,
+                    height: 56,
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Icon(Icons.menu_book, color: theme.colorScheme.primary, size: 20),
+                    child: Icon(
+                      Icons.menu_book,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('O Pequeno Príncipe', style: theme.textTheme.labelLarge),
-                        Text('Antoine de Saint-Exupéry', style: theme.textTheme.bodySmall),
+                        Text(
+                          'O Pequeno Príncipe',
+                          style: theme.textTheme.labelLarge,
+                        ),
+                        Text(
+                          'Antoine de Saint-Exupéry',
+                          style: theme.textTheme.bodySmall,
+                        ),
                         const SizedBox(height: 4),
                         Row(
-                          children: List.generate(5, (i) => Icon(
-                            i < 5 ? Icons.star : Icons.star_border,
-                            size: 14,
-                            color: theme.colorScheme.primary,
-                          )),
+                          children: List.generate(
+                            5,
+                            (i) => Icon(
+                              i < 5 ? Icons.star : Icons.star_border,
+                              size: 14,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -166,11 +200,23 @@ class _FeedPostPlaceholder extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                _ActionButton(icon: Icons.favorite_border, label: '42', onTap: () {}),
+                _ActionButton(
+                  icon: Icons.favorite_border,
+                  label: '42',
+                  onTap: () {},
+                ),
                 const SizedBox(width: 16),
-                _ActionButton(icon: Icons.chat_bubble_outline, label: '8', onTap: () {}),
+                _ActionButton(
+                  icon: Icons.chat_bubble_outline,
+                  label: '8',
+                  onTap: () {},
+                ),
                 const SizedBox(width: 16),
-                _ActionButton(icon: Icons.share_outlined, label: '', onTap: () {}),
+                _ActionButton(
+                  icon: Icons.share_outlined,
+                  label: '',
+                  onTap: () {},
+                ),
               ],
             ),
           ],
@@ -184,7 +230,11 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _ActionButton({required this.icon, required this.label, required this.onTap});
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -224,7 +274,9 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         child: Column(
@@ -233,15 +285,23 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
           children: [
             Center(
               child: Container(
-                width: 36, height: 4,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.3,
+                  ),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            Text('Novo post', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              'Novo post',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 16),
             // livro vinculado
             OutlinedButton.icon(
@@ -254,7 +314,9 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
             TextField(
               controller: _textController,
               maxLines: 4,
-              decoration: const InputDecoration(hintText: 'Escreva sua avaliação ou comentário...'),
+              decoration: const InputDecoration(
+                hintText: 'Escreva sua avaliação ou comentário...',
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
