@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 import React from "react";
-import dynamic from "next/dynamic";
-
-const Sidebar = dynamic(() => import("./Sidebar"), { ssr: false });
+import { Sidebar } from "./Sidebar";
 
 export interface AppShellProps {
   children: ReactNode;
