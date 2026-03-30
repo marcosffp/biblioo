@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { PasswordInput, PrimaryButton, SecondaryButton, TextInput } from "@/components";
+import { BookOpen, Eye, EyeOff } from "lucide-react";
 import { AuthApiError, loginWithEmailPassword } from "@/services";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -55,37 +57,82 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center px-6">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl p-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Entrar</h1>
-        <p className="mt-2 text-sm text-gray-500">Use sua conta do Biblioo.</p>
+    <main className="min-h-screen bg-[var(--bg-canvas)] px-6 py-12 text-[var(--text-primary)]">
+      <section className="mx-auto w-full max-w-[420px] pt-12">
+        <div className="mx-auto flex h-18 w-18 items-center justify-center rounded-full bg-[#d6e5d8]">
+          <BookOpen className="h-8 w-8 text-[var(--brand-500)]" strokeWidth={2.2} />
+        </div>
+        <h1 className="mt-5 text-center font-[var(--font-heading)] text-5xl font-bold leading-tight">Leitura</h1>
+        <p className="mt-2 text-center text-xl text-[var(--text-secondary)]">Seu companheiro de leitura</p>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <TextInput
-            label="Email"
-            type="email"
-            placeholder="voce@exemplo.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={errors.email}
-            disabled={isLoading}
-          />
-          <PasswordInput
-            label="Senha"
-            placeholder="Digite sua senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-          />
-          {errors.password ? <div className="text-red-600 text-sm">{errors.password}</div> : null}
-          {formError ? <div className="text-red-600 text-sm">{formError}</div> : null}
+        <div className="mt-8 flex items-center justify-center gap-3 text-[var(--brand-100)]" aria-hidden>
+          <span className="h-px w-16 bg-current" />
+          <span className="text-sm">◌</span>
+          <span className="h-px w-16 bg-current" />
+        </div>
 
-          <PrimaryButton type="submit" className="w-full" disabled={isLoading}>
+        <form className="mt-10 space-y-5" onSubmit={handleSubmit}>
+          <label className="block">
+            <span className="mb-2 block text-lg font-semibold">E-mail</span>
+            <input
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              className="h-13 w-full rounded-xl border border-[var(--border-soft)] bg-[#f6f8f6] px-4 text-base outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[rgba(31,143,58,0.18)]"
+            />
+            {errors.email ? <span className="mt-2 block text-sm text-red-700">{errors.email}</span> : null}
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-lg font-semibold">Senha</span>
+            <div className="flex h-13 items-center rounded-xl border border-[var(--border-soft)] bg-[#f6f8f6] px-4 transition focus-within:border-[var(--brand-500)] focus-within:ring-2 focus-within:ring-[rgba(31,143,58,0.18)]">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="********"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                className="w-full bg-transparent text-base outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="ml-2 text-[var(--text-secondary)]"
+                aria-label="Alternar exibicao de senha"
+                disabled={isLoading}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {errors.password ? <span className="mt-2 block text-sm text-red-700">{errors.password}</span> : null}
+          </label>
+
+          <div className="-mt-1 text-base">
+            <Link href="#" className="font-medium text-[var(--brand-500)] hover:text-[var(--brand-600)]">
+              Esqueceu sua senha?
+            </Link>
+          </div>
+
+          {formError ? <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div> : null}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="mt-1 h-13 w-full rounded-xl bg-[var(--brand-500)] text-lg font-semibold text-white transition hover:bg-[var(--brand-600)] disabled:cursor-not-allowed disabled:opacity-70"
+          >
             {isLoading ? "Entrando..." : "Entrar"}
-          </PrimaryButton>
-          <SecondaryButton type="button" className="w-full" disabled={isLoading}>Criar conta</SecondaryButton>
+          </button>
         </form>
-      </div>
-    </div>
+
+        <p className="mt-10 text-center text-lg text-[var(--text-secondary)]">
+          Não tem uma conta?{" "}
+          <Link href="/register" className="font-semibold text-[var(--brand-500)] hover:text-[var(--brand-600)]">
+            Cadastre-se
+          </Link>
+        </p>
+      </section>
+    </main>
   );
 }
