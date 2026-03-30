@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const _primaryGreen = Color(0xFF2E7D32);
+  static const _primaryGreen = Color(0xFF2E7D5A);
 
   static final light = ThemeData(
     useMaterial3: true,
@@ -11,7 +11,7 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFFEFF5EE),
+      fillColor: const Color(0xFFEDF5F2),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -38,9 +38,10 @@ class AppTheme {
       seedColor: _primaryGreen,
       brightness: Brightness.dark,
     ),
+    scaffoldBackgroundColor: const Color(0xFF212725),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF1E2B1E),
+      fillColor: const Color(0xFF262D2B),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,

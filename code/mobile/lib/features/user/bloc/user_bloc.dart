@@ -1,0 +1,81 @@
+import 'package:biblioo/features/user/data/user_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'user_event.dart';
+import 'user_state.dart';
+
+class UserBloc extends Bloc<UserEvent, UserState> {
+  final UserRepository _repository;
+
+  UserBloc(this._repository) : super(UserInitial()) {
+    on<LoadMyProfile>(_onLoadMe);
+    on<LoadUserProfile>(_onLoadUser);
+    on<UpdateProfile>(_onUpdateProfile);
+    on<UpdateVisibility>(_onUpdateVisibility);
+    on<FollowUser>(_onFollow);
+    on<UnfollowUser>(_onUnfollow);
+    on<DeleteAccount>(_onDeleteAccount);
+  }
+
+  Future<void> _onLoadMe(LoadMyProfile e, Emitter<UserState> emit) async {
+    emit(UserLoading());
+    try {
+      emit(UserLoaded(await _repository.getMe()));
+    } on Exception catch (e) {
+      emit(UserError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadUser(LoadUserProfile e, Emitter<UserState> emit) async {
+    emit(UserLoading());
+    try {
+      emit(UserLoaded(await _repository.getByUsername(e.username)));
+    } on Exception catch (e) {
+      emit(UserError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateProfile(UpdateProfile e, Emitter<UserState> emit) async {
+    emit(UserLoading());
+    try {
+      emit(UserLoaded(await _repository.updateProfile(
+        bio: e.bio,
+        avatarUrl: e.avatarUrl,
+        bannerUrl: e.bannerUrl,
+      )));
+    } on Exception catch (e) {
+      emit(UserError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateVisibility(UpdateVisibility e, Emitter<UserState> emit) async {
+    try {
+      emit(UserLoaded(await _repository.updateVisibility(isPrivate: e.isPrivate)));
+    } on Exception catch (e) {
+      emit(UserError(e.toString()));
+    }
+  }
+
+  Future<void> _onFollow(FollowUser e, Emitter<UserState> emit) async {
+    try {
+      await _repository.follow(e.username);
+    } on Exception catch (e) {
+      emit(UserError(e.toString()));
+    }
+  }
+
+  Future<void> _onUnfollow(UnfollowUser e, Emitter<UserState> emit) async {
+    try {
+      await _repository.unfollow(e.username);
+    } on Exception catch (e) {
+      emit(UserError(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteAccount(DeleteAccount e, Emitter<UserState> emit) async {
+    try {
+      await _repository.deleteAccount();
+    } on Exception catch (e) {
+      emit(UserError(e.toString()));
+    }
+  }
+}
