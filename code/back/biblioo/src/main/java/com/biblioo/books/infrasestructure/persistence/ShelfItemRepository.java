@@ -68,4 +68,14 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
         AND si.deletedAt IS NULL
       """)
   int softDelete(@Param("id") Long id);
+
+  @Query("SELECT COUNT(si) FROM ShelfItem si WHERE si.bookId = :bookId")
+  long countByBookId(@Param("bookId") Long bookId);
+
+  @Query(
+      "SELECT AVG(si.rating) FROM ShelfItem si WHERE si.bookId = :bookId AND si.rating IS NOT NULL")
+  Double calculateAverageRating(@Param("bookId") Long bookId);
+
+  @Query("SELECT COUNT(si) FROM ShelfItem si WHERE si.bookId = :bookId AND si.rating IS NOT NULL")
+  long countRatings(@Param("bookId") Long bookId);
 }

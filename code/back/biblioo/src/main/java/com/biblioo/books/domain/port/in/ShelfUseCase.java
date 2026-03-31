@@ -25,13 +25,22 @@ public interface ShelfUseCase {
 
   ShelfItem changeItemStatus(Long userId, Long shelfId, Long itemId, ReadingStatus newStatus);
 
-  void reviewItem(
+  ShelfItem reviewItem(
       Long userId,
       Long shelfId,
       Long itemId,
       Integer rating,
       String reviewText,
       List<byte[]> reviewImages);
+
+  ShelfItem updateReview(
+      Long userId,
+      Long shelfId,
+      Long itemId,
+      Integer rating,
+      String reviewText,
+      List<byte[]> newReviewImages,
+      List<String> imagesToDeleteUrls);
 
   void deleteReview(Long userId, Long shelfId, Long itemId);
 

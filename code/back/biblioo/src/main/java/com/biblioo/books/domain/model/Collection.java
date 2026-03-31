@@ -51,8 +51,7 @@ public class Collection {
       joinColumns = @JoinColumn(name = "collection_id"),
       inverseJoinColumns = @JoinColumn(name = "shelf_id"))
   @Builder.Default
-  private List<Shelf> shelves =
-      new ArrayList<>();
+  private List<Shelf> shelves = new ArrayList<>();
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;

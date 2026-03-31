@@ -10,10 +10,13 @@ import com.biblioo.books.domain.port.in.ShelfUseCase;
 import com.biblioo.books.domain.port.out.ReviewImagePort;
 import com.biblioo.books.infrasestructure.persistence.ShelfItemRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfRepository;
+import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
+import com.biblioo.infrastructure.messaging.service.OutboxEventService;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -30,6 +33,7 @@ public class ShelfService implements ShelfUseCase {
   private final ShelfItemRepository shelfItemRepository;
   private final BookUseCase bookUseCase;
   private final ReviewImagePort reviewImagePort;
+  private final OutboxEventService outboxEventService;
 
   @Override
   @Transactional(readOnly = true)
@@ -125,7 +129,15 @@ public class ShelfService implements ShelfUseCase {
             .totalPages(book.getPageCount() != null ? book.getPageCount() : 0)
             .build();
 
-    return shelfItemRepository.save(item);
+    ShelfItem savedItem = shelfItemRepository.save(item);
+
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_BOOK_SHELF_ADDED,
+        "BOOK",
+        bookId.toString(),
+        RabbitMQConfig.BOOK_SHELF_ROUTING_KEY);
+
+    return savedItem;
   }
 
   @Override
@@ -140,6 +152,12 @@ public class ShelfService implements ShelfUseCase {
             .orElseThrow(() -> new ShelfBusinessException("Item não encontrado na estante."));
 
     shelfItemRepository.softDelete(item.getId());
+
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_BOOK_SHELF_REMOVED,
+        "BOOK",
+        item.getBookId().toString(),
+        RabbitMQConfig.BOOK_SHELF_ROUTING_KEY);
   }
 
   private ShelfItem resolveOwnedItemById(Long userId, Long shelfId, Long itemId) {
@@ -228,7 +246,7 @@ public class ShelfService implements ShelfUseCase {
 
   @Override
   @Transactional
-  public void reviewItem(
+  public ShelfItem reviewItem(
       Long userId,
       Long shelfId,
       Long itemId,
@@ -249,17 +267,87 @@ public class ShelfService implements ShelfUseCase {
     item.setReviewText(reviewText);
 
     if (reviewImages != null && !reviewImages.isEmpty()) {
-      List<String> imageUrls = new ArrayList<>();
+      List<CompletableFuture<String>> uploadFutures = new ArrayList<>();
       for (byte[] imageBytes : reviewImages) {
         String imageId = UUID.randomUUID().toString();
-        String url =
-            reviewImagePort.uploadReviewImage(imageBytes, itemId.toString(), imageId).join();
-        imageUrls.add(url);
+        uploadFutures.add(
+            reviewImagePort.uploadReviewImage(imageBytes, itemId.toString(), imageId));
       }
+      List<String> imageUrls = uploadFutures.stream().map(CompletableFuture::join).toList();
       item.setReviewImageUrls(imageUrls);
     }
 
-    shelfItemRepository.save(item);
+    ShelfItem savedItem = shelfItemRepository.save(item);
+
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_BOOK_REVIEW_STATS,
+        "BOOK",
+        item.getBookId().toString(),
+        RabbitMQConfig.BOOK_REVIEW_ROUTING_KEY);
+
+    return savedItem;
+  }
+
+  @Override
+  @Transactional
+  public ShelfItem updateReview(
+      Long userId,
+      Long shelfId,
+      Long itemId,
+      Integer rating,
+      String reviewText,
+      List<byte[]> newReviewImages,
+      List<String> imagesToDeleteUrls) {
+    ShelfItem item = resolveOwnedItemById(userId, shelfId, itemId);
+
+    if (item.getStatus() != ReadingStatus.COMPLETED) {
+      throw new ShelfBusinessException(
+          "Edição de avaliação só é permitida quando o status for COMPLETED.");
+    }
+
+    if (rating != null) {
+      if (rating < 1 || rating > 5) {
+        throw new ShelfBusinessException("Avaliação inválida. Deve ser entre 1 e 5.");
+      }
+      item.setRating(rating);
+    }
+
+    if (reviewText != null) {
+      item.setReviewText(reviewText);
+    }
+
+    List<String> currentImages =
+        item.getReviewImageUrls() != null
+            ? new ArrayList<>(item.getReviewImageUrls())
+            : new ArrayList<>();
+
+    if (imagesToDeleteUrls != null && !imagesToDeleteUrls.isEmpty()) {
+      reviewImagePort.deleteReviewImages(imagesToDeleteUrls);
+      currentImages.removeAll(imagesToDeleteUrls);
+    }
+
+    if (newReviewImages != null && !newReviewImages.isEmpty()) {
+      List<CompletableFuture<String>> uploadFutures = new ArrayList<>();
+      for (byte[] imageBytes : newReviewImages) {
+        String imageId = UUID.randomUUID().toString();
+        uploadFutures.add(
+            reviewImagePort.uploadReviewImage(imageBytes, itemId.toString(), imageId));
+      }
+      List<String> uploadedUrls = uploadFutures.stream().map(CompletableFuture::join).toList();
+      currentImages.addAll(uploadedUrls);
+    }
+
+    item.setReviewImageUrls(currentImages);
+
+    ShelfItem savedItem = shelfItemRepository.save(item);
+
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_BOOK_REVIEW_STATS,
+        "BOOK",
+        item.getBookId().toString(),
+        RabbitMQConfig.BOOK_REVIEW_ROUTING_KEY);
+
+    return savedItem;
   }
 
   @Override
@@ -278,6 +366,12 @@ public class ShelfService implements ShelfUseCase {
     item.setReviewImageUrls(new ArrayList<>());
 
     shelfItemRepository.save(item);
+
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_BOOK_REVIEW_STATS,
+        "BOOK",
+        item.getBookId().toString(),
+        RabbitMQConfig.BOOK_REVIEW_ROUTING_KEY);
   }
 
   private void verifyShelfOwnership(Long shelfId, Long userId) {

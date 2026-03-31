@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -36,4 +37,16 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             ORDER BY b.averageRating DESC NULLS LAST, b.ratingCount DESC NULLS LAST
             """)
   List<Book> findTopRated(@Param("minRating") Float minRating);
+
+  @Modifying
+  @Query("UPDATE Book b SET b.readerCount = :readerCount WHERE b.id = :bookId")
+  void updateReaderCount(@Param("bookId") Long bookId, @Param("readerCount") long readerCount);
+
+  @Modifying
+  @Query(
+      "UPDATE Book b SET b.averageRating = :avgRating, b.ratingCount = :ratingCount WHERE b.id = :bookId")
+  void updateRatingStats(
+      @Param("bookId") Long bookId,
+      @Param("avgRating") Float avgRating,
+      @Param("ratingCount") long ratingCount);
 }

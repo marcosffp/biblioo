@@ -83,8 +83,7 @@ public class Book {
   private List<Category> categories;
 
   @Column(columnDefinition = "TEXT")
-  private String
-      searchText;
+  private String searchText;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
