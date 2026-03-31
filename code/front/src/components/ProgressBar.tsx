@@ -15,7 +15,7 @@ export function ProgressBar({ value }: ProgressBarProps) {
       className="w-full h-2 bg-gray-200 dark:bg-slate-800 rounded-full border border-gray-300 dark:border-slate-700 overflow-hidden"
     >
       <div
-        className="h-full bg-gradient-to-r from-indigo-600 to-indigo-500 transition-all duration-300 ease-in-out"
+        className="h-full bg-gradient-to-r from-emerald-600 to-emerald-500 transition-all duration-300 ease-in-out"
         style={{ width: `${pct}%` }}
       />
     </div>

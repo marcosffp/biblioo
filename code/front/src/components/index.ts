@@ -18,7 +18,7 @@ export * from "./TagList";
 export * from "./ImportActionCard";
 export * from "./TextInput";
 export * from "./PasswordInput";
-export * from "./PrimaryButton";
+export * from "./Button";
 export * from "./SecondaryButton";
 export * from "./IconButton";
 export * from "./ChipToggle";

@@ -10,7 +10,7 @@ export function RatingStars({ value }: RatingStarsProps) {
   return (
     <div className="inline-flex gap-1" aria-label={`Avaliação ${value} de 5`}>
       {stars.map((filled, idx) => (
-        <span key={idx} className={`${filled ? "text-indigo-600" : "text-gray-300"} text-sm`}>★</span>
+        <span key={idx} className={`${filled ? "text-amber-400" : "text-gray-300"} text-sm`}>★</span>
       ))}
     </div>
   );

@@ -17,10 +17,10 @@ export interface SidebarProps {
 
 const defaultItems: SidebarItem[] = [
   { label: "Inicio", href: "/", icon: <Home size={18} /> },
-  { label: "Estante", href: "/estante", icon: <Book size={18} /> },
-  { label: "Para Voce", href: "/para-voce", icon: <Sparkles size={18} /> },
-  { label: "Clubes", href: "/comunidades", icon: <Users size={18} /> },
-  { label: "Perfil", href: "/perfil", icon: <User size={18} /> },
+  { label: "Estante", href: "/bookcase", icon: <Book size={18} /> },
+  { label: "Para Voce", href: "/for-you", icon: <Sparkles size={18} /> },
+  { label: "Comunidades", href: "/community", icon: <Users size={18} /> },
+  { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
 
 export function Sidebar({ items = defaultItems }: SidebarProps) {
