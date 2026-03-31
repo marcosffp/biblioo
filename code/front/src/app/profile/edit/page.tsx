@@ -6,6 +6,18 @@ import React from "react";
 import { AppShell } from "@/components";
 import { getAccessToken } from "@/services/auth";
 
+type UserProfileResponse = {
+  id: number;
+  username: string;
+  email?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  bannerUrl?: string | null;
+  isPrivate: boolean;
+  restricted: boolean;
+  createdAt?: string | null;
+};
+
 export default function EditarPerfilPage() {
   const router = useRouter();
 
@@ -13,20 +25,72 @@ export default function EditarPerfilPage() {
 
   const [displayName, setDisplayName] = React.useState("Usuario");
   const [username, setUsername] = React.useState("usuario");
-  const [bio, setBio] = React.useState(
-    "Leitor apaixonado por literatura brasileira. Sempre em busca de novos mundos entre paginas."
-  );
+  const [bio, setBio] = React.useState("");
   const [isPublicProfile, setIsPublicProfile] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+
   const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = React.useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const DISPLAY_NAME_MAX = 50;
   const USERNAME_MAX = 30;
   const BIO_MAX = 160;
+
+  React.useEffect(() => {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      setIsLoading(false);
+      setLoadError("Voce precisa estar logado para editar o perfil.");
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = async () => {
+      setIsLoading(true);
+      setLoadError(null);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/users/me`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("load_me_failed");
+        }
+
+        const profile = (await response.json()) as UserProfileResponse;
+
+        if (cancelled) return;
+
+        setUsername(profile.username);
+        setDisplayName(profile.username);
+        setBio(profile.bio ?? "");
+        setIsPublicProfile(!profile.isPrivate);
+        setAvatarUrl(profile.avatarUrl ?? null);
+      } catch {
+        if (cancelled) return;
+        setLoadError("Nao foi possivel carregar seu perfil.");
+      } finally {
+        if (cancelled) return;
+        setIsLoading(false);
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [API_BASE_URL]);
 
   React.useEffect(() => {
     return () => {
@@ -57,6 +121,9 @@ export default function EditarPerfilPage() {
 
     try {
       const accessToken = getAccessToken();
+      if (!accessToken) {
+        throw new Error("missing_access_token");
+      }
 
       if (avatarFile) {
         const formData = new FormData();
@@ -64,7 +131,7 @@ export default function EditarPerfilPage() {
 
         const avatarResponse = await fetch(`${API_BASE_URL}/users/me/avatar`, {
           method: "POST",
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+          headers: { Authorization: `Bearer ${accessToken}` },
           body: formData,
         });
 
@@ -73,11 +140,24 @@ export default function EditarPerfilPage() {
         }
       }
 
+      const updateProfileResponse = await fetch(`${API_BASE_URL}/users/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ bio }),
+      });
+
+      if (!updateProfileResponse.ok) {
+        throw new Error("update_profile_failed");
+      }
+
       const visibilityResponse = await fetch(`${API_BASE_URL}/users/me/visibility`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ isPrivate: !isPublicProfile }),
       });
@@ -125,6 +205,7 @@ export default function EditarPerfilPage() {
           </div>
         </header>
 
+        {loadError ? <p className="mt-2 text-sm text-red-600">{loadError}</p> : null}
         {saveError ? <p className="mt-2 text-sm text-red-600">{saveError}</p> : null}
 
         <section className="mt-4 rounded-lg border border-gray-200 bg-white overflow-hidden">
@@ -137,19 +218,23 @@ export default function EditarPerfilPage() {
                   accept="image/*"
                   className="hidden"
                   onChange={handleAvatarChange}
-                  disabled={isSaving}
+                  disabled={isSaving || isLoading}
                 />
 
                 <button
                   type="button"
                   onClick={handleAvatarPick}
-                  disabled={isSaving}
+                  disabled={isSaving || isLoading}
                   className="group relative h-16 w-16 rounded-full border-4 border-white bg-emerald-600 text-white text-sm font-bold flex items-center justify-center shadow-md overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label="Alterar foto do usuario"
                 >
-                  {avatarPreviewUrl ? (
+                  {avatarPreviewUrl || avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatarPreviewUrl} alt="Foto do usuario" className="h-full w-full object-cover" />
+                    <img
+                      src={avatarPreviewUrl ?? avatarUrl ?? ""}
+                      alt="Foto do usuario"
+                      className="h-full w-full object-cover"
+                    />
                   ) : (
                     <span>U</span>
                   )}
@@ -175,10 +260,11 @@ export default function EditarPerfilPage() {
                 </div>
                 <input
                   id="displayName"
-                  className="mt-2 h-11 w-full rounded-md border border-gray-200 px-3 text-sm text-gray-900"
+                  className="mt-2 h-11 w-full rounded-md border border-gray-200 px-3 text-sm text-gray-900 disabled:bg-gray-50 disabled:text-gray-400"
                   type="text"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value.slice(0, DISPLAY_NAME_MAX))}
+                  disabled
                 />
               </div>
 
@@ -195,10 +281,11 @@ export default function EditarPerfilPage() {
                   <span className="px-3 text-sm text-gray-400">@</span>
                   <input
                     id="username"
-                    className="h-11 w-full rounded-md px-1 pr-3 text-sm text-gray-900 outline-none"
+                    className="h-11 w-full rounded-md px-1 pr-3 text-sm text-gray-900 outline-none disabled:bg-gray-50 disabled:text-gray-400"
                     type="text"
                     value={username}
                     onChange={(event) => setUsername(event.target.value.slice(0, USERNAME_MAX))}
+                    disabled
                   />
                 </div>
               </div>
@@ -214,9 +301,10 @@ export default function EditarPerfilPage() {
                 </div>
                 <textarea
                   id="bio"
-                  className="mt-2 min-h-[120px] w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900"
+                  className="mt-2 min-h-[120px] w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 disabled:bg-gray-50 disabled:text-gray-400"
                   value={bio}
                   onChange={(event) => setBio(event.target.value.slice(0, BIO_MAX))}
+                  disabled={isLoading}
                 />
               </div>
             </div>
