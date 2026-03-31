@@ -19,12 +19,9 @@ import org.hibernate.annotations.SQLRestriction;
     indexes = {
       @Index(name = "idx_shelf_user_id", columnList = "user_id"),
       @Index(name = "idx_shelf_deleted_at", columnList = "deleted_at"),
-      @Index(
-          name = "idx_shelf_user_deleted",
-          columnList = "user_id, deleted_at")
+      @Index(name = "idx_shelf_user_deleted", columnList = "user_id, deleted_at")
     })
-@SQLRestriction(
-    "deleted_at IS NULL")
+@SQLRestriction("deleted_at IS NULL")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
