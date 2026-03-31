@@ -41,7 +41,7 @@ export function Sidebar({ items = defaultItems, className }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 text-sm font-semibold p-3 rounded-lg transition-colors ${
-                isActive ? "bg-indigo-50 text-indigo-600" : "text-gray-600 hover:bg-gray-50"
+                isActive ? "bg-emerald-50 text-emerald-600" : "text-gray-600 hover:bg-gray-50"
               }`}
               aria-current={isActive ? "page" : undefined}
             >

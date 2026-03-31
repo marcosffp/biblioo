@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { AppShell } from "@/components";
+import { getAccessToken } from "@/services/auth";
 
 export default function EditarPerfilPage() {
   const router = useRouter();
+
+  const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
 
   const [displayName, setDisplayName] = React.useState("Usuario");
   const [username, setUsername] = React.useState("usuario");
@@ -17,18 +20,65 @@ export default function EditarPerfilPage() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
+  const [avatarFile, setAvatarFile] = React.useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = React.useState<string | null>(null);
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+
   const DISPLAY_NAME_MAX = 50;
   const USERNAME_MAX = 30;
   const BIO_MAX = 160;
+
+  React.useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+    };
+  }, [avatarPreviewUrl]);
+
+  const handleAvatarPick = () => {
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+
+    if (avatarPreviewUrl) {
+      URL.revokeObjectURL(avatarPreviewUrl);
+    }
+
+    setAvatarFile(file);
+    setAvatarPreviewUrl(file ? URL.createObjectURL(file) : null);
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
     setSaveError(null);
 
     try {
-      const visibilityResponse = await fetch("/users/me/visibility", {
+      const accessToken = getAccessToken();
+
+      if (avatarFile) {
+        const formData = new FormData();
+        formData.append("file", avatarFile);
+
+        const avatarResponse = await fetch(`${API_BASE_URL}/users/me/avatar`, {
+          method: "POST",
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+          body: formData,
+        });
+
+        if (!avatarResponse.ok) {
+          throw new Error("avatar_upload_failed");
+        }
+      }
+
+      const visibilityResponse = await fetch(`${API_BASE_URL}/users/me/visibility`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
         body: JSON.stringify({ isPrivate: !isPublicProfile }),
       });
 
@@ -80,8 +130,35 @@ export default function EditarPerfilPage() {
         <section className="mt-4 rounded-lg border border-gray-200 bg-white overflow-hidden">
           <div className="relative h-40 bg-gradient-to-br from-emerald-100 via-emerald-50 to-white">
             <div className="absolute -bottom-7 left-8">
-              <div className="h-16 w-16 rounded-full border-4 border-white bg-emerald-600 text-white text-sm font-bold flex items-center justify-center shadow-md">
-                U
+              <div className="relative">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                  disabled={isSaving}
+                />
+
+                <button
+                  type="button"
+                  onClick={handleAvatarPick}
+                  disabled={isSaving}
+                  className="group relative h-16 w-16 rounded-full border-4 border-white bg-emerald-600 text-white text-sm font-bold flex items-center justify-center shadow-md overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed"
+                  aria-label="Alterar foto do usuario"
+                >
+                  {avatarPreviewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarPreviewUrl} alt="Foto do usuario" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>U</span>
+                  )}
+
+                  <span className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
+                  <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
+                    Editar
+                  </span>
+                </button>
               </div>
             </div>
           </div>
