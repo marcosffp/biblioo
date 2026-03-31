@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
+import { BookOpen, BookOpenCheck, Sparkles, Tag } from "lucide-react";
 import {
   AppShell,
   BookCard,
@@ -76,7 +77,7 @@ export default function PerfilPage() {
                   {isPublicProfile ? "Perfil Publico" : "Perfil Privado"}
                 </span>
               </div>
-              <p className="text-sm text-gray-400">@usuario</p>
+              <p className="text-md text-gray-400">@usuario</p>
               <p className="mt-3 max-w-xl text-sm text-gray-600">
                 Leitor apaixonado por literatura brasileira. Sempre em busca de novos mundos entre paginas.
               </p>
@@ -86,9 +87,6 @@ export default function PerfilPage() {
                 </span>
                 <span>
                   <strong>{profileStats.following}</strong> seguindo
-                </span>
-                <span>
-                  <strong>{profileStats.booksRead}</strong> livros lidos
                 </span>
               </div>
             </div>
@@ -128,10 +126,14 @@ export default function PerfilPage() {
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-4">
-            <StatHighlight label="Livros lidos" value={profileStats.booksRead} />
-            <StatHighlight label="Paginas lidas" value={profileStats.pagesRead.toLocaleString("pt-BR")} />
-            <StatHighlight label="Status" value={profileStats.status} />
-            <StatHighlight label="Genero favorito" value={profileStats.favoriteGenre} />
+            <StatHighlight label="Livros lidos" value={profileStats.booksRead} icon={<BookOpen size={16} />} />
+            <StatHighlight
+              label="Páginas lidas"
+              value={profileStats.pagesRead.toLocaleString("pt-BR")}
+              icon={<BookOpenCheck size={16} />}
+            />
+            <StatHighlight label="Status" value={profileStats.status} icon={<Sparkles size={16} />} />
+            <StatHighlight label="Gênero favorito" value={profileStats.favoriteGenre} icon={<Tag size={16} />} />
           </div>
         </div>
       </section>
