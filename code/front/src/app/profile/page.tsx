@@ -57,34 +57,11 @@ export default function PerfilPage() {
 
   return (
     <AppShell>
-      <section className="rounded-3xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
+      <section className="rounded-xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
         <div className="relative h-36 md:h-44 bg-gradient-to-br from-emerald-100 via-emerald-50 to-white">
-          <div className="absolute right-4 top-4 flex items-center gap-2">
-            <IconButton
-              label="Configuracoes"
-              icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 8 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 14 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 8c.36.5.55 1.1.55 1.7s-.19 1.2-.55 1.7Z" />
-                </svg>
-              }
-            />
-            <IconButton
-              label="Compartilhar"
-              icon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="18" cy="5" r="3" />
-                  <circle cx="6" cy="12" r="3" />
-                  <circle cx="18" cy="19" r="3" />
-                  <path d="M8.6 13.5 15.4 17.5" />
-                  <path d="M15.4 6.5 8.6 10.5" />
-                </svg>
-              }
-            />
-          </div>
           <div className="absolute -bottom-8 left-6 md:left-10">
             <div className="h-20 w-20 rounded-full bg-emerald-600 text-white text-lg font-bold flex items-center justify-center shadow-lg">
-              U
+              Foto
             </div>
           </div>
         </div>
@@ -114,8 +91,17 @@ export default function PerfilPage() {
                 </span>
               </div>
             </div>
-            <div className="w-full md:w-48">
-              <Button className="mt-0 w-auto px-4 h-11">{isOwner ? "Editar perfil" : "Seguir"}</Button>
+            <div className="w-full md:w-auto md:ml-auto">
+              <button
+                type="button"
+                className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm font-semibold text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+                {isOwner ? "Editar perfil" : "Seguir"}
+              </button>
             </div>
           </div>
 
@@ -128,7 +114,7 @@ export default function PerfilPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
         <SectionHeader title="Meta de leitura 2024" />
         <div className="mt-4">
           <div className="flex items-center justify-between text-sm font-semibold text-gray-900">
@@ -146,7 +132,7 @@ export default function PerfilPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
         <SectionHeader title="DNA Literario" subtitle="Seu perfil de leitura" />
         <div className="mt-4">
           <div className="space-y-3">
@@ -173,7 +159,7 @@ export default function PerfilPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <section className="rounded-lg border border-gray-200 bg-white p-5">
         <SectionHeader title="Importar do Goodreads" subtitle="Importe sua biblioteca via CSV" />
         <div className="mt-4">
           <ImportActionCard
@@ -186,7 +172,7 @@ export default function PerfilPage() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-4">
+      <section className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="flex flex-wrap items-center gap-2">
           {tabs.map((tab) => (
             <ChipToggle key={tab} label={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)} />
