@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 import {
   AppShell,
@@ -7,7 +8,6 @@ import {
   Button,
   ChipToggle,
   EmptyState,
-  IconButton,
   ImportActionCard,
   ProgressBar,
   SectionHeader,
@@ -53,6 +53,7 @@ const tabs = ["Estante", "Comunidades", "Resenhas"] as const;
 
 export default function PerfilPage() {
   const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Estante");
+  const [isPublicProfile, setIsPublicProfile] = React.useState(isPublic);
   const goalPct = profileStats.goalTarget > 0 ? (profileStats.goalCurrent / profileStats.goalTarget) * 100 : 0;
 
   return (
@@ -72,7 +73,7 @@ export default function PerfilPage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-semibold text-gray-900">Usuario</h1>
                 <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-1">
-                  {isPublic ? "Perfil Publico" : "Perfil Privado"}
+                  {isPublicProfile ? "Perfil Publico" : "Perfil Privado"}
                 </span>
               </div>
               <p className="text-sm text-gray-400">@usuario</p>
@@ -92,16 +93,37 @@ export default function PerfilPage() {
               </div>
             </div>
             <div className="w-full md:w-auto md:ml-auto">
-              <button
-                type="button"
-                className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm font-semibold text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-                {isOwner ? "Editar perfil" : "Seguir"}
-              </button>
+              {isOwner ? (
+                <Link
+                  href="/profile/edit"
+                  className="mt-0 inline-flex items-center gap-2 rounded-md border 
+                  border-gray-300 bg-transparent px-4 py-2 text-sm
+                  text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 
+                  hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 
+                  focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                  Editar perfil
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="mt-0 inline-flex items-center gap-2 rounded-md border 
+                  border-gray-300 bg-transparent px-4 py-2 text-sm
+                  text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 
+                  hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 
+                  focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                  Seguir
+                </button>
+              )}
             </div>
           </div>
 
@@ -113,6 +135,7 @@ export default function PerfilPage() {
           </div>
         </div>
       </section>
+
 
       <section className="rounded-lg border border-gray-200 bg-white p-5">
         <SectionHeader title="Meta de leitura 2024" />
