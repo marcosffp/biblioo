@@ -1,4 +1,5 @@
 export * from "./AppShell";
+export * from "./TopHeader";
 export * from "./PageHeader";
 export * from "./SectionHeader";
 export * from "./Sidebar";
