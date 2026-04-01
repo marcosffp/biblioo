@@ -1,0 +1,191 @@
+
+
+services:
+
+
+  mysql:
+    image: mysql:8.4
+    container_name: biblioo-mysql
+    restart: unless-stopped
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --mysql-native-password=ON
+      --slow-query-log=ON
+      --long-query-time=${MYSQL_SLOW_QUERY_TIME}
+      --innodb-buffer-pool-size=${MYSQL_INNODB_BUFFER_POOL_SIZE}
+      --innodb-log-buffer-size=${MYSQL_INNODB_LOG_BUFFER_SIZE}
+      --max-connections=${MYSQL_MAX_CONNECTIONS}
+      --thread-cache-size=${MYSQL_THREAD_CACHE_SIZE}
+      --table-open-cache=${MYSQL_TABLE_OPEN_CACHE}
+      --performance-schema=OFF
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_BIND_HOST}:${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - biblioo-net
+    mem_limit: ${MYSQL_MEM_LIMIT}
+    memswap_limit: ${MYSQL_MEM_LIMIT}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: biblioo-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory ${REDIS_MAXMEMORY}
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_BIND_HOST}:${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - biblioo-net
+    mem_limit: ${REDIS_MEM_LIMIT}
+    memswap_limit: ${REDIS_MEM_LIMIT}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  rabbitmq:
+    image: rabbitmq:4.0-management-alpine
+    container_name: biblioo-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST}
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: >-
+        -rabbit vm_memory_high_watermark ${RABBITMQ_VM_MEMORY_HIGH_WATERMARK}
+        -rabbit disk_free_limit ${RABBITMQ_DISK_FREE_LIMIT}
+    ports:
+      - "${RABBITMQ_BIND_HOST}:${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_BIND_HOST}:${RABBITMQ_MANAGEMENT_PORT}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - biblioo-net
+    mem_limit: ${RABBITMQ_MEM_LIMIT}
+    memswap_limit: ${RABBITMQ_MEM_LIMIT}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+
+  opensearch:
+    image: opensearchproject/opensearch:2.18.0
+    container_name: biblioo-opensearch
+    restart: unless-stopped
+    environment:
+      - cluster.name=${OPENSEARCH_CLUSTER_NAME}
+      - node.name=${OPENSEARCH_NODE_NAME}
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=${OPENSEARCH_JAVA_OPTS}
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=true
+      - indices.breaker.total.use_real_memory=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "${OPENSEARCH_BIND_HOST}:${OPENSEARCH_PORT}:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - biblioo-net
+    mem_limit: ${OPENSEARCH_MEM_LIMIT}
+    memswap_limit: ${OPENSEARCH_MEM_LIMIT}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.18.0
+    container_name: biblioo-opensearch-dashboards
+    restart: unless-stopped
+    profiles:
+      - tools
+    depends_on:
+      opensearch:
+        condition: service_healthy
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    ports:
+      - "${OPENSEARCH_DASHBOARDS_BIND_HOST}:${OPENSEARCH_DASHBOARDS_PORT}:5601"
+    networks:
+      - biblioo-net
+    mem_limit: ${OPENSEARCH_DASHBOARDS_MEM_LIMIT}
+    memswap_limit: ${OPENSEARCH_DASHBOARDS_MEM_LIMIT}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status | grep -q 'available' || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  mysql_data:
+  redis_data:
+  rabbitmq_data:
+  opensearch_data:
+
+networks:
+  biblioo-net:
+    driver: bridge
