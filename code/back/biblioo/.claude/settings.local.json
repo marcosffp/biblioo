@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(\"C:/Program Files/Java/jdk-25.0.2/bin/javap\" -classpath \"C:/Users/User/.m2/repository/org/springframework/data/spring-data-redis/4.0.4/spring-data-redis-4.0.4.jar\" org.springframework.data.redis.serializer.JacksonJsonRedisSerializer)",
-      "Bash(\"C:/Program Files/Java/jdk-25.0.2/bin/javap\" -classpath \"C:/Users/User/.m2/repository/org/springframework/data/spring-data-redis/4.0.4/spring-data-redis-4.0.4.jar\" org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer)"
-    ]
-  }
-}
