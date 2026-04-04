@@ -7,15 +7,11 @@ import com.biblioo.books.domain.model.Shelf;
 import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.domain.port.in.ShelfUseCase;
-import com.biblioo.books.domain.port.out.ReviewImagePort;
 import com.biblioo.books.domain.port.out.ShelfEventPublisherPort;
 import com.biblioo.books.infrasestructure.persistence.ShelfItemRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfRepository;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import lombok.AllArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -31,7 +27,6 @@ public class ShelfService implements ShelfUseCase {
   private final ShelfRepository shelfRepository;
   private final ShelfItemRepository shelfItemRepository;
   private final BookUseCase bookUseCase;
-  private final ReviewImagePort reviewImagePort;
   private final ShelfEventPublisherPort shelfEventPublisherPort;
 
   @Override
@@ -210,8 +205,6 @@ public class ShelfService implements ShelfUseCase {
         item.setStatus(newStatus);
         item.setStartedAt(LocalDate.now());
         item.setFinishedAt(null);
-        item.setRating(null);
-        item.setReviewText(null);
       }
       case COMPLETED -> {
         item.setStatus(ReadingStatus.COMPLETED);
@@ -233,124 +226,6 @@ public class ShelfService implements ShelfUseCase {
     }
 
     return shelfItemRepository.save(item);
-  }
-
-  @Override
-  @Transactional
-  public ShelfItem reviewItem(
-      Long userId,
-      Long shelfId,
-      Long itemId,
-      Integer rating,
-      String reviewText,
-      List<byte[]> reviewImages) {
-    ShelfItem item = resolveOwnedItemById(userId, shelfId, itemId);
-
-    if (item.getStatus() != ReadingStatus.COMPLETED) {
-      throw new ShelfBusinessException("Avaliação só é permitida quando o status for COMPLETED.");
-    }
-
-    if (rating == null || rating < 1 || rating > 5) {
-      throw new ShelfBusinessException("Avaliação inválida. Deve ser entre 1 e 5.");
-    }
-
-    item.setRating(rating);
-    item.setReviewText(reviewText);
-
-    if (reviewImages != null && !reviewImages.isEmpty()) {
-      List<CompletableFuture<String>> uploadFutures = new ArrayList<>();
-      for (byte[] imageBytes : reviewImages) {
-        String imageId = UUID.randomUUID().toString();
-        uploadFutures.add(
-            reviewImagePort.uploadReviewImage(imageBytes, itemId.toString(), imageId));
-      }
-      List<String> imageUrls = uploadFutures.stream().map(CompletableFuture::join).toList();
-      item.setReviewImageUrls(imageUrls);
-    }
-
-    ShelfItem savedItem = shelfItemRepository.save(item);
-
-    shelfEventPublisherPort.publishBookReviewStatsUpdated(item.getBookId());
-
-    return savedItem;
-  }
-
-  @Override
-  @Transactional
-  public ShelfItem updateReview(
-      Long userId,
-      Long shelfId,
-      Long itemId,
-      Integer rating,
-      String reviewText,
-      List<byte[]> newReviewImages,
-      List<String> imagesToDeleteUrls) {
-    ShelfItem item = resolveOwnedItemById(userId, shelfId, itemId);
-
-    if (item.getStatus() != ReadingStatus.COMPLETED) {
-      throw new ShelfBusinessException(
-          "Edição de avaliação só é permitida quando o status for COMPLETED.");
-    }
-
-    if (rating != null) {
-      if (rating < 1 || rating > 5) {
-        throw new ShelfBusinessException("Avaliação inválida. Deve ser entre 1 e 5.");
-      }
-      item.setRating(rating);
-    }
-
-    if (reviewText != null) {
-      item.setReviewText(reviewText);
-    }
-
-    List<String> currentImages =
-        item.getReviewImageUrls() != null
-            ? new ArrayList<>(item.getReviewImageUrls())
-            : new ArrayList<>();
-
-    if (imagesToDeleteUrls != null && !imagesToDeleteUrls.isEmpty()) {
-      reviewImagePort.deleteReviewImages(imagesToDeleteUrls);
-      currentImages.removeAll(imagesToDeleteUrls);
-    }
-
-    if (newReviewImages != null && !newReviewImages.isEmpty()) {
-      List<CompletableFuture<String>> uploadFutures = new ArrayList<>();
-      for (byte[] imageBytes : newReviewImages) {
-        String imageId = UUID.randomUUID().toString();
-        uploadFutures.add(
-            reviewImagePort.uploadReviewImage(imageBytes, itemId.toString(), imageId));
-      }
-      List<String> uploadedUrls = uploadFutures.stream().map(CompletableFuture::join).toList();
-      currentImages.addAll(uploadedUrls);
-    }
-
-    item.setReviewImageUrls(currentImages);
-
-    ShelfItem savedItem = shelfItemRepository.save(item);
-
-    shelfEventPublisherPort.publishBookReviewStatsUpdated(item.getBookId());
-
-    return savedItem;
-  }
-
-  @Override
-  @Transactional
-  public void deleteReview(Long userId, Long shelfId, Long itemId) {
-    ShelfItem item = resolveOwnedItemById(userId, shelfId, itemId);
-
-    List<String> imageUrls = item.getReviewImageUrls();
-    if (imageUrls != null && !imageUrls.isEmpty()) {
-      List<String> urlsToDelete = new ArrayList<>(imageUrls);
-      reviewImagePort.deleteReviewImages(urlsToDelete);
-    }
-
-    item.setRating(null);
-    item.setReviewText(null);
-    item.setReviewImageUrls(new ArrayList<>());
-
-    shelfItemRepository.save(item);
-
-    shelfEventPublisherPort.publishBookReviewStatsUpdated(item.getBookId());
   }
 
   private void verifyShelfOwnership(Long shelfId, Long userId) {

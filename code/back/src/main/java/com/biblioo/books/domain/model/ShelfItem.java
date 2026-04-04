@@ -3,8 +3,6 @@ package com.biblioo.books.domain.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -55,20 +53,6 @@ public class ShelfItem {
 
   @Column(name = "progress_percent")
   private Integer progressPercent;
-
-  @Column(name = "rating")
-  private Integer rating;
-
-  @Column(name = "review_text", columnDefinition = "TEXT")
-  private String reviewText;
-
-  @ElementCollection(fetch = FetchType.EAGER)
-  @CollectionTable(
-      name = "shelf_item_review_images",
-      joinColumns = @JoinColumn(name = "shelf_item_id"))
-  @Column(name = "image_url")
-  @Builder.Default
-  private List<String> reviewImageUrls = new ArrayList<>();
 
   @Column(name = "started_at")
   private LocalDate startedAt;
