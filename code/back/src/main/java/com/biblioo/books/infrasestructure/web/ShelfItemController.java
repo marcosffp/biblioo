@@ -15,13 +15,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,12 +26,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
@@ -43,10 +36,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RequiredArgsConstructor
 @Tag(name = "Shelf Items", description = "Gerenciamento de livros e progresso dentro das estantes")
 public class ShelfItemController {
-
-  private static final long MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
-  private static final Set<String> ALLOWED_MIME_TYPES =
-      Set.of("image/jpeg", "image/png", "image/webp", "image/gif");
 
   private final ShelfUseCase shelfUseCase;
   private final BookUseCase bookUseCase;
@@ -167,103 +156,7 @@ public class ShelfItemController {
     return ResponseEntity.ok(mapper.toProgressResponse(updated, book));
   }
 
-  @PatchMapping(value = "/{itemId}/review", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @Operation(
-      summary = "Avalía e faz resenha do livro",
-      description =
-          "Apenas disponível se o status de leitura for READING. Suporta envio de imagens/gifs.")
-  public ResponseEntity<ShelfItemResponse> reviewItem(
-      @AuthenticationPrincipal UserDetails principal,
-      @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId,
-      @Parameter(description = "ID do item", example = "1") @PathVariable Long itemId,
-      @RequestParam(value = "rating") Integer rating,
-      @RequestParam(value = "reviewText", required = false) String reviewText,
-      @RequestParam(value = "files", required = false) List<MultipartFile> files)
-      throws IOException {
-
-    Long userId = currentUserId(principal);
-
-    List<byte[]> filesBytes = new ArrayList<>();
-    if (files != null && !files.isEmpty()) {
-      for (MultipartFile file : files) {
-        validateImageFile(file);
-        filesBytes.add(file.getBytes());
-      }
-    }
-
-    ShelfItem updated =
-        shelfUseCase.reviewItem(userId, shelfId, itemId, rating, reviewText, filesBytes);
-    Book book = bookUseCase.getById(updated.getBookId());
-    return ResponseEntity.ok(mapper.toResponse(updated, book));
-  }
-
-  @PutMapping(value = "/{itemId}/review", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @Operation(
-      summary = "Edita a avaliação e resenha do livro",
-      description =
-          "Atualiza nota, texto da resenha, e permite adicionar novas imagens ou remover imagens existentes.")
-  public ResponseEntity<ShelfItemResponse> updateReview(
-      @AuthenticationPrincipal UserDetails principal,
-      @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId,
-      @Parameter(description = "ID do item", example = "1") @PathVariable Long itemId,
-      @RequestParam(value = "rating", required = false) Integer rating,
-      @RequestParam(value = "reviewText", required = false) String reviewText,
-      @RequestParam(value = "files", required = false) List<MultipartFile> files,
-      @RequestParam(value = "imagesToDeleteUrls", required = false) List<String> imagesToDeleteUrls)
-      throws IOException {
-
-    Long userId = currentUserId(principal);
-
-    List<byte[]> filesBytes = new ArrayList<>();
-    if (files != null && !files.isEmpty()) {
-      for (MultipartFile file : files) {
-        validateImageFile(file);
-        filesBytes.add(file.getBytes());
-      }
-    }
-
-    ShelfItem updated =
-        shelfUseCase.updateReview(
-            userId, shelfId, itemId, rating, reviewText, filesBytes, imagesToDeleteUrls);
-    Book book = bookUseCase.getById(updated.getBookId());
-    return ResponseEntity.ok(mapper.toResponse(updated, book));
-  }
-
-  @DeleteMapping("/{itemId}/review")
-  @Operation(
-      summary = "Remove a avaliação do livro",
-      description =
-          "Remove a nota, texto e as imagens associadas à avaliação do livro de forma assíncrona.")
-  public ResponseEntity<ShelfItemResponse> deleteReview(
-      @AuthenticationPrincipal UserDetails principal,
-      @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId,
-      @Parameter(description = "ID do item", example = "1") @PathVariable Long itemId) {
-
-    Long userId = currentUserId(principal);
-
-    shelfUseCase.deleteReview(userId, shelfId, itemId);
-
-    ShelfItem updated = shelfUseCase.getShelfItemById(userId, shelfId, itemId);
-    Book book = bookUseCase.getById(updated.getBookId());
-
-    return ResponseEntity.ok(mapper.toResponse(updated, book));
-  }
-
   private Long currentUserId(UserDetails principal) {
     return Long.parseLong(principal.getUsername());
-  }
-
-  private void validateImageFile(MultipartFile file) {
-    if (file.isEmpty()) {
-      throw new IllegalArgumentException("O arquivo de imagem não pode estar vazio");
-    }
-    if (file.getSize() > MAX_UPLOAD_BYTES) {
-      throw new IllegalArgumentException("O arquivo excede o tamanho máximo de 5MB");
-    }
-    String contentType = file.getContentType();
-    if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType)) {
-      throw new IllegalArgumentException(
-          "Tipo de arquivo inválido. Tipos aceitos: JPEG, PNG, WebP, GIF");
-    }
   }
 }

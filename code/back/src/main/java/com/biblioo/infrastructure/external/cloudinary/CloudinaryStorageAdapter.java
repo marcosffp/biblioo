@@ -1,6 +1,6 @@
 package com.biblioo.infrastructure.external.cloudinary;
 
-import com.biblioo.books.domain.port.out.ReviewImagePort;
+import com.biblioo.feed.domain.port.out.FeedImagePort;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class CloudinaryStorageAdapter implements ProfileImagePort, ReviewImagePort {
+public class CloudinaryStorageAdapter implements ProfileImagePort, FeedImagePort {
 
   private final Cloudinary cloudinary;
 
@@ -34,15 +34,13 @@ public class CloudinaryStorageAdapter implements ProfileImagePort, ReviewImagePo
 
   @Async("userTaskExecutor")
   @Override
-  public CompletableFuture<String> uploadReviewImage(
-      byte[] imageBytes, String reviewId, String imageId) {
+  public CompletableFuture<String> uploadImage(byte[] imageBytes, String entityId, String imageId) {
     return CompletableFuture.completedFuture(
-        upload(imageBytes, "biblioo/reviews/" + reviewId + "/" + imageId));
+        upload(imageBytes, "biblioo/feed/" + entityId + "/" + imageId));
   }
 
-  @Async("userTaskExecutor")
   @Override
-  public CompletableFuture<Void> deleteReviewImages(List<String> imageUrls) {
+  public void deleteImages(List<String> imageUrls) {
     if (imageUrls != null) {
       for (String url : imageUrls) {
         try {
@@ -55,7 +53,6 @@ public class CloudinaryStorageAdapter implements ProfileImagePort, ReviewImagePo
         }
       }
     }
-    return CompletableFuture.completedFuture(null);
   }
 
   private String extractPublicId(String url) {

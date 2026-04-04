@@ -25,17 +25,13 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, UserFoll
           + " WHERE f.followerId = :followerId AND f.followedId = :followedId")
   void deleteFollow(@Param("followerId") Long followerId, @Param("followedId") Long followedId);
 
-  /**
-   * Retorna os usuários que seguem :userId. JOIN via subquery para usar o índice em followedId.
-   */
+  /** Retorna os usuários que seguem :userId. JOIN via subquery para usar o índice em followedId. */
   @Query(
       "SELECT u FROM User u WHERE u.id IN"
           + " (SELECT f.followerId FROM UserFollow f WHERE f.followedId = :userId)")
   List<User> findFollowerUsers(@Param("userId") Long userId, PageRequest pageable);
 
-  /**
-   * Retorna os usuários que :userId segue. JOIN via subquery para usar o índice em followerId.
-   */
+  /** Retorna os usuários que :userId segue. JOIN via subquery para usar o índice em followerId. */
   @Query(
       "SELECT u FROM User u WHERE u.id IN"
           + " (SELECT f.followedId FROM UserFollow f WHERE f.followerId = :userId)")

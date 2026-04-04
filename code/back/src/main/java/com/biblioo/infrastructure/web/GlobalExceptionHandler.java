@@ -27,6 +27,13 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  // ── Feed / Reviews ────────────────────────────────────────────────────────
+  @ExceptionHandler(com.biblioo.feed.domain.exception.ReviewBusinessException.class)
+  ResponseEntity<ErrorResponse> handleReviewBusiness(
+      com.biblioo.feed.domain.exception.ReviewBusinessException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
   // ── User ──────────────────────────────────────────────────────────────────
 
   @ExceptionHandler(UserNotFoundException.class)
