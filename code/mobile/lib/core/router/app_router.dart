@@ -7,6 +7,7 @@ import 'package:biblioo/screens/profile/edit_profile_screen.dart';
 import 'package:biblioo/screens/profile/profile_screen.dart';
 import 'package:biblioo/screens/recommendation/dice_screen.dart';
 import 'package:biblioo/screens/recommendation/recommendation_screen.dart';
+import 'package:biblioo/screens/search/book_search_screen.dart';
 import 'package:go_router/go_router.dart';
 
 
@@ -18,6 +19,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),
+    ),
+
+    // ── BUSCA (sem bottom nav) ────────────────────────────
+    GoRoute(
+      path: '/search',
+      builder: (context, state) => const BookSearchScreen(),
     ),
 
     // ── CHAT (desativado por enquanto; rota/tela não disponível) ───
