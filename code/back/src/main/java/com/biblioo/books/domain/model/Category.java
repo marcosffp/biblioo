@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Data
 @NoArgsConstructor
@@ -23,19 +25,19 @@ public class Category {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id; // Identificador único da categoria no banco de dados.
+  private Long id;
 
   @Column(nullable = false, unique = true, length = 100)
-  private String name; // Nome único da categoria.
+  private String name;
 
   @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
-  private List<Book> books; // Lista de livros associados a esta categoria.
+  private List<Book> books;
 
+  @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
-  private LocalDateTime createdAt; // Data e hora em que o registro do livro foi criado.
+  private LocalDateTime createdAt;
 
-  @PrePersist
-  protected void onCreate() {
-    this.createdAt = LocalDateTime.now();
-  }
+  @UpdateTimestamp
+  @Column(name = "updated_at")
+  private LocalDateTime updatedAt;
 }

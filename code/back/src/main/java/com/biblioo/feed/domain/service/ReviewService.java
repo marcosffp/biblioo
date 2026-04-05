@@ -49,19 +49,16 @@ public class ReviewService implements ReviewUseCase {
 
     var review = Review.builder().userId(userId).book(book).rating(rating).text(text).build();
 
-    // Salva a estrutura primária num contexto transacional (usando o repo direto)
     var savedReview = reviewRepository.save(review);
 
     var needsUpdate = false;
 
-    // Regra das Imagens - Fora da transação principal para não bloquear conexões com o BD!
     if (newImages != null && !newImages.isEmpty()) {
       var imageUrls = uploadImages(newImages, savedReview.getId().toString());
       savedReview.setImages(imageUrls);
       needsUpdate = true;
     }
 
-    // Regra do GIF (Upload como arquivo)
     if (gif != null && gif.length > 0) {
       var uploadedGifUrl = uploadGif(gif, savedReview.getId().toString());
       savedReview.setGifUrl(uploadedGifUrl);
@@ -69,10 +66,9 @@ public class ReviewService implements ReviewUseCase {
     }
 
     if (needsUpdate) {
-      savedReview = reviewRepository.save(savedReview); // Atualiza com os caminhos resolvidos
+      savedReview = reviewRepository.save(savedReview);
     }
 
-    // Publica evento para consumer de stats recalcular a avaliação do livro
     feedEventPublisherPort.publishBookReviewStatsUpdated(bookId, null, rating);
 
     return savedReview;
@@ -102,9 +98,7 @@ public class ReviewService implements ReviewUseCase {
     review.setRating(rating);
     review.setText(text);
 
-    // Regra do novo envio de GIF
     if (gif != null && gif.length > 0) {
-      // Se já tiver e for enviar um novo, deletar o antigo
       if (review.getGifUrl() != null && !review.getGifUrl().isEmpty()) {
         deleteImagesAsync(List.of(review.getGifUrl()));
       }
@@ -112,7 +106,6 @@ public class ReviewService implements ReviewUseCase {
       review.setGifUrl(uploadedGifUrl);
     }
 
-    // Regra das Imagens (Delete e/ou Upload) - Fora da transação persistente
     var currentImages =
         review.getImages() != null ? new ArrayList<>(review.getImages()) : new ArrayList<String>();
 
@@ -127,9 +120,8 @@ public class ReviewService implements ReviewUseCase {
     }
 
     review.setImages(currentImages);
-    var savedReview = reviewRepository.save(review); // Atualiza Review
+    var savedReview = reviewRepository.save(review);
 
-    // Publica evento para consumer de stats recalcular a avaliação do livro
     feedEventPublisherPort.publishBookReviewStatsUpdated(
         review.getBook().getId(), oldRating, rating);
 
@@ -150,20 +142,16 @@ public class ReviewService implements ReviewUseCase {
 
     var oldRating = review.getRating();
 
-    // Remove Imagens hospedadas localmente/remotamente se houverem
     if (review.getImages() != null && !review.getImages().isEmpty()) {
       deleteImagesAsync(review.getImages());
     }
 
-    // Usa queries de otimização onde possível
     if (review.getCommentCount() != null && review.getCommentCount() > 0) {
       reviewRepository.softDeleteReview(reviewId, userId);
     } else {
       reviewRepository.deleteById(reviewId);
     }
 
-    // Publica evento para consumer de stats recalcular a avaliação do livro removendo esta
-    // avaliação da conta
     feedEventPublisherPort.publishBookReviewStatsUpdated(review.getBook().getId(), oldRating, null);
   }
 

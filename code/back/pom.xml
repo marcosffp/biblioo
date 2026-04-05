@@ -184,6 +184,19 @@
             <artifactId>cloudinary-http5</artifactId>
             <version>2.0.0</version>
         </dependency>
+
+        <!-- Neo4j Java Driver (official — sem Spring Data Neo4j para controle total sobre Cypher) -->
+        <dependency>
+            <groupId>org.neo4j.driver</groupId>
+            <artifactId>neo4j-java-driver</artifactId>
+            <version>5.18.0</version>
+        </dependency>
+
+        <!-- Micrometer (métricas do consumer de recomendação) -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
     </dependencies>
 
 

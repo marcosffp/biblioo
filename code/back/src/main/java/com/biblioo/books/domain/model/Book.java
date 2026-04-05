@@ -10,6 +10,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import tools.jackson.databind.annotation.JsonDeserialize;
 import tools.jackson.databind.annotation.JsonSerialize;
 
@@ -20,7 +22,6 @@ import tools.jackson.databind.annotation.JsonSerialize;
       @Index(name = "idx_isbn", columnList = "isbn"),
       @Index(name = "idx_title", columnList = "title"),
       @Index(name = "idx_published_at", columnList = "published_at"),
-      @Index(name = "idx_language", columnList = "language"),
       @Index(name = "idx_rating", columnList = "average_rating"),
       @Index(name = "idx_created_at", columnList = "created_at")
     })
@@ -68,12 +69,6 @@ public class Book {
 
   private Integer readerCount;
 
-  @Column(length = 10)
-  private String language;
-
-  @Column(nullable = false, length = 20)
-  private String source;
-
   @JsonIgnore
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
@@ -82,11 +77,18 @@ public class Book {
       inverseJoinColumns = @JoinColumn(name = "category_id"))
   private List<Category> categories;
 
+  @Transient private List<String> rawCategoryNames;
+
   @Column(columnDefinition = "TEXT")
   private String searchText;
 
+  @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at")
+  private LocalDateTime updatedAt;
 
   @PostLoad
   protected void onLoad() {
@@ -97,7 +99,11 @@ public class Book {
 
   @PrePersist
   protected void onCreate() {
-    this.createdAt = LocalDateTime.now();
+    this.searchText = buildSearchText();
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
     this.searchText = buildSearchText();
   }
 

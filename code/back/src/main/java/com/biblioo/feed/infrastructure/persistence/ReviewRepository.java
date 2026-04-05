@@ -16,29 +16,23 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
   boolean existsByUserIdAndBookIdAndIsDeletedFalse(Long userId, Long bookId);
 
-  // Evita N+1 ao carregar a Review junto com os dados do Book (EntityGraph é muito mais limpo que
-  // JOIN FETCH manual em muitos casos)
   @EntityGraph(attributePaths = {"book"})
   Optional<Review> findByIdAndIsDeletedFalse(Long id);
 
-  // Listagem paginada e performática para a página de um livro específico
   @EntityGraph(attributePaths = {"book"})
   @Query(
       "SELECT r FROM Review r WHERE r.book.id = :bookId AND r.isDeleted = false ORDER BY r.createdAt DESC")
   Page<Review> findRecentReviewsByBookId(@Param("bookId") Long bookId, Pageable pageable);
 
-  // Listagem paginada para o perfil de um usuário
   @EntityGraph(attributePaths = {"book"})
   @Query(
       "SELECT r FROM Review r WHERE r.userId = :userId AND r.isDeleted = false ORDER BY r.createdAt DESC")
   Page<Review> findRecentReviewsByUserId(@Param("userId") Long userId, Pageable pageable);
 
-  // Soft Delete otimizado em lote/update direto sem precisar carregar a entidade
   @Modifying
   @Query("UPDATE Review r SET r.isDeleted = true WHERE r.id = :reviewId AND r.userId = :userId")
   int softDeleteReview(@Param("reviewId") Long reviewId, @Param("userId") Long userId);
 
-  // Atualização de contadores de like sem concorrência forte (incremento atômico no banco)
   @Modifying
   @Query("UPDATE Review r SET r.likeCount = r.likeCount + 1 WHERE r.id = :reviewId")
   void incrementLikeCount(@Param("reviewId") Long reviewId);

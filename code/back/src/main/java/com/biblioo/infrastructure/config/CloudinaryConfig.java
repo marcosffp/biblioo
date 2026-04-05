@@ -13,7 +13,6 @@ public class CloudinaryConfig {
 
   @Bean
   public Cloudinary cloudinary() {
-    // O SDK configura tudo automaticamente a partir da URL do .env
     return new Cloudinary(cloudinaryUrl);
   }
 }

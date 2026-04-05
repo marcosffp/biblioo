@@ -2,10 +2,13 @@ package com.biblioo.feed.domain.model;
 
 import com.biblioo.books.domain.model.Book;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -23,12 +26,18 @@ import lombok.experimental.SuperBuilder;
     })
 public class Review extends FeedContent {
 
-  // Livro associado à review
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "book_id", nullable = false)
   private Book book;
 
-  // Avaliação do livro (nota de 1 a 5, por exemplo)
   @Column(nullable = false)
   private Integer rating;
+
+  @CreationTimestamp
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private LocalDateTime createdAt;
+
+  @UpdateTimestamp
+  @Column(name = "updated_at")
+  private LocalDateTime updatedAt;
 }

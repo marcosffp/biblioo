@@ -14,7 +14,6 @@ import lombok.experimental.SuperBuilder;
 @MappedSuperclass
 public abstract class FeedContent extends Content {
 
-  // Número de comentários associados a este conteúdo
   @Column(name = "comment_count", nullable = false)
   @lombok.Builder.Default
   private Integer commentCount = 0;
