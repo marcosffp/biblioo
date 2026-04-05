@@ -55,7 +55,7 @@ public class BookService implements BookUseCase {
     if (results.isEmpty()) {
       return repository.findByTitleContainingIgnoreCaseOrderByTitleAsc(query).stream()
           .limit(8)
-          .toList();
+          .collect(java.util.stream.Collectors.toList());
     }
     return results;
   }

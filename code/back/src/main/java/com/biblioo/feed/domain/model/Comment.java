@@ -25,7 +25,6 @@ import lombok.experimental.SuperBuilder;
     })
 public class Comment extends Content {
 
-  // ID do conteúdo pai ao qual este comentário está associado
   @Column(name = "parent_id", nullable = false)
   private Long parentId;
 }

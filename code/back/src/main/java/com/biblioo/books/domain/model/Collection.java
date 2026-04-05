@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.Hibernate;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import tools.jackson.databind.annotation.JsonDeserialize;
 import tools.jackson.databind.annotation.JsonSerialize;
 
@@ -53,9 +55,11 @@ public class Collection {
   @Builder.Default
   private List<Shelf> shelves = new ArrayList<>();
 
+  @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
+  @UpdateTimestamp
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
 
@@ -64,16 +68,5 @@ public class Collection {
     if (shelves != null && Hibernate.isInitialized(shelves)) {
       this.shelves = new ArrayList<>(shelves);
     }
-  }
-
-  @PrePersist
-  protected void onCreate() {
-    this.createdAt = LocalDateTime.now();
-    this.updatedAt = this.createdAt;
-  }
-
-  @PreUpdate
-  protected void onUpdate() {
-    this.updatedAt = LocalDateTime.now();
   }
 }

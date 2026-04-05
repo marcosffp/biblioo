@@ -29,6 +29,13 @@ public class RabbitMQConfig {
   public static final String EVENT_BOOK_SHELF_REMOVED = "BOOK_SHELF_REMOVED";
   public static final String EVENT_BOOK_REVIEW_STATS = "BOOK_REVIEW_STATS";
 
+  // ── Recommendation T1 — BECAUSE_YOU_READ ────────────────────────────────────
+  public static final String REC_QUEUE = "rec.shelf.completed";
+  public static final String REC_DLQ = "rec.shelf.completed.dlq";
+  public static final String REC_DLQ_ROUTING_KEY = "rec.shelf.dead";
+  public static final String SHELF_READING_COMPLETED_ROUTING_KEY = "shelf.reading.completed";
+  public static final String EVENT_SHELF_READING_COMPLETED = "SHELF_READING_COMPLETED";
+
   @Bean
   TopicExchange mainExchange() {
     return ExchangeBuilder.topicExchange(MAIN_EXCHANGE).durable(true).build();
@@ -60,6 +67,29 @@ public class RabbitMQConfig {
   @Bean
   Binding dlqBinding(Queue bookStatsDlq, DirectExchange dlxExchange) {
     return BindingBuilder.bind(bookStatsDlq).to(dlxExchange).with(BOOK_STATS_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue recQueue() {
+    return QueueBuilder.durable(REC_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", REC_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue recDlq() {
+    return QueueBuilder.durable(REC_DLQ).build();
+  }
+
+  @Bean
+  Binding recBinding(Queue recQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(recQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding recDlqBinding(Queue recDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(recDlq).to(dlxExchange).with(REC_DLQ_ROUTING_KEY);
   }
 
   @Bean

@@ -5,6 +5,9 @@ import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
 import com.biblioo.feed.infrastructure.dto.mapper.ReviewMapper;
 import com.biblioo.feed.infrastructure.dto.review.ReviewResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/feed/reviews")
+@Tag(name = "Reviews", description = "Gerenciamento de avaliações e resenhas de livros no feed")
 public class ReviewController {
 
   private final ReviewUseCase reviewUseCase;
@@ -37,13 +41,27 @@ public class ReviewController {
   }
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @Operation(
+      summary = "Cria uma avaliação",
+      description =
+          "Cria uma nova avaliação de um livro, permitindo envio de texto, nota (1-5), até 5 imagens e 1 GIF.")
   public ResponseEntity<ReviewResponse> createReview(
       @AuthenticationPrincipal UserDetails principal,
-      @RequestParam("bookId") Long bookId,
-      @RequestParam("rating") Integer rating,
-      @RequestParam(value = "text", required = false) String text,
-      @RequestPart(value = "images", required = false) List<MultipartFile> images,
-      @RequestPart(value = "gif", required = false) MultipartFile gif) {
+      @Parameter(description = "ID do livro avaliado", example = "1") @RequestParam("bookId")
+          Long bookId,
+      @Parameter(description = "Nota dada ao livro (1 a 5)", example = "5") @RequestParam("rating")
+          Integer rating,
+      @Parameter(
+              description = "Texto da avaliação/resenha (até 2000 caracteres)",
+              example = "Um livro fantástico!")
+          @RequestParam(value = "text", required = false)
+          String text,
+      @Parameter(description = "Arquivos de imagens para anexar à avaliação (máx 5)")
+          @RequestPart(value = "images", required = false)
+          List<MultipartFile> images,
+      @Parameter(description = "Arquivo GIF animado para anexar")
+          @RequestPart(value = "gif", required = false)
+          MultipartFile gif) {
 
     if (rating < 1 || rating > 5) {
       throw new ReviewBusinessException("A avaliação deve ser entre 1 e 5");
@@ -69,14 +87,29 @@ public class ReviewController {
   }
 
   @PutMapping(value = "/{reviewId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @Operation(
+      summary = "Atualiza uma avaliação",
+      description =
+          "Atualiza nota, texto e/ou anexos de uma avaliação já existente de autoria do usuário.")
   public ResponseEntity<ReviewResponse> updateReview(
       @AuthenticationPrincipal UserDetails principal,
-      @PathVariable Long reviewId,
-      @RequestParam(value = "text", required = false) String text,
-      @RequestParam(value = "rating", required = false) Integer rating,
-      @RequestParam(value = "imagesToDeleteUrls", required = false) List<String> imagesToDeleteUrls,
-      @RequestPart(value = "images", required = false) List<MultipartFile> images,
-      @RequestPart(value = "gif", required = false) MultipartFile gif) {
+      @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId,
+      @Parameter(description = "Novo texto de resenha (até 2000 caracteres)")
+          @RequestParam(value = "text", required = false)
+          String text,
+      @Parameter(description = "Nova nota aplicada ao livro (1 a 5)", example = "4")
+          @RequestParam(value = "rating", required = false)
+          Integer rating,
+      @Parameter(
+              description = "URLs ou referências de imagens a serem deletadas da avaliação atual")
+          @RequestParam(value = "imagesToDeleteUrls", required = false)
+          List<String> imagesToDeleteUrls,
+      @Parameter(description = "Novas imagens para adicionar")
+          @RequestPart(value = "images", required = false)
+          List<MultipartFile> images,
+      @Parameter(description = "Novo GIF para sobrescrever atual (se houver)")
+          @RequestPart(value = "gif", required = false)
+          MultipartFile gif) {
 
     if (text == null || text.trim().isEmpty()) {
       throw new ReviewBusinessException("O texto da avaliação é obrigatório");
@@ -102,8 +135,13 @@ public class ReviewController {
   }
 
   @DeleteMapping("/{reviewId}")
+  @Operation(
+      summary = "Apaga uma avaliação",
+      description =
+          "Exclui uma avaliação feita pelo usuário e seus arquivos associados, se houver.")
   public ResponseEntity<Void> deleteReview(
-      @AuthenticationPrincipal UserDetails principal, @PathVariable Long reviewId) {
+      @AuthenticationPrincipal UserDetails principal,
+      @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
 
     Long userId = Long.parseLong(principal.getUsername());
     reviewUseCase.deleteReview(userId, reviewId);
@@ -111,8 +149,14 @@ public class ReviewController {
   }
 
   @PostMapping("/{reviewId}/like")
+  @Operation(
+      summary = "Curtir ou remover curtida da avaliação",
+      description =
+          "Adiciona uma curtida na avaliação do livro, caso não curtido; remove a curtida se já curtido.")
   public ResponseEntity<Void> likeReview(
-      @AuthenticationPrincipal UserDetails principal, @PathVariable Long reviewId) {
+      @AuthenticationPrincipal UserDetails principal,
+      @Parameter(description = "ID da avaliação a curtir/descurtir", example = "1") @PathVariable
+          Long reviewId) {
 
     Long userId = Long.parseLong(principal.getUsername());
     reviewUseCase.likeReview(userId, reviewId);

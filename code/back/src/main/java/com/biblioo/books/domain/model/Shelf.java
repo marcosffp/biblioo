@@ -6,7 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Table(
@@ -41,23 +43,14 @@ public class Shelf {
   @Column(length = 500)
   private String description;
 
+  @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
+  @UpdateTimestamp
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
 
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
-
-  @PrePersist
-  protected void onCreate() {
-    this.createdAt = LocalDateTime.now();
-    this.updatedAt = this.createdAt;
-  }
-
-  @PreUpdate
-  protected void onUpdate() {
-    this.updatedAt = LocalDateTime.now();
-  }
 }

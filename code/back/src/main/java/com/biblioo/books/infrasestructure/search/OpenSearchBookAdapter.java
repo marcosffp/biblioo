@@ -66,7 +66,7 @@ public class OpenSearchBookAdapter {
           .map(Hit::source)
           .filter(Objects::nonNull)
           .map(BookDocument::toBook)
-          .toList();
+          .collect(java.util.stream.Collectors.toList());
 
     } catch (IOException e) {
       throw new RuntimeException("OpenSearch search falhou", e);
@@ -106,7 +106,7 @@ public class OpenSearchBookAdapter {
           .map(Hit::source)
           .filter(Objects::nonNull)
           .map(BookDocument::toBook)
-          .toList();
+          .collect(java.util.stream.Collectors.toList());
 
     } catch (IOException e) {
       throw new RuntimeException("OpenSearch suggest falhou", e);
@@ -210,25 +210,25 @@ public class OpenSearchBookAdapter {
   }
 
   record BookDocument(
+      Long id,
       String isbn,
       String title,
       List<String> authors,
       String publisher,
       String description,
       String coverUrl,
-      String language,
       String searchText,
       Float averageRating,
       Integer pageCount) {
     static BookDocument fromBook(Book book) {
       return new BookDocument(
+          book.getId(),
           book.getIsbn(),
           book.getTitle(),
           book.getAuthors(),
           book.getPublisher(),
           book.getDescription(),
           book.getCoverUrl(),
-          book.getLanguage(),
           book.getSearchText(),
           book.getAverageRating(),
           book.getPageCount());
@@ -236,13 +236,13 @@ public class OpenSearchBookAdapter {
 
     Book toBook() {
       return Book.builder()
+          .id(id)
           .isbn(isbn)
           .title(title)
           .authors(authors)
           .publisher(publisher)
           .description(description)
           .coverUrl(coverUrl)
-          .language(language)
           .searchText(searchText)
           .averageRating(averageRating)
           .pageCount(pageCount)

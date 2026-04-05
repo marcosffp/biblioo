@@ -7,4 +7,7 @@ public interface ShelfEventPublisherPort {
   void publishReaderCountDecrement(Long bookId);
 
   void publishBookReviewStatsUpdated(Long bookId);
+
+  void publishReadingCompleted(
+      Long userId, Long bookId, Long shelfItemId, Long shelfId, String finishedAt);
 }

@@ -115,17 +115,31 @@ public class ShelfService implements ShelfUseCase {
 
     Book book = bookUseCase.getById(bookId);
 
+    ReadingStatus statusToSet = initialStatus != null ? initialStatus : ReadingStatus.WANT_TO_READ;
+    LocalDate finishedAt = (statusToSet == ReadingStatus.COMPLETED) ? LocalDate.now() : null;
+
     ShelfItem item =
         ShelfItem.builder()
             .shelfId(shelfId)
             .bookId(bookId)
-            .status(initialStatus != null ? initialStatus : ReadingStatus.WANT_TO_READ)
+            .status(statusToSet)
             .totalPages(book.getPageCount() != null ? book.getPageCount() : 0)
+            .currentPage(
+                statusToSet == ReadingStatus.COMPLETED && book.getPageCount() != null
+                    ? book.getPageCount()
+                    : 0)
+            .progressPercent(statusToSet == ReadingStatus.COMPLETED ? 100 : 0)
+            .finishedAt(finishedAt)
             .build();
 
     ShelfItem savedItem = shelfItemRepository.save(item);
 
     shelfEventPublisherPort.publishReaderCountIncrement(bookId);
+
+    if (statusToSet == ReadingStatus.COMPLETED) {
+      shelfEventPublisherPort.publishReadingCompleted(
+          userId, savedItem.getBookId(), savedItem.getId(), shelfId, finishedAt.toString());
+    }
 
     return savedItem;
   }
@@ -176,7 +190,9 @@ public class ShelfService implements ShelfUseCase {
 
     item.setCurrentPage(page);
 
-    if (max < Integer.MAX_VALUE && page == max) {
+    boolean justCompleted = max < Integer.MAX_VALUE && page == max;
+
+    if (justCompleted) {
       item.setStatus(ReadingStatus.COMPLETED);
       item.setFinishedAt(LocalDate.now());
       item.setProgressPercent(100);
@@ -184,7 +200,14 @@ public class ShelfService implements ShelfUseCase {
       item.setProgressPercent((page * 100) / max);
     }
 
-    return shelfItemRepository.save(item);
+    ShelfItem saved = shelfItemRepository.save(item);
+
+    if (justCompleted) {
+      shelfEventPublisherPort.publishReadingCompleted(
+          userId, saved.getBookId(), saved.getId(), shelfId, LocalDate.now().toString());
+    }
+
+    return saved;
   }
 
   @Override
@@ -225,7 +248,14 @@ public class ShelfService implements ShelfUseCase {
               "Não é permitido retroceder um status para WANT_TO_READ.");
     }
 
-    return shelfItemRepository.save(item);
+    ShelfItem saved = shelfItemRepository.save(item);
+
+    if (newStatus == ReadingStatus.COMPLETED) {
+      shelfEventPublisherPort.publishReadingCompleted(
+          userId, saved.getBookId(), saved.getId(), shelfId, LocalDate.now().toString());
+    }
+
+    return saved;
   }
 
   private void verifyShelfOwnership(Long shelfId, Long userId) {
