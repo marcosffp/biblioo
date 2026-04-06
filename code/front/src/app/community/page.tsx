@@ -15,7 +15,7 @@ export default function ComunidadesPage() {
     <AppShell>
       <PageHeader
         title="Comunidades"
-        subtitle="Encontre clubes de leitura"
+        subtitle="Encontre comunidades de leitura"
         action={<SecondaryButton>Criar clube</SecondaryButton>}
       />
 
