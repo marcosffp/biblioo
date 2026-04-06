@@ -5,7 +5,6 @@ import React from "react";
 import { BookOpen, BookOpenCheck, MessageSquare, Sparkles, Tag, Users } from "lucide-react";
 import {
   AppShell,
-  BookCard,
   Button,
   EmptyState,
   ProgressBar,
@@ -13,7 +12,18 @@ import {
   StatHighlight,
   TagList,
 } from "@/components";
+import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
+import type { ShelfBook } from "@/hooks/useBookcasePage";
+import type { ReadingStatus } from "@/utils/bookcase-filters";
 import { getAccessToken } from "@/services/auth";
+import {
+  BookcaseApiError,
+  changeShelfItemStatus,
+  createBookReview,
+  getShelfItemById,
+  updateBookReview,
+  updateShelfItemProgress,
+} from "@/services/bookcase";
 import {
   getBookById,
   getFollowersCount,
@@ -26,28 +36,58 @@ import {
   type ShelfItemSummaryResponse,
   type UserProfileResponse,
 } from "@/services/profile";
-import { getShelfItemById } from "@/services/bookcase";
 
 const isOwner = true;
 const isPublic = true;
 
 const tabs = ["Estante", "Comunidades", "Resenhas"] as const;
 
-type DisplayShelfBook = {
-  id: number;
-  title: string;
-  author: string;
-  coverUrl?: string;
-  progress?: number;
-  readingStatus?: "lendo" | "relendo" | "lido" | "abandonei" | "quero-ler";
-  currentPage?: number;
-  totalPages?: number;
+type DisplayShelfBook = Omit<ShelfBook, "shelfItemId"> & {
+  shelfItemId: number;
+  shelfId: number;
+  bookId: number;
+};
+
+type ShelfItemWithShelfId = ShelfItemSummaryResponse & {
+  shelfId: number;
 };
 
 type GenreDistribution = {
   label: string;
   value: number;
 };
+
+function mapBackendReadingStatus(status: string): Exclude<ReadingStatus, "todos"> {
+  switch (status) {
+    case "READING":
+      return "lendo";
+    case "REREADING":
+      return "relendo";
+    case "COMPLETED":
+      return "lido";
+    case "ABANDONED":
+      return "abandonei";
+    case "WANT_TO_READ":
+    default:
+      return "quero-ler";
+  }
+}
+
+function mapFrontendReadingStatus(status: Exclude<ReadingStatus, "todos">) {
+  switch (status) {
+    case "lendo":
+      return "READING" as const;
+    case "relendo":
+      return "REREADING" as const;
+    case "lido":
+      return "COMPLETED" as const;
+    case "abandonei":
+      return "ABANDONED" as const;
+    case "quero-ler":
+    default:
+      return "WANT_TO_READ" as const;
+  }
+}
 
 export default function PerfilPage() {
   const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Estante");
@@ -67,6 +107,16 @@ export default function PerfilPage() {
     showReadingGoal: true,
     showDnaLiterario: true,
   });
+
+  const [isShelfBookDetailsOpen, setIsShelfBookDetailsOpen] = React.useState(false);
+  const [selectedShelfBook, setSelectedShelfBook] = React.useState<DisplayShelfBook | null>(null);
+  const [bookDetailsError, setBookDetailsError] = React.useState("");
+  const [isSavingShelfBookDetails, setIsSavingShelfBookDetails] = React.useState(false);
+  const [activeReviewId, setActiveReviewId] = React.useState<number | null>(null);
+  const [reviewRatingDraft, setReviewRatingDraft] = React.useState(0);
+  const [reviewCommentDraft, setReviewCommentDraft] = React.useState("");
+  const [reviewError, setReviewError] = React.useState("");
+  const [isSavingReview, setIsSavingReview] = React.useState(false);
 
   const goalTarget = 24;
   const goalCurrent = booksRead;
@@ -90,10 +140,20 @@ export default function PerfilPage() {
         const loadedProfile = await getMyProfile(accessToken);
         const loadedPreferences = getProfilePreferences();
         const shelves = await listMyShelves(accessToken);
-        const shelfItemGroups = await Promise.all(shelves.map((shelf) => listShelfItems(shelf.id, accessToken)));
+        const shelfItemGroups = await Promise.all(
+          shelves.map(async (shelf) => {
+            const items = await listShelfItems(shelf.id, accessToken);
+            return { shelfId: shelf.id, items };
+          }),
+        );
 
-        const flatItems = shelfItemGroups.flat();
-        const uniqueItems = Array.from(new Map(flatItems.map((item) => [item.id, item])).values());
+        const flatItems = shelfItemGroups.flatMap((group) =>
+          group.items.map((item) => ({
+            ...item,
+            shelfId: group.shelfId,
+          })),
+        );
+        const uniqueItems = Array.from(new Map(flatItems.map((item) => [item.id, item])).values()) as ShelfItemWithShelfId[];
         const completedCount = uniqueItems.filter((item) => item.status === "COMPLETED").length;
 
         const pageCountEntries = await Promise.all(
@@ -157,29 +217,19 @@ export default function PerfilPage() {
         setFavoriteAuthors(computedFavoriteAuthors);
         // build richer shelf book objects so we can render the same layout used in the main estante
         const shelfBookItems = await Promise.all(
-          uniqueItems.slice(0, 8).map(async (item: ShelfItemSummaryResponse) => {
+          uniqueItems.slice(0, 8).map(async (item) => {
             try {
-              const [book, detailedItem] = await Promise.all([getBookById(item.bookId, accessToken), getShelfItemById(item.bookId, item.id)]);
+              const [book, detailedItem] = await Promise.all([
+                getBookById(item.bookId, accessToken),
+                getShelfItemById(item.shelfId, item.id),
+              ]);
               const author = (book.authors && book.authors.length > 0) ? book.authors.join(", ") : "Autor desconhecido";
 
-              const mapBackendReadingStatus = (status: string): DisplayShelfBook["readingStatus"] => {
-                switch (status) {
-                  case "READING":
-                    return "lendo";
-                  case "REREADING":
-                    return "relendo";
-                  case "COMPLETED":
-                    return "lido";
-                  case "ABANDONED":
-                    return "abandonei";
-                  case "WANT_TO_READ":
-                  default:
-                    return "quero-ler";
-                }
-              };
-
               return {
-                id: item.id,
+                shelfId: item.shelfId,
+                shelfItemId: item.id,
+                id: item.bookId.toString(),
+                bookId: item.bookId,
                 title: item.bookTitle,
                 author,
                 coverUrl: item.bookCoverUrl ?? book.coverUrl ?? undefined,
@@ -190,11 +240,15 @@ export default function PerfilPage() {
               } as DisplayShelfBook;
             } catch {
               return {
-                id: item.id,
+                shelfId: item.shelfId,
+                shelfItemId: item.id,
+                id: item.bookId.toString(),
+                bookId: item.bookId,
                 title: item.bookTitle,
                 author: "Autor desconhecido",
                 coverUrl: item.bookCoverUrl ?? undefined,
                 progress: item.progressPercent ?? undefined,
+                readingStatus: mapBackendReadingStatus(item.status),
               } as DisplayShelfBook;
             }
           }),
@@ -220,6 +274,229 @@ export default function PerfilPage() {
       cancelled = true;
     };
   }, []);
+
+  const handleOpenShelfBookDetails = (book: DisplayShelfBook) => {
+    setSelectedShelfBook(book);
+    setBookDetailsError("");
+    setReviewError("");
+    setActiveReviewId(null);
+    setReviewRatingDraft(0);
+    setReviewCommentDraft("");
+    setIsShelfBookDetailsOpen(true);
+  };
+
+  const handleCloseShelfBookDetails = () => {
+    setIsShelfBookDetailsOpen(false);
+    setSelectedShelfBook(null);
+    setBookDetailsError("");
+    setActiveReviewId(null);
+    setReviewRatingDraft(0);
+    setReviewCommentDraft("");
+    setReviewError("");
+  };
+
+  const handleSelectShelfBookStatus = (nextStatus: Exclude<ReadingStatus, "todos">) => {
+    if (!selectedShelfBook) {
+      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      return;
+    }
+
+    const activeBook = selectedShelfBook;
+
+    async function updateShelfBookStatusAction() {
+      setIsSavingShelfBookDetails(true);
+      setBookDetailsError("");
+
+      try {
+        const updatedItem = await changeShelfItemStatus(
+          activeBook.shelfId,
+          activeBook.shelfItemId,
+          mapFrontendReadingStatus(nextStatus),
+        );
+
+        setShelfBooks((currentBooks) =>
+          currentBooks.map((book) =>
+            book.shelfItemId === updatedItem.id
+              ? {
+                  ...book,
+                  readingStatus: mapBackendReadingStatus(updatedItem.status),
+                  progress: updatedItem.progressPercent ?? undefined,
+                  currentPage: updatedItem.currentPage ?? undefined,
+                  totalPages: updatedItem.totalPages ?? book.totalPages,
+                }
+              : book,
+          ),
+        );
+
+        setSelectedShelfBook((currentBook) => {
+          if (!currentBook || currentBook.shelfItemId !== updatedItem.id) {
+            return currentBook;
+          }
+
+          return {
+            ...currentBook,
+            readingStatus: mapBackendReadingStatus(updatedItem.status),
+            progress: updatedItem.progressPercent ?? undefined,
+            currentPage: updatedItem.currentPage ?? undefined,
+            totalPages: updatedItem.totalPages ?? currentBook.totalPages,
+          };
+        });
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faca login para atualizar o status do livro.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Nao foi possivel atualizar o status do livro.");
+        }
+      } finally {
+        setIsSavingShelfBookDetails(false);
+      }
+    }
+
+    void updateShelfBookStatusAction();
+  };
+
+  const handleStepShelfBookPage = (delta: number) => {
+    if (!selectedShelfBook) {
+      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      return;
+    }
+
+    const activeBook = selectedShelfBook;
+    const currentPage = activeBook.currentPage ?? 0;
+    const totalPages = activeBook.totalPages;
+    const nextPage = currentPage + delta;
+
+    if (nextPage < 0) {
+      return;
+    }
+
+    if (typeof totalPages === "number" && nextPage > totalPages) {
+      return;
+    }
+
+    async function updateShelfBookProgressAction() {
+      setIsSavingShelfBookDetails(true);
+      setBookDetailsError("");
+
+      try {
+        const requiresReadingStatus = activeBook.readingStatus !== "lendo" && activeBook.readingStatus !== "relendo";
+
+        if (requiresReadingStatus) {
+          await changeShelfItemStatus(activeBook.shelfId, activeBook.shelfItemId, "READING");
+        }
+
+        const updatedItem = await updateShelfItemProgress(activeBook.shelfId, activeBook.shelfItemId, nextPage);
+
+        setShelfBooks((currentBooks) =>
+          currentBooks.map((book) =>
+            book.shelfItemId === updatedItem.id
+              ? {
+                  ...book,
+                  readingStatus: mapBackendReadingStatus(updatedItem.status),
+                  progress: updatedItem.progressPercent ?? undefined,
+                  currentPage: updatedItem.currentPage ?? undefined,
+                  totalPages: updatedItem.totalPages ?? book.totalPages,
+                }
+              : book,
+          ),
+        );
+
+        setSelectedShelfBook((currentBook) => {
+          if (!currentBook || currentBook.shelfItemId !== updatedItem.id) {
+            return currentBook;
+          }
+
+          return {
+            ...currentBook,
+            readingStatus: mapBackendReadingStatus(updatedItem.status),
+            progress: updatedItem.progressPercent ?? undefined,
+            currentPage: updatedItem.currentPage ?? undefined,
+            totalPages: updatedItem.totalPages ?? currentBook.totalPages,
+          };
+        });
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faca login para atualizar o progresso.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Nao foi possivel atualizar o progresso do livro.");
+        }
+      } finally {
+        setIsSavingShelfBookDetails(false);
+      }
+    }
+
+    void updateShelfBookProgressAction();
+  };
+
+  const handleSetReviewRating = (value: number) => {
+    setReviewError("");
+    setReviewRatingDraft(value);
+  };
+
+  const handleSetReviewComment = (value: string) => {
+    setReviewError("");
+    setReviewCommentDraft(value);
+  };
+
+  const handleSaveBookReview = () => {
+    if (!selectedShelfBook) {
+      setReviewError("Nao foi possivel identificar o livro para avaliar.");
+      return;
+    }
+
+    const bookId = Number(selectedShelfBook.id);
+    if (Number.isNaN(bookId)) {
+      setReviewError("Nao foi possivel identificar o livro para avaliar.");
+      return;
+    }
+
+    if (!Number.isInteger(reviewRatingDraft) || reviewRatingDraft < 1 || reviewRatingDraft > 5) {
+      setReviewError("Selecione uma nota de 1 a 5 estrelas.");
+      return;
+    }
+
+    const normalizedComment = reviewCommentDraft.trim();
+    if (normalizedComment.length > 2000) {
+      setReviewError("O comentario deve ter no maximo 2000 caracteres.");
+      return;
+    }
+
+    if (activeReviewId && normalizedComment.length === 0) {
+      setReviewError("Para editar a avaliacao com as rotas atuais, informe um comentario.");
+      return;
+    }
+
+    async function saveBookReviewAction() {
+      setIsSavingReview(true);
+      setReviewError("");
+
+      try {
+        const savedReview = activeReviewId
+          ? await updateBookReview(activeReviewId, reviewRatingDraft, normalizedComment)
+          : await createBookReview(bookId, reviewRatingDraft, normalizedComment);
+
+        setActiveReviewId(savedReview.id);
+        setReviewRatingDraft(savedReview.rating);
+        setReviewCommentDraft(savedReview.text ?? "");
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setReviewError("Faca login para salvar sua avaliacao.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setReviewError(error.message);
+        } else {
+          setReviewError("Nao foi possivel salvar sua avaliacao. Tente novamente.");
+        }
+      } finally {
+        setIsSavingReview(false);
+      }
+    }
+
+    void saveBookReviewAction();
+  };
 
   const profileName = preferences.displayName?.trim() ? preferences.displayName : profile?.username ?? "Usuário";
   const profileBio = profile?.bio ?? "Sem bio cadastrada.";
@@ -435,8 +712,9 @@ export default function PerfilPage() {
 
                 return shelfBooks.map((book) => (
                   <button
-                    key={book.id}
+                    key={book.shelfItemId}
                     type="button"
+                    onClick={() => handleOpenShelfBookDetails(book)}
                     className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-3 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
                     aria-label={`Abrir opções do livro ${book.title}`}
                   >
@@ -522,6 +800,25 @@ export default function PerfilPage() {
           </button>
         </div>
       </section>
+
+      <ShelfBookDetailsPanel
+        isOpen={isShelfBookDetailsOpen}
+        book={selectedShelfBook}
+        onClose={handleCloseShelfBookDetails}
+        onSelectStatus={handleSelectShelfBookStatus}
+        onStepPage={handleStepShelfBookPage}
+        reviewRating={reviewRatingDraft}
+        reviewComment={reviewCommentDraft}
+        reviewExists={typeof activeReviewId === "number"}
+        onChangeReviewRating={handleSetReviewRating}
+        onChangeReviewComment={handleSetReviewComment}
+        onSaveReview={handleSaveBookReview}
+        reviewError={reviewError}
+        isSavingReview={isSavingReview}
+        isLoadingReview={false}
+        isSaving={isSavingShelfBookDetails}
+        errorMessage={bookDetailsError}
+      />
 
     </AppShell>
   );

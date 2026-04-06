@@ -1,22 +1,30 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { ChevronRight, FolderOpen, Plus } from "lucide-react";
 import { readingStatusOptions, useBookcasePage } from "@/hooks/useBookcasePage";
 import { BookcaseResults } from "@/components/bookcase/BookcaseResults";
 import { BookcaseModals } from "@/components/bookcase/BookcaseModals";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
+import type { BackendCollectionSummaryResponse } from "@/services";
 
 import {
   AppShell,
   BackArrowButton,
-  BookCoverPlaceholder,
   ChipToggle,
+  EmptyState,
   PageHeader,
   PrimaryButton,
-  SecondaryButton,
   SectionHeader,
   TextInput,
 } from "@/components";
+
+function collectionBookCount(collection: BackendCollectionSummaryResponse): number {
+  if (!collection.shelfPreviews?.length) {
+    return 0;
+  }
+
+  return collection.shelfPreviews.reduce((total, shelf) => total + (shelf.itemCount ?? 0), 0);
+}
 
 export default function EstantePage() {
   const {
@@ -114,7 +122,6 @@ export default function EstantePage() {
     handleStepShelfBookPage,
   } = useBookcasePage();
 
-  const readingNowBooks = shelfBooks.filter((book) => book.readingStatus === "lendo" || book.readingStatus === "relendo");
   const counts = {
     todos: shelfBooks.length,
     lendo: shelfBooks.filter((book) => book.readingStatus === "lendo" || book.readingStatus === "relendo").length,
@@ -262,20 +269,64 @@ export default function EstantePage() {
         </div>
       ) : null}
 
-      <BookcaseResults
-        loadError={loadError}
-        hasNoVisibleItems={hasNoVisibleItems}
-        emptyStateTitle={emptyStateTitle}
-        emptyStateDescription={emptyStateDescription}
-        isInsideShelf={isInsideShelf}
-        filteredBooks={filteredBooks}
-        onOpenBookDetails={handleOpenShelfBookDetails}
-        rootViewMode={rootViewMode}
-        filteredShelves={filteredShelves}
-        onEnterShelf={handleEnterShelf}
-        filteredCollections={filteredCollections}
-        onOpenManageCollectionShelvesModal={handleOpenManageCollectionShelvesModal}
-      />
+      {!isInsideShelf && rootViewMode === "colecoes" ? (
+        loadError ? (
+          <EmptyState title="Falha ao carregar coleções" description={loadError} />
+        ) : filteredCollections.length === 0 ? (
+          <EmptyState
+            title="Você ainda não possui coleções"
+            description="Crie sua primeira coleção para agrupar suas estantes."
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredCollections.map((collection) => (
+              <button
+                key={collection.id}
+                type="button"
+                onClick={() => handleOpenManageCollectionShelvesModal(collection)}
+                className="rounded-2xl border border-[var(--border-soft)] bg-[var(--bg-surface)] px-5 py-4 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
+                aria-label={`Abrir coleção ${collection.name}`}
+              >
+                <div className="mb-3 flex gap-2">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={`${collection.id}-${index}`}
+                      className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--border-soft)] bg-[var(--bg-soft)] text-[var(--text-secondary)]"
+                    >
+                      <FolderOpen size={14} />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xl font-semibold text-[var(--text-primary)]">{collection.name}</p>
+                    <p className="mt-1 text-lg text-[var(--text-secondary)]">
+                      {collectionBookCount(collection)} {collectionBookCount(collection) === 1 ? "livro" : "livros"}
+                    </p>
+                  </div>
+                  <ChevronRight className="text-[var(--text-secondary)]" size={20} />
+                </div>
+              </button>
+            ))}
+          </div>
+        )
+      ) : (
+        <BookcaseResults
+          loadError={loadError}
+          hasNoVisibleItems={hasNoVisibleItems}
+          emptyStateTitle={emptyStateTitle}
+          emptyStateDescription={emptyStateDescription}
+          isInsideShelf={isInsideShelf}
+          filteredBooks={filteredBooks}
+          onOpenBookDetails={handleOpenShelfBookDetails}
+          rootViewMode={rootViewMode}
+          filteredShelves={filteredShelves}
+          onEnterShelf={handleEnterShelf}
+          filteredCollections={filteredCollections}
+          onOpenManageCollectionShelvesModal={handleOpenManageCollectionShelvesModal}
+        />
+      )}
 
       <ShelfBookDetailsPanel
         isOpen={isShelfBookDetailsOpen}
