@@ -1,7 +1,7 @@
 import {
   BookcaseModal,
   BookDetailsCard,
-  PrimaryButton,
+  Button,
   SearchSuggestionsList,
   ShelfSelectionList,
   TextInput,
@@ -141,9 +141,9 @@ export function BookcaseModals({
             {createShelfError ? <p className="text-sm text-red-600">{createShelfError}</p> : null}
 
             <div className="flex justify-end">
-              <PrimaryButton onClick={handleCreateShelf} disabled={isCreatingShelf}>
+              <Button onClick={handleCreateShelf} disabled={isCreatingShelf}>
                 {isCreatingShelf ? "Criando..." : "Salvar estante"}
-              </PrimaryButton>
+              </Button>
             </div>
           </div>
         </BookcaseModal>
@@ -182,9 +182,9 @@ export function BookcaseModals({
             {createCollectionError ? <p className="text-sm text-red-600">{createCollectionError}</p> : null}
 
             <div className="flex justify-end">
-              <PrimaryButton onClick={handleCreateCollection} disabled={isCreatingCollection}>
+              <Button onClick={handleCreateCollection} disabled={isCreatingCollection}>
                 {isCreatingCollection ? "Criando..." : "Salvar colecao"}
-              </PrimaryButton>
+              </Button>
             </div>
           </div>
         </BookcaseModal>
@@ -207,9 +207,9 @@ export function BookcaseModals({
           {manageCollectionError ? <p className="mt-3 text-sm text-red-600">{manageCollectionError}</p> : null}
 
           <div className="mt-4 flex justify-end">
-            <PrimaryButton onClick={handleSaveCollectionShelves} disabled={isSavingCollectionShelves}>
+            <Button onClick={handleSaveCollectionShelves} disabled={isSavingCollectionShelves}>
               {isSavingCollectionShelves ? "Salvando..." : "Salvar estantes"}
-            </PrimaryButton>
+            </Button>
           </div>
         </BookcaseModal>
       ) : null}
@@ -257,9 +257,9 @@ export function BookcaseModals({
             {progressError ? <p className="text-sm text-red-600">{progressError}</p> : null}
 
             <div className="flex justify-end">
-              <PrimaryButton onClick={handleSaveProgress} disabled={isSavingProgress}>
+              <Button onClick={handleSaveProgress} disabled={isSavingProgress}>
                 {isSavingProgress ? "Salvando..." : "Salvar progresso"}
-              </PrimaryButton>
+              </Button>
             </div>
           </div>
         </BookcaseModal>

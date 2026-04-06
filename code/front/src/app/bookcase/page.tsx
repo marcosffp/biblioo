@@ -8,6 +8,8 @@ import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPan
 
 import {
   AppShell,
+  BackArrowButton,
+  BookCoverPlaceholder,
   ChipToggle,
   PageHeader,
   PrimaryButton,
@@ -47,6 +49,7 @@ export default function EstantePage() {
     handleOpenCreateCollectionModal,
     handleOpenCreateShelfModal,
     handleOpenManageCollectionShelvesModal,
+    handleOpenProgressModal,
     handleOpenShelfBookDetails,
     handleSelectShelfBookStatus,
     handleSaveCollectionShelves,
@@ -94,6 +97,7 @@ export default function EstantePage() {
     selectedShelfName,
     selectedShelfBook,
     selectedSuggestionBook,
+    shelfBooks,
     setAddBookSearchTerm,
     setNewCollectionDescription,
     setNewCollectionName,
@@ -110,22 +114,43 @@ export default function EstantePage() {
     handleStepShelfBookPage,
   } = useBookcasePage();
 
+  const readingNowBooks = shelfBooks.filter((book) => book.readingStatus === "lendo" || book.readingStatus === "relendo");
+  const counts = {
+    todos: shelfBooks.length,
+    lendo: shelfBooks.filter((book) => book.readingStatus === "lendo" || book.readingStatus === "relendo").length,
+    lido: shelfBooks.filter((book) => book.readingStatus === "lido").length,
+    "quero-ler": shelfBooks.filter((book) => book.readingStatus === "quero-ler").length,
+    relendo: shelfBooks.filter((book) => book.readingStatus === "relendo").length,
+    abandonei: shelfBooks.filter((book) => book.readingStatus === "abandonei").length,
+  };
+
+  const visibleStatusOptions = readingStatusOptions.filter((option) => option.value !== "relendo");
+
   return (
     <AppShell>
       <PageHeader
-        title="Minha Estante"
+        title={
+          isInsideShelf ? (
+            <span className="inline-flex items-center gap-2">
+              <BackArrowButton onClick={handleBackToShelves} ariaLabel="Voltar para estantes" />
+              <span>{selectedShelfName}</span>
+            </span>
+          ) : (
+            "Minha Estante"
+          )
+        }
         action={
           <div className="flex items-center gap-2">
             {!isInsideShelf && rootViewMode === "estantes" ? (
-              <SecondaryButton onClick={handleOpenCreateShelfModal} aria-label="Criar estante">
+              <PrimaryButton onClick={handleOpenCreateShelfModal} aria-label="Criar estante">
                 Criar estante
-              </SecondaryButton>
+              </PrimaryButton>
             ) : null}
 
             {!isInsideShelf && rootViewMode === "colecoes" ? (
-              <SecondaryButton onClick={handleOpenCreateCollectionModal} aria-label="Criar colecao">
-                Criar colecao
-              </SecondaryButton>
+              <PrimaryButton onClick={handleOpenCreateCollectionModal} aria-label="Criar coleção">
+                Criar coleção
+              </PrimaryButton>
             ) : null}
 
             {isInsideShelf ? (
@@ -205,12 +230,7 @@ export default function EstantePage() {
       />
 
       {isInsideShelf ? (
-        <div className="flex items-center justify-between gap-2">
-          <SectionHeader title={`Estante: ${selectedShelfName}`} />
-          <SecondaryButton onClick={handleBackToShelves} aria-label="Voltar para lista de estantes">
-            Voltar para estantes
-          </SecondaryButton>
-        </div>
+        <SectionHeader title="Livros da estante" />
       ) : (
         <div className="space-y-3">
           <div className="flex gap-2">
@@ -220,21 +240,21 @@ export default function EstantePage() {
               onClick={() => handleChangeRootViewMode("estantes")}
             />
             <ChipToggle
-              label="Colecoes"
+              label="Coleções"
               active={rootViewMode === "colecoes"}
               onClick={() => handleChangeRootViewMode("colecoes")}
             />
           </div>
-          <SectionHeader title={rootViewMode === "estantes" ? "Suas estantes" : "Suas colecoes"} />
+          <SectionHeader title={rootViewMode === "estantes" ? "Suas estantes" : "Suas coleções"} />
         </div>
       )}
 
       {isInsideShelf ? (
         <div className="flex flex-wrap gap-2">
-          {readingStatusOptions.map((statusOption) => (
+          {visibleStatusOptions.map((statusOption) => (
             <ChipToggle
               key={statusOption.value}
-              label={statusOption.label}
+              label={`${statusOption.label} ${counts[statusOption.value] ?? 0}`}
               active={statusFilter === statusOption.value}
               onClick={() => setStatusFilter(statusOption.value)}
             />

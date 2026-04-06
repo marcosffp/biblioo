@@ -1,4 +1,4 @@
-import { BookCard, EmptyState, SecondaryButton } from "@/components";
+import { BookCoverPlaceholder, EmptyState, ProgressBar, Button } from "@/components";
 import type { BackendCollectionSummaryResponse, BackendShelfSummaryResponse } from "@/services";
 import type { RootViewMode, ShelfBook } from "@/hooks/useBookcasePage";
 import { ShelfCoverFrame } from "./ShelfCoverFrame";
@@ -16,6 +16,22 @@ interface BookcaseResultsProps {
   onEnterShelf: (shelf: BackendShelfSummaryResponse) => void;
   filteredCollections: BackendCollectionSummaryResponse[];
   onOpenManageCollectionShelvesModal: (collection: BackendCollectionSummaryResponse) => void;
+}
+
+function statusLabel(status: ShelfBook["readingStatus"]): string {
+  switch (status) {
+    case "lendo":
+      return "Lendo";
+    case "relendo":
+      return "Relendo";
+    case "lido":
+      return "Lido";
+    case "abandonei":
+      return "Abandonado";
+    case "quero-ler":
+    default:
+      return "Quero ler";
+  }
 }
 
 export function BookcaseResults({
@@ -50,25 +66,51 @@ export function BookcaseResults({
 
   if (isInsideShelf) {
     return (
-      <div className="space-y-4">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] gap-4">
         {filteredBooks.map((book) => (
           <button
             key={book.id}
             type="button"
             onClick={() => onOpenBookDetails(book)}
-            className="block w-full rounded-[var(--radius-lg)] text-left focus:outline-none"
-            aria-label={`Abrir opcoes do livro ${book.title}`}
+            className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-3 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
+            aria-label={`Abrir opções do livro ${book.title}`}
           >
-            <BookCard
-              title={book.title}
-              author={book.author}
-              coverUrl={book.coverUrl}
-              rating={book.rating}
-              progress={book.progress}
-              currentPage={book.currentPage}
-              totalPages={book.totalPages}
-              className="cursor-pointer transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
-            />
+            <div className="aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-soft)]">
+              {book.coverUrl ? (
+                <img src={book.coverUrl} alt={`Capa de ${book.title}`} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <BookCoverPlaceholder size={84} />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-2">
+              <p className="truncate text-[0.95rem] font-semibold leading-tight text-[var(--text-primary)]">{book.title}</p>
+              <p className="truncate text-xs text-[var(--text-secondary)]">{book.author}</p>
+            </div>
+
+            <div className="mt-2">
+              <span className="inline-flex rounded-full bg-[var(--bg-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--text-secondary)]">
+                {statusLabel(book.readingStatus)}
+              </span>
+            </div>
+
+            {book.readingStatus === "lendo" || book.readingStatus === "relendo" ? (
+              typeof book.progress === "number" ? (
+                <div className="mt-2">
+                  <ProgressBar value={book.progress} />
+                  <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                    <span>
+                      {typeof book.currentPage === "number" && typeof book.totalPages === "number"
+                        ? `p. ${book.currentPage} / ${book.totalPages}`
+                        : "Progresso de leitura"}
+                    </span>
+                    <span className="font-semibold">{Math.round(book.progress)}%</span>
+                  </div>
+                </div>
+              ) : null
+            ) : null}
           </button>
         ))}
       </div>
@@ -129,9 +171,9 @@ export function BookcaseResults({
             </div>
 
             <div className="mt-4 flex justify-end">
-              <SecondaryButton onClick={() => onOpenManageCollectionShelvesModal(collection)}>
+              <Button onClick={() => onOpenManageCollectionShelvesModal(collection)}>
                 Adicionar estantes
-              </SecondaryButton>
+              </Button>
             </div>
           </div>
         ))}

@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  ArrowLeft,
   BookOpen,
   Bookmark,
   CheckCircle2,
@@ -12,7 +11,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import { RatingStars } from "@/components";
+import { BackArrowButton, RatingStars } from "@/components";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
 import type { ReadingStatus } from "@/utils/bookcase-filters";
 
@@ -190,14 +189,7 @@ export function ShelfBookDetailsPanel({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--bg-canvas)]">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-12 pt-6 sm:px-6 lg:px-10">
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--bg-surface)] text-[var(--text-secondary)] transition hover:bg-[var(--bg-soft)]"
-          aria-label="Voltar para estante"
-        >
-          <ArrowLeft size={18} />
-        </button>
+        <BackArrowButton onClick={onClose} ariaLabel="Voltar para estante" />
 
         <div className="mt-5 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
           <div className="mx-auto max-w-3xl text-center">
