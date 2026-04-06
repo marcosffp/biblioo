@@ -6,7 +6,7 @@ import React from "react";
 import { Bell, BookOpen, Search } from "lucide-react";
 import { searchBooks, type BackendBookResponse } from "@/services/bookcase";
 import { getAuthSession } from "@/services/auth";
-import { getMyProfile, searchUsersByUsername, type UserSummaryResponse } from "@/services/profile";
+import { getMyProfile, listFollowersByUsername, searchUsersByUsername, type UserSummaryResponse } from "@/services/profile";
 
 type SearchScope = "general" | "user" | "book";
 
@@ -27,6 +27,7 @@ const SEARCH_SCOPE_OPTIONS: Array<{ value: SearchScope; label: string }> = [
 
 const MIN_SEARCH_LENGTH = 2;
 const MAX_RESULTS_PER_TYPE = 5;
+const FOLLOWER_NOTIFICATION_POLL_MS = 60_000;
 
 function normalizeUsername(value: string): string {
   return value.trim().replace(/^@+/, "").toLowerCase();
@@ -93,6 +94,43 @@ export interface TopHeaderProps {
 type TopHeaderSearchBarProps = {
   searchPlaceholder: string;
 };
+
+function getFollowerNotificationSeenKey(username: string): string {
+  return `biblioo.notifications.followers.seen.${username.toLowerCase()}`;
+}
+
+function loadSeenFollowerIds(username: string): Set<number> | null {
+  if (globalThis.localStorage === undefined) {
+    return null;
+  }
+
+  const raw = globalThis.localStorage.getItem(getFollowerNotificationSeenKey(username));
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
+
+    const ids = parsed
+      .map(Number)
+      .filter((value) => Number.isFinite(value));
+    return new Set(ids);
+  } catch {
+    return null;
+  }
+}
+
+function saveSeenFollowerIds(username: string, followerIds: number[]) {
+  if (globalThis.localStorage === undefined) {
+    return;
+  }
+
+  globalThis.localStorage.setItem(getFollowerNotificationSeenKey(username), JSON.stringify(followerIds));
+}
 
 type TopHeaderSearchDropdownProps = {
   searchScope: SearchScope;
@@ -331,9 +369,46 @@ export function TopHeader({
   userInitial = "U",
   className,
 }: Readonly<TopHeaderProps>) {
-  const hasNotifications = notificationsCount > 0;
   const [resolvedInitial, setResolvedInitial] = React.useState(userInitial.toUpperCase().slice(0, 1));
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+  const [myUsername, setMyUsername] = React.useState<string | null>(null);
+  const [newFollowerNotifications, setNewFollowerNotifications] = React.useState<UserSummaryResponse[]>([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+  const notificationsContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  const dynamicNotificationsCount = newFollowerNotifications.length;
+  const shownNotificationsCount = myUsername ? dynamicNotificationsCount : notificationsCount;
+  const hasAnyNotifications = shownNotificationsCount > 0;
+
+  React.useEffect(() => {
+    if (!isNotificationsOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!notificationsContainerRef.current) {
+        return;
+      }
+
+      if (!notificationsContainerRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isNotificationsOpen]);
 
   React.useEffect(() => {
     const session = getAuthSession();
@@ -365,7 +440,10 @@ export function TopHeader({
         }
 
         if (profile.username) {
+          setMyUsername(profile.username);
           setResolvedInitial(profile.username.slice(0, 1).toUpperCase());
+        } else if (session.user?.username) {
+          setMyUsername(session.user.username);
         }
       } catch {
         // Keeps fallback data from auth session when profile request fails.
@@ -377,6 +455,69 @@ export function TopHeader({
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  React.useEffect(() => {
+    const session = getAuthSession();
+    const token = session?.accessToken;
+    if (!token || !myUsername) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const refreshFollowerNotifications = async () => {
+      try {
+        const followers = await listFollowersByUsername(myUsername, token);
+
+        if (cancelled) {
+          return;
+        }
+
+        const followerIds = followers.map((follower) => follower.id);
+        const seenIds = loadSeenFollowerIds(myUsername);
+
+        if (!seenIds) {
+          saveSeenFollowerIds(myUsername, followerIds);
+          setNewFollowerNotifications([]);
+          return;
+        }
+
+        const newFollowers = followers.filter((follower) => !seenIds.has(follower.id));
+        setNewFollowerNotifications(newFollowers);
+      } catch {
+        if (!cancelled) {
+          setNewFollowerNotifications([]);
+        }
+      }
+    };
+
+    void refreshFollowerNotifications();
+
+    const intervalId = globalThis.setInterval(() => {
+      void refreshFollowerNotifications();
+    }, FOLLOWER_NOTIFICATION_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      globalThis.clearInterval(intervalId);
+    };
+  }, [myUsername]);
+
+  const markFollowerNotificationsAsRead = React.useCallback(() => {
+    if (!myUsername) {
+      return;
+    }
+
+    const allKnownFollowerIds = newFollowerNotifications.map((follower) => follower.id);
+    const existingSeen = loadSeenFollowerIds(myUsername) ?? new Set<number>();
+    const nextSeenIds = [...existingSeen, ...allKnownFollowerIds];
+    saveSeenFollowerIds(myUsername, nextSeenIds);
+    setNewFollowerNotifications([]);
+  }, [myUsername, newFollowerNotifications]);
+
+  const handleBellClick = React.useCallback(() => {
+    setIsNotificationsOpen((previous) => !previous);
   }, []);
 
   return (
@@ -394,18 +535,86 @@ export function TopHeader({
         <TopHeaderSearchBar searchPlaceholder={searchPlaceholder} />
 
         <div className="flex items-center gap-3 sm:gap-4 min-w-fit">
-          <button
-            type="button"
-            className="relative h-10 w-10 rounded-full text-[var(--deep-green)] hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-200 transition-colors"
-            aria-label="Notificacoes"
-          >
-            <Bell size={18} className="mx-auto" aria-hidden="true" />
-            {hasNotifications ? (
-              <span className="absolute right-1.5 top-1.5 h-4 min-w-4 px-1 rounded-full bg-emerald-500 text-white text-[10px] font-semibold leading-4 text-center">
-                {notificationsCount}
-              </span>
+          <div ref={notificationsContainerRef} className="relative">
+            <button
+              type="button"
+              onClick={handleBellClick}
+              className="relative h-10 w-10 rounded-full text-[var(--deep-green)] hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-200 transition-colors"
+              aria-label="Notificacoes"
+              aria-expanded={isNotificationsOpen}
+              aria-haspopup="dialog"
+            >
+              <Bell size={18} className="mx-auto" aria-hidden="true" />
+              {hasAnyNotifications ? (
+                <span className="absolute right-1.5 top-1.5 h-4 min-w-4 px-1 rounded-full bg-emerald-500 text-white text-[10px] font-semibold leading-4 text-center">
+                  {shownNotificationsCount}
+                </span>
+              ) : null}
+            </button>
+
+            {isNotificationsOpen ? (
+              <div
+                aria-label="Notificacoes"
+                className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[22rem] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-xl"
+              >
+                <div className="flex items-center justify-between border-b border-emerald-100 px-4 py-3">
+                  <h3 className="text-sm font-semibold text-[var(--deep-green)]">Notificacoes</h3>
+                  {newFollowerNotifications.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        markFollowerNotificationsAsRead();
+                        setIsNotificationsOpen(false);
+                      }}
+                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                    >
+                      Marcar lidas
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="max-h-80 overflow-y-auto">
+                  {newFollowerNotifications.length === 0 ? (
+                    <p className="px-4 py-4 text-sm text-[var(--text-secondary)] break-words">
+                      Nenhuma notificacao nova por enquanto.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-emerald-50">
+                      {newFollowerNotifications.map((follower) => (
+                        <li key={follower.id}>
+                          <Link
+                            href={`/profile/${encodeURIComponent(follower.username)}`}
+                            onClick={() => {
+                              markFollowerNotificationsAsRead();
+                              setIsNotificationsOpen(false);
+                            }}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-emerald-50"
+                          >
+                            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-emerald-100 bg-emerald-100">
+                              {follower.avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={follower.avatarUrl} alt={`Avatar de ${follower.username}`} className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-emerald-700">
+                                  {follower.username.slice(0, 1).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="text-sm text-[var(--deep-green)] break-words">
+                                <span className="font-semibold">{follower.username}</span> comecou a seguir voce.
+                              </p>
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             ) : null}
-          </button>
+          </div>
 
           <Link
             href="/profile"
