@@ -26,6 +26,7 @@ import {
   type ShelfItemSummaryResponse,
   type UserProfileResponse,
 } from "@/services/profile";
+import { getShelfItemById } from "@/services/bookcase";
 
 const isOwner = true;
 const isPublic = true;
@@ -35,8 +36,12 @@ const tabs = ["Estante", "Comunidades", "Resenhas"] as const;
 type DisplayShelfBook = {
   id: number;
   title: string;
+  author: string;
   coverUrl?: string;
   progress?: number;
+  readingStatus?: "lendo" | "relendo" | "lido" | "abandonei" | "quero-ler";
+  currentPage?: number;
+  totalPages?: number;
 };
 
 type GenreDistribution = {
@@ -150,14 +155,52 @@ export default function PerfilPage() {
         setPagesRead(computedPagesRead);
         setAuthorItems(computedAuthorItems);
         setFavoriteAuthors(computedFavoriteAuthors);
-        setShelfBooks(
-          uniqueItems.slice(0, 8).map((item: ShelfItemSummaryResponse) => ({
-            id: item.id,
-            title: item.bookTitle,
-            coverUrl: item.bookCoverUrl ?? undefined,
-            progress: item.progressPercent ?? undefined,
-          })),
+        // build richer shelf book objects so we can render the same layout used in the main estante
+        const shelfBookItems = await Promise.all(
+          uniqueItems.slice(0, 8).map(async (item: ShelfItemSummaryResponse) => {
+            try {
+              const [book, detailedItem] = await Promise.all([getBookById(item.bookId, accessToken), getShelfItemById(item.bookId, item.id)]);
+              const author = (book.authors && book.authors.length > 0) ? book.authors.join(", ") : "Autor desconhecido";
+
+              const mapBackendReadingStatus = (status: string): DisplayShelfBook["readingStatus"] => {
+                switch (status) {
+                  case "READING":
+                    return "lendo";
+                  case "REREADING":
+                    return "relendo";
+                  case "COMPLETED":
+                    return "lido";
+                  case "ABANDONED":
+                    return "abandonei";
+                  case "WANT_TO_READ":
+                  default:
+                    return "quero-ler";
+                }
+              };
+
+              return {
+                id: item.id,
+                title: item.bookTitle,
+                author,
+                coverUrl: item.bookCoverUrl ?? book.coverUrl ?? undefined,
+                progress: item.progressPercent ?? undefined,
+                readingStatus: mapBackendReadingStatus(item.status),
+                currentPage: detailedItem?.currentPage ?? undefined,
+                totalPages: detailedItem?.totalPages ?? book.pageCount ?? undefined,
+              } as DisplayShelfBook;
+            } catch {
+              return {
+                id: item.id,
+                title: item.bookTitle,
+                author: "Autor desconhecido",
+                coverUrl: item.bookCoverUrl ?? undefined,
+                progress: item.progressPercent ?? undefined,
+              } as DisplayShelfBook;
+            }
+          }),
         );
+
+        setShelfBooks(shelfBookItems);
       } catch {
         if (cancelled) {
           return;
@@ -372,16 +415,68 @@ export default function PerfilPage() {
       {activeTab === "Estante" ? (
         <section>
           {shelfBooks.length > 0 ? (
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {shelfBooks.map((book) => (
-                <BookCard
-                  key={book.id}
-                  title={book.title}
-                  author="Da sua estante"
-                  coverUrl={book.coverUrl}
-                  variant="compact"
-                />
-              ))}
+            <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] gap-4">
+              {(() => {
+                const statusLabel = (status?: DisplayShelfBook["readingStatus"]) => {
+                  switch (status) {
+                    case "lendo":
+                      return "Lendo";
+                    case "relendo":
+                      return "Relendo";
+                    case "lido":
+                      return "Lido";
+                    case "abandonei":
+                      return "Abandonado";
+                    case "quero-ler":
+                    default:
+                      return "Quero ler";
+                  }
+                };
+
+                return shelfBooks.map((book) => (
+                  <button
+                    key={book.id}
+                    type="button"
+                    className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-3 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
+                    aria-label={`Abrir opções do livro ${book.title}`}
+                  >
+                    <div className="aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-soft)]">
+                      {book.coverUrl ? (
+                        <img src={book.coverUrl} alt={`Capa de ${book.title}`} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <div className="h-20 w-14" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-2">
+                      <p className="truncate text-[0.95rem] font-semibold leading-tight text-[var(--text-primary)]">{book.title}</p>
+                      <p className="truncate text-xs text-[var(--text-secondary)]">{book.author}</p>
+                    </div>
+
+                    <div className="mt-2">
+                      <span className="inline-flex rounded-full bg-[var(--bg-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--text-secondary)]">
+                        {statusLabel(book.readingStatus)}
+                      </span>
+                    </div>
+
+                    {(book.readingStatus === "lendo" || book.readingStatus === "relendo") && typeof book.progress === "number" ? (
+                      <div className="mt-2">
+                        <ProgressBar value={book.progress} />
+                        <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                          <span>
+                            {typeof book.currentPage === "number" && typeof book.totalPages === "number"
+                              ? `p. ${book.currentPage} / ${book.totalPages}`
+                              : "Progresso de leitura"}
+                          </span>
+                          <span className="font-semibold">{Math.round(book.progress)}%</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </button>
+                ));
+              })()}
             </section>
           ) : (
             <EmptyState

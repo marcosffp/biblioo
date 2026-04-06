@@ -18,7 +18,7 @@ const discoveries = [
 export default function ParaVocePage() {
   return (
     <AppShell>
-      <PageHeader title="Para Voce" subtitle="Sugestoes baseadas no seu historico" />
+      <PageHeader title="Para Você" subtitle="Sugestoes baseadas no seu historico" />
 
       <SectionHeader title="Recomendacao do dia" action={<Button>Sortear recomendacao</Button>} />
       <div className="space-y-4">
