@@ -33,3 +33,4 @@ export * from "./BookCoverPlaceholder";
 export * from "./RatingStars";
 export * from "./ProgressBar";
 export * from "./Sidebar";
+export * from "./AuthCard";
