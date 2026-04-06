@@ -1,10 +1,86 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { Bell, BookOpen, Search } from "lucide-react";
+import { searchBooks, type BackendBookResponse } from "@/services/bookcase";
 import { getAuthSession } from "@/services/auth";
-import { getMyProfile } from "@/services/profile";
+import { getMyProfile, searchUsersByUsername, type UserSummaryResponse } from "@/services/profile";
+
+type SearchScope = "general" | "user" | "book";
+
+type SearchSuggestion = {
+  id: string;
+  type: "user" | "book";
+  title: string;
+  subtitle: string;
+  imageUrl?: string;
+  href?: string;
+};
+
+const SEARCH_SCOPE_OPTIONS: Array<{ value: SearchScope; label: string }> = [
+  { value: "general", label: "Geral" },
+  { value: "user", label: "Usuario" },
+  { value: "book", label: "Livro" },
+];
+
+const MIN_SEARCH_LENGTH = 2;
+const MAX_RESULTS_PER_TYPE = 5;
+
+function normalizeUsername(value: string): string {
+  return value.trim().replace(/^@+/, "").toLowerCase();
+}
+
+function userToSuggestion(user: UserSummaryResponse): SearchSuggestion {
+  const username = user.username.trim();
+  return {
+    id: `user-${user.id}`,
+    type: "user",
+    title: username,
+    subtitle: "Usuario",
+    imageUrl: user.avatarUrl ?? undefined,
+    href: `/profile/${encodeURIComponent(username)}`,
+  };
+}
+
+function bookToSuggestion(book: BackendBookResponse): SearchSuggestion {
+  const authorLabel = book.authors.length > 0 ? book.authors.join(", ") : "Autores nao informados";
+  return {
+    id: `book-${book.id}`,
+    type: "book",
+    title: book.title,
+    subtitle: `Livro • ${authorLabel}`,
+    imageUrl: book.coverUrl ?? undefined,
+    href: `/bookcase?search=${encodeURIComponent(book.title)}`,
+  };
+}
+
+async function fetchSearchSuggestions(scope: SearchScope, term: string): Promise<SearchSuggestion[]> {
+  if (scope === "user") {
+    const users = await searchUsersByUsername(term, undefined, 0, MAX_RESULTS_PER_TYPE);
+    return users.map(userToSuggestion);
+  }
+
+  if (scope === "book") {
+    const books = await searchBooks(term);
+    return books.slice(0, MAX_RESULTS_PER_TYPE).map(bookToSuggestion);
+  }
+
+  const [usersResult, booksResult] = await Promise.allSettled([
+    searchUsersByUsername(term, undefined, 0, MAX_RESULTS_PER_TYPE),
+    searchBooks(term),
+  ]);
+
+  const users = usersResult.status === "fulfilled" ? usersResult.value : [];
+  const books = booksResult.status === "fulfilled" ? booksResult.value.slice(0, MAX_RESULTS_PER_TYPE) : [];
+
+  if (usersResult.status === "rejected" && booksResult.status === "rejected") {
+    throw new Error("search_failed");
+  }
+
+  return [...users.map(userToSuggestion), ...books.map(bookToSuggestion)];
+}
 
 export interface TopHeaderProps {
   title?: string;
@@ -12,6 +88,240 @@ export interface TopHeaderProps {
   notificationsCount?: number;
   userInitial?: string;
   className?: string;
+}
+
+type TopHeaderSearchBarProps = {
+  searchPlaceholder: string;
+};
+
+type TopHeaderSearchDropdownProps = {
+  searchScope: SearchScope;
+  shouldSearch: boolean;
+  isSearching: boolean;
+  searchError: string;
+  suggestions: SearchSuggestion[];
+  onChangeScope: (scope: SearchScope) => void;
+  onSelectSuggestion: (href?: string) => void;
+};
+
+function TopHeaderSearchDropdown({
+  searchScope,
+  shouldSearch,
+  isSearching,
+  searchError,
+  suggestions,
+  onChangeScope,
+  onSelectSuggestion,
+}: Readonly<TopHeaderSearchDropdownProps>) {
+  const showPrompt = shouldSearch === false;
+
+  return (
+    <div className="absolute left-0 right-0 top-[calc(100%+0.4rem)] z-50 overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-lg">
+      <div className="border-b border-emerald-100 px-3 py-2">
+        <div className="flex gap-2 overflow-x-auto">
+          {SEARCH_SCOPE_OPTIONS.map((option) => {
+            const isActive = searchScope === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => onChangeScope(option.value)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  isActive
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-50 text-[var(--deep-green)] hover:bg-emerald-100"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {showPrompt ? <p className="px-4 py-3 text-sm text-[var(--text-secondary)]">Digite pelo menos 2 caracteres para buscar.</p> : null}
+      {shouldSearch && isSearching ? <p className="px-4 py-3 text-sm text-[var(--text-secondary)]">Buscando...</p> : null}
+      {shouldSearch && !isSearching && searchError ? <p className="px-4 py-3 text-sm text-red-600">{searchError}</p> : null}
+      {shouldSearch && !isSearching && !searchError && suggestions.length === 0 ? (
+        <p className="px-4 py-3 text-sm text-[var(--text-secondary)]">Nenhum resultado encontrado.</p>
+      ) : null}
+
+      {shouldSearch && !isSearching && !searchError && suggestions.length > 0 ? (
+        <ul className="max-h-72 overflow-y-auto divide-y divide-emerald-50">
+          {suggestions.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => onSelectSuggestion(item.href)}
+                className={`w-full px-4 py-3 text-left transition-colors ${
+                  item.href ? "hover:bg-emerald-50" : "cursor-default"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-10 w-8 shrink-0 rounded-md border border-emerald-100 bg-emerald-50 bg-cover bg-center"
+                    style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[var(--deep-green)]">{item.title}</p>
+                    <p className="truncate text-xs text-[var(--text-secondary)]">{item.subtitle}</p>
+                  </div>
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarProps>) {
+  const router = useRouter();
+  const [searchScope, setSearchScope] = React.useState<SearchScope>("general");
+  const [query, setQuery] = React.useState("");
+  const [isSearching, setIsSearching] = React.useState(false);
+  const [searchError, setSearchError] = React.useState("");
+  const [suggestions, setSuggestions] = React.useState<SearchSuggestion[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [isSearchFocused, setIsSearchFocused] = React.useState(false);
+  const searchContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  const normalizedQuery = query.trim();
+  const shouldSearch = normalizedQuery.length >= MIN_SEARCH_LENGTH;
+
+  const resolveSearchHref = React.useCallback(
+    (scope: SearchScope, term: string): string => {
+      const normalizedTerm = term.trim();
+      if (!normalizedTerm) {
+        return "/feed";
+      }
+
+      if (scope === "user") {
+        return `/profile/${encodeURIComponent(normalizeUsername(normalizedTerm))}`;
+      }
+
+      return `/bookcase?search=${encodeURIComponent(normalizedTerm)}`;
+    },
+    [],
+  );
+
+  const executeSearchNavigation = React.useCallback(
+    (scope: SearchScope, term: string) => {
+      const href = resolveSearchHref(scope, term);
+      router.push(href);
+      setIsDropdownOpen(false);
+    },
+    [resolveSearchHref, router],
+  );
+
+  React.useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (!searchContainerRef.current) {
+        return;
+      }
+
+      if (!searchContainerRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+        setIsSearchFocused(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  React.useEffect(() => {
+    if (!shouldSearch || !isDropdownOpen) {
+      setSuggestions([]);
+      setSearchError("");
+      setIsSearching(false);
+      return;
+    }
+
+    const timeoutId = globalThis.setTimeout(() => {
+      void (async () => {
+        setIsSearching(true);
+        setSearchError("");
+
+        try {
+          const nextSuggestions = await fetchSearchSuggestions(searchScope, normalizedQuery);
+          setSuggestions(nextSuggestions);
+        } catch {
+          setSuggestions([]);
+          setSearchError("Nao foi possivel buscar agora. Tente novamente.");
+        } finally {
+          setIsSearching(false);
+        }
+      })();
+    }, 300);
+
+    return () => {
+      globalThis.clearTimeout(timeoutId);
+    };
+  }, [isDropdownOpen, normalizedQuery, searchScope, shouldSearch]);
+
+  return (
+    <div className="flex-1 flex justify-center px-1 sm:px-4">
+      <div ref={searchContainerRef} className="w-full max-w-[640px]">
+        <div className="relative w-full">
+          <label htmlFor="global-search" className="relative block w-full" aria-label="Busca global">
+            <Search
+              size={17}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]"
+              aria-hidden="true"
+            />
+            <input
+              id="global-search"
+              type="search"
+              value={query}
+              placeholder={searchPlaceholder}
+              onFocus={() => {
+                setIsSearchFocused(true);
+                setIsDropdownOpen(true);
+              }}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setIsDropdownOpen(true);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  executeSearchNavigation(searchScope, normalizedQuery);
+                }
+              }}
+              className="w-full h-10 rounded-xl border border-emerald-200 bg-emerald-50/40 pl-11 pr-4 text-sm text-[var(--deep-green)] placeholder:text-[hsl(var(--muted-foreground))] transition-all duration-200 focus:border-emerald-300 focus:bg-white"
+            />
+          </label>
+
+          {isDropdownOpen && isSearchFocused ? (
+            <TopHeaderSearchDropdown
+              searchScope={searchScope}
+              shouldSearch={shouldSearch}
+              isSearching={isSearching}
+              searchError={searchError}
+              suggestions={suggestions}
+              onChangeScope={(scope) => {
+                setSearchScope(scope);
+                setIsDropdownOpen(true);
+              }}
+              onSelectSuggestion={(href) => {
+                if (!href) {
+                  return;
+                }
+
+                router.push(href);
+                setIsDropdownOpen(false);
+              }}
+            />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function TopHeader({
@@ -75,31 +385,13 @@ export function TopHeader({
         `fixed top-0 left-0 right-0 h-16 bg-white border-b border-emerald-100 z-50 ${className ?? ""}`.trim()
       }
     >
-      <div className="h-full w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 flex items-center gap-4 sm:gap-6">
+      <div className="h-full w-full px-2 sm:px-4 lg:px-6 flex items-center gap-4 sm:gap-6">
         <div className="flex items-center gap-2 min-w-fit text-[var(--deep-green)]">
           <BookOpen size={21} className="text-[hsl(var(--primary-dark))]" aria-hidden="true" />
           <span className="font-heading text-[1.85rem] leading-none tracking-tight">{title}</span>
         </div>
 
-        <div className="flex-1 flex justify-center px-1 sm:px-4">
-          <label
-            htmlFor="global-search"
-            className="relative w-full max-w-[540px]"
-            aria-label="Busca global"
-          >
-            <Search
-              size={17}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]"
-              aria-hidden="true"
-            />
-            <input
-              id="global-search"
-              type="search"
-              placeholder={searchPlaceholder}
-              className="w-full h-10 rounded-xl border border-emerald-200 bg-emerald-50/40 pl-11 pr-4 text-sm text-[var(--deep-green)] placeholder:text-[hsl(var(--muted-foreground))] transition-all duration-200 focus:border-emerald-300 focus:bg-white"
-            />
-          </label>
-        </div>
+        <TopHeaderSearchBar searchPlaceholder={searchPlaceholder} />
 
         <div className="flex items-center gap-3 sm:gap-4 min-w-fit">
           <button
