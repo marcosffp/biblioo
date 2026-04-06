@@ -34,3 +34,4 @@ export * from "./RatingStars";
 export * from "./ProgressBar";
 export * from "./Sidebar";
 export * from "./AuthCard";
+export * from "./BackArrowButton";

@@ -372,18 +372,17 @@ export default function PerfilPage() {
       {activeTab === "Estante" ? (
         <section>
           {shelfBooks.length > 0 ? (
-            shelfBooks.map((book) => (
-              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <BookCard
-                key={book.id}
-                title={book.title}
-                author="Da sua estante"
-                coverUrl={book.coverUrl}
-                progress={book.progress}
-                variant="compact"
-              />
-              </section>
-            ))
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {shelfBooks.map((book) => (
+                <BookCard
+                  key={book.id}
+                  title={book.title}
+                  author="Da sua estante"
+                  coverUrl={book.coverUrl}
+                  variant="compact"
+                />
+              ))}
+            </section>
           ) : (
             <EmptyState
               title="Sua estante está vazia"

@@ -1,5 +1,5 @@
 import React from "react";
-import { AppShell, BookCard, PageHeader, PrimaryButton, SectionHeader } from "@/components";
+import { AppShell, BookCard, PageHeader, SectionHeader, Button } from "@/components";
 
 const highlights = [
   { id: "h1", title: "O Nome do Vento", author: "Patrick Rothfuss", rating: 5, progress: 10 },
@@ -20,7 +20,7 @@ export default function ParaVocePage() {
     <AppShell>
       <PageHeader title="Para Voce" subtitle="Sugestoes baseadas no seu historico" />
 
-      <SectionHeader title="Recomendacao do dia" action={<PrimaryButton>Sortear recomendacao</PrimaryButton>} />
+      <SectionHeader title="Recomendacao do dia" action={<Button>Sortear recomendacao</Button>} />
       <div className="space-y-4">
         {highlights.map((book) => (
           <BookCard key={book.id} title={book.title} author={book.author} rating={book.rating} progress={book.progress} />
