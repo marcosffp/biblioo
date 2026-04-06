@@ -10,6 +10,8 @@ export interface BookDetailsCardProps {
   onClose: () => void;
   onAddToShelf: () => void;
   isAlreadyInShelf?: boolean;
+  isAddingToShelf?: boolean;
+  addToShelfError?: string;
 }
 
 export function BookDetailsCard({
@@ -21,6 +23,8 @@ export function BookDetailsCard({
   onClose,
   onAddToShelf,
   isAlreadyInShelf = false,
+  isAddingToShelf = false,
+  addToShelfError,
 }: BookDetailsCardProps) {
   if (!isOpen) {
     return null;
@@ -65,16 +69,18 @@ export function BookDetailsCard({
               <button
                 type="button"
                 onClick={onAddToShelf}
-                disabled={isAlreadyInShelf}
+                disabled={isAlreadyInShelf || isAddingToShelf}
                 className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
-                  isAlreadyInShelf
+                  isAlreadyInShelf || isAddingToShelf
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-emerald-600 text-white hover:bg-emerald-700"
                 }`.trim()}
               >
-                {isAlreadyInShelf ? "Ja esta na estante" : "Adicionar a estante"}
+                {isAlreadyInShelf ? "Ja esta na estante" : isAddingToShelf ? "Adicionando..." : "Adicionar a estante"}
               </button>
             </div>
+
+            {addToShelfError ? <p className="mt-3 text-sm text-red-600">{addToShelfError}</p> : null}
           </div>
         </div>
       </div>
