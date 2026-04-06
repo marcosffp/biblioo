@@ -2,7 +2,7 @@ import { getAccessToken } from "./auth";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
 
-type BackendReadingStatus =
+export type BackendReadingStatus =
   | "WANT_TO_READ"
   | "READING"
   | "REREADING"
@@ -65,6 +65,22 @@ export interface BackendCollectionSummaryResponse {
   id: number;
   name: string;
   shelfCount: number;
+  shelfPreviews: BackendCollectionShelfPreview[];
+}
+
+export interface BackendCollectionShelfPreview {
+  id: number;
+  name: string;
+  itemCount: number;
+  firstBookCoverUrl?: string | null;
+}
+
+export interface BackendCollectionResponse {
+  id: number;
+  name: string;
+  description?: string | null;
+  shelfCount: number;
+  shelfPreviews: BackendCollectionShelfPreview[];
 }
 
 export class BookcaseApiError extends Error {
@@ -240,6 +256,54 @@ export async function addBookToShelf(
   return parseJsonResponse<BackendShelfItemResponse>(response, "Falha ao adicionar livro na estante.");
 }
 
+export async function updateShelfItemProgress(
+  shelfId: number,
+  itemId: number,
+  currentPage: number,
+): Promise<BackendShelfItemResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items/${itemId}/progress`, {
+      method: "PATCH",
+      headers: {
+        ...buildAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        currentPage,
+      }),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel atualizar o progresso de leitura.");
+  }
+
+  return parseJsonResponse<BackendShelfItemResponse>(response, "Falha ao atualizar progresso de leitura.");
+}
+
+export async function changeShelfItemStatus(
+  shelfId: number,
+  itemId: number,
+  newStatus: BackendReadingStatus,
+): Promise<BackendShelfItemResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items/${itemId}/status`, {
+      method: "PATCH",
+      headers: {
+        ...buildAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        newStatus,
+      }),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel atualizar o status do livro.");
+  }
+
+  return parseJsonResponse<BackendShelfItemResponse>(response, "Falha ao atualizar status do livro.");
+}
+
 export async function listCollections(): Promise<BackendCollectionSummaryResponse[]> {
   let response: Response;
   try {
@@ -251,4 +315,53 @@ export async function listCollections(): Promise<BackendCollectionSummaryRespons
   }
 
   return parseJsonResponse<BackendCollectionSummaryResponse[]>(response, "Falha ao carregar colecoes.");
+}
+
+export async function createCollection(
+  name: string,
+  description = "",
+  initialShelfIds: number[] = [],
+): Promise<BackendCollectionResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/collections`, {
+      method: "POST",
+      headers: {
+        ...buildAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        description,
+        initialShelfIds,
+      }),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel criar a colecao.");
+  }
+
+  return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao criar colecao.");
+}
+
+export async function addShelfToCollection(
+  collectionId: number,
+  shelfId: number,
+): Promise<BackendCollectionResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/collections/${collectionId}/shelves`, {
+      method: "PATCH",
+      headers: {
+        ...buildAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        shelfId,
+      }),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel adicionar estante na colecao.");
+  }
+
+  return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao vincular estante na colecao.");
 }

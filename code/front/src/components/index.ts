@@ -24,6 +24,8 @@ export * from "./IconButton";
 export * from "./ChipToggle";
 export * from "./SearchSuggestionsList";
 export * from "./BookDetailsCard";
+export * from "./BookcaseModal";
+export * from "./ShelfSelectionList";
 export * from "./BookCoverPlaceholder";
 export * from "./RatingStars";
 export * from "./ProgressBar";
