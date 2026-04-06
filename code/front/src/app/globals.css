@@ -43,3 +43,9 @@ a {
   outline: none;
   box-shadow: var(--focus-ring);
 }
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  box-shadow: none;
+}
