@@ -30,15 +30,6 @@ import {
 const isOwner = true;
 const isPublic = true;
 
-const genreItems = [
-  { label: "Romance", value: 35 },
-  { label: "Ficcao literaria", value: 28 },
-  { label: "Fantasia", value: 22 },
-  { label: "Nao ficcao", value: 15 },
-];
-
-const favoriteAuthors = ["Clarice Lispector", "Machado de Assis", "Gabriel Garcia Marquez"];
-
 const tabs = ["Estante", "Comunidades", "Resenhas"] as const;
 
 type DisplayShelfBook = {
@@ -46,6 +37,11 @@ type DisplayShelfBook = {
   title: string;
   coverUrl?: string;
   progress?: number;
+};
+
+type GenreDistribution = {
+  label: string;
+  value: number;
 };
 
 export default function PerfilPage() {
@@ -59,6 +55,8 @@ export default function PerfilPage() {
   const [shelfBooks, setShelfBooks] = React.useState<DisplayShelfBook[]>([]);
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
+  const [authorItems, setAuthorItems] = React.useState<GenreDistribution[]>([]);
+  const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
   const [preferences, setPreferences] = React.useState<ProfilePreferences>({
     displayName: null,
     showReadingGoal: true,
@@ -97,9 +95,13 @@ export default function PerfilPage() {
           uniqueItems.map(async (item) => {
             try {
               const book = await getBookById(item.bookId, accessToken);
-              return { progressPercent: item.progressPercent ?? 0, pageCount: book.pageCount ?? 0 };
+              return {
+                progressPercent: item.progressPercent ?? 0,
+                pageCount: book.pageCount ?? 0,
+                authors: book.authors ?? [],
+              };
             } catch {
-              return { progressPercent: 0, pageCount: 0 };
+              return { progressPercent: 0, pageCount: 0, authors: [] };
             }
           }),
         );
@@ -107,6 +109,28 @@ export default function PerfilPage() {
         const computedPagesRead = pageCountEntries.reduce((total, entry) => {
           return total + Math.round((entry.pageCount * entry.progressPercent) / 100);
         }, 0);
+
+        const authorCountMap = new Map<string, number>();
+
+        pageCountEntries.forEach((entry) => {
+          entry.authors.forEach((author) => {
+            if (!author || !author.trim()) {
+              return;
+            }
+
+            authorCountMap.set(author, (authorCountMap.get(author) ?? 0) + 1);
+          });
+        });
+
+        const computedAuthorItems = Array.from(authorCountMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6)
+          .map(([label, value]) => ({ label, value }));
+
+        const computedFavoriteAuthors = Array.from(authorCountMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([name]) => name);
 
         const [followers, following] = await Promise.all([
           getFollowersCount(loadedProfile.username, accessToken),
@@ -124,6 +148,8 @@ export default function PerfilPage() {
         setFollowingCount(following);
         setBooksRead(completedCount);
         setPagesRead(computedPagesRead);
+        setAuthorItems(computedAuthorItems);
+        setFavoriteAuthors(computedFavoriteAuthors);
         setShelfBooks(
           uniqueItems.slice(0, 8).map((item: ShelfItemSummaryResponse) => ({
             id: item.id,
@@ -155,7 +181,7 @@ export default function PerfilPage() {
   const profileName = preferences.displayName?.trim() ? preferences.displayName : profile?.username ?? "Usuário";
   const profileBio = profile?.bio ?? "Sem bio cadastrada.";
   const profileHandle = profile ? `@${profile.username}` : "@usuario";
-  const favoriteGenre = [...genreItems].sort((a, b) => b.value - a.value)[0]?.label ?? "Sem dados";
+  const favoriteGenre = "Indisponível";
 
   const initial = (profileName[0] ?? "U").toUpperCase();
 
@@ -200,12 +226,12 @@ export default function PerfilPage() {
               <p className="text-md text-gray-400">{profileHandle}</p>
               <p className="mt-3 max-w-xl text-sm text-gray-600">{profileBio}</p>
               <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-emerald-900">
-                <span>
+                <Link href="/profile/followers" className="hover:text-emerald-700">
                   <strong>{followersCount}</strong> seguidores
-                </span>
-                <span>
+                </Link>
+                <Link href="/profile/following" className="hover:text-emerald-700">
                   <strong>{followingCount}</strong> seguindo
-                </span>
+                </Link>
               </div>
             </div>
             <div className="w-full md:w-auto md:ml-auto">
@@ -284,53 +310,38 @@ export default function PerfilPage() {
         <section className="rounded-lg border border-gray-200 bg-white p-5">
           <SectionHeader title="DNA literário" subtitle="Seu perfil de leitura" />
           <div className="mt-4">
-            <div className="space-y-3">
-              {genreItems.map((item) => {
-                const total = genreItems.reduce((acc, current) => acc + current.value, 0) || 1;
-                const pct = Math.round((item.value / total) * 100);
-                return (
-                  <div key={item.label}>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{item.label}</span>
-                      <span>{pct}%</span>
+            {authorItems.length > 0 ? (
+              <div className="space-y-3">
+                {authorItems.map((item) => {
+                  const total = authorItems.reduce((acc, current) => acc + current.value, 0) || 1;
+                  const pct = Math.round((item.value / total) * 100);
+                  return (
+                    <div key={item.label}>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{item.label}</span>
+                        <span>{pct}%</span>
+                      </div>
+                      <div className="mt-1 h-2 rounded-full bg-emerald-100">
+                        <div className="h-2 rounded-full bg-emerald-600" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
-                    <div className="mt-1 h-2 rounded-full bg-emerald-100">
-                      <div className="h-2 rounded-full bg-emerald-600" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Ainda não há dados suficientes para montar seu DNA literário.</p>
+            )}
             <div className="mt-4 border-t border-gray-200 pt-4">
               <div className="text-xs font-semibold text-gray-500">Autores favoritos</div>
-              <TagList className="mt-2" tags={favoriteAuthors} />
+              {favoriteAuthors.length > 0 ? (
+                <TagList className="mt-2" tags={favoriteAuthors} />
+              ) : (
+                <p className="mt-2 text-sm text-gray-500">Sem autores suficientes para análise.</p>
+              )}
             </div>
           </div>
         </section>
       ) : null}
-
-      <section className="rounded-xl border border-gray-200 bg-white p-6">
-        <SectionHeader title="Importar Goodreads" />
-        <div className="mt-4 rounded-xl border border-gray-200 px-6 py-10 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 3v12" />
-              <path d="m7 8 5-5 5 5" />
-              <path d="M5 21h14" />
-            </svg>
-          </div>
-          <h3 className="text-sm font-semibold text-gray-800">Importe sua biblioteca do Goodreads</h3>
-          <p className="mt-1 text-xs text-gray-500">
-            Faça upload do CSV exportado do Goodreads para adicionar seus livros à estante.
-          </p>
-          <button
-            type="button"
-            className="mt-5 inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-          >
-            Selecionar arquivo CSV
-          </button>
-        </div>
-      </section>
 
       <section className="rounded-xl border border-gray-200 bg-gray-100 p-1.5">
         <div className="grid grid-cols-3 gap-1">
@@ -359,9 +370,10 @@ export default function PerfilPage() {
       </section>
 
       {activeTab === "Estante" ? (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section>
           {shelfBooks.length > 0 ? (
             shelfBooks.map((book) => (
+              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <BookCard
                 key={book.id}
                 title={book.title}
@@ -370,6 +382,7 @@ export default function PerfilPage() {
                 progress={book.progress}
                 variant="compact"
               />
+              </section>
             ))
           ) : (
             <EmptyState
@@ -392,6 +405,32 @@ export default function PerfilPage() {
           action={<Button>Escrever resenha</Button>}
         />
       )}
+
+      <section className="rounded-xl border border-gray-200 bg-white p-6">
+        <SectionHeader title="Importar Goodreads" />
+        <div className="mt-4 rounded-xl border border-gray-200 px-6 py-10 text-center">
+          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 3v12" />
+              <path d="m7 8 5-5 5 5" />
+              <path d="M5 21h14" />
+            </svg>
+          </div>
+          <h3 className="text-sm font-semibold text-gray-800">Importe sua biblioteca do Goodreads</h3>
+          <p className="mt-1 text-xs text-gray-500">
+            Faça upload do CSV exportado do Goodreads para adicionar seus livros à estante.
+          </p>
+          <button
+            type="button"
+            className="mt-5 inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            Selecionar arquivo CSV
+          </button>
+        </div>
+      </section>
+
     </AppShell>
   );
+
+  
 }

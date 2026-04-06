@@ -83,6 +83,11 @@ function bearerHeaders(token?: string | null, withJson = false): HeadersInit {
   };
 }
 
+function optionalBearerHeaders(token?: string | null): HeadersInit {
+  const resolved = token ?? getAccessToken();
+  return resolved ? { Authorization: `Bearer ${resolved}` } : {};
+}
+
 export async function getMyProfile(token?: string | null): Promise<UserProfileResponse> {
   const response = await fetch(`${API_BASE_URL}/users/me`, {
     headers: bearerHeaders(token),
@@ -90,6 +95,18 @@ export async function getMyProfile(token?: string | null): Promise<UserProfileRe
 
   if (!response.ok) {
     throw new Error("load_me_failed");
+  }
+
+  return (await response.json()) as UserProfileResponse;
+}
+
+export async function getProfileByUsername(username: string, token?: string | null): Promise<UserProfileResponse> {
+  const response = await fetch(`${API_BASE_URL}/users/${username}`, {
+    headers: optionalBearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("load_user_profile_failed");
   }
 
   return (await response.json()) as UserProfileResponse;
@@ -212,6 +229,68 @@ export async function getFollowersCount(username: string, token?: string | null)
 
 export async function getFollowingCount(username: string, token?: string | null): Promise<number> {
   return fetchFollowCount(`${API_BASE_URL}/users/${username}/following`, token);
+}
+
+async function fetchFollowUsers(url: string, token?: string | null): Promise<UserSummaryResponse[]> {
+  let page = 0;
+  const size = 50;
+  const users: UserSummaryResponse[] = [];
+
+  while (true) {
+    const response = await fetch(`${url}?page=${page}&size=${size}`, {
+      headers: optionalBearerHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error("load_follow_users_failed");
+    }
+
+    const result = (await response.json()) as FollowPageResponse;
+    users.push(...result.users);
+
+    if (!result.hasMore) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return users;
+}
+
+export async function listFollowersByUsername(username: string, token?: string | null): Promise<UserSummaryResponse[]> {
+  return fetchFollowUsers(`${API_BASE_URL}/users/${username}/followers`, token);
+}
+
+export async function listFollowingByUsername(username: string, token?: string | null): Promise<UserSummaryResponse[]> {
+  return fetchFollowUsers(`${API_BASE_URL}/users/${username}/following`, token);
+}
+
+export async function listMyFollowing(token?: string | null): Promise<UserSummaryResponse[]> {
+  const me = await getMyProfile(token);
+  return listFollowingByUsername(me.username, token);
+}
+
+export async function followUser(username: string, token?: string | null): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/users/${username}/follow`, {
+    method: "POST",
+    headers: bearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("follow_user_failed");
+  }
+}
+
+export async function unfollowUser(username: string, token?: string | null): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/users/${username}/follow`, {
+    method: "DELETE",
+    headers: bearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("unfollow_user_failed");
+  }
 }
 
 export function getProfilePreferences(): ProfilePreferences {
