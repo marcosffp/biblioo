@@ -22,6 +22,8 @@ export * from "./PrimaryButton";
 export * from "./SecondaryButton";
 export * from "./IconButton";
 export * from "./ChipToggle";
+export * from "./SearchSuggestionsList";
+export * from "./BookDetailsCard";
 export * from "./BookCoverPlaceholder";
 export * from "./RatingStars";
 export * from "./ProgressBar";

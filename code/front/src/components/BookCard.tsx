@@ -11,6 +11,8 @@ export interface BookCardProps {
   coverUrl?: string;
   rating?: number;
   progress?: number;
+  currentPage?: number;
+  totalPages?: number;
   variant?: BookCardVariant;
   className?: string;
 }
@@ -21,6 +23,8 @@ export function BookCard({
   coverUrl,
   rating,
   progress,
+  currentPage,
+  totalPages,
   variant = "list",
   className,
 }: BookCardProps) {
@@ -60,6 +64,14 @@ export function BookCard({
         {typeof progress === "number" ? (
           <div className="mt-3">
             <ProgressBar value={progress} />
+            <div className="mt-2 flex items-center justify-between gap-3 text-xs text-gray-500">
+              <span>
+                {typeof currentPage === "number" && typeof totalPages === "number"
+                  ? `Pagina ${currentPage} de ${totalPages}`
+                  : "Progresso de leitura"}
+              </span>
+              <span className="font-semibold text-gray-600 dark:text-gray-300">{Math.round(progress)}%</span>
+            </div>
           </div>
         ) : null}
       </div>
