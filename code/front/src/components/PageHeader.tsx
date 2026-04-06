@@ -7,12 +7,12 @@ export interface PageHeaderProps {
   action?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, action }: Readonly<PageHeaderProps>) {
   return (
-    <header className="flex items-start justify-between gap-4">
+    <header className="flex items-start justify-between gap-4 border-b border-[var(--border-soft)] pb-4">
       <div>
-        <h1 className="text-2xl font-bold m-0 text-gray-900 dark:text-gray-100">{title}</h1>
-        {subtitle ? <p className="mt-2 text-sm text-gray-500">{subtitle}</p> : null}
+        <h1 className="text-4xl leading-tight font-bold m-0 text-[var(--text-primary)]">{title}</h1>
+        {subtitle ? <p className="mt-2 text-sm text-[var(--text-secondary)]">{subtitle}</p> : null}
       </div>
       {action ? <div className="inline-flex items-center">{action}</div> : null}
     </header>
