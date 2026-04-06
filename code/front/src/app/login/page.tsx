@@ -97,17 +97,21 @@ export default function LoginPage() {
         />
 
         <div className="-mt-0.5 text-sm">
-          <Link href="#" className="font-medium text-[var(--brand-500)] hover:text-[var(--brand-600)]">
+          <Link href="#" className="font-medium text-primary-dark hover:text-primary">
             Esqueceu sua senha?
           </Link>
         </div>
 
-        {formError ? <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{formError}</div> : null}
+        {formError ? (
+          <div className="rounded-[var(--radius-md)] bg-[hsl(var(--destructive)/0.12)] px-3 py-2 text-sm text-[hsl(var(--destructive))]">
+            {formError}
+          </div>
+        ) : null}
 
         <Button
           type="submit"
           disabled={isLoading}
-          className="mt-1.5 h-12 w-full rounded-xl bg-gradient-to-r from-[var(--brand-500)] via-[#238f40] to-[var(--brand-600)] text-[0.97rem] font-semibold tracking-[0.01em] text-white shadow-[0_8px_16px_rgba(23,117,47,0.24)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(23,117,47,0.3)] focus-visible:shadow-[0_0_0_3px_rgba(31,143,58,0.22)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
+          className="mt-1.5 h-12 w-full rounded-[var(--radius-md)] bg-primary-dark text-primary-foreground text-[0.97rem] font-semibold tracking-[0.01em] shadow-card transition duration-200 hover:-translate-y-0.5 hover:bg-primary hover:shadow-card-hover active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
         >
           <span className="inline-flex items-center justify-center gap-2">
             <span>{isLoading ? "Entrando..." : "Entrar"}</span>

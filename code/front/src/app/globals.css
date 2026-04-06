@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
 @import "../design-tokens/tokens.css";
 @tailwind base;
 @tailwind components;
@@ -17,9 +18,9 @@ body {
 }
 
 body {
-  color: var(--text-primary);
-  background: radial-gradient(circle at top, var(--bg-soft), var(--bg-canvas) 48%);
-  font-family: var(--font-body), sans-serif;
+  color: hsl(var(--foreground));
+  background: radial-gradient(circle at top, var(--bg-soft), hsl(var(--background)) 48%);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -30,7 +31,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-heading), serif;
+  font-family: var(--font-heading);
 }
 
 a {

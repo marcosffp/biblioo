@@ -35,9 +35,9 @@ export const readingStatusOptions: Array<{ value: ReadingStatus; label: string }
   { value: "todos", label: "Todos" },
   { value: "lendo", label: "Lendo" },
   { value: "quero-ler", label: "Quero Ler" },
-  { value: "lido", label: "Lido" },
+  { value: "lido", label: "Lidos" },
   { value: "relendo", label: "Relendo" },
-  { value: "abandonei", label: "Abandonei" },
+  { value: "abandonei", label: "Abandonados" },
 ];
 
 export interface ShelfBook extends RuleBook {
@@ -195,16 +195,16 @@ export function useBookcasePage() {
   const trimmedSearchTerm = searchTerm.trim();
 
   if (isInsideShelf) {
-    emptyStateTitle = normalizedTerm ? "Nenhum livro encontrado" : "Esta estante ainda nao possui livros";
+    emptyStateTitle = normalizedTerm ? "Nenhum livro encontrado" : "Esta estante ainda não possui livros";
     emptyStateDescription = normalizedTerm
-      ? `Nenhum livro corresponde a busca por "${trimmedSearchTerm}".`
-      : "Use o botao de adicionar livro para preencher esta estante.";
+      ? `Nenhum livro corresponde à busca por "${trimmedSearchTerm}".`
+      : "Use o botão de adicionar livro para preencher esta estante.";
   } else if (rootViewMode === "estantes") {
-    emptyStateTitle = "Voce ainda nao possui estantes";
+    emptyStateTitle = "Você ainda não possui estantes";
     emptyStateDescription = "Crie sua primeira estante para organizar seus livros.";
   } else {
-    emptyStateTitle = "Voce ainda nao possui colecoes";
-    emptyStateDescription = "Crie sua primeira colecao para agrupar suas estantes.";
+    emptyStateTitle = "Você ainda não possui coleções";
+    emptyStateDescription = "Crie sua primeira coleção para agrupar suas estantes.";
   }
 
   const normalizedAddBookTerm = normalizeSearchTerm(addBookSearchTerm);
@@ -278,9 +278,9 @@ export function useBookcasePage() {
         setShelfBooks([]);
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setLoadError("Faca login para carregar sua estante.");
+          setLoadError("Faça login para carregar sua estante.");
         } else {
-          setLoadError("Nao foi possivel carregar os dados da estante.");
+          setLoadError("Não foi possível carregar os dados da estante.");
         }
       }
     }
@@ -372,17 +372,17 @@ export function useBookcasePage() {
     const normalizedDescription = newCollectionDescription.trim();
 
     if (!normalizedName) {
-      setCreateCollectionError("Informe um nome para a colecao.");
+      setCreateCollectionError("Informe um nome para a coleção.");
       return;
     }
 
     if (normalizedName.length > 100) {
-      setCreateCollectionError("O nome da colecao deve ter no maximo 100 caracteres.");
+      setCreateCollectionError("O nome da coleção deve ter no máximo 100 caracteres.");
       return;
     }
 
     if (normalizedDescription.length > 500) {
-      setCreateCollectionError("A descricao da colecao deve ter no maximo 500 caracteres.");
+      setCreateCollectionError("A descrição da coleção deve ter no máximo 500 caracteres.");
       return;
     }
 
@@ -398,11 +398,11 @@ export function useBookcasePage() {
         handleCloseCreateCollectionModal();
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setCreateCollectionError("Faca login para criar colecoes.");
+          setCreateCollectionError("Faça login para criar coleções.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setCreateCollectionError(error.message);
         } else {
-          setCreateCollectionError("Nao foi possivel criar a colecao. Tente novamente.");
+          setCreateCollectionError("Não foi possível criar a coleção. Tente novamente.");
         }
       } finally {
         setIsCreatingCollection(false);
@@ -457,11 +457,11 @@ export function useBookcasePage() {
         handleCloseManageCollectionShelvesModal();
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setManageCollectionError("Faca login para editar colecoes.");
+          setManageCollectionError("Faça login para editar coleções.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setManageCollectionError(error.message);
         } else {
-          setManageCollectionError("Nao foi possivel adicionar estantes na colecao.");
+          setManageCollectionError("Não foi possível adicionar estantes na coleção.");
         }
       } finally {
         setIsSavingCollectionShelves(false);
@@ -483,9 +483,9 @@ export function useBookcasePage() {
         await loadShelfBooks(shelf.id);
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setLoadError("Faca login para abrir esta estante.");
+          setLoadError("Faça login para abrir esta estante.");
         } else {
-          setLoadError("Nao foi possivel carregar os livros da estante.");
+          setLoadError("Não foi possível carregar os livros da estante.");
         }
       }
     }
@@ -749,7 +749,7 @@ export function useBookcasePage() {
 
   const handleSaveProgress = () => {
     if (!progressBook || selectedShelfId === null || typeof progressBook.shelfItemId !== "number") {
-      setProgressError("Nao foi possivel identificar o item da estante.");
+      setProgressError("Não foi possível identificar o item da estante.");
       return;
     }
 
@@ -761,17 +761,17 @@ export function useBookcasePage() {
     const parsedPage = Number(normalizedDraft);
 
     if (!normalizedDraft || Number.isNaN(parsedPage) || !Number.isInteger(parsedPage)) {
-      setProgressError("Informe um numero inteiro de pagina.");
+      setProgressError("Informe um número inteiro de página.");
       return;
     }
 
     if (parsedPage < 0) {
-      setProgressError("A pagina atual nao pode ser negativa.");
+      setProgressError("A página atual não pode ser negativa.");
       return;
     }
 
     if (typeof activeProgressBook.totalPages === "number" && parsedPage > activeProgressBook.totalPages) {
-      setProgressError(`A pagina nao pode ser maior que ${activeProgressBook.totalPages}.`);
+      setProgressError(`A página não pode ser maior que ${activeProgressBook.totalPages}.`);
       return;
     }
 
@@ -806,11 +806,11 @@ export function useBookcasePage() {
         handleCloseProgressModal();
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setProgressError("Faca login para atualizar progresso.");
+          setProgressError("Faça login para atualizar progresso.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setProgressError(error.message);
         } else {
-          setProgressError("Nao foi possivel atualizar o progresso. Tente novamente.");
+          setProgressError("Não foi possível atualizar o progresso. Tente novamente.");
         }
       } finally {
         setIsSavingProgress(false);
@@ -847,12 +847,12 @@ export function useBookcasePage() {
     }
 
     if (normalizedName.length > 100) {
-      setCreateShelfError("O nome da estante deve ter no maximo 100 caracteres.");
+      setCreateShelfError("O nome da estante deve ter no máximo 100 caracteres.");
       return;
     }
 
     if (normalizedDescription.length > 300) {
-      setCreateShelfError("A descricao deve ter no maximo 300 caracteres.");
+      setCreateShelfError("A descrição deve ter no máximo 300 caracteres.");
       return;
     }
 
@@ -1033,6 +1033,7 @@ export function useBookcasePage() {
     selectedShelfName,
     selectedShelfBook,
     selectedSuggestionBook,
+    shelfBooks,
     shelves,
     statusFilter,
     visibleAddBookSuggestions,

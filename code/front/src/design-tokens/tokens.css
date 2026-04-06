@@ -48,6 +48,10 @@
   --text-secondary: #5f7d78;
   --border-soft: hsl(160 20% 90%);
 
+  /* Typography tokens */
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-heading: "Playfair Display", Georgia, serif;
+
   /* Spacing tokens */
   --space-1: 4px;
   --space-2: 8px;
