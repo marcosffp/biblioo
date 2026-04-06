@@ -9,7 +9,9 @@ import {
 import {
   addBookToShelf,
   addShelfToCollection,
+  createBookReview,
   type BackendReadingStatus,
+  type BackendReviewResponse,
   BookcaseApiError,
   changeShelfItemStatus,
   createCollection,
@@ -21,6 +23,7 @@ import {
   listShelfItems,
   listShelves,
   searchBooks,
+  updateBookReview,
   updateShelfItemProgress,
   type BackendBookResponse,
   type BackendCollectionResponse,
@@ -112,6 +115,14 @@ function removeSelectedId(currentIds: number[], nextId: number): number[] {
   return currentIds.filter((id) => id !== nextId);
 }
 
+function mapReviewText(review: BackendReviewResponse | null): string {
+  if (!review?.text) {
+    return "";
+  }
+
+  return review.text;
+}
+
 export function useBookcasePage() {
   const [rootViewMode, setRootViewMode] = useState<RootViewMode>("estantes");
   const [statusFilter, setStatusFilter] = useState<ReadingStatus>("todos");
@@ -154,6 +165,11 @@ export function useBookcasePage() {
   const [selectedShelfBook, setSelectedShelfBook] = useState<ShelfBook | null>(null);
   const [bookDetailsError, setBookDetailsError] = useState("");
   const [isSavingShelfBookDetails, setIsSavingShelfBookDetails] = useState(false);
+  const [activeReviewId, setActiveReviewId] = useState<number | null>(null);
+  const [reviewRatingDraft, setReviewRatingDraft] = useState(0);
+  const [reviewCommentDraft, setReviewCommentDraft] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [isSavingReview, setIsSavingReview] = useState(false);
 
   const isInsideShelf = selectedShelfId !== null;
   const normalizedTerm = normalizeSearchTerm(searchTerm);
@@ -486,12 +502,20 @@ export function useBookcasePage() {
     setIsShelfBookDetailsOpen(false);
     setSelectedShelfBook(null);
     setBookDetailsError("");
+    setActiveReviewId(null);
+    setReviewRatingDraft(0);
+    setReviewCommentDraft("");
+    setReviewError("");
     setAddToShelfError("");
   };
 
   const handleOpenShelfBookDetails = (book: ShelfBook) => {
     setSelectedShelfBook(book);
     setBookDetailsError("");
+    setReviewError("");
+    setActiveReviewId(null);
+    setReviewRatingDraft(0);
+    setReviewCommentDraft("");
     setIsShelfBookDetailsOpen(true);
   };
 
@@ -499,6 +523,10 @@ export function useBookcasePage() {
     setIsShelfBookDetailsOpen(false);
     setSelectedShelfBook(null);
     setBookDetailsError("");
+    setActiveReviewId(null);
+    setReviewRatingDraft(0);
+    setReviewCommentDraft("");
+    setReviewError("");
   };
 
   const handleSelectShelfBookStatus = (nextStatus: Exclude<ReadingStatus, "todos">) => {
@@ -636,6 +664,72 @@ export function useBookcasePage() {
     }
 
     void updateShelfBookProgressAction();
+  };
+
+  const handleSetReviewRating = (value: number) => {
+    setReviewError("");
+    setReviewRatingDraft(value);
+  };
+
+  const handleSetReviewComment = (value: string) => {
+    setReviewError("");
+    setReviewCommentDraft(value);
+  };
+
+  const handleSaveBookReview = () => {
+    if (!selectedShelfBook) {
+      setReviewError("Nao foi possivel identificar o livro para avaliar.");
+      return;
+    }
+
+    const bookId = Number(selectedShelfBook.id);
+    if (Number.isNaN(bookId)) {
+      setReviewError("Nao foi possivel identificar o livro para avaliar.");
+      return;
+    }
+
+    if (!Number.isInteger(reviewRatingDraft) || reviewRatingDraft < 1 || reviewRatingDraft > 5) {
+      setReviewError("Selecione uma nota de 1 a 5 estrelas.");
+      return;
+    }
+
+    const normalizedComment = reviewCommentDraft.trim();
+    if (normalizedComment.length > 2000) {
+      setReviewError("O comentario deve ter no maximo 2000 caracteres.");
+      return;
+    }
+
+    if (activeReviewId && normalizedComment.length === 0) {
+      setReviewError("Para editar a avaliacao com as rotas atuais, informe um comentario.");
+      return;
+    }
+
+    async function saveBookReviewAction() {
+      setIsSavingReview(true);
+      setReviewError("");
+
+      try {
+        const savedReview = activeReviewId
+          ? await updateBookReview(activeReviewId, reviewRatingDraft, normalizedComment)
+          : await createBookReview(bookId, reviewRatingDraft, normalizedComment);
+
+        setActiveReviewId(savedReview.id);
+        setReviewRatingDraft(savedReview.rating);
+        setReviewCommentDraft(mapReviewText(savedReview));
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setReviewError("Faca login para salvar sua avaliacao.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setReviewError(error.message);
+        } else {
+          setReviewError("Nao foi possivel salvar sua avaliacao. Tente novamente.");
+        }
+      } finally {
+        setIsSavingReview(false);
+      }
+    }
+
+    void saveBookReviewAction();
   };
 
   const handleOpenProgressModal = (book: ShelfBook) => {
@@ -890,6 +984,7 @@ export function useBookcasePage() {
   return {
     addBookSearchTerm,
     addToShelfError,
+    activeReviewId,
     availableShelvesForManagedCollection,
     bookDetailsError,
     createCollectionError,
@@ -910,6 +1005,7 @@ export function useBookcasePage() {
     isInsideShelf,
     isManageCollectionShelvesModalOpen,
     isProgressModalOpen,
+    isSavingReview,
     isSavingCollectionShelves,
     isSavingShelfBookDetails,
     isSavingProgress,
@@ -926,6 +1022,9 @@ export function useBookcasePage() {
     progressBook,
     progressDraft,
     progressError,
+    reviewCommentDraft,
+    reviewError,
+    reviewRatingDraft,
     rootViewMode,
     searchInputAriaLabel,
     searchInputPlaceholder,
@@ -957,6 +1056,9 @@ export function useBookcasePage() {
     handleOpenShelfBookDetails,
     handleOpenProgressModal,
     handleSelectShelfBookStatus,
+    handleSetReviewComment,
+    handleSetReviewRating,
+    handleSaveBookReview,
     handleSaveCollectionShelves,
     handleSaveProgress,
     handleStepShelfBookPage,

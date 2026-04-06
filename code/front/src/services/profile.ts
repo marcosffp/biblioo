@@ -271,6 +271,32 @@ export async function listMyFollowing(token?: string | null): Promise<UserSummar
   return listFollowingByUsername(me.username, token);
 }
 
+export async function searchUsersByUsername(
+  query: string,
+  token?: string | null,
+  page = 0,
+  size = 8,
+): Promise<UserSummaryResponse[]> {
+  const normalized = query.trim();
+  if (normalized.length < 2) {
+    return [];
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/users?q=${encodeURIComponent(normalized)}&page=${page}&size=${size}`,
+    {
+      headers: optionalBearerHeaders(token),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("search_users_failed");
+  }
+
+  const result = (await response.json()) as FollowPageResponse;
+  return result.users;
+}
+
 export async function followUser(username: string, token?: string | null): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/users/${username}/follow`, {
     method: "POST",

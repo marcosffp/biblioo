@@ -50,7 +50,10 @@ export default function EstantePage() {
     handleOpenShelfBookDetails,
     handleSelectShelfBookStatus,
     handleSaveCollectionShelves,
+    handleSaveBookReview,
     handleSaveProgress,
+    handleSetReviewComment,
+    handleSetReviewRating,
     handleSuggestionSelect,
     hasNoVisibleItems,
     isAddBookModalOpen,
@@ -79,6 +82,11 @@ export default function EstantePage() {
     progressBook,
     progressDraft,
     progressError,
+    activeReviewId,
+    isSavingReview,
+    reviewCommentDraft,
+    reviewError,
+    reviewRatingDraft,
     rootViewMode,
     searchInputAriaLabel,
     searchInputPlaceholder,
@@ -255,6 +263,15 @@ export default function EstantePage() {
         onClose={handleCloseShelfBookDetails}
         onSelectStatus={handleSelectShelfBookStatus}
         onStepPage={handleStepShelfBookPage}
+        reviewRating={reviewRatingDraft}
+        reviewComment={reviewCommentDraft}
+        reviewExists={typeof activeReviewId === "number"}
+        onChangeReviewRating={handleSetReviewRating}
+        onChangeReviewComment={handleSetReviewComment}
+        onSaveReview={handleSaveBookReview}
+        reviewError={reviewError}
+        isSavingReview={isSavingReview}
+        isLoadingReview={false}
         isSaving={isSavingShelfBookDetails}
         errorMessage={bookDetailsError}
       />

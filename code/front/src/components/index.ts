@@ -21,6 +21,7 @@ export * from "./TextInput";
 export * from "./PasswordInput";
 export * from "./Avatar";
 export * from "./Button";
+export { Button as PrimaryButton } from "./Button";
 export * from "./SecondaryButton";
 export * from "./IconButton";
 export * from "./ChipToggle";

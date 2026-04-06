@@ -22,8 +22,29 @@ interface ShelfBookDetailsPanelProps {
   onClose: () => void;
   onSelectStatus: (status: Exclude<ReadingStatus, "todos">) => void;
   onStepPage: (delta: number) => void;
+  reviewRating: number;
+  reviewComment: string;
+  reviewExists: boolean;
+  onChangeReviewRating: (rating: number) => void;
+  onChangeReviewComment: (value: string) => void;
+  onSaveReview: () => void;
+  reviewError: string;
+  isSavingReview: boolean;
+  isLoadingReview?: boolean;
   isSaving: boolean;
   errorMessage: string;
+}
+
+interface ReviewSectionProps {
+  reviewRating: number;
+  reviewComment: string;
+  reviewExists: boolean;
+  onChangeReviewRating: (rating: number) => void;
+  onChangeReviewComment: (value: string) => void;
+  onSaveReview: () => void;
+  reviewError: string;
+  isSavingReview: boolean;
+  isLoadingReview: boolean;
 }
 
 const statusOptions: Array<{ value: Exclude<ReadingStatus, "todos">; label: string; Icon: typeof BookOpen }> = [
@@ -42,12 +63,96 @@ function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, value));
 }
 
+function ReviewSection({
+  reviewRating,
+  reviewComment,
+  reviewExists,
+  onChangeReviewRating,
+  onChangeReviewComment,
+  onSaveReview,
+  reviewError,
+  isSavingReview,
+  isLoadingReview = false,
+}: Readonly<ReviewSectionProps>) {
+  let saveReviewLabel = "Salvar avaliação";
+  if (reviewExists) {
+    saveReviewLabel = "Atualizar avaliação";
+  }
+  if (isSavingReview) {
+    saveReviewLabel = "Salvando...";
+  }
+
+  return (
+    <section className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+      <h3 className="text-xl font-semibold text-[var(--text-primary)]">Sua avaliação</h3>
+
+      {isLoadingReview ? (
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">Carregando sua avaliação...</p>
+      ) : (
+        <>
+          <fieldset className="mt-3 flex items-center gap-2" aria-label="Selecionar nota de 1 a 5 estrelas">
+            {[1, 2, 3, 4, 5].map((starValue) => {
+              const isActive = reviewRating >= starValue;
+              return (
+                <button
+                  key={starValue}
+                  type="button"
+                  onClick={() => onChangeReviewRating(starValue)}
+                  className={`text-3xl leading-none transition ${
+                    isActive ? "text-[var(--brand-500)]" : "text-[#a8b8aa] hover:text-[var(--brand-600)]"
+                  }`}
+                  aria-label={`${starValue} estrela${starValue > 1 ? "s" : ""}`}
+                >
+                  ★
+                </button>
+              );
+            })}
+          </fieldset>
+
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">Comentário (opcional)</p>
+          <textarea
+            value={reviewComment}
+            onChange={(event) => onChangeReviewComment(event.target.value)}
+            maxLength={2000}
+            rows={4}
+            placeholder="Escreva sua opinião sobre o livro..."
+            className="mt-2 w-full rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-500)]"
+          />
+
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <p className="text-xs text-[var(--text-secondary)]">{reviewComment.length}/2000 caracteres</p>
+            <button
+              type="button"
+              onClick={onSaveReview}
+              disabled={isSavingReview}
+              className="rounded-[var(--radius-md)] bg-[var(--brand-500)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-600)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saveReviewLabel}
+            </button>
+          </div>
+
+          {reviewError ? <p className="mt-3 text-sm text-red-600">{reviewError}</p> : null}
+        </>
+      )}
+    </section>
+  );
+}
+
 export function ShelfBookDetailsPanel({
   isOpen,
   book,
   onClose,
   onSelectStatus,
   onStepPage,
+  reviewRating,
+  reviewComment,
+  reviewExists,
+  onChangeReviewRating,
+  onChangeReviewComment,
+  onSaveReview,
+  reviewError,
+  isSavingReview,
+  isLoadingReview,
   isSaving,
   errorMessage,
 }: Readonly<ShelfBookDetailsPanelProps>) {
@@ -206,6 +311,18 @@ export function ShelfBookDetailsPanel({
 
           {errorMessage ? <p className="mt-4 text-sm text-red-600">{errorMessage}</p> : null}
         </section>
+
+        <ReviewSection
+          reviewRating={reviewRating}
+          reviewComment={reviewComment}
+          reviewExists={reviewExists}
+          onChangeReviewRating={onChangeReviewRating}
+          onChangeReviewComment={onChangeReviewComment}
+          onSaveReview={onSaveReview}
+          reviewError={reviewError}
+          isSavingReview={isSavingReview}
+          isLoadingReview={isLoadingReview ?? false}
+        />
 
         <section className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
           <div className="flex items-center justify-between">

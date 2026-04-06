@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Book, Home, Sparkles, Users, User } from "lucide-react";
+import { Book, Rss, Sparkles, Users, User } from "lucide-react";
 import React from "react";
 
 export interface SidebarItem {
@@ -17,14 +17,14 @@ export interface SidebarProps {
 }
 
 const defaultItems: SidebarItem[] = [
-  { label: "Inicio", href: "/", icon: <Home size={18} /> },
+  { label: "Feed", href: "/feed", icon: <Rss size={18} /> },
   { label: "Estante", href: "/bookcase", icon: <Book size={18} /> },
   { label: "Para Voce", href: "/for-you", icon: <Sparkles size={18} /> },
   { label: "Comunidades", href: "/community", icon: <Users size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
 
-export function Sidebar({ items = defaultItems, className }: SidebarProps) {
+export function Sidebar({ items = defaultItems, className }: Readonly<SidebarProps>) {
   const pathname = usePathname();
 
   return (

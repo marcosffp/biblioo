@@ -83,6 +83,20 @@ export interface BackendCollectionResponse {
   shelfPreviews: BackendCollectionShelfPreview[];
 }
 
+export interface BackendReviewResponse {
+  id: number;
+  userId: number;
+  bookId: number;
+  text?: string | null;
+  images: string[];
+  gifUrl?: string | null;
+  tags: string[];
+  hasSpoiler?: boolean | null;
+  rating: number;
+  commentCount: number;
+  likeCount: number;
+}
+
 export class BookcaseApiError extends Error {
   readonly status?: number;
 
@@ -364,4 +378,53 @@ export async function addShelfToCollection(
   }
 
   return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao vincular estante na colecao.");
+}
+
+export async function createBookReview(
+  bookId: number,
+  rating: number,
+  text?: string,
+): Promise<BackendReviewResponse> {
+  const formData = new FormData();
+  formData.append("bookId", String(bookId));
+  formData.append("rating", String(rating));
+  if (typeof text === "string" && text.length > 0) {
+    formData.append("text", text);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/feed/reviews`, {
+      method: "POST",
+      headers: buildAuthHeaders(),
+      body: formData,
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel registrar sua avaliacao.");
+  }
+
+  return parseJsonResponse<BackendReviewResponse>(response, "Falha ao registrar avaliacao.");
+}
+
+export async function updateBookReview(
+  reviewId: number,
+  rating: number,
+  text?: string,
+): Promise<BackendReviewResponse> {
+  const formData = new FormData();
+  formData.append("rating", String(rating));
+  formData.append("text", text ?? "");
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/feed/reviews/${reviewId}`, {
+      method: "PUT",
+      headers: buildAuthHeaders(),
+      body: formData,
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel atualizar sua avaliacao.");
+  }
+
+  return parseJsonResponse<BackendReviewResponse>(response, "Falha ao atualizar avaliacao.");
 }

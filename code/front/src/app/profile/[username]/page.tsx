@@ -180,7 +180,8 @@ export default function SeguidorProfilePage() {
   };
 
   const displayName = profile ? humanizeUsername(profile.username) : humanizeUsername(username || "usuario");
-  const bio = profile?.restricted
+  const isRestrictedProfileView = Boolean(profile?.restricted && !isOwnProfile);
+  const bio = isRestrictedProfileView
     ? "Este perfil é privado. Algumas informações não estão disponíveis."
     : profile?.bio ?? "Sem bio cadastrada.";
   const initial = displayName[0]?.toUpperCase() ?? "U";
@@ -244,96 +245,102 @@ export default function SeguidorProfilePage() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-            <div className="mb-2 flex items-center gap-2 text-medium-text">
-              <BookOpen size={16} className="text-primary-dark" />
-              <span className="text-sm">Livros lidos</span>
-            </div>
-            <div className="font-display text-4xl font-bold text-deep-green">{booksReadLabel}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-            <div className="mb-2 flex items-center gap-2 text-medium-text">
-              <BookMarked size={16} className="text-primary-dark" />
-              <span className="text-sm">Páginas lidas</span>
-            </div>
-            <div className="font-display text-4xl font-bold text-deep-green">{pagesReadLabel}</div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-            <div className="mb-2 flex items-center gap-2 text-medium-text">
-              <Sparkles size={16} className="text-premium" />
-              <span className="text-sm">Status</span>
-            </div>
-            <div className="font-display text-3xl font-bold text-deep-green">
-              {booksRead !== null ? (booksRead > 0 ? "Leitor ativo" : "Sem leituras") : "Sem dados"}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-            <div className="mb-2 flex items-center gap-2 text-medium-text">
-              <Library size={16} className="text-primary-dark" />
-              <span className="text-sm">Gênero favorito</span>
-            </div>
-            <div className="font-display text-3xl font-bold text-deep-green">Sem dados</div>
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-border bg-muted p-1.5">
-          <div className="grid grid-cols-2 gap-1">
-            {tabs.map((tab) => {
-              const active = activeTab === tab;
-              const Icon = tab === "Estante" ? BookOpen : Users;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
-                    active ? "bg-card text-deep-green shadow-sm" : "text-medium-text hover:bg-card/60"
-                  }`}
-                >
-                  <Icon size={16} />
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {activeTab === "Estante" ? (
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-            {shelfBooks.length > 0 ? (
-              shelfBooks.map((book) => (
-                <article
-                  key={book.id}
-                  className="overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-card-hover"
-                >
-                  <div className="aspect-[3/4] bg-gradient-to-br from-primary/10 to-primary-dark/10 p-3">
-                    <div className="line-clamp-3 pt-8 text-center text-xl font-medium text-deep-green">{book.title}</div>
-                  </div>
-                  <div className="border-t border-border p-3">
-                    <p className="truncate text-sm font-semibold text-deep-green">{book.title}</p>
-                    <p className="truncate text-xs text-medium-text">
-                      {typeof book.progressPercent === "number"
-                        ? `${book.progressPercent}% concluído`
-                        : "Progresso indisponível"}
-                    </p>
-                  </div>
-                </article>
-              ))
-            ) : (
-              <div className="col-span-full rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
-                {isOwnProfile
-                  ? "Sua estante está vazia."
-                  : profile?.restricted
-                    ? "A estante deste perfil é privada."
-                    : "Estante indisponível para este usuário no backend atual."}
-              </div>
-            )}
+        {isRestrictedProfileView ? (
+          <section className="rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
+            Este perfil é privado. Apenas informações públicas do cabeçalho estão disponíveis.
           </section>
         ) : (
-          <section className="rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
-            Comunidades em comum ainda não possuem endpoint público no backend.
-          </section>
+          <>
+            <section className="grid gap-4 md:grid-cols-4">
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                <div className="mb-2 flex items-center gap-2 text-medium-text">
+                  <BookOpen size={16} className="text-primary-dark" />
+                  <span className="text-sm">Livros lidos</span>
+                </div>
+                <div className="font-display text-4xl font-bold text-deep-green">{booksReadLabel}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                <div className="mb-2 flex items-center gap-2 text-medium-text">
+                  <BookMarked size={16} className="text-primary-dark" />
+                  <span className="text-sm">Páginas lidas</span>
+                </div>
+                <div className="font-display text-4xl font-bold text-deep-green">{pagesReadLabel}</div>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                <div className="mb-2 flex items-center gap-2 text-medium-text">
+                  <Sparkles size={16} className="text-premium" />
+                  <span className="text-sm">Status</span>
+                </div>
+                <div className="font-display text-3xl font-bold text-deep-green">
+                  {booksRead !== null ? (booksRead > 0 ? "Leitor ativo" : "Sem leituras") : "Sem dados"}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                <div className="mb-2 flex items-center gap-2 text-medium-text">
+                  <Library size={16} className="text-primary-dark" />
+                  <span className="text-sm">Gênero favorito</span>
+                </div>
+                <div className="font-display text-3xl font-bold text-deep-green">Sem dados</div>
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-border bg-muted p-1.5">
+              <div className="grid grid-cols-2 gap-1">
+                {tabs.map((tab) => {
+                  const active = activeTab === tab;
+                  const Icon = tab === "Estante" ? BookOpen : Users;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                        active ? "bg-card text-deep-green shadow-sm" : "text-medium-text hover:bg-card/60"
+                      }`}
+                    >
+                      <Icon size={16} />
+                      {tab}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {activeTab === "Estante" ? (
+              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+                {shelfBooks.length > 0 ? (
+                  shelfBooks.map((book) => (
+                    <article
+                      key={book.id}
+                      className="overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-card-hover"
+                    >
+                      <div className="aspect-[3/4] bg-gradient-to-br from-primary/10 to-primary-dark/10 p-3">
+                        <div className="line-clamp-3 pt-8 text-center text-xl font-medium text-deep-green">{book.title}</div>
+                      </div>
+                      <div className="border-t border-border p-3">
+                        <p className="truncate text-sm font-semibold text-deep-green">{book.title}</p>
+                        <p className="truncate text-xs text-medium-text">
+                          {typeof book.progressPercent === "number"
+                            ? `${book.progressPercent}% concluído`
+                            : "Progresso indisponível"}
+                        </p>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <div className="col-span-full rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
+                    {isOwnProfile
+                      ? "Sua estante está vazia."
+                      : "Estante indisponível para este usuário no backend atual."}
+                  </div>
+                )}
+              </section>
+            ) : (
+              <section className="rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
+                Comunidades em comum ainda não possuem endpoint público no backend.
+              </section>
+            )}
+          </>
         )}
 
         {isLoading ? <p className="text-sm text-medium-text">Carregando...</p> : null}
