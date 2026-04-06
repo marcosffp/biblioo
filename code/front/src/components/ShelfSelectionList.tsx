@@ -18,14 +18,15 @@ export function ShelfSelectionList({
   return (
     <div className={`${className} space-y-2 overflow-auto`}>
       {shelves.length === 0 ? (
-        <p className="text-xs text-gray-500">{emptyMessage}</p>
+        <p className="text-xs text-[var(--text-secondary)]">{emptyMessage}</p>
       ) : (
         shelves.map((shelf) => (
-          <label key={shelf.id} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+          <label key={shelf.id} className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
             <input
               type="checkbox"
               checked={selectedIds.includes(shelf.id)}
               onChange={(event) => onToggle(shelf.id, event.target.checked)}
+              className="accent-[var(--brand-500)]"
             />
             <span>{shelf.name}</span>
           </label>

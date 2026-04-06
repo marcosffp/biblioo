@@ -1,6 +1,7 @@
 import { BookCard, EmptyState, SecondaryButton } from "@/components";
 import type { BackendCollectionSummaryResponse, BackendShelfSummaryResponse } from "@/services";
 import type { RootViewMode, ShelfBook } from "@/hooks/useBookcasePage";
+import { ShelfCoverFrame } from "./ShelfCoverFrame";
 
 interface BookcaseResultsProps {
   loadError: string;
@@ -9,7 +10,7 @@ interface BookcaseResultsProps {
   emptyStateDescription: string;
   isInsideShelf: boolean;
   filteredBooks: ShelfBook[];
-  onOpenProgressModal: (book: ShelfBook) => void;
+  onOpenBookDetails: (book: ShelfBook) => void;
   rootViewMode: RootViewMode;
   filteredShelves: BackendShelfSummaryResponse[];
   onEnterShelf: (shelf: BackendShelfSummaryResponse) => void;
@@ -24,7 +25,7 @@ export function BookcaseResults({
   emptyStateDescription,
   isInsideShelf,
   filteredBooks,
-  onOpenProgressModal,
+  onOpenBookDetails,
   rootViewMode,
   filteredShelves,
   onEnterShelf,
@@ -54,8 +55,8 @@ export function BookcaseResults({
           <button
             key={book.id}
             type="button"
-            onClick={() => onOpenProgressModal(book)}
-            className="block w-full rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            onClick={() => onOpenBookDetails(book)}
+            className="block w-full rounded-[var(--radius-lg)] text-left focus:outline-none"
             aria-label={`Abrir opcoes do livro ${book.title}`}
           >
             <BookCard
@@ -66,7 +67,7 @@ export function BookcaseResults({
               progress={book.progress}
               currentPage={book.currentPage}
               totalPages={book.totalPages}
-              className="cursor-pointer transition hover:border-indigo-300 hover:shadow-sm dark:hover:border-indigo-500"
+              className="cursor-pointer transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
             />
           </button>
         ))}
@@ -83,12 +84,17 @@ export function BookcaseResults({
               key={shelf.id}
               type="button"
               onClick={() => onEnterShelf(shelf)}
-              className="rounded-2xl border border-gray-200 bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500"
+              className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
             >
-              <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{shelf.name}</p>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                {shelf.itemCount} {shelf.itemCount === 1 ? "livro" : "livros"}
-              </p>
+              <div className="flex items-center gap-4">
+                <ShelfCoverFrame covers={shelf.coverPreview} shelfName={shelf.name} />
+                <div>
+                  <p className="text-base font-semibold text-[var(--text-primary)]">{shelf.name}</p>
+                  <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                    {shelf.itemCount} {shelf.itemCount === 1 ? "livro" : "livros"}
+                  </p>
+                </div>
+              </div>
             </button>
           ))}
         </div>
@@ -102,23 +108,23 @@ export function BookcaseResults({
         {filteredCollections.map((collection) => (
           <div
             key={collection.id}
-            className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900"
+            className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4"
           >
-            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{collection.name}</p>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            <p className="text-base font-semibold text-[var(--text-primary)]">{collection.name}</p>
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
               {collection.shelfCount} {collection.shelfCount === 1 ? "estante" : "estantes"}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {collection.shelfPreviews.slice(0, 4).map((shelfPreview) => (
                 <span
                   key={shelfPreview.id}
-                  className="rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-700 dark:bg-slate-800 dark:text-gray-200"
+                  className="rounded-full bg-[var(--bg-soft)] px-2.5 py-1 text-xs text-[var(--text-secondary)]"
                 >
                   {shelfPreview.name}
                 </span>
               ))}
               {collection.shelfPreviews.length === 0 ? (
-                <span className="text-xs text-gray-500">Nenhuma estante vinculada</span>
+                <span className="text-xs text-[var(--text-secondary)]">Nenhuma estante vinculada</span>
               ) : null}
             </div>
 

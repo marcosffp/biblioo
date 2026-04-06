@@ -12,27 +12,27 @@ export interface SearchSuggestionsListProps {
   className?: string;
 }
 
-export function SearchSuggestionsList({ items, onSelect, className }: SearchSuggestionsListProps) {
+export function SearchSuggestionsList({ items, onSelect, className }: Readonly<SearchSuggestionsListProps>) {
   if (items.length === 0) {
     return null;
   }
 
   return (
     <div
-      className={`rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden ${
+      className={`rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] overflow-hidden ${
         className ?? ""
       }`.trim()}
     >
-      <ul className="divide-y divide-gray-100 dark:divide-slate-800">
+      <ul className="divide-y divide-[var(--border-soft)]/60">
         {items.map((item) => (
           <li key={item.id}>
             <button
               type="button"
               onClick={() => onSelect(item)}
-              className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+              className="w-full text-left px-4 py-3 hover:bg-[var(--bg-soft)] transition-colors"
             >
-              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{item.title}</p>
-              <p className="mt-1 text-xs text-gray-500">{item.author}</p>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">{item.title}</p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">{item.author}</p>
             </button>
           </li>
         ))}

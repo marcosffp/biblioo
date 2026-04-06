@@ -7,11 +7,11 @@ export interface EmptyStateProps {
   className?: string;
 }
 
-export function EmptyState({ title, description, action, className }: EmptyStateProps) {
+export function EmptyState({ title, description, action, className }: Readonly<EmptyStateProps>) {
   return (
-    <div className={`text-center rounded-xl border border-dashed border-gray-200 dark:border-slate-700 p-8 bg-white dark:bg-slate-900 ${className ?? ""}`.trim()}>
-      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-      {description ? <p className="mt-2 text-sm text-gray-500">{description}</p> : null}
+    <div className={`text-center rounded-[var(--radius-lg)] border border-dashed border-[var(--border-soft)] p-8 bg-[var(--bg-surface)] ${className ?? ""}`.trim()}>
+      <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
+      {description ? <p className="mt-2 text-sm text-[var(--text-secondary)]">{description}</p> : null}
       {action ? <div className="mt-4 inline-flex">{action}</div> : null}
     </div>
   );

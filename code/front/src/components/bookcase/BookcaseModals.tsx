@@ -168,8 +168,8 @@ export function BookcaseModals({
               onChange={(event) => setNewCollectionDescription(event.target.value)}
             />
 
-            <div className="rounded-xl border border-gray-200 p-3 dark:border-slate-700">
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">Estantes iniciais (opcional)</p>
+            <div className="rounded-xl border border-[var(--border-soft)] p-3">
+              <p className="text-sm font-medium text-[var(--text-primary)]">Estantes iniciais (opcional)</p>
               <ShelfSelectionList
                 shelves={shelves}
                 selectedIds={newCollectionShelfIds}
@@ -192,9 +192,9 @@ export function BookcaseModals({
 
       {isManageCollectionShelvesModalOpen ? (
         <BookcaseModal title="Adicionar estantes na colecao" onClose={handleCloseManageCollectionShelvesModal}>
-          <p className="mt-3 text-sm text-gray-700 dark:text-gray-200">{collectionToManage?.name ?? ""}</p>
+          <p className="mt-3 text-sm text-[var(--text-secondary)]">{collectionToManage?.name ?? ""}</p>
 
-          <div className="mt-3 rounded-xl border border-gray-200 p-3 dark:border-slate-700">
+          <div className="mt-3 rounded-xl border border-[var(--border-soft)] p-3">
             <ShelfSelectionList
               shelves={availableShelvesForManagedCollection}
               selectedIds={manageCollectionShelfIds}
@@ -240,7 +240,7 @@ export function BookcaseModals({
       {isProgressModalOpen ? (
         <BookcaseModal title="Atualizar progresso" onClose={handleCloseProgressModal} maxWidthClassName="max-w-xl">
           <div className="mt-4 space-y-3">
-            <p className="text-sm text-gray-700 dark:text-gray-200">{progressBook?.title ?? ""}</p>
+            <p className="text-sm text-[var(--text-secondary)]">{progressBook?.title ?? ""}</p>
 
             <TextInput
               aria-label="Pagina atual"
@@ -250,7 +250,7 @@ export function BookcaseModals({
             />
 
             {typeof progressBook?.totalPages === "number" ? (
-              <p className="text-xs text-gray-500">Total de paginas: {progressBook.totalPages}</p>
+              <p className="text-xs text-[var(--text-secondary)]">Total de paginas: {progressBook.totalPages}</p>
             ) : null}
 
             {progressError ? <p className="text-sm text-red-600">{progressError}</p> : null}

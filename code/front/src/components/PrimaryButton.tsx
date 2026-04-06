@@ -4,10 +4,10 @@ export interface PrimaryButtonProps extends React.ButtonHTMLAttributes<HTMLButto
   children: React.ReactNode;
 }
 
-export function PrimaryButton({ children, className, ...rest }: PrimaryButtonProps) {
+export function PrimaryButton({ children, className, ...rest }: Readonly<PrimaryButtonProps>) {
   return (
     <button
-      className={`bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md disabled:opacity-60 disabled:cursor-not-allowed ${className ?? ""}`.trim()}
+      className={`bg-[var(--brand-500)] hover:bg-[var(--brand-600)] text-white font-bold py-2.5 px-4 rounded-[var(--radius-md)] disabled:opacity-60 disabled:cursor-not-allowed transition-colors ${className ?? ""}`.trim()}
       {...rest}
     >
       {children}

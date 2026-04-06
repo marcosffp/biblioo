@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { readingStatusOptions, useBookcasePage } from "@/hooks/useBookcasePage";
 import { BookcaseResults } from "@/components/bookcase/BookcaseResults";
 import { BookcaseModals } from "@/components/bookcase/BookcaseModals";
+import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
 
 import {
   AppShell,
@@ -20,6 +21,7 @@ export default function EstantePage() {
     addBookSearchTerm,
     addToShelfError,
     availableShelvesForManagedCollection,
+    bookDetailsError,
     collectionToManage,
     createCollectionError,
     createShelfError,
@@ -37,6 +39,7 @@ export default function EstantePage() {
     handleCloseCreateCollectionModal,
     handleCloseCreateShelfModal,
     handleCloseManageCollectionShelvesModal,
+    handleCloseShelfBookDetails,
     handleCloseProgressModal,
     handleCreateCollection,
     handleCreateShelf,
@@ -44,7 +47,8 @@ export default function EstantePage() {
     handleOpenCreateCollectionModal,
     handleOpenCreateShelfModal,
     handleOpenManageCollectionShelvesModal,
-    handleOpenProgressModal,
+    handleOpenShelfBookDetails,
+    handleSelectShelfBookStatus,
     handleSaveCollectionShelves,
     handleSaveProgress,
     handleSuggestionSelect,
@@ -60,7 +64,9 @@ export default function EstantePage() {
     isManageCollectionShelvesModalOpen,
     isProgressModalOpen,
     isSavingCollectionShelves,
+    isSavingShelfBookDetails,
     isSavingProgress,
+    isShelfBookDetailsOpen,
     isSelectedBookAlreadyInShelf,
     loadError,
     manageCollectionError,
@@ -78,6 +84,7 @@ export default function EstantePage() {
     searchInputPlaceholder,
     searchTerm,
     selectedShelfName,
+    selectedShelfBook,
     selectedSuggestionBook,
     setAddBookSearchTerm,
     setNewCollectionDescription,
@@ -92,6 +99,7 @@ export default function EstantePage() {
     toggleCollectionShelfSelection,
     toggleManageShelfSelection,
     visibleAddBookSuggestions,
+    handleStepShelfBookPage,
   } = useBookcasePage();
 
   return (
@@ -124,13 +132,15 @@ export default function EstantePage() {
         }
       />
 
-      <TextInput
-        id="bookcase-search-input"
-        aria-label={searchInputAriaLabel}
-        placeholder={searchInputPlaceholder}
-        value={searchTerm}
-        onChange={(event) => setSearchTerm(event.target.value)}
-      />
+      {isInsideShelf ? (
+        <TextInput
+          id="bookcase-search-input"
+          aria-label={searchInputAriaLabel}
+          placeholder={searchInputPlaceholder}
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
+      ) : null}
 
       <BookcaseModals
         isCreateShelfModalOpen={isCreateShelfModalOpen}
@@ -231,12 +241,22 @@ export default function EstantePage() {
         emptyStateDescription={emptyStateDescription}
         isInsideShelf={isInsideShelf}
         filteredBooks={filteredBooks}
-        onOpenProgressModal={handleOpenProgressModal}
+        onOpenBookDetails={handleOpenShelfBookDetails}
         rootViewMode={rootViewMode}
         filteredShelves={filteredShelves}
         onEnterShelf={handleEnterShelf}
         filteredCollections={filteredCollections}
         onOpenManageCollectionShelvesModal={handleOpenManageCollectionShelvesModal}
+      />
+
+      <ShelfBookDetailsPanel
+        isOpen={isShelfBookDetailsOpen}
+        book={selectedShelfBook}
+        onClose={handleCloseShelfBookDetails}
+        onSelectStatus={handleSelectShelfBookStatus}
+        onStepPage={handleStepShelfBookPage}
+        isSaving={isSavingShelfBookDetails}
+        errorMessage={bookDetailsError}
       />
     </AppShell>
   );
