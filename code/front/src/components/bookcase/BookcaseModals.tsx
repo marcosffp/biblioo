@@ -44,8 +44,8 @@ interface BookcaseModalsProps {
   handleCloseAddBookModal: () => void;
   addBookSearchTerm: string;
   setAddBookSearchTerm: (value: string) => void;
-  visibleAddBookSuggestions: Array<{ id: string; title: string; author: string }>;
-  handleSuggestionSelect: (suggestion: { id: string; title: string; author: string }) => void;
+  visibleAddBookSuggestions: Array<{ id: string; title: string; author: string; coverUrl?: string }>;
+  handleSuggestionSelect: (suggestion: { id: string; title: string; author: string; coverUrl?: string }) => void;
   isProgressModalOpen: boolean;
   handleCloseProgressModal: () => void;
   progressBook: ShelfBook | null;
@@ -230,6 +230,7 @@ export function BookcaseModals({
                 id: book.id,
                 title: book.title,
                 author: book.author,
+                coverUrl: book.coverUrl,
               }))}
               onSelect={handleSuggestionSelect}
             />

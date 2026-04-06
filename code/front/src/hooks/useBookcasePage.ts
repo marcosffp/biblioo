@@ -227,6 +227,7 @@ export function useBookcasePage() {
       id: suggestion.id,
       title: suggestion.title,
       author: pickAuthor(source?.authors),
+      coverUrl: source?.coverUrl ?? undefined,
     };
   });
 
@@ -305,7 +306,7 @@ export function useBookcasePage() {
     void loadAddBookSuggestions();
   }, [addBookSearchTerm, isAddBookModalOpen, normalizedAddBookTerm.length]);
 
-  const handleSuggestionSelect = (suggestion: { id: string; title: string; author: string }) => {
+  const handleSuggestionSelect = (suggestion: { id: string; title: string; author: string; coverUrl?: string }) => {
     async function loadBookDetails() {
       const bookId = Number(suggestion.id);
       if (Number.isNaN(bookId)) {
