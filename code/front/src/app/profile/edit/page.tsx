@@ -5,28 +5,27 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { AppShell } from "@/components";
 import { getAccessToken } from "@/services/auth";
-
-type UserProfileResponse = {
-  id: number;
-  username: string;
-  email?: string | null;
-  bio?: string | null;
-  avatarUrl?: string | null;
-  bannerUrl?: string | null;
-  isPrivate: boolean;
-  restricted: boolean;
-  createdAt?: string | null;
-};
+import {
+  getMyProfile,
+  getProfilePreferences,
+  saveProfilePreferences,
+  updateMyProfile,
+  updateMyVisibility,
+  uploadMyAvatar,
+  type ProfilePreferences,
+  type UserProfileResponse,
+} from "@/services/profile";
 
 export default function EditarPerfilPage() {
   const router = useRouter();
 
-  const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
-
   const [displayName, setDisplayName] = React.useState("Usuario");
   const [username, setUsername] = React.useState("usuario");
+  const [email, setEmail] = React.useState<string | null>(null);
   const [bio, setBio] = React.useState("");
   const [isPublicProfile, setIsPublicProfile] = React.useState(true);
+  const [showReadingGoal, setShowReadingGoal] = React.useState(true);
+  const [showDnaLiterario, setShowDnaLiterario] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
@@ -46,7 +45,7 @@ export default function EditarPerfilPage() {
     const accessToken = getAccessToken();
     if (!accessToken) {
       setIsLoading(false);
-      setLoadError("Voce precisa estar logado para editar o perfil.");
+      setLoadError("Você precisa estar logado para editar o perfil.");
       return;
     }
 
@@ -57,28 +56,22 @@ export default function EditarPerfilPage() {
       setLoadError(null);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/users/me`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("load_me_failed");
-        }
-
-        const profile = (await response.json()) as UserProfileResponse;
+        const profile = (await getMyProfile(accessToken)) as UserProfileResponse;
+        const preferences = getProfilePreferences() as ProfilePreferences;
 
         if (cancelled) return;
 
         setUsername(profile.username);
-        setDisplayName(profile.username);
+        setDisplayName(preferences.displayName?.trim() ? preferences.displayName : profile.username);
+        setEmail(profile.email ?? null);
         setBio(profile.bio ?? "");
         setIsPublicProfile(!profile.isPrivate);
+        setShowReadingGoal(preferences.showReadingGoal);
+        setShowDnaLiterario(preferences.showDnaLiterario);
         setAvatarUrl(profile.avatarUrl ?? null);
       } catch {
         if (cancelled) return;
-        setLoadError("Nao foi possivel carregar seu perfil.");
+        setLoadError("Não foi possível carregar seu perfil.");
       } finally {
         if (cancelled) return;
         setIsLoading(false);
@@ -90,7 +83,7 @@ export default function EditarPerfilPage() {
     return () => {
       cancelled = true;
     };
-  }, [API_BASE_URL]);
+  }, []);
 
   React.useEffect(() => {
     return () => {
@@ -126,49 +119,21 @@ export default function EditarPerfilPage() {
       }
 
       if (avatarFile) {
-        const formData = new FormData();
-        formData.append("file", avatarFile);
-
-        const avatarResponse = await fetch(`${API_BASE_URL}/users/me/avatar`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}` },
-          body: formData,
-        });
-
-        if (!avatarResponse.ok) {
-          throw new Error("avatar_upload_failed");
-        }
+        const uploaded = await uploadMyAvatar(avatarFile, accessToken);
+        setAvatarUrl(uploaded.avatarUrl ?? null);
       }
 
-      const updateProfileResponse = await fetch(`${API_BASE_URL}/users/me`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ bio }),
+      await updateMyProfile({ bio }, accessToken);
+      await updateMyVisibility(!isPublicProfile, accessToken);
+      saveProfilePreferences({
+        displayName: displayName.trim() || username,
+        showReadingGoal,
+        showDnaLiterario,
       });
-
-      if (!updateProfileResponse.ok) {
-        throw new Error("update_profile_failed");
-      }
-
-      const visibilityResponse = await fetch(`${API_BASE_URL}/users/me/visibility`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ isPrivate: !isPublicProfile }),
-      });
-
-      if (!visibilityResponse.ok) {
-        throw new Error("visibility_request_failed");
-      }
 
       router.push("/profile");
-    } catch (error) {
-      setSaveError("Nao foi possivel salvar agora.");
+    } catch {
+      setSaveError("Não foi possível salvar agora.");
     } finally {
       setIsSaving(false);
     }
@@ -252,7 +217,7 @@ export default function EditarPerfilPage() {
               <div>
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-gray-700" htmlFor="displayName">
-                    Nome de exibicao
+                    Nome de exibição
                   </label>
                   <span className="text-xs text-gray-400">
                     {Math.min(displayName.length, DISPLAY_NAME_MAX)}/{DISPLAY_NAME_MAX}
@@ -264,14 +229,14 @@ export default function EditarPerfilPage() {
                   type="text"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value.slice(0, DISPLAY_NAME_MAX))}
-                  disabled
+                  disabled={isLoading || isSaving}
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-gray-700" htmlFor="username">
-                    Nome de usuario
+                    Nome de usuário
                   </label>
                   <span className="text-xs text-gray-400">
                     {Math.min(username.length, USERNAME_MAX)}/{USERNAME_MAX}
@@ -313,7 +278,7 @@ export default function EditarPerfilPage() {
 
         <section className="mt-6 rounded-lg border border-gray-200 bg-white px-8 py-6">
           <div className="text-base font-semibold text-gray-900">Visibilidade</div>
-          <p className="mt-1 text-sm text-gray-500">Defina se seu perfil e publico ou privado.</p>
+          <p className="mt-1 text-sm text-gray-500">Defina se seu perfil é público ou privado.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-white p-4">
               <input
@@ -324,8 +289,8 @@ export default function EditarPerfilPage() {
                 onChange={() => setIsPublicProfile(true)}
               />
               <div>
-                <div className="text-sm font-semibold text-gray-900">Perfil publico</div>
-                <p className="mt-1 text-xs text-gray-500">Visivel para qualquer pessoa.</p>
+                <div className="text-sm font-semibold text-gray-900">Perfil público</div>
+                <p className="mt-1 text-xs text-gray-500">Visível para qualquer pessoa.</p>
               </div>
             </label>
             <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-white p-4">
@@ -338,9 +303,42 @@ export default function EditarPerfilPage() {
               />
               <div>
                 <div className="text-sm font-semibold text-gray-900">Perfil privado</div>
-                <p className="mt-1 text-xs text-gray-500">Apenas voce ve detalhes completos.</p>
+                <p className="mt-1 text-xs text-gray-500">Apenas você vê detalhes completos.</p>
               </div>
             </label>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-lg border border-gray-200 bg-white px-8 py-6">
+          <div className="text-base font-semibold text-gray-900">Visibilidade de seções no perfil</div>
+          <p className="mt-1 text-sm text-gray-500">Escolha o que será exibido para quem visitar seu perfil.</p>
+          <div className="mt-4 grid gap-4">
+            <label className="flex items-center justify-between rounded-md border border-gray-200 bg-white p-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Meta de leitura</div>
+                <p className="mt-1 text-xs text-gray-500">Mostrar ou ocultar o card de meta.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={showReadingGoal}
+                onChange={(event) => setShowReadingGoal(event.target.checked)}
+                disabled={isLoading || isSaving}
+              />
+            </label>
+
+            <label className="flex items-center justify-between rounded-md border border-gray-200 bg-white p-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">DNA literário</div>
+                <p className="mt-1 text-xs text-gray-500">Mostrar ou ocultar o card de DNA literário.</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={showDnaLiterario}
+                onChange={(event) => setShowDnaLiterario(event.target.checked)}
+                disabled={isLoading || isSaving}
+              />
+            </label>
+
           </div>
         </section>
 
@@ -350,7 +348,7 @@ export default function EditarPerfilPage() {
             <div className="rounded-md border border-gray-200 bg-white px-4 py-4 flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-gray-900">Email</div>
-                <div className="mt-1 text-xs text-gray-400">usuario@email.com</div>
+                <div className="mt-1 text-xs text-gray-400">{email ?? "-"}</div>
               </div>
               <button
                 type="button"

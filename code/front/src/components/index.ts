@@ -19,6 +19,7 @@ export * from "./TagList";
 export * from "./ImportActionCard";
 export * from "./TextInput";
 export * from "./PasswordInput";
+export * from "./Avatar";
 export * from "./Button";
 export * from "./SecondaryButton";
 export * from "./IconButton";

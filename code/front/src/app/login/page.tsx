@@ -47,7 +47,7 @@ export default function LoginPage() {
       if (error instanceof AuthApiError && error.code === "INVALID_CREDENTIALS") {
         setFormError("Email ou senha invalidos.");
       } else if (error instanceof AuthApiError && error.code === "NETWORK") {
-        setFormError("Falha de comunicacao com o servidor.");
+        setFormError("Falha de comunicação com o servidor.");
       } else {
         setFormError("Nao foi possivel entrar. Tente novamente.");
       }
