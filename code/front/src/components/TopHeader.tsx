@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { Bell, BookOpen, Search } from "lucide-react";
 import { searchBooks, type BackendBookResponse } from "@/services/bookcase";
-import { getAuthSession } from "@/services/auth";
+import { clearAuthSession, getAuthSession } from "@/services/auth";
 import { getMyProfile, listFollowersByUsername, searchUsersByUsername, type UserSummaryResponse } from "@/services/profile";
 
 type SearchScope = "general" | "user" | "book";
@@ -369,12 +369,15 @@ export function TopHeader({
   userInitial = "U",
   className,
 }: Readonly<TopHeaderProps>) {
+  const router = useRouter();
   const [resolvedInitial, setResolvedInitial] = React.useState(userInitial.toUpperCase().slice(0, 1));
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [myUsername, setMyUsername] = React.useState<string | null>(null);
   const [newFollowerNotifications, setNewFollowerNotifications] = React.useState<UserSummaryResponse[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
   const notificationsContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const profileMenuContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   const dynamicNotificationsCount = newFollowerNotifications.length;
   const shownNotificationsCount = myUsername ? dynamicNotificationsCount : notificationsCount;
@@ -409,6 +412,36 @@ export function TopHeader({
       document.removeEventListener("keydown", handleEscape);
     };
   }, [isNotificationsOpen]);
+
+  React.useEffect(() => {
+    if (!isProfileMenuOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!profileMenuContainerRef.current) {
+        return;
+      }
+
+      if (!profileMenuContainerRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isProfileMenuOpen]);
 
   React.useEffect(() => {
     const session = getAuthSession();
@@ -520,6 +553,12 @@ export function TopHeader({
     setIsNotificationsOpen((previous) => !previous);
   }, []);
 
+  const handleLogout = React.useCallback(() => {
+    clearAuthSession();
+    setIsProfileMenuOpen(false);
+    router.push("/login");
+  }, [router]);
+
   return (
     <header
       className={
@@ -616,18 +655,48 @@ export function TopHeader({
             ) : null}
           </div>
 
-          <Link
-            href="/profile"
-            className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-sm hover:bg-emerald-200 transition-colors overflow-hidden flex items-center justify-center"
-            aria-label="Ir para meu perfil"
-          >
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="Foto do perfil" className="h-full w-full object-cover" />
-            ) : (
-              <span>{resolvedInitial}</span>
-            )}
-          </Link>
+          <div ref={profileMenuContainerRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setIsProfileMenuOpen((previous) => !previous)}
+              className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-sm hover:bg-emerald-200 transition-colors overflow-hidden flex items-center justify-center"
+              aria-label="Abrir menu do perfil"
+              aria-expanded={isProfileMenuOpen}
+              aria-haspopup="menu"
+            >
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarUrl} alt="Foto do perfil" className="h-full w-full object-cover" />
+              ) : (
+                <span>{resolvedInitial}</span>
+              )}
+            </button>
+
+            {isProfileMenuOpen ? (
+              <div
+                role="menu"
+                aria-label="Menu do perfil"
+                className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-44 overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-xl"
+              >
+                <Link
+                  href="/profile"
+                  role="menuitem"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="block px-4 py-2.5 text-sm text-[var(--deep-green)] hover:bg-emerald-50"
+                >
+                  Meu perfil
+                </Link>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </header>

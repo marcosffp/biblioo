@@ -19,7 +19,7 @@ body {
 
 body {
   color: hsl(var(--foreground));
-  background: radial-gradient(circle at top, var(--bg-soft), hsl(var(--background)) 48%);
+  background: #F2FBF8;
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
