@@ -96,20 +96,19 @@ export function BookcaseResults({
               </span>
             </div>
 
-            {book.readingStatus === "lendo" || book.readingStatus === "relendo" ? (
-              typeof book.progress === "number" ? (
-                <div className="mt-2">
-                  <ProgressBar value={book.progress} />
-                  <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                    <span>
-                      {typeof book.currentPage === "number" && typeof book.totalPages === "number"
-                        ? `p. ${book.currentPage} / ${book.totalPages}`
-                        : "Progresso de leitura"}
-                    </span>
-                    <span className="font-semibold">{Math.round(book.progress)}%</span>
-                  </div>
+            {(book.readingStatus === "lendo" || book.readingStatus === "relendo") &&
+            typeof book.progress === "number" ? (
+              <div className="mt-2">
+                <ProgressBar value={book.progress} />
+                <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                  <span>
+                    {typeof book.currentPage === "number" && typeof book.totalPages === "number"
+                      ? `p. ${book.currentPage} / ${book.totalPages}`
+                      : "Progresso de leitura"}
+                  </span>
+                  <span className="font-semibold">{Math.round(book.progress)}%</span>
                 </div>
-              ) : null
+              </div>
             ) : null}
           </button>
         ))}
@@ -126,12 +125,12 @@ export function BookcaseResults({
               key={shelf.id}
               type="button"
               onClick={() => onEnterShelf(shelf)}
-              className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
+              className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 text-left">
                 <ShelfCoverFrame covers={shelf.coverPreview} shelfName={shelf.name} />
-                <div>
-                  <p className="text-base font-semibold text-[var(--text-primary)]">{shelf.name}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold text-[var(--text-primary)]">{shelf.name}</p>
                   <p className="mt-1 text-sm text-[var(--text-secondary)]">
                     {shelf.itemCount} {shelf.itemCount === 1 ? "livro" : "livros"}
                   </p>

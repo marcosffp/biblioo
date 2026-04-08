@@ -16,18 +16,23 @@ import {
   changeShelfItemStatus,
   createCollection,
   createShelf,
+  deleteShelf,
   getAccessToken,
   getBookById,
+  getShelfById,
   getShelfItemById,
   listCollections,
   listShelfItems,
   listShelves,
+  removeBookFromShelf,
   searchBooks,
   updateBookReview,
+  updateShelf,
   updateShelfItemProgress,
   type BackendBookResponse,
   type BackendCollectionResponse,
   type BackendCollectionSummaryResponse,
+  type BackendShelfResponse,
   type BackendShelfSummaryResponse,
 } from "@/services";
 
@@ -107,6 +112,27 @@ function toCollectionSummary(
   };
 }
 
+function toShelfSummary(shelf: BackendShelfResponse): BackendShelfSummaryResponse {
+  return {
+    id: shelf.id,
+    name: shelf.name,
+    itemCount: shelf.itemCount,
+    coverPreview: shelf.coverPreview,
+  };
+}
+
+function removeShelfFromCollectionPreview(
+  collection: BackendCollectionSummaryResponse,
+  shelfId: number,
+): BackendCollectionSummaryResponse {
+  const nextShelfPreviews = collection.shelfPreviews.filter((shelfPreview) => shelfPreview.id !== shelfId);
+  return {
+    ...collection,
+    shelfCount: Math.max(0, collection.shelfCount - (collection.shelfPreviews.length - nextShelfPreviews.length)),
+    shelfPreviews: nextShelfPreviews,
+  };
+}
+
 function addSelectedId(currentIds: number[], nextId: number): number[] {
   return currentIds.includes(nextId) ? currentIds : [...currentIds, nextId];
 }
@@ -129,12 +155,18 @@ export function useBookcasePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
   const [isCreateShelfModalOpen, setIsCreateShelfModalOpen] = useState(false);
+  const [isEditShelfModalOpen, setIsEditShelfModalOpen] = useState(false);
+  const [isDeleteShelfModalOpen, setIsDeleteShelfModalOpen] = useState(false);
   const [isCreateCollectionModalOpen, setIsCreateCollectionModalOpen] = useState(false);
   const [isManageCollectionShelvesModalOpen, setIsManageCollectionShelvesModalOpen] = useState(false);
   const [addBookSearchTerm, setAddBookSearchTerm] = useState("");
   const [addBookSuggestions, setAddBookSuggestions] = useState<BackendBookResponse[]>([]);
   const [newShelfName, setNewShelfName] = useState("");
   const [newShelfDescription, setNewShelfDescription] = useState("");
+  const [editShelfName, setEditShelfName] = useState("");
+  const [editShelfDescription, setEditShelfDescription] = useState("");
+  const [shelfToEdit, setShelfToEdit] = useState<BackendShelfSummaryResponse | null>(null);
+  const [shelfToDelete, setShelfToDelete] = useState<BackendShelfSummaryResponse | null>(null);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [newCollectionDescription, setNewCollectionDescription] = useState("");
   const [newCollectionShelfIds, setNewCollectionShelfIds] = useState<number[]>([]);
@@ -156,6 +188,10 @@ export function useBookcasePage() {
   const [addToShelfError, setAddToShelfError] = useState("");
   const [isCreatingShelf, setIsCreatingShelf] = useState(false);
   const [createShelfError, setCreateShelfError] = useState("");
+  const [editShelfError, setEditShelfError] = useState("");
+  const [deleteShelfError, setDeleteShelfError] = useState("");
+  const [isSavingShelfEdit, setIsSavingShelfEdit] = useState(false);
+  const [isDeletingShelf, setIsDeletingShelf] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [progressBook, setProgressBook] = useState<ShelfBook | null>(null);
   const [progressDraft, setProgressDraft] = useState("");
@@ -165,6 +201,7 @@ export function useBookcasePage() {
   const [selectedShelfBook, setSelectedShelfBook] = useState<ShelfBook | null>(null);
   const [bookDetailsError, setBookDetailsError] = useState("");
   const [isSavingShelfBookDetails, setIsSavingShelfBookDetails] = useState(false);
+  const [isRemovingBookFromShelf, setIsRemovingBookFromShelf] = useState(false);
   const [activeReviewId, setActiveReviewId] = useState<number | null>(null);
   const [reviewRatingDraft, setReviewRatingDraft] = useState(0);
   const [reviewCommentDraft, setReviewCommentDraft] = useState("");
@@ -530,6 +567,60 @@ export function useBookcasePage() {
     setReviewError("");
   };
 
+  const handleRemoveSelectedShelfBook = () => {
+    if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
+      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      return;
+    }
+
+    const activeShelfId = selectedShelfId;
+    const activeItemId = Number(selectedShelfBook.shelfItemId);
+
+    async function removeSelectedShelfBookAction() {
+      setIsRemovingBookFromShelf(true);
+      setBookDetailsError("");
+
+      try {
+        await removeBookFromShelf(activeShelfId, activeItemId);
+
+        setShelfBooks((currentBooks) => {
+          const nextBooks = currentBooks.filter((book) => book.shelfItemId !== activeItemId);
+
+          setShelves((currentShelves) =>
+            currentShelves.map((shelf) =>
+              shelf.id === activeShelfId
+                ? {
+                    ...shelf,
+                    itemCount: Math.max(0, shelf.itemCount - 1),
+                    coverPreview: nextBooks
+                      .map((book) => book.coverUrl)
+                      .filter((coverUrl): coverUrl is string => typeof coverUrl === "string" && coverUrl.length > 0)
+                      .slice(0, 4),
+                  }
+                : shelf,
+            ),
+          );
+
+          return nextBooks;
+        });
+
+        handleCloseShelfBookDetails();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faca login para remover livros da estante.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Nao foi possivel remover o livro da estante.");
+        }
+      } finally {
+        setIsRemovingBookFromShelf(false);
+      }
+    }
+
+    void removeSelectedShelfBookAction();
+  };
+
   const handleSelectShelfBookStatus = (nextStatus: Exclude<ReadingStatus, "todos">) => {
     if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
       setBookDetailsError("Nao foi possivel identificar o item da estante.");
@@ -837,6 +928,146 @@ export function useBookcasePage() {
     setNewShelfDescription("");
   };
 
+  const handleOpenEditShelfModal = (shelf: BackendShelfSummaryResponse) => {
+    setShelfToEdit(shelf);
+    setEditShelfName(shelf.name);
+    setEditShelfDescription("");
+    setEditShelfError("");
+    setIsEditShelfModalOpen(true);
+
+    async function loadShelfDetails() {
+      try {
+        const shelfDetails = await getShelfById(shelf.id);
+        setEditShelfDescription(shelfDetails.description ?? "");
+      } catch {
+        setEditShelfDescription("");
+      }
+    }
+
+    void loadShelfDetails();
+  };
+
+  const handleCloseEditShelfModal = () => {
+    setIsEditShelfModalOpen(false);
+    setShelfToEdit(null);
+    setEditShelfName("");
+    setEditShelfDescription("");
+    setEditShelfError("");
+  };
+
+  const handleSaveShelfEdit = () => {
+    if (!shelfToEdit) {
+      return;
+    }
+
+    const normalizedName = editShelfName.trim();
+    const normalizedDescription = editShelfDescription.trim();
+    const activeShelfId = shelfToEdit.id;
+
+    if (!normalizedName) {
+      setEditShelfError("Informe um nome para a estante.");
+      return;
+    }
+
+    if (normalizedName.length > 100) {
+      setEditShelfError("O nome da estante deve ter no maximo 100 caracteres.");
+      return;
+    }
+
+    if (normalizedDescription.length > 300) {
+      setEditShelfError("A descricao deve ter no maximo 300 caracteres.");
+      return;
+    }
+
+    async function saveShelfEditAction() {
+      setIsSavingShelfEdit(true);
+      setEditShelfError("");
+
+      try {
+        const updatedShelf = await updateShelf(activeShelfId, normalizedName, normalizedDescription);
+        const nextSummary = toShelfSummary(updatedShelf);
+
+        setShelves((currentShelves) =>
+          currentShelves.map((shelf) => (shelf.id === nextSummary.id ? nextSummary : shelf)),
+        );
+
+        if (selectedShelfId === nextSummary.id) {
+          setSelectedShelfName(nextSummary.name);
+        }
+
+        handleCloseEditShelfModal();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setEditShelfError("Faca login para editar estantes.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setEditShelfError(error.message);
+        } else {
+          setEditShelfError("Nao foi possivel editar a estante. Tente novamente.");
+        }
+      } finally {
+        setIsSavingShelfEdit(false);
+      }
+    }
+
+    void saveShelfEditAction();
+  };
+
+  const handleOpenDeleteShelfModal = (shelf: BackendShelfSummaryResponse) => {
+    setShelfToDelete(shelf);
+    setDeleteShelfError("");
+    setIsDeleteShelfModalOpen(true);
+  };
+
+  const handleCloseDeleteShelfModal = () => {
+    setIsDeleteShelfModalOpen(false);
+    setShelfToDelete(null);
+    setDeleteShelfError("");
+  };
+
+  const handleDeleteShelf = () => {
+    if (!shelfToDelete) {
+      return;
+    }
+
+    const activeShelfId = shelfToDelete.id;
+
+    async function deleteShelfAction() {
+      setIsDeletingShelf(true);
+      setDeleteShelfError("");
+
+      try {
+        await deleteShelf(activeShelfId);
+
+        setShelves((currentShelves) => currentShelves.filter((shelf) => shelf.id !== activeShelfId));
+        setCollections((currentCollections) =>
+          currentCollections.map((collection) => removeShelfFromCollectionPreview(collection, activeShelfId)),
+        );
+
+        if (selectedShelfId === activeShelfId) {
+          handleBackToShelves();
+        }
+
+        if (shelfToEdit?.id === activeShelfId) {
+          handleCloseEditShelfModal();
+        }
+
+        handleCloseDeleteShelfModal();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setDeleteShelfError("Faca login para apagar estantes.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setDeleteShelfError(error.message);
+        } else {
+          setDeleteShelfError("Nao foi possivel apagar a estante. Tente novamente.");
+        }
+      } finally {
+        setIsDeletingShelf(false);
+      }
+    }
+
+    void deleteShelfAction();
+  };
+
   const handleCreateShelf = () => {
     const normalizedName = newShelfName.trim();
     const normalizedDescription = newShelfDescription.trim();
@@ -988,6 +1219,10 @@ export function useBookcasePage() {
     activeReviewId,
     availableShelvesForManagedCollection,
     bookDetailsError,
+    deleteShelfError,
+    editShelfDescription,
+    editShelfError,
+    editShelfName,
     createCollectionError,
     createShelfError,
     emptyStateDescription,
@@ -1001,14 +1236,19 @@ export function useBookcasePage() {
     isBookDetailsOpen,
     isCreateCollectionModalOpen,
     isCreateShelfModalOpen,
+    isDeleteShelfModalOpen,
+    isDeletingShelf,
+    isEditShelfModalOpen,
     isCreatingCollection,
     isCreatingShelf,
     isInsideShelf,
     isManageCollectionShelvesModalOpen,
     isProgressModalOpen,
     isSavingReview,
+    isSavingShelfEdit,
     isSavingCollectionShelves,
     isSavingShelfBookDetails,
+    isRemovingBookFromShelf,
     isSavingProgress,
     isShelfBookDetailsOpen,
     isSelectedBookAlreadyInShelf,
@@ -1030,9 +1270,12 @@ export function useBookcasePage() {
     searchInputAriaLabel,
     searchInputPlaceholder,
     searchTerm,
+    selectedShelfId,
     selectedShelfName,
     selectedShelfBook,
     selectedSuggestionBook,
+    shelfToDelete,
+    shelfToEdit,
     shelfBooks,
     shelves,
     statusFilter,
@@ -1044,6 +1287,8 @@ export function useBookcasePage() {
     handleChangeRootViewMode,
     handleCloseAddBookModal,
     handleCloseBookDetails,
+    handleCloseDeleteShelfModal,
+    handleCloseEditShelfModal,
     handleCloseShelfBookDetails,
     handleCloseCreateCollectionModal,
     handleCloseCreateShelfModal,
@@ -1051,9 +1296,12 @@ export function useBookcasePage() {
     handleCloseProgressModal,
     handleCreateCollection,
     handleCreateShelf,
+    handleDeleteShelf,
     handleEnterShelf,
     handleOpenCreateCollectionModal,
     handleOpenCreateShelfModal,
+    handleOpenDeleteShelfModal,
+    handleOpenEditShelfModal,
     handleOpenManageCollectionShelvesModal,
     handleOpenShelfBookDetails,
     handleOpenProgressModal,
@@ -1062,7 +1310,9 @@ export function useBookcasePage() {
     handleSetReviewRating,
     handleSaveBookReview,
     handleSaveCollectionShelves,
+    handleSaveShelfEdit,
     handleSaveProgress,
+    handleRemoveSelectedShelfBook,
     handleStepShelfBookPage,
     handleSuggestionSelect,
     setAddBookSearchTerm,
@@ -1074,6 +1324,8 @@ export function useBookcasePage() {
     },
     setNewShelfDescription,
     setNewShelfName,
+    setEditShelfDescription,
+    setEditShelfName,
     setProgressDraft,
     setSearchTerm,
     setStatusFilter,

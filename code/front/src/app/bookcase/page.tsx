@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { readingStatusOptions, useBookcasePage } from "@/hooks/useBookcasePage";
 import { BookcaseResults } from "@/components/bookcase/BookcaseResults";
 import { BookcaseModals } from "@/components/bookcase/BookcaseModals";
@@ -9,11 +9,10 @@ import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPan
 import {
   AppShell,
   BackArrowButton,
-  BookCoverPlaceholder,
+  Button,
   ChipToggle,
   PageHeader,
   PrimaryButton,
-  SecondaryButton,
   SectionHeader,
   TextInput,
 } from "@/components";
@@ -27,6 +26,10 @@ export default function EstantePage() {
     collectionToManage,
     createCollectionError,
     createShelfError,
+    deleteShelfError,
+    editShelfDescription,
+    editShelfError,
+    editShelfName,
     emptyStateDescription,
     emptyStateTitle,
     filteredBooks,
@@ -38,6 +41,8 @@ export default function EstantePage() {
     handleChangeRootViewMode,
     handleCloseAddBookModal,
     handleCloseBookDetails,
+    handleCloseDeleteShelfModal,
+    handleCloseEditShelfModal,
     handleCloseCreateCollectionModal,
     handleCloseCreateShelfModal,
     handleCloseManageCollectionShelvesModal,
@@ -45,15 +50,19 @@ export default function EstantePage() {
     handleCloseProgressModal,
     handleCreateCollection,
     handleCreateShelf,
+    handleDeleteShelf,
     handleEnterShelf,
     handleOpenCreateCollectionModal,
     handleOpenCreateShelfModal,
+    handleOpenDeleteShelfModal,
+    handleOpenEditShelfModal,
     handleOpenManageCollectionShelvesModal,
-    handleOpenProgressModal,
     handleOpenShelfBookDetails,
+    handleRemoveSelectedShelfBook,
     handleSelectShelfBookStatus,
     handleSaveCollectionShelves,
     handleSaveBookReview,
+    handleSaveShelfEdit,
     handleSaveProgress,
     handleSetReviewComment,
     handleSetReviewRating,
@@ -64,13 +73,18 @@ export default function EstantePage() {
     isBookDetailsOpen,
     isCreateCollectionModalOpen,
     isCreateShelfModalOpen,
+    isDeleteShelfModalOpen,
+    isDeletingShelf,
+    isEditShelfModalOpen,
     isCreatingCollection,
     isCreatingShelf,
     isInsideShelf,
     isManageCollectionShelvesModalOpen,
     isProgressModalOpen,
     isSavingCollectionShelves,
+    isSavingShelfEdit,
     isSavingShelfBookDetails,
+    isRemovingBookFromShelf,
     isSavingProgress,
     isShelfBookDetailsOpen,
     isSelectedBookAlreadyInShelf,
@@ -85,6 +99,8 @@ export default function EstantePage() {
     progressBook,
     progressDraft,
     progressError,
+    shelfToDelete,
+    shelfToEdit,
     activeReviewId,
     isSavingReview,
     reviewCommentDraft,
@@ -94,6 +110,7 @@ export default function EstantePage() {
     searchInputAriaLabel,
     searchInputPlaceholder,
     searchTerm,
+    selectedShelfId,
     selectedShelfName,
     selectedShelfBook,
     selectedSuggestionBook,
@@ -101,6 +118,8 @@ export default function EstantePage() {
     setAddBookSearchTerm,
     setNewCollectionDescription,
     setNewCollectionName,
+    setEditShelfDescription,
+    setEditShelfName,
     setNewShelfDescription,
     setNewShelfName,
     setProgressDraft,
@@ -114,7 +133,6 @@ export default function EstantePage() {
     handleStepShelfBookPage,
   } = useBookcasePage();
 
-  const readingNowBooks = shelfBooks.filter((book) => book.readingStatus === "lendo" || book.readingStatus === "relendo");
   const counts = {
     todos: shelfBooks.length,
     lendo: shelfBooks.filter((book) => book.readingStatus === "lendo" || book.readingStatus === "relendo").length,
@@ -125,6 +143,7 @@ export default function EstantePage() {
   };
 
   const visibleStatusOptions = readingStatusOptions.filter((option) => option.value !== "relendo");
+  const selectedShelf = selectedShelfId === null ? undefined : shelves.find((shelf) => shelf.id === selectedShelfId);
 
   return (
     <AppShell>
@@ -154,12 +173,45 @@ export default function EstantePage() {
             ) : null}
 
             {isInsideShelf ? (
-              <PrimaryButton onClick={handleAddBookClick} aria-label="Adicionar livro na estante">
-                <span className="inline-flex items-center gap-2">
-                  <Plus size={16} />
-                  <span>Adicionar livro</span>
-                </span>
-              </PrimaryButton>
+              <>
+                <Button
+                  onClick={() => {
+                    if (selectedShelf) {
+                      handleOpenEditShelfModal(selectedShelf);
+                    }
+                  }}
+                  disabled={!selectedShelf}
+                  aria-label="Editar estante"
+                  title="Editar estante"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 border-[var(--border-soft)] text-[var(--brand-600)] hover:bg-[var(--bg-soft)]"
+                >
+                  <Pencil size={16} />
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    if (selectedShelf) {
+                      handleOpenDeleteShelfModal(selectedShelf);
+                    }
+                  }}
+                  disabled={!selectedShelf}
+                  aria-label="Apagar estante"
+                  title="Apagar estante"
+                  size="icon"
+                  className="h-9 w-9 bg-[var(--danger-500)] text-white hover:bg-[var(--danger-600)]"
+                >
+                  <Trash2 size={16} />
+                </Button>
+
+                <PrimaryButton onClick={handleAddBookClick} aria-label="Adicionar livro na estante">
+                  <span className="inline-flex items-center gap-2">
+                    <Plus size={16} />
+                    <span>Adicionar livro</span>
+                  </span>
+                </PrimaryButton>
+              </>
             ) : null}
           </div>
         }
@@ -185,6 +237,22 @@ export default function EstantePage() {
         createShelfError={createShelfError}
         handleCreateShelf={handleCreateShelf}
         isCreatingShelf={isCreatingShelf}
+        isEditShelfModalOpen={isEditShelfModalOpen}
+        handleCloseEditShelfModal={handleCloseEditShelfModal}
+        shelfToEdit={shelfToEdit}
+        editShelfName={editShelfName}
+        setEditShelfName={setEditShelfName}
+        editShelfDescription={editShelfDescription}
+        setEditShelfDescription={setEditShelfDescription}
+        editShelfError={editShelfError}
+        handleSaveShelfEdit={handleSaveShelfEdit}
+        isSavingShelfEdit={isSavingShelfEdit}
+        isDeleteShelfModalOpen={isDeleteShelfModalOpen}
+        handleCloseDeleteShelfModal={handleCloseDeleteShelfModal}
+        shelfToDelete={shelfToDelete}
+        deleteShelfError={deleteShelfError}
+        handleDeleteShelf={handleDeleteShelf}
+        isDeletingShelf={isDeletingShelf}
         isCreateCollectionModalOpen={isCreateCollectionModalOpen}
         handleCloseCreateCollectionModal={handleCloseCreateCollectionModal}
         newCollectionName={newCollectionName}
@@ -293,6 +361,8 @@ export default function EstantePage() {
         isSavingReview={isSavingReview}
         isLoadingReview={false}
         isSaving={isSavingShelfBookDetails}
+        isRemovingFromShelf={isRemovingBookFromShelf}
+        onRemoveFromShelf={handleRemoveSelectedShelfBook}
         errorMessage={bookDetailsError}
       />
     </AppShell>

@@ -19,6 +19,22 @@ interface BookcaseModalsProps {
   createShelfError: string;
   handleCreateShelf: () => void;
   isCreatingShelf: boolean;
+  isEditShelfModalOpen: boolean;
+  handleCloseEditShelfModal: () => void;
+  shelfToEdit: BackendShelfSummaryResponse | null;
+  editShelfName: string;
+  setEditShelfName: (value: string) => void;
+  editShelfDescription: string;
+  setEditShelfDescription: (value: string) => void;
+  editShelfError: string;
+  handleSaveShelfEdit: () => void;
+  isSavingShelfEdit: boolean;
+  isDeleteShelfModalOpen: boolean;
+  handleCloseDeleteShelfModal: () => void;
+  shelfToDelete: BackendShelfSummaryResponse | null;
+  deleteShelfError: string;
+  handleDeleteShelf: () => void;
+  isDeletingShelf: boolean;
   isCreateCollectionModalOpen: boolean;
   handleCloseCreateCollectionModal: () => void;
   newCollectionName: string;
@@ -73,6 +89,22 @@ export function BookcaseModals({
   createShelfError,
   handleCreateShelf,
   isCreatingShelf,
+  isEditShelfModalOpen,
+  handleCloseEditShelfModal,
+  shelfToEdit,
+  editShelfName,
+  setEditShelfName,
+  editShelfDescription,
+  setEditShelfDescription,
+  editShelfError,
+  handleSaveShelfEdit,
+  isSavingShelfEdit,
+  isDeleteShelfModalOpen,
+  handleCloseDeleteShelfModal,
+  shelfToDelete,
+  deleteShelfError,
+  handleDeleteShelf,
+  isDeletingShelf,
   isCreateCollectionModalOpen,
   handleCloseCreateCollectionModal,
   newCollectionName,
@@ -184,6 +216,67 @@ export function BookcaseModals({
             <div className="flex justify-end">
               <Button onClick={handleCreateCollection} disabled={isCreatingCollection}>
                 {isCreatingCollection ? "Criando..." : "Salvar colecao"}
+              </Button>
+            </div>
+          </div>
+        </BookcaseModal>
+      ) : null}
+
+      {isEditShelfModalOpen ? (
+        <BookcaseModal title="Editar estante" onClose={handleCloseEditShelfModal}>
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-[var(--text-secondary)]">{shelfToEdit?.name ?? ""}</p>
+
+            <TextInput
+              aria-label="Nome da estante"
+              placeholder="Nome da estante"
+              value={editShelfName}
+              maxLength={100}
+              onChange={(event) => setEditShelfName(event.target.value)}
+            />
+
+            <TextInput
+              aria-label="Descricao da estante"
+              placeholder="Descricao (opcional)"
+              value={editShelfDescription}
+              maxLength={300}
+              onChange={(event) => setEditShelfDescription(event.target.value)}
+            />
+
+            {editShelfError ? <p className="text-sm text-red-600">{editShelfError}</p> : null}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleCloseEditShelfModal} disabled={isSavingShelfEdit}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveShelfEdit} disabled={isSavingShelfEdit}>
+                {isSavingShelfEdit ? "Salvando..." : "Salvar alterações"}
+              </Button>
+            </div>
+          </div>
+        </BookcaseModal>
+      ) : null}
+
+      {isDeleteShelfModalOpen ? (
+        <BookcaseModal title="Apagar estante" onClose={handleCloseDeleteShelfModal} maxWidthClassName="max-w-xl">
+          <div className="mt-4 space-y-3">
+            <p className="text-sm text-[var(--text-secondary)]">
+              Você tem certeza que deseja apagar a estante <strong>{shelfToDelete?.name ?? ""}</strong>? Esta ação também
+              remove os livros dessa estante.
+            </p>
+
+            {deleteShelfError ? <p className="text-sm text-red-600">{deleteShelfError}</p> : null}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleCloseDeleteShelfModal} disabled={isDeletingShelf}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleDeleteShelf}
+                disabled={isDeletingShelf}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                {isDeletingShelf ? "Apagando..." : "Apagar estante"}
               </Button>
             </div>
           </div>

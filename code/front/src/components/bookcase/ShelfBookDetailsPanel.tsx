@@ -21,6 +21,7 @@ interface ShelfBookDetailsPanelProps {
   onClose: () => void;
   onSelectStatus: (status: Exclude<ReadingStatus, "todos">) => void;
   onStepPage: (delta: number) => void;
+  onRemoveFromShelf: () => void;
   reviewRating: number;
   reviewComment: string;
   reviewExists: boolean;
@@ -31,6 +32,7 @@ interface ShelfBookDetailsPanelProps {
   isSavingReview: boolean;
   isLoadingReview?: boolean;
   isSaving: boolean;
+  isRemovingFromShelf: boolean;
   errorMessage: string;
 }
 
@@ -143,6 +145,7 @@ export function ShelfBookDetailsPanel({
   onClose,
   onSelectStatus,
   onStepPage,
+  onRemoveFromShelf,
   reviewRating,
   reviewComment,
   reviewExists,
@@ -153,6 +156,7 @@ export function ShelfBookDetailsPanel({
   isSavingReview,
   isLoadingReview,
   isSaving,
+  isRemovingFromShelf,
   errorMessage,
 }: Readonly<ShelfBookDetailsPanelProps>) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
@@ -344,6 +348,17 @@ export function ShelfBookDetailsPanel({
               : "Sinopse indisponível no momento. Assim que o conteúdo estiver disponível na API, ele será exibido aqui."}
           </p>
         </section>
+
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={onRemoveFromShelf}
+            disabled={isRemovingFromShelf}
+            className="rounded-[var(--radius-md)] bg-[var(--danger-500)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--danger-600)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isRemovingFromShelf ? "Removendo..." : "Remover da estante"}
+          </button>
+        </div>
       </div>
     </div>
   );
