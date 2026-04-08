@@ -182,6 +182,7 @@ export function useBookcasePage() {
   const [collections, setCollections] = useState<BackendCollectionSummaryResponse[]>([]);
   const [shelfBooks, setShelfBooks] = useState<ShelfBook[]>([]);
   const [selectedShelfName, setSelectedShelfName] = useState("");
+  const [selectedShelfDescription, setSelectedShelfDescription] = useState("");
   const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null);
   const [loadError, setLoadError] = useState("");
   const [isAddingToShelf, setIsAddingToShelf] = useState(false);
@@ -303,6 +304,7 @@ export function useBookcasePage() {
         setCollections([]);
         setShelfBooks([]);
         setSelectedShelfId(null);
+        setSelectedShelfDescription("");
         return;
       }
 
@@ -312,6 +314,7 @@ export function useBookcasePage() {
         setCollections(collectionSummaries);
         setSelectedShelfId(null);
         setSelectedShelfName("");
+        setSelectedShelfDescription("");
         setShelfBooks([]);
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
@@ -513,11 +516,13 @@ export function useBookcasePage() {
       setLoadError("");
       setSelectedShelfId(shelf.id);
       setSelectedShelfName(shelf.name);
+      setSelectedShelfDescription("");
       setStatusFilter("todos");
       setSearchTerm("");
 
       try {
-        await loadShelfBooks(shelf.id);
+        const [shelfDetails] = await Promise.all([getShelfById(shelf.id), loadShelfBooks(shelf.id)]);
+        setSelectedShelfDescription(shelfDetails.description?.trim() ?? "");
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
           setLoadError("Faça login para abrir esta estante.");
@@ -533,6 +538,7 @@ export function useBookcasePage() {
   const handleBackToShelves = () => {
     setSelectedShelfId(null);
     setSelectedShelfName("");
+    setSelectedShelfDescription("");
     setShelfBooks([]);
     setStatusFilter("todos");
     setSearchTerm("");
@@ -993,6 +999,7 @@ export function useBookcasePage() {
 
         if (selectedShelfId === nextSummary.id) {
           setSelectedShelfName(nextSummary.name);
+          setSelectedShelfDescription(updatedShelf.description?.trim() ?? "");
         }
 
         handleCloseEditShelfModal();
@@ -1271,6 +1278,7 @@ export function useBookcasePage() {
     searchInputPlaceholder,
     searchTerm,
     selectedShelfId,
+    selectedShelfDescription,
     selectedShelfName,
     selectedShelfBook,
     selectedSuggestionBook,

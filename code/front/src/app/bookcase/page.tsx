@@ -111,6 +111,7 @@ export default function EstantePage() {
     searchInputPlaceholder,
     searchTerm,
     selectedShelfId,
+    selectedShelfDescription,
     selectedShelfName,
     selectedShelfBook,
     selectedSuggestionBook,
@@ -150,10 +151,15 @@ export default function EstantePage() {
       <PageHeader
         title={
           isInsideShelf ? (
-            <span className="inline-flex items-center gap-2">
+            <div className="inline-flex items-start gap-2">
               <BackArrowButton onClick={handleBackToShelves} ariaLabel="Voltar para estantes" />
-              <span>{selectedShelfName}</span>
-            </span>
+              <div>
+                <p>{selectedShelfName}</p>
+                {selectedShelfDescription ? (
+                  <p className="mt-0.5 text-sm font-normal text-[var(--text-secondary)]">{selectedShelfDescription}</p>
+                ) : null}
+              </div>
+            </div>
           ) : (
             "Minha Estante"
           )
