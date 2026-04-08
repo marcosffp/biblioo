@@ -3,6 +3,7 @@ package com.biblioo.infrastructure.web;
 import com.biblioo.books.domain.exception.BookNotFoundException;
 import com.biblioo.books.domain.exception.ShelfBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
+import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
@@ -69,6 +70,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(AlreadyFollowingException.class)
   ResponseEntity<ErrorResponse> handleAlreadyFollowing(
       AlreadyFollowingException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(FollowRequestAlreadySentException.class)
+  ResponseEntity<ErrorResponse> handleFollowRequestAlreadySent(
+      FollowRequestAlreadySentException ex, HttpServletRequest request) {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 

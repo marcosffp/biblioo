@@ -1,5 +1,6 @@
 package com.biblioo.user.infrastructure.web;
 
+import com.biblioo.user.domain.model.FollowStatus;
 import com.biblioo.user.domain.model.ProfileAccess;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.UserUseCase;
@@ -109,12 +110,17 @@ public class UserController {
   }
 
   @PostMapping("/{username}/follow")
-  @Operation(summary = "Segue um usuário pelo username")
+  @Operation(
+      summary = "Segue um usuário pelo username",
+      description =
+          "Para perfis públicos retorna 204. Para perfis privados envia uma solicitação e retorna 202.")
   public ResponseEntity<Void> follow(
       @PathVariable String username, @AuthenticationPrincipal UserDetails principal) {
     Long targetId = userUseCase.getByUsername(username).getId();
-    userUseCase.follow(currentUserId(principal), targetId);
-    return ResponseEntity.noContent().build();
+    FollowStatus status = userUseCase.follow(currentUserId(principal), targetId);
+    return status == FollowStatus.PENDING
+        ? ResponseEntity.accepted().build()
+        : ResponseEntity.noContent().build();
   }
 
   @DeleteMapping("/{username}/follow")
@@ -123,6 +129,40 @@ public class UserController {
       @PathVariable String username, @AuthenticationPrincipal UserDetails principal) {
     Long targetId = userUseCase.getByUsername(username).getId();
     userUseCase.unfollow(currentUserId(principal), targetId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/me/follow-requests")
+  @Operation(summary = "Lista as solicitações de seguir pendentes recebidas")
+  public ResponseEntity<FollowPageResponse> getPendingFollowRequests(
+      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0")
+          int page,
+      @Parameter(description = "Itens por página", example = "20")
+          @RequestParam(defaultValue = "20")
+          int size,
+      @AuthenticationPrincipal UserDetails principal) {
+    List<UserSummaryResponse> users =
+        userUseCase.getPendingFollowRequests(currentUserId(principal), page, size).stream()
+            .map(UserMapper::toSummary)
+            .toList();
+    return ResponseEntity.ok(new FollowPageResponse(users, page, size, users.size() == size));
+  }
+
+  @PostMapping("/me/follow-requests/{requesterUsername}/accept")
+  @Operation(summary = "Aceita uma solicitação de seguir")
+  public ResponseEntity<Void> acceptFollowRequest(
+      @PathVariable String requesterUsername, @AuthenticationPrincipal UserDetails principal) {
+    Long requesterId = userUseCase.getByUsername(requesterUsername).getId();
+    userUseCase.acceptFollowRequest(currentUserId(principal), requesterId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @DeleteMapping("/me/follow-requests/{requesterUsername}")
+  @Operation(summary = "Rejeita uma solicitação de seguir")
+  public ResponseEntity<Void> rejectFollowRequest(
+      @PathVariable String requesterUsername, @AuthenticationPrincipal UserDetails principal) {
+    Long requesterId = userUseCase.getByUsername(requesterUsername).getId();
+    userUseCase.rejectFollowRequest(currentUserId(principal), requesterId);
     return ResponseEntity.noContent().build();
   }
 
