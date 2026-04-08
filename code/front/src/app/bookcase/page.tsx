@@ -21,6 +21,7 @@ import {
 export default function EstantePage() {
   const {
     addBookSearchTerm,
+    addBookSearchError,
     addToShelfError,
     availableShelvesForManagedCollection,
     bookDetailsError,
@@ -72,6 +73,7 @@ export default function EstantePage() {
     hasNoVisibleItems,
     isAddBookModalOpen,
     isAddingToShelf,
+    isSearchingAddBook,
     isBookDetailsOpen,
     isCreateCollectionModalOpen,
     isCreateShelfModalOpen,
@@ -112,6 +114,7 @@ export default function EstantePage() {
     rootViewMode,
     searchInputAriaLabel,
     searchInputPlaceholder,
+    shouldSearchAddBook,
     searchTerm,
     selectedCollectionName,
     selectedShelfId,
@@ -330,6 +333,9 @@ export default function EstantePage() {
         handleCloseAddBookModal={handleCloseAddBookModal}
         addBookSearchTerm={addBookSearchTerm}
         setAddBookSearchTerm={setAddBookSearchTerm}
+        shouldSearchAddBook={shouldSearchAddBook}
+        isSearchingAddBook={isSearchingAddBook}
+        addBookSearchError={addBookSearchError}
         visibleAddBookSuggestions={visibleAddBookSuggestions}
         handleSuggestionSelect={handleSuggestionSelect}
         isProgressModalOpen={isProgressModalOpen}

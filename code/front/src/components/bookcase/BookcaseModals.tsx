@@ -60,6 +60,9 @@ interface BookcaseModalsProps {
   handleCloseAddBookModal: () => void;
   addBookSearchTerm: string;
   setAddBookSearchTerm: (value: string) => void;
+  shouldSearchAddBook: boolean;
+  isSearchingAddBook: boolean;
+  addBookSearchError: string;
   visibleAddBookSuggestions: Array<{ id: string; title: string; author: string; coverUrl?: string }>;
   handleSuggestionSelect: (suggestion: { id: string; title: string; author: string; coverUrl?: string }) => void;
   isProgressModalOpen: boolean;
@@ -130,6 +133,9 @@ export function BookcaseModals({
   handleCloseAddBookModal,
   addBookSearchTerm,
   setAddBookSearchTerm,
+  shouldSearchAddBook,
+  isSearchingAddBook,
+  addBookSearchError,
   visibleAddBookSuggestions,
   handleSuggestionSelect,
   isProgressModalOpen,
@@ -313,20 +319,38 @@ export function BookcaseModals({
             <TextInput
               id="bookcase-add-search-input"
               aria-label="Pesquisar livro para adicionar"
-              placeholder="Digite para buscar livro na API"
+              placeholder="Digite pelo menos 2 caracteres"
               value={addBookSearchTerm}
               onChange={(event) => setAddBookSearchTerm(event.target.value)}
             />
 
-            <SearchSuggestionsList
-              items={visibleAddBookSuggestions.map((book) => ({
-                id: book.id,
-                title: book.title,
-                author: book.author,
-                coverUrl: book.coverUrl,
-              }))}
-              onSelect={handleSuggestionSelect}
-            />
+            {!shouldSearchAddBook ? (
+              <p className="text-sm text-[var(--text-secondary)]">Digite pelo menos 2 caracteres para buscar.</p>
+            ) : null}
+
+            {shouldSearchAddBook && isSearchingAddBook ? (
+              <p className="text-sm text-[var(--text-secondary)]">Buscando...</p>
+            ) : null}
+
+            {shouldSearchAddBook && !isSearchingAddBook && addBookSearchError ? (
+              <p className="text-sm text-red-600">{addBookSearchError}</p>
+            ) : null}
+
+            {shouldSearchAddBook && !isSearchingAddBook && !addBookSearchError && visibleAddBookSuggestions.length === 0 ? (
+              <p className="text-sm text-[var(--text-secondary)]">Nenhum resultado encontrado.</p>
+            ) : null}
+
+            {shouldSearchAddBook && !isSearchingAddBook && !addBookSearchError ? (
+              <SearchSuggestionsList
+                items={visibleAddBookSuggestions.map((book) => ({
+                  id: book.id,
+                  title: book.title,
+                  author: book.author,
+                  coverUrl: book.coverUrl,
+                }))}
+                onSelect={handleSuggestionSelect}
+              />
+            ) : null}
           </div>
         </BookcaseModal>
       ) : null}

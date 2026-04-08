@@ -61,6 +61,9 @@ export interface ShelfBook extends RuleBook {
 
 export type RootViewMode = "estantes" | "colecoes";
 
+const MIN_ADD_BOOK_SEARCH_LENGTH = 2;
+const ADD_BOOK_SEARCH_DEBOUNCE_MS = 300;
+
 function mapBackendReadingStatus(status: string): Exclude<ReadingStatus, "todos"> {
   switch (status) {
     case "READING":
@@ -161,6 +164,8 @@ export function useBookcasePage() {
   const [isManageCollectionShelvesModalOpen, setIsManageCollectionShelvesModalOpen] = useState(false);
   const [addBookSearchTerm, setAddBookSearchTerm] = useState("");
   const [addBookSuggestions, setAddBookSuggestions] = useState<BackendBookResponse[]>([]);
+  const [isSearchingAddBook, setIsSearchingAddBook] = useState(false);
+  const [addBookSearchError, setAddBookSearchError] = useState("");
   const [newShelfName, setNewShelfName] = useState("");
   const [newShelfDescription, setNewShelfDescription] = useState("");
   const [editShelfName, setEditShelfName] = useState("");
@@ -264,12 +269,17 @@ export function useBookcasePage() {
   }
 
   const normalizedAddBookTerm = normalizeSearchTerm(addBookSearchTerm);
+  const shouldSearchAddBook = normalizedAddBookTerm.length >= MIN_ADD_BOOK_SEARCH_LENGTH;
   const searchInputAriaLabel = "Pesquisar livros nesta estante";
   const searchInputPlaceholder = "Buscar livros nesta estante";
+  const validAddBookSuggestions = addBookSuggestions.filter(
+    (suggestion): suggestion is BackendBookResponse & { id: number } =>
+      typeof suggestion.id === "number" && Number.isFinite(suggestion.id),
+  );
 
   const computedSuggestions = computeBookSuggestions(
-    addBookSuggestions.map((suggestion) => ({
-      id: suggestion.id.toString(),
+    validAddBookSuggestions.map((suggestion) => ({
+      id: String(suggestion.id),
       title: suggestion.title,
       author: pickAuthor(suggestion.authors),
       readingStatus: "quero-ler",
@@ -278,7 +288,7 @@ export function useBookcasePage() {
   );
 
   const visibleAddBookSuggestions = computedSuggestions.map((suggestion) => {
-    const source = addBookSuggestions.find((item) => item.id.toString() === suggestion.id);
+    const source = validAddBookSuggestions.find((item) => String(item.id) === suggestion.id);
     return {
       id: suggestion.id,
       title: suggestion.title,
@@ -350,21 +360,41 @@ export function useBookcasePage() {
 
   useEffect(() => {
     async function loadAddBookSuggestions() {
-      if (!isAddBookModalOpen || normalizedAddBookTerm.length < 2) {
+      if (!isAddBookModalOpen) {
         setAddBookSuggestions([]);
+        setAddBookSearchError("");
+        setIsSearchingAddBook(false);
+        return;
+      }
+
+      if (!shouldSearchAddBook) {
+        setAddBookSuggestions([]);
+        setAddBookSearchError("");
+        setIsSearchingAddBook(false);
         return;
       }
 
       try {
+        setIsSearchingAddBook(true);
+        setAddBookSearchError("");
         const searchResult = await searchBooks(addBookSearchTerm);
         setAddBookSuggestions(searchResult.slice(0, 8));
       } catch {
         setAddBookSuggestions([]);
+        setAddBookSearchError("Nao foi possivel buscar livros agora. Tente novamente.");
+      } finally {
+        setIsSearchingAddBook(false);
       }
     }
 
-    void loadAddBookSuggestions();
-  }, [addBookSearchTerm, isAddBookModalOpen, normalizedAddBookTerm.length]);
+    const timeoutId = globalThis.setTimeout(() => {
+      void loadAddBookSuggestions();
+    }, ADD_BOOK_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      globalThis.clearTimeout(timeoutId);
+    };
+  }, [addBookSearchTerm, isAddBookModalOpen, shouldSearchAddBook]);
 
   const handleSuggestionSelect = (suggestion: { id: string; title: string; author: string; coverUrl?: string }) => {
     async function loadBookDetails() {
@@ -413,6 +443,8 @@ export function useBookcasePage() {
     setIsAddBookModalOpen(false);
     setAddBookSearchTerm("");
     setAddBookSuggestions([]);
+    setAddBookSearchError("");
+    setIsSearchingAddBook(false);
   };
 
   const handleOpenCreateCollectionModal = () => {
@@ -1264,6 +1296,7 @@ export function useBookcasePage() {
   return {
     addBookSearchTerm,
     addToShelfError,
+    addBookSearchError,
     activeReviewId,
     availableShelvesForManagedCollection,
     bookDetailsError,
@@ -1281,6 +1314,7 @@ export function useBookcasePage() {
     hasNoVisibleItems,
     isAddBookModalOpen,
     isAddingToShelf,
+    isSearchingAddBook,
     isBookDetailsOpen,
     isCreateCollectionModalOpen,
     isCreateShelfModalOpen,
@@ -1318,6 +1352,7 @@ export function useBookcasePage() {
     rootViewMode,
     searchInputAriaLabel,
     searchInputPlaceholder,
+    shouldSearchAddBook,
     searchTerm,
     selectedShelfId,
     selectedCollectionName,
