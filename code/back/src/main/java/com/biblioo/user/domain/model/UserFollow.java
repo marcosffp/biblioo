@@ -27,12 +27,17 @@ public class UserFollow {
   @Column(name = "followed_id")
   private Long followedId;
 
+  @Column(name = "status", nullable = false, length = 10)
+  @Enumerated(EnumType.STRING)
+  private FollowStatus status = FollowStatus.ACCEPTED;
+
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
-  public UserFollow(Long followerId, Long followedId) {
+  public UserFollow(Long followerId, Long followedId, FollowStatus status) {
     this.followerId = followerId;
     this.followedId = followedId;
+    this.status = status;
   }
 
   @PrePersist

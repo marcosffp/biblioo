@@ -1,9 +1,11 @@
 package com.biblioo.user.infrastructure.persistence;
 
+import com.biblioo.user.domain.model.FollowStatus;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.model.UserFollow;
 import com.biblioo.user.domain.model.UserFollowId;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,9 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 public interface UserFollowRepository extends JpaRepository<UserFollow, UserFollowId> {
 
   @Query(
-      "SELECT COUNT(f) > 0 FROM UserFollow f"
+      "SELECT f FROM UserFollow f"
           + " WHERE f.followerId = :followerId AND f.followedId = :followedId")
-  boolean existsFollow(@Param("followerId") Long followerId, @Param("followedId") Long followedId);
+  Optional<UserFollow> findFollow(
+      @Param("followerId") Long followerId, @Param("followedId") Long followedId);
+
+  @Query(
+      "SELECT COUNT(f) > 0 FROM UserFollow f"
+          + " WHERE f.followerId = :followerId AND f.followedId = :followedId"
+          + " AND f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED")
+  boolean existsAcceptedFollow(
+      @Param("followerId") Long followerId, @Param("followedId") Long followedId);
 
   @Modifying
   @Transactional
@@ -25,25 +35,42 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, UserFoll
           + " WHERE f.followerId = :followerId AND f.followedId = :followedId")
   void deleteFollow(@Param("followerId") Long followerId, @Param("followedId") Long followedId);
 
-  /** Retorna os usuários que seguem :userId. JOIN via subquery para usar o índice em followedId. */
+  @Modifying
+  @Transactional
+  @Query(
+      "UPDATE UserFollow f SET f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED"
+          + " WHERE f.followerId = :followerId AND f.followedId = :followedId")
+  void updateStatusToAccepted(
+      @Param("followerId") Long followerId, @Param("followedId") Long followedId);
+
+  /** Retorna os seguidores aceitos de :userId. */
   @Query(
       "SELECT u FROM User u WHERE u.id IN"
-          + " (SELECT f.followerId FROM UserFollow f WHERE f.followedId = :userId)")
+          + " (SELECT f.followerId FROM UserFollow f WHERE f.followedId = :userId"
+          + " AND f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED)")
   List<User> findFollowerUsers(@Param("userId") Long userId, PageRequest pageable);
 
-  /** Retorna os usuários que :userId segue. JOIN via subquery para usar o índice em followerId. */
+  /** Retorna os usuários que :userId segue (apenas aceitos). */
   @Query(
       "SELECT u FROM User u WHERE u.id IN"
-          + " (SELECT f.followedId FROM UserFollow f WHERE f.followerId = :userId)")
+          + " (SELECT f.followedId FROM UserFollow f WHERE f.followerId = :userId"
+          + " AND f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED)")
   List<User> findFollowingUsers(@Param("userId") Long userId, PageRequest pageable);
+
+  /** Retorna os usuários com solicitação pendente para :userId. */
+  @Query(
+      "SELECT u FROM User u WHERE u.id IN"
+          + " (SELECT f.followerId FROM UserFollow f WHERE f.followedId = :userId"
+          + " AND f.status = com.biblioo.user.domain.model.FollowStatus.PENDING)")
+  List<User> findPendingRequestUsers(@Param("userId") Long userId, PageRequest pageable);
 
   @Modifying
   @Transactional
   @Query("DELETE FROM UserFollow f WHERE f.followerId = :userId OR f.followedId = :userId")
   void deleteAllByUserId(@Param("userId") Long userId);
 
-  default void follow(Long followerId, Long followedId) {
-    save(new UserFollow(followerId, followedId));
+  default void follow(Long followerId, Long followedId, FollowStatus status) {
+    save(new UserFollow(followerId, followedId, status));
   }
 
   default void unfollow(Long followerId, Long followedId) {
@@ -51,7 +78,15 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, UserFoll
   }
 
   default boolean isFollowing(Long followerId, Long followedId) {
-    return existsFollow(followerId, followedId);
+    return existsAcceptedFollow(followerId, followedId);
+  }
+
+  default Optional<FollowStatus> findFollowStatus(Long followerId, Long followedId) {
+    return findFollow(followerId, followedId).map(UserFollow::getStatus);
+  }
+
+  default void acceptFollow(Long followerId, Long followedId) {
+    updateStatusToAccepted(followerId, followedId);
   }
 
   default List<User> findFollowers(Long userId, int page, int size) {
@@ -60,5 +95,9 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, UserFoll
 
   default List<User> findFollowing(Long userId, int page, int size) {
     return findFollowingUsers(userId, PageRequest.of(page, size));
+  }
+
+  default List<User> findPendingRequests(Long userId, int page, int size) {
+    return findPendingRequestUsers(userId, PageRequest.of(page, size));
   }
 }
