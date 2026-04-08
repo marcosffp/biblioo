@@ -203,7 +203,7 @@ async function fetchFollowCount(url: string, token?: string | null): Promise<num
 
   while (true) {
     const response = await fetch(`${url}?page=${page}&size=${size}`, {
-      headers: bearerHeaders(token),
+      headers: optionalBearerHeaders(token),
     });
 
     if (!response.ok) {

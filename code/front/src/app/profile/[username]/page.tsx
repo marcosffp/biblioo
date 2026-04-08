@@ -8,14 +8,15 @@ import { getAccessToken } from "@/services/auth";
 import {
   followUser,
   getBookById,
-  getFollowersCount,
-  getFollowingCount,
   getMyProfile,
   getProfileByUsername,
+  listFollowersByUsername,
+  listFollowingByUsername,
   listMyShelves,
   listMyFollowing,
   listShelfItems,
   type ShelfItemSummaryResponse,
+  type UserSummaryResponse,
   unfollowUser,
   type UserProfileResponse,
 } from "@/services/profile";
@@ -49,6 +50,9 @@ export default function SeguidorProfilePage() {
   const [profile, setProfile] = React.useState<UserProfileResponse | null>(null);
   const [followersCount, setFollowersCount] = React.useState(0);
   const [followingCount, setFollowingCount] = React.useState(0);
+  const [followersUsers, setFollowersUsers] = React.useState<UserSummaryResponse[]>([]);
+  const [followingUsers, setFollowingUsers] = React.useState<UserSummaryResponse[]>([]);
+  const [myFollowingUsernames, setMyFollowingUsernames] = React.useState<string[]>([]);
   const [isFollowing, setIsFollowing] = React.useState(false);
   const [isTogglingFollow, setIsTogglingFollow] = React.useState(false);
   const [isOwnProfile, setIsOwnProfile] = React.useState(false);
@@ -72,18 +76,20 @@ export default function SeguidorProfilePage() {
       setError(null);
 
       try {
-        const [loadedProfile, followers, following] = await Promise.all([
+        const [loadedProfile, followersList, followingList] = await Promise.all([
           getProfileByUsername(username, accessToken),
-          getFollowersCount(username, accessToken),
-          getFollowingCount(username, accessToken),
+          listFollowersByUsername(username, accessToken),
+          listFollowingByUsername(username, accessToken),
         ]);
 
         let followingState = false;
         let ownProfileState = false;
+        let myFollowing: UserSummaryResponse[] = [];
 
         if (accessToken) {
-          const [me, myFollowing] = await Promise.all([getMyProfile(accessToken), listMyFollowing(accessToken)]);
+          const [me, myFollowingList] = await Promise.all([getMyProfile(accessToken), listMyFollowing(accessToken)]);
           ownProfileState = me.username.toLowerCase() === username;
+          myFollowing = myFollowingList;
           followingState = myFollowing.some((user) => user.username.toLowerCase() === username);
         }
 
@@ -128,8 +134,11 @@ export default function SeguidorProfilePage() {
         }
 
         setProfile(loadedProfile);
-        setFollowersCount(followers);
-        setFollowingCount(following);
+        setFollowersUsers(followersList);
+        setFollowingUsers(followingList);
+        setFollowersCount(followersList.length);
+        setFollowingCount(followingList.length);
+        setMyFollowingUsernames(myFollowing.map((user) => user.username.toLowerCase()));
         setIsFollowing(followingState);
         setIsOwnProfile(ownProfileState);
         setBooksRead(computedBooksRead);
@@ -187,6 +196,7 @@ export default function SeguidorProfilePage() {
   const initial = displayName[0]?.toUpperCase() ?? "U";
   const booksReadLabel = booksRead !== null ? booksRead.toLocaleString("pt-BR") : "Sem dados";
   const pagesReadLabel = pagesRead !== null ? pagesRead.toLocaleString("pt-BR") : "Sem dados";
+  const showFollowAction = Boolean(getAccessToken()) && !isOwnProfile;
 
   return (
     <AppShell>
@@ -219,16 +229,27 @@ export default function SeguidorProfilePage() {
                 <h1 className="font-display text-4xl font-bold text-deep-green">{displayName}</h1>
                 <p className="mt-1 text-lg text-medium-text">@{username}</p>
                 <p className="mt-3 max-w-2xl text-xl text-deep-green">{bio}</p>
+                {profile?.createdAt ? (
+                  <p className="mt-2 text-sm text-medium-text">
+                    Membro desde {new Date(profile.createdAt).toLocaleDateString("pt-BR")}
+                  </p>
+                ) : null}
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button variant={isFollowing ? "outline" : "default"} onClick={handleToggleFollow} disabled={isTogglingFollow}>
-                  {isFollowing ? "Seguindo" : "Seguir"}
-                </Button>
-                <Button variant="ghost" size="icon" aria-label="Mais opcoes">
-                  <MoreHorizontal size={18} />
-                </Button>
-              </div>
+              {showFollowAction ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={isFollowing ? "outline" : "default"}
+                    onClick={handleToggleFollow}
+                    disabled={isTogglingFollow}
+                  >
+                    {isFollowing ? "Seguindo" : "Seguir"}
+                  </Button>
+                  <Button variant="ghost" size="icon" aria-label="Mais opcoes">
+                    <MoreHorizontal size={18} />
+                  </Button>
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-6 flex flex-wrap items-center gap-7 text-lg">
@@ -336,8 +357,48 @@ export default function SeguidorProfilePage() {
                 )}
               </section>
             ) : (
-              <section className="rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
-                Comunidades em comum ainda não possuem endpoint público no backend.
+              <section className="grid gap-4 lg:grid-cols-2">
+                <article className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                  <h2 className="mb-3 font-display text-2xl font-semibold text-deep-green">Seguidores</h2>
+                  {followersUsers.length > 0 ? (
+                    <ul className="space-y-2">
+                      {followersUsers.slice(0, 8).map((user) => {
+                        const followedByMe = myFollowingUsernames.includes(user.username.toLowerCase());
+
+                        return (
+                          <li
+                            key={`follower-${user.id}`}
+                            className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2"
+                          >
+                            <span className="truncate text-sm font-semibold text-deep-green">@{user.username}</span>
+                            <span className="text-xs text-medium-text">{followedByMe ? "Você segue" : ""}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-medium-text">Nenhum seguidor visível.</p>
+                  )}
+                </article>
+
+                <article className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                  <h2 className="mb-3 font-display text-2xl font-semibold text-deep-green">Seguindo</h2>
+                  {followingUsers.length > 0 ? (
+                    <ul className="space-y-2">
+                      {followingUsers.slice(0, 8).map((user) => (
+                        <li
+                          key={`following-${user.id}`}
+                          className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2"
+                        >
+                          <span className="truncate text-sm font-semibold text-deep-green">@{user.username}</span>
+                          <span className="text-xs text-medium-text">Leitor</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-medium-text">Não segue nenhum usuário visível.</p>
+                  )}
+                </article>
               </section>
             )}
           </>
