@@ -181,6 +181,7 @@ export function useBookcasePage() {
   const [shelves, setShelves] = useState<BackendShelfSummaryResponse[]>([]);
   const [collections, setCollections] = useState<BackendCollectionSummaryResponse[]>([]);
   const [shelfBooks, setShelfBooks] = useState<ShelfBook[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
   const [selectedShelfName, setSelectedShelfName] = useState("");
   const [selectedShelfDescription, setSelectedShelfDescription] = useState("");
   const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null);
@@ -209,9 +210,21 @@ export function useBookcasePage() {
   const [reviewError, setReviewError] = useState("");
   const [isSavingReview, setIsSavingReview] = useState(false);
 
+  const isInsideCollection = selectedCollectionId !== null;
   const isInsideShelf = selectedShelfId !== null;
+  const selectedCollection =
+    selectedCollectionId === null ? null : collections.find((collection) => collection.id === selectedCollectionId) ?? null;
+  const selectedCollectionName = selectedCollection?.name ?? "";
+  const selectedCollectionShelves: BackendShelfSummaryResponse[] = selectedCollection
+    ? selectedCollection.shelfPreviews.map((shelfPreview) => ({
+        id: shelfPreview.id,
+        name: shelfPreview.name,
+        itemCount: shelfPreview.itemCount,
+        coverPreview: shelfPreview.firstBookCoverUrl ? [shelfPreview.firstBookCoverUrl] : [],
+      }))
+    : [];
   const normalizedTerm = normalizeSearchTerm(searchTerm);
-  const filteredShelves = shelves;
+  const filteredShelves = isInsideCollection ? selectedCollectionShelves : shelves;
   const filteredCollections = collections;
   const availableShelvesForManagedCollection = collectionToManage
     ? shelves.filter((shelf) => !collectionToManage.shelfPreviews.some((previewShelf) => previewShelf.id === shelf.id))
@@ -222,6 +235,8 @@ export function useBookcasePage() {
   let hasNoVisibleItems = false;
   if (isInsideShelf) {
     hasNoVisibleItems = filteredBooks.length === 0;
+  } else if (isInsideCollection) {
+    hasNoVisibleItems = filteredShelves.length === 0;
   } else if (rootViewMode === "estantes") {
     hasNoVisibleItems = filteredShelves.length === 0;
   } else {
@@ -237,6 +252,9 @@ export function useBookcasePage() {
     emptyStateDescription = normalizedTerm
       ? `Nenhum livro corresponde à busca por "${trimmedSearchTerm}".`
       : "Use o botão de adicionar livro para preencher esta estante.";
+  } else if (isInsideCollection) {
+    emptyStateTitle = "Esta coleção ainda não possui estantes";
+    emptyStateDescription = "Use o botão de adicionar estante para organizar esta coleção.";
   } else if (rootViewMode === "estantes") {
     emptyStateTitle = "Você ainda não possui estantes";
     emptyStateDescription = "Crie sua primeira estante para organizar seus livros.";
@@ -303,6 +321,7 @@ export function useBookcasePage() {
         setShelves([]);
         setCollections([]);
         setShelfBooks([]);
+        setSelectedCollectionId(null);
         setSelectedShelfId(null);
         setSelectedShelfDescription("");
         return;
@@ -312,6 +331,7 @@ export function useBookcasePage() {
         const [shelfSummaries, collectionSummaries] = await Promise.all([listShelves(), listCollections()]);
         setShelves(shelfSummaries);
         setCollections(collectionSummaries);
+        setSelectedCollectionId(null);
         setSelectedShelfId(null);
         setSelectedShelfName("");
         setSelectedShelfDescription("");
@@ -385,6 +405,7 @@ export function useBookcasePage() {
 
   const handleChangeRootViewMode = (mode: RootViewMode) => {
     setRootViewMode(mode);
+    setSelectedCollectionId(null);
     setSearchTerm("");
   };
 
@@ -457,6 +478,20 @@ export function useBookcasePage() {
     setManageCollectionShelfIds([]);
     setManageCollectionError("");
     setIsManageCollectionShelvesModalOpen(true);
+  };
+
+  const handleEnterCollection = (collection: BackendCollectionSummaryResponse) => {
+    setSelectedCollectionId(collection.id);
+    setRootViewMode("colecoes");
+    setSearchTerm("");
+  };
+
+  const handleOpenAddShelfToSelectedCollection = () => {
+    if (!selectedCollection) {
+      return;
+    }
+
+    handleOpenManageCollectionShelvesModal(selectedCollection);
   };
 
   const handleCloseManageCollectionShelvesModal = () => {
@@ -536,6 +571,12 @@ export function useBookcasePage() {
   };
 
   const handleBackToShelves = () => {
+    if (!isInsideShelf) {
+      setSelectedCollectionId(null);
+      setSearchTerm("");
+      return;
+    }
+
     setSelectedShelfId(null);
     setSelectedShelfName("");
     setSelectedShelfDescription("");
@@ -1248,6 +1289,7 @@ export function useBookcasePage() {
     isEditShelfModalOpen,
     isCreatingCollection,
     isCreatingShelf,
+    isInsideCollection,
     isInsideShelf,
     isManageCollectionShelvesModalOpen,
     isProgressModalOpen,
@@ -1278,6 +1320,7 @@ export function useBookcasePage() {
     searchInputPlaceholder,
     searchTerm,
     selectedShelfId,
+    selectedCollectionName,
     selectedShelfDescription,
     selectedShelfName,
     selectedShelfBook,
@@ -1305,12 +1348,14 @@ export function useBookcasePage() {
     handleCreateCollection,
     handleCreateShelf,
     handleDeleteShelf,
+    handleEnterCollection,
     handleEnterShelf,
     handleOpenCreateCollectionModal,
     handleOpenCreateShelfModal,
     handleOpenDeleteShelfModal,
     handleOpenEditShelfModal,
     handleOpenManageCollectionShelvesModal,
+    handleOpenAddShelfToSelectedCollection,
     handleOpenShelfBookDetails,
     handleOpenProgressModal,
     handleSelectShelfBookStatus,

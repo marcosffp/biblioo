@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { readingStatusOptions, useBookcasePage } from "@/hooks/useBookcasePage";
 import { BookcaseResults } from "@/components/bookcase/BookcaseResults";
@@ -51,12 +52,13 @@ export default function EstantePage() {
     handleCreateCollection,
     handleCreateShelf,
     handleDeleteShelf,
+    handleEnterCollection,
     handleEnterShelf,
     handleOpenCreateCollectionModal,
     handleOpenCreateShelfModal,
     handleOpenDeleteShelfModal,
     handleOpenEditShelfModal,
-    handleOpenManageCollectionShelvesModal,
+    handleOpenAddShelfToSelectedCollection,
     handleOpenShelfBookDetails,
     handleRemoveSelectedShelfBook,
     handleSelectShelfBookStatus,
@@ -78,6 +80,7 @@ export default function EstantePage() {
     isEditShelfModalOpen,
     isCreatingCollection,
     isCreatingShelf,
+    isInsideCollection,
     isInsideShelf,
     isManageCollectionShelvesModalOpen,
     isProgressModalOpen,
@@ -110,6 +113,7 @@ export default function EstantePage() {
     searchInputAriaLabel,
     searchInputPlaceholder,
     searchTerm,
+    selectedCollectionName,
     selectedShelfId,
     selectedShelfDescription,
     selectedShelfName,
@@ -146,35 +150,77 @@ export default function EstantePage() {
   const visibleStatusOptions = readingStatusOptions.filter((option) => option.value !== "relendo");
   const selectedShelf = selectedShelfId === null ? undefined : shelves.find((shelf) => shelf.id === selectedShelfId);
 
+  let pageHeaderTitle: ReactNode = "Minha Estante";
+  if (isInsideShelf) {
+    pageHeaderTitle = (
+      <div className="inline-flex items-start gap-2">
+        <BackArrowButton onClick={handleBackToShelves} ariaLabel="Voltar para estantes" />
+        <div>
+          <p>{selectedShelfName}</p>
+          {selectedShelfDescription ? (
+            <p className="mt-0.5 text-sm font-normal text-[var(--text-secondary)]">{selectedShelfDescription}</p>
+          ) : null}
+        </div>
+      </div>
+    );
+  } else if (isInsideCollection) {
+    pageHeaderTitle = (
+      <span className="inline-flex items-center gap-2">
+        <BackArrowButton onClick={handleBackToShelves} ariaLabel="Voltar para coleções" />
+        <span>{selectedCollectionName}</span>
+      </span>
+    );
+  }
+
+  let sectionHeaderContent: ReactNode;
+  if (isInsideShelf) {
+    sectionHeaderContent = <SectionHeader title="Livros da estante" />;
+  } else if (isInsideCollection) {
+    sectionHeaderContent = <SectionHeader title="Estantes da coleção" />;
+  } else {
+    sectionHeaderContent = (
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <ChipToggle
+            label="Estantes"
+            active={rootViewMode === "estantes"}
+            onClick={() => handleChangeRootViewMode("estantes")}
+          />
+          <ChipToggle
+            label="Coleções"
+            active={rootViewMode === "colecoes"}
+            onClick={() => handleChangeRootViewMode("colecoes")}
+          />
+        </div>
+        <SectionHeader title={rootViewMode === "estantes" ? "Suas estantes" : "Suas coleções"} />
+      </div>
+    );
+  }
+
   return (
     <AppShell>
       <PageHeader
-        title={
-          isInsideShelf ? (
-            <div className="inline-flex items-start gap-2">
-              <BackArrowButton onClick={handleBackToShelves} ariaLabel="Voltar para estantes" />
-              <div>
-                <p>{selectedShelfName}</p>
-                {selectedShelfDescription ? (
-                  <p className="mt-0.5 text-sm font-normal text-[var(--text-secondary)]">{selectedShelfDescription}</p>
-                ) : null}
-              </div>
-            </div>
-          ) : (
-            "Minha Estante"
-          )
-        }
+        title={pageHeaderTitle}
         action={
           <div className="flex items-center gap-2">
-            {!isInsideShelf && rootViewMode === "estantes" ? (
+            {!isInsideShelf && !isInsideCollection && rootViewMode === "estantes" ? (
               <PrimaryButton onClick={handleOpenCreateShelfModal} aria-label="Criar estante">
                 Criar estante
               </PrimaryButton>
             ) : null}
 
-            {!isInsideShelf && rootViewMode === "colecoes" ? (
+            {!isInsideShelf && !isInsideCollection && rootViewMode === "colecoes" ? (
               <PrimaryButton onClick={handleOpenCreateCollectionModal} aria-label="Criar coleção">
                 Criar coleção
+              </PrimaryButton>
+            ) : null}
+
+            {isInsideCollection && !isInsideShelf ? (
+              <PrimaryButton onClick={handleOpenAddShelfToSelectedCollection} aria-label="Adicionar estante na coleção">
+                <span className="inline-flex items-center gap-2">
+                  <Plus size={16} />
+                  <span>Adicionar estante</span>
+                </span>
               </PrimaryButton>
             ) : null}
 
@@ -303,25 +349,7 @@ export default function EstantePage() {
         addToShelfError={addToShelfError}
       />
 
-      {isInsideShelf ? (
-        <SectionHeader title="Livros da estante" />
-      ) : (
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <ChipToggle
-              label="Estantes"
-              active={rootViewMode === "estantes"}
-              onClick={() => handleChangeRootViewMode("estantes")}
-            />
-            <ChipToggle
-              label="Coleções"
-              active={rootViewMode === "colecoes"}
-              onClick={() => handleChangeRootViewMode("colecoes")}
-            />
-          </div>
-          <SectionHeader title={rootViewMode === "estantes" ? "Suas estantes" : "Suas coleções"} />
-        </div>
-      )}
+      {sectionHeaderContent}
 
       {isInsideShelf ? (
         <div className="flex flex-wrap gap-2">
@@ -341,6 +369,7 @@ export default function EstantePage() {
         hasNoVisibleItems={hasNoVisibleItems}
         emptyStateTitle={emptyStateTitle}
         emptyStateDescription={emptyStateDescription}
+        isInsideCollection={isInsideCollection}
         isInsideShelf={isInsideShelf}
         filteredBooks={filteredBooks}
         onOpenBookDetails={handleOpenShelfBookDetails}
@@ -348,7 +377,7 @@ export default function EstantePage() {
         filteredShelves={filteredShelves}
         onEnterShelf={handleEnterShelf}
         filteredCollections={filteredCollections}
-        onOpenManageCollectionShelvesModal={handleOpenManageCollectionShelvesModal}
+        onEnterCollection={handleEnterCollection}
       />
 
       <ShelfBookDetailsPanel

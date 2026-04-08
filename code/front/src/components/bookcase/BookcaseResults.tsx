@@ -1,4 +1,4 @@
-import { BookCoverPlaceholder, EmptyState, ProgressBar, Button } from "@/components";
+import { BookCoverPlaceholder, EmptyState, ProgressBar } from "@/components";
 import type { BackendCollectionSummaryResponse, BackendShelfSummaryResponse } from "@/services";
 import type { RootViewMode, ShelfBook } from "@/hooks/useBookcasePage";
 import { ShelfCoverFrame } from "./ShelfCoverFrame";
@@ -8,6 +8,7 @@ interface BookcaseResultsProps {
   hasNoVisibleItems: boolean;
   emptyStateTitle: string;
   emptyStateDescription: string;
+  isInsideCollection: boolean;
   isInsideShelf: boolean;
   filteredBooks: ShelfBook[];
   onOpenBookDetails: (book: ShelfBook) => void;
@@ -15,7 +16,7 @@ interface BookcaseResultsProps {
   filteredShelves: BackendShelfSummaryResponse[];
   onEnterShelf: (shelf: BackendShelfSummaryResponse) => void;
   filteredCollections: BackendCollectionSummaryResponse[];
-  onOpenManageCollectionShelvesModal: (collection: BackendCollectionSummaryResponse) => void;
+  onEnterCollection: (collection: BackendCollectionSummaryResponse) => void;
 }
 
 function statusLabel(status: ShelfBook["readingStatus"]): string {
@@ -39,6 +40,7 @@ export function BookcaseResults({
   hasNoVisibleItems,
   emptyStateTitle,
   emptyStateDescription,
+  isInsideCollection,
   isInsideShelf,
   filteredBooks,
   onOpenBookDetails,
@@ -46,7 +48,7 @@ export function BookcaseResults({
   filteredShelves,
   onEnterShelf,
   filteredCollections,
-  onOpenManageCollectionShelvesModal,
+  onEnterCollection,
 }: Readonly<BookcaseResultsProps>) {
   if (loadError) {
     return (
@@ -116,7 +118,7 @@ export function BookcaseResults({
     );
   }
 
-  if (rootViewMode === "estantes") {
+  if (rootViewMode === "estantes" || isInsideCollection) {
     return (
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -147,15 +149,17 @@ export function BookcaseResults({
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         {filteredCollections.map((collection) => (
-          <div
+          <button
             key={collection.id}
+            type="button"
+            onClick={() => onEnterCollection(collection)}
             className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4"
           >
-            <p className="text-base font-semibold text-[var(--text-primary)]">{collection.name}</p>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            <p className="text-left text-base font-semibold text-[var(--text-primary)]">{collection.name}</p>
+            <p className="mt-1 text-left text-sm text-[var(--text-secondary)]">
               {collection.shelfCount} {collection.shelfCount === 1 ? "estante" : "estantes"}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap gap-2 text-left">
               {collection.shelfPreviews.slice(0, 4).map((shelfPreview) => (
                 <span
                   key={shelfPreview.id}
@@ -168,13 +172,7 @@ export function BookcaseResults({
                 <span className="text-xs text-[var(--text-secondary)]">Nenhuma estante vinculada</span>
               ) : null}
             </div>
-
-            <div className="mt-4 flex justify-end">
-              <Button onClick={() => onOpenManageCollectionShelvesModal(collection)}>
-                Adicionar estantes
-              </Button>
-            </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
