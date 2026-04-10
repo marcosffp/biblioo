@@ -3,6 +3,7 @@ package com.biblioo.user.infrastructure.config;
 import com.biblioo.user.domain.port.in.AuthUseCase;
 import com.biblioo.user.domain.port.in.UserUseCase;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
+import com.biblioo.user.domain.port.out.UserNotificationEventPort;
 import com.biblioo.user.domain.port.out.UserSearchPort;
 import com.biblioo.user.domain.service.UserService;
 import com.biblioo.user.infrastructure.async.TokenCleanupAdapter;
@@ -38,8 +39,10 @@ class UserConfig {
       UserFollowRepository followRepo,
       ProfileImagePort profileImagePort,
       RefreshTokenRepository tokenRepo,
-      UserSearchPort searchPort) {
+      UserSearchPort searchPort,
+      UserNotificationEventPort notificationEventPort) {
     return new CachedUserService(
-        new UserService(userRepo, followRepo, profileImagePort, tokenRepo, searchPort));
+        new UserService(
+            userRepo, followRepo, profileImagePort, tokenRepo, searchPort, notificationEventPort));
   }
 }

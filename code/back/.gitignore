@@ -34,3 +34,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### FCM ###
+firebase-service-account.json

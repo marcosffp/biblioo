@@ -8,6 +8,7 @@ import com.biblioo.user.domain.model.ProfileAccess;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.UserUseCase;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
+import com.biblioo.user.domain.port.out.UserNotificationEventPort;
 import com.biblioo.user.domain.port.out.UserSearchPort;
 import com.biblioo.user.infrastructure.persistence.RefreshTokenRepository;
 import com.biblioo.user.infrastructure.persistence.UserFollowRepository;
@@ -22,18 +23,21 @@ public class UserService implements UserUseCase {
   private final ProfileImagePort profileImagePort;
   private final RefreshTokenRepository tokenRepo;
   private final UserSearchPort searchPort;
+  private final UserNotificationEventPort notificationEventPort;
 
   public UserService(
       UserRepository userRepo,
       UserFollowRepository followRepo,
       ProfileImagePort profileImagePort,
       RefreshTokenRepository tokenRepo,
-      UserSearchPort searchPort) {
+      UserSearchPort searchPort,
+      UserNotificationEventPort notificationEventPort) {
     this.userRepo = userRepo;
     this.followRepo = followRepo;
     this.profileImagePort = profileImagePort;
     this.tokenRepo = tokenRepo;
     this.searchPort = searchPort;
+    this.notificationEventPort = notificationEventPort;
   }
 
   @Override
@@ -108,6 +112,8 @@ public class UserService implements UserUseCase {
     }
     User target =
         userRepo.findById(followedId).orElseThrow(() -> new UserNotFoundException(followedId));
+    User actor =
+        userRepo.findById(followerId).orElseThrow(() -> new UserNotFoundException(followerId));
 
     Optional<FollowStatus> existing = followRepo.findFollowStatus(followerId, followedId);
     if (existing.isPresent()) {
@@ -120,6 +126,15 @@ public class UserService implements UserUseCase {
 
     FollowStatus status = target.isPrivate() ? FollowStatus.PENDING : FollowStatus.ACCEPTED;
     followRepo.follow(followerId, followedId, status);
+
+    if (status == FollowStatus.PENDING) {
+      notificationEventPort.publishFollowRequested(
+          actor.getId(), actor.getUsername(), actor.getAvatarUrl(), target.getId());
+    } else {
+      notificationEventPort.publishFollowed(
+          actor.getId(), actor.getUsername(), actor.getAvatarUrl(), target.getId());
+    }
+
     return status;
   }
 
@@ -144,6 +159,11 @@ public class UserService implements UserUseCase {
       throw new IllegalArgumentException("Solicitação de seguir não encontrada");
     }
     followRepo.acceptFollow(requesterId, userId);
+
+    User requester =
+        userRepo.findById(requesterId).orElseThrow(() -> new UserNotFoundException(requesterId));
+    notificationEventPort.publishFollowed(
+        requester.getId(), requester.getUsername(), requester.getAvatarUrl(), userId);
   }
 
   @Override

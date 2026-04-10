@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Decorator de cache sobre UserService. Cache único "user-profile" com chave = id do usuário.
@@ -57,11 +58,13 @@ public class CachedUserService implements UserUseCase {
   }
 
   @Override
+  @Transactional
   public FollowStatus follow(Long followerId, Long followedId) {
     return delegate.follow(followerId, followedId);
   }
 
   @Override
+  @Transactional
   public void unfollow(Long followerId, Long followedId) {
     delegate.unfollow(followerId, followedId);
   }
@@ -72,11 +75,13 @@ public class CachedUserService implements UserUseCase {
   }
 
   @Override
+  @Transactional
   public void acceptFollowRequest(Long userId, Long requesterId) {
     delegate.acceptFollowRequest(userId, requesterId);
   }
 
   @Override
+  @Transactional
   public void rejectFollowRequest(Long userId, Long requesterId) {
     delegate.rejectFollowRequest(userId, requesterId);
   }
