@@ -82,6 +82,45 @@ public class ShelfItemController {
     return ResponseEntity.ok(mapper.toResponse(item, book));
   }
 
+  @GetMapping("/user/{userId}")
+  @Operation(
+      summary = "Lista itens da estante de um usuário",
+      description =
+          "Retorna todos os livros de uma determinada estante de um usuário específico.")
+  public ResponseEntity<List<ShelfItemSummaryResponse>> listUserItems(
+      @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
+      @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId) {
+
+    List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelfId);
+
+    List<ShelfItemSummaryResponse> response =
+        items.stream()
+            .map(
+                item -> {
+                  Book book = bookUseCase.getById(item.getBookId());
+                  return mapper.toSummaryResponse(item, book);
+                })
+            .toList();
+
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/user/{userId}/{itemId}")
+  @Operation(
+      summary = "Detalhes do item da estante de um usuário",
+      description =
+          "Retorna os detalhes completos do livro na estante de um usuário específico.")
+  public ResponseEntity<ShelfItemResponse> getUserItem(
+      @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
+      @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId,
+      @Parameter(description = "ID do item", example = "1") @PathVariable Long itemId) {
+
+    ShelfItem item = shelfUseCase.getShelfItemById(userId, shelfId, itemId);
+    Book book = bookUseCase.getById(item.getBookId());
+
+    return ResponseEntity.ok(mapper.toResponse(item, book));
+  }
+
   @PostMapping
   @Operation(
       summary = "Adiciona livro à estante",

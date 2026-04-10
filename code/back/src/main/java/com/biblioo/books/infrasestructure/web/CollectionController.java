@@ -84,6 +84,41 @@ public class CollectionController {
     return ResponseEntity.ok(mapper.toResponse(col, previews));
   }
 
+  @GetMapping("/user/{userId}")
+  @Operation(
+      summary = "Lista coleções de um usuário específico",
+      description = "Retorna todas as coleções de um usuário específico no formato resumido.")
+  public ResponseEntity<List<CollectionSummaryResponse>> listUserCollections(
+      @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId) {
+
+    List<Collection> collections = collectionUseCase.listCollections(userId);
+
+    List<CollectionSummaryResponse> response =
+        collections.stream()
+            .map(
+                col -> {
+                  List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
+                  return mapper.toSummaryResponse(col, previews);
+                })
+            .toList();
+
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/user/{userId}/{collectionId}")
+  @Operation(
+      summary = "Detalhes de uma coleção de um usuário específico",
+      description = "Retorna os detalhes completos de uma coleção específica de um usuário.")
+  public ResponseEntity<CollectionResponse> getUserCollection(
+      @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
+      @Parameter(description = "ID da coleção", example = "1") @PathVariable Long collectionId) {
+
+    Collection col = collectionUseCase.getCollection(userId, collectionId);
+    List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
+
+    return ResponseEntity.ok(mapper.toResponse(col, previews));
+  }
+
   @PostMapping
   @Operation(
       summary = "Cria uma coleção",

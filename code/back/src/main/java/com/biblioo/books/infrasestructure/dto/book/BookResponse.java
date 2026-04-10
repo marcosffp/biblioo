@@ -8,4 +8,6 @@ public record BookResponse(
     List<String> authors,
     String coverUrl,
     Integer pageCount,
-    Float averageRating) {}
+    Float averageRating,
+    String description,
+    Integer readerCount) {}
