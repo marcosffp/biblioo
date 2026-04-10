@@ -1,16 +1,20 @@
 package com.biblioo.user.domain.service;
 
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
+import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
+import com.biblioo.user.domain.model.FollowStatus;
 import com.biblioo.user.domain.model.ProfileAccess;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.UserUseCase;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
+import com.biblioo.user.domain.port.out.UserNotificationEventPort;
 import com.biblioo.user.domain.port.out.UserSearchPort;
 import com.biblioo.user.infrastructure.persistence.RefreshTokenRepository;
 import com.biblioo.user.infrastructure.persistence.UserFollowRepository;
 import com.biblioo.user.infrastructure.persistence.UserRepository;
 import java.util.List;
+import java.util.Optional;
 
 public class UserService implements UserUseCase {
 
@@ -19,18 +23,21 @@ public class UserService implements UserUseCase {
   private final ProfileImagePort profileImagePort;
   private final RefreshTokenRepository tokenRepo;
   private final UserSearchPort searchPort;
+  private final UserNotificationEventPort notificationEventPort;
 
   public UserService(
       UserRepository userRepo,
       UserFollowRepository followRepo,
       ProfileImagePort profileImagePort,
       RefreshTokenRepository tokenRepo,
-      UserSearchPort searchPort) {
+      UserSearchPort searchPort,
+      UserNotificationEventPort notificationEventPort) {
     this.userRepo = userRepo;
     this.followRepo = followRepo;
     this.profileImagePort = profileImagePort;
     this.tokenRepo = tokenRepo;
     this.searchPort = searchPort;
+    this.notificationEventPort = notificationEventPort;
   }
 
   @Override
@@ -99,15 +106,36 @@ public class UserService implements UserUseCase {
   }
 
   @Override
-  public void follow(Long followerId, Long followedId) {
+  public FollowStatus follow(Long followerId, Long followedId) {
     if (followerId.equals(followedId)) {
-      throw new IllegalArgumentException("You cannot follow yourself");
+      throw new IllegalArgumentException("Você não pode seguir a si mesmo");
     }
-    userRepo.findById(followedId).orElseThrow(() -> new UserNotFoundException(followedId));
-    if (followRepo.isFollowing(followerId, followedId)) {
-      throw new AlreadyFollowingException();
+    User target =
+        userRepo.findById(followedId).orElseThrow(() -> new UserNotFoundException(followedId));
+    User actor =
+        userRepo.findById(followerId).orElseThrow(() -> new UserNotFoundException(followerId));
+
+    Optional<FollowStatus> existing = followRepo.findFollowStatus(followerId, followedId);
+    if (existing.isPresent()) {
+      if (existing.get() == FollowStatus.ACCEPTED) {
+        throw new AlreadyFollowingException();
+      } else {
+        throw new FollowRequestAlreadySentException();
+      }
     }
-    followRepo.follow(followerId, followedId);
+
+    FollowStatus status = target.isPrivate() ? FollowStatus.PENDING : FollowStatus.ACCEPTED;
+    followRepo.follow(followerId, followedId, status);
+
+    if (status == FollowStatus.PENDING) {
+      notificationEventPort.publishFollowRequested(
+          actor.getId(), actor.getUsername(), actor.getAvatarUrl(), target.getId());
+    } else {
+      notificationEventPort.publishFollowed(
+          actor.getId(), actor.getUsername(), actor.getAvatarUrl(), target.getId());
+    }
+
+    return status;
   }
 
   @Override
@@ -118,6 +146,34 @@ public class UserService implements UserUseCase {
   @Override
   public boolean isFollowing(Long followerId, Long followedId) {
     return followRepo.isFollowing(followerId, followedId);
+  }
+
+  @Override
+  public void acceptFollowRequest(Long userId, Long requesterId) {
+    FollowStatus status =
+        followRepo
+            .findFollowStatus(requesterId, userId)
+            .orElseThrow(
+                () -> new IllegalArgumentException("Solicitação de seguir não encontrada"));
+    if (status != FollowStatus.PENDING) {
+      throw new IllegalArgumentException("Solicitação de seguir não encontrada");
+    }
+    followRepo.acceptFollow(requesterId, userId);
+
+    User requester =
+        userRepo.findById(requesterId).orElseThrow(() -> new UserNotFoundException(requesterId));
+    notificationEventPort.publishFollowed(
+        requester.getId(), requester.getUsername(), requester.getAvatarUrl(), userId);
+  }
+
+  @Override
+  public void rejectFollowRequest(Long userId, Long requesterId) {
+    followRepo.unfollow(requesterId, userId);
+  }
+
+  @Override
+  public List<User> getPendingFollowRequests(Long userId, int page, int size) {
+    return followRepo.findPendingRequests(userId, page, size);
   }
 
   @Override
