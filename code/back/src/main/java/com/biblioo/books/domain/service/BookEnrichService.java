@@ -12,10 +12,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,12 +31,14 @@ public class BookEnrichService {
   private final CategoryRepository categoryRepository;
   private final OpenSearchBookAdapter search;
   private final GoogleBooksAdapter external;
+  @Qualifier("bookEnrichExecutor")
+  private final Executor bookEnrichExecutor;
 
   public List<Book> enrichSync(String query) {
     var externalBooks = external.search(query);
     if (externalBooks.isEmpty()) return List.of();
-    persistNewBooks(externalBooks);
-    return externalBooks;
+    var saved = persistNewBooks(externalBooks);
+    return saved.isEmpty() ? externalBooks : saved;
   }
 
   @Async("bookEnrichExecutor")
@@ -50,12 +54,13 @@ public class BookEnrichService {
   }
 
   @Transactional
-  public void persistNewBooks(List<Book> books) {
+  public List<Book> persistNewBooks(List<Book> books) {
     var newBooks = filterExisting(books);
-    if (newBooks.isEmpty()) return;
+    if (newBooks.isEmpty()) return List.of();
     resolveCategories(newBooks);
     var saved = repository.saveAll(newBooks);
-    search.indexAll(saved);
+    CompletableFuture.runAsync(() -> search.indexAll(saved), bookEnrichExecutor);
+    return saved;
   }
 
   private void resolveCategories(List<Book> books) {

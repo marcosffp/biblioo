@@ -23,11 +23,10 @@ public interface BookRepository extends JpaRepository<Book, Long> {
   List<Book> findByTitleContainingIgnoreCaseOrderByTitleAsc(String title);
 
   @Query(
-      """
-            SELECT b FROM Book b
-            WHERE b.searchText LIKE LOWER(CONCAT('%', :term, '%'))
-            ORDER BY b.title ASC
-            """)
+      value =
+          "SELECT * FROM books WHERE MATCH(search_text) AGAINST (:term IN BOOLEAN MODE)"
+              + " ORDER BY title ASC",
+      nativeQuery = true)
   List<Book> searchByTerm(@Param("term") String term);
 
   @Query(

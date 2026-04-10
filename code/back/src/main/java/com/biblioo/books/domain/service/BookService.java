@@ -6,11 +6,16 @@ import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.infrasestructure.persistence.BookRepository;
 import com.biblioo.books.infrasestructure.search.OpenSearchBookAdapter;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class BookService implements BookUseCase {
@@ -18,6 +23,8 @@ public class BookService implements BookUseCase {
   private final BookRepository repository;
   private final OpenSearchBookAdapter search;
   private final BookEnrichService enrichService;
+  @Qualifier("bookEnrichExecutor")
+  private final Executor bookEnrichExecutor;
 
   @Override
   @Cacheable(
@@ -25,24 +32,54 @@ public class BookService implements BookUseCase {
       key = "#query.strip().toLowerCase()",
       unless = "#result.isEmpty()")
   public List<Book> search(String query) {
-    var local = search.search(query);
+    var futureLocal =
+        CompletableFuture.supplyAsync(() -> search.search(query), bookEnrichExecutor)
+            .exceptionally(
+                e -> {
+                  log.warn(
+                      "OpenSearch falhou durante search. query='{}'. Causa: {}",
+                      query,
+                      e.getMessage());
+                  return List.of();
+                });
 
-    if (local.isEmpty()) {
-      var db = repository.searchByTerm(query);
-      if (!db.isEmpty()) {
-        if (db.size() < 3) {
-          enrichService.enrichAsync(query);
-        }
-        return db;
-      }
-      return enrichService.enrichSync(query);
+    var futureDb =
+        CompletableFuture.supplyAsync(() -> repository.searchByTerm(query), bookEnrichExecutor)
+            .exceptionally(
+                e -> {
+                  log.warn(
+                      "DB falhou durante searchByTerm. query='{}'. Causa: {}",
+                      query,
+                      e.getMessage());
+                  return List.of();
+                });
+
+    // Inicia especulativamente em paralelo com OS+DB.
+    // Se local/DB tiverem resultado, roda em background como enriquecimento.
+    // Se ambos estiverem vazios, o resultado já está pronto (ou quase) quando chegamos aqui.
+    var futureExternal =
+        CompletableFuture.supplyAsync(() -> enrichService.enrichSync(query), bookEnrichExecutor)
+            .exceptionally(
+                e -> {
+                  log.warn(
+                      "Enriquecimento externo falhou. query='{}'. Causa: {}", query, e.getMessage());
+                  return List.of();
+                });
+
+    CompletableFuture.allOf(futureLocal, futureDb).join();
+
+    var local = futureLocal.getNow(List.of());
+    var db = futureDb.getNow(List.of());
+
+    if (!local.isEmpty()) {
+      return local;
     }
 
-    if (local.size() < 3) {
-      enrichService.enrichAsync(query);
+    if (!db.isEmpty()) {
+      return db;
     }
 
-    return local;
+    return futureExternal.join();
   }
 
   @Override
