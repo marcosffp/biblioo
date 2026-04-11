@@ -127,6 +127,13 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage: string)
   return (await response.json()) as T;
 }
 
+async function ensureSuccessResponse(response: Response, fallbackMessage: string): Promise<void> {
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new BookcaseApiError(message || fallbackMessage, response.status);
+  }
+}
+
 async function readErrorMessage(response: Response): Promise<string> {
   try {
     const data = (await response.clone().json()) as { message?: string };
@@ -195,6 +202,19 @@ export async function listShelves(): Promise<BackendShelfSummaryResponse[]> {
   return parseJsonResponse<BackendShelfSummaryResponse[]>(response, "Falha ao carregar estantes.");
 }
 
+export async function getShelfById(shelfId: number): Promise<BackendShelfResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
+      headers: buildAuthHeaders(),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel carregar os detalhes da estante.");
+  }
+
+  return parseJsonResponse<BackendShelfResponse>(response, "Falha ao carregar os detalhes da estante.");
+}
+
 export async function createShelf(name: string, description = ""): Promise<BackendShelfResponse> {
   let response: Response;
   try {
@@ -214,6 +234,45 @@ export async function createShelf(name: string, description = ""): Promise<Backe
   }
 
   return parseJsonResponse<BackendShelfResponse>(response, "Falha ao criar estante.");
+}
+
+export async function updateShelf(
+  shelfId: number,
+  name: string,
+  description = "",
+): Promise<BackendShelfResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
+      method: "PUT",
+      headers: {
+        ...buildAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        description,
+      }),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel atualizar a estante.");
+  }
+
+  return parseJsonResponse<BackendShelfResponse>(response, "Falha ao atualizar estante.");
+}
+
+export async function deleteShelf(shelfId: number): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
+      method: "DELETE",
+      headers: buildAuthHeaders(),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel apagar a estante.");
+  }
+
+  await ensureSuccessResponse(response, "Falha ao apagar estante.");
 }
 
 export async function listShelfItems(shelfId: number): Promise<BackendShelfItemSummaryResponse[]> {
@@ -268,6 +327,20 @@ export async function addBookToShelf(
   }
 
   return parseJsonResponse<BackendShelfItemResponse>(response, "Falha ao adicionar livro na estante.");
+}
+
+export async function removeBookFromShelf(shelfId: number, itemId: number): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items/${itemId}`, {
+      method: "DELETE",
+      headers: buildAuthHeaders(),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel remover o livro da estante.");
+  }
+
+  await ensureSuccessResponse(response, "Falha ao remover livro da estante.");
 }
 
 export async function updateShelfItemProgress(

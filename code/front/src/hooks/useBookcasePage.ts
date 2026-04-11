@@ -16,18 +16,23 @@ import {
   changeShelfItemStatus,
   createCollection,
   createShelf,
+  deleteShelf,
   getAccessToken,
   getBookById,
+  getShelfById,
   getShelfItemById,
   listCollections,
   listShelfItems,
   listShelves,
+  removeBookFromShelf,
   searchBooks,
   updateBookReview,
+  updateShelf,
   updateShelfItemProgress,
   type BackendBookResponse,
   type BackendCollectionResponse,
   type BackendCollectionSummaryResponse,
+  type BackendShelfResponse,
   type BackendShelfSummaryResponse,
 } from "@/services";
 
@@ -55,6 +60,9 @@ export interface ShelfBook extends RuleBook {
 }
 
 export type RootViewMode = "estantes" | "colecoes";
+
+const MIN_ADD_BOOK_SEARCH_LENGTH = 2;
+const ADD_BOOK_SEARCH_DEBOUNCE_MS = 300;
 
 function mapBackendReadingStatus(status: string): Exclude<ReadingStatus, "todos"> {
   switch (status) {
@@ -107,6 +115,27 @@ function toCollectionSummary(
   };
 }
 
+function toShelfSummary(shelf: BackendShelfResponse): BackendShelfSummaryResponse {
+  return {
+    id: shelf.id,
+    name: shelf.name,
+    itemCount: shelf.itemCount,
+    coverPreview: shelf.coverPreview,
+  };
+}
+
+function removeShelfFromCollectionPreview(
+  collection: BackendCollectionSummaryResponse,
+  shelfId: number,
+): BackendCollectionSummaryResponse {
+  const nextShelfPreviews = collection.shelfPreviews.filter((shelfPreview) => shelfPreview.id !== shelfId);
+  return {
+    ...collection,
+    shelfCount: Math.max(0, collection.shelfCount - (collection.shelfPreviews.length - nextShelfPreviews.length)),
+    shelfPreviews: nextShelfPreviews,
+  };
+}
+
 function addSelectedId(currentIds: number[], nextId: number): number[] {
   return currentIds.includes(nextId) ? currentIds : [...currentIds, nextId];
 }
@@ -129,12 +158,20 @@ export function useBookcasePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
   const [isCreateShelfModalOpen, setIsCreateShelfModalOpen] = useState(false);
+  const [isEditShelfModalOpen, setIsEditShelfModalOpen] = useState(false);
+  const [isDeleteShelfModalOpen, setIsDeleteShelfModalOpen] = useState(false);
   const [isCreateCollectionModalOpen, setIsCreateCollectionModalOpen] = useState(false);
   const [isManageCollectionShelvesModalOpen, setIsManageCollectionShelvesModalOpen] = useState(false);
   const [addBookSearchTerm, setAddBookSearchTerm] = useState("");
   const [addBookSuggestions, setAddBookSuggestions] = useState<BackendBookResponse[]>([]);
+  const [isSearchingAddBook, setIsSearchingAddBook] = useState(false);
+  const [addBookSearchError, setAddBookSearchError] = useState("");
   const [newShelfName, setNewShelfName] = useState("");
   const [newShelfDescription, setNewShelfDescription] = useState("");
+  const [editShelfName, setEditShelfName] = useState("");
+  const [editShelfDescription, setEditShelfDescription] = useState("");
+  const [shelfToEdit, setShelfToEdit] = useState<BackendShelfSummaryResponse | null>(null);
+  const [shelfToDelete, setShelfToDelete] = useState<BackendShelfSummaryResponse | null>(null);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [newCollectionDescription, setNewCollectionDescription] = useState("");
   const [newCollectionShelfIds, setNewCollectionShelfIds] = useState<number[]>([]);
@@ -149,13 +186,19 @@ export function useBookcasePage() {
   const [shelves, setShelves] = useState<BackendShelfSummaryResponse[]>([]);
   const [collections, setCollections] = useState<BackendCollectionSummaryResponse[]>([]);
   const [shelfBooks, setShelfBooks] = useState<ShelfBook[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
   const [selectedShelfName, setSelectedShelfName] = useState("");
+  const [selectedShelfDescription, setSelectedShelfDescription] = useState("");
   const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null);
   const [loadError, setLoadError] = useState("");
   const [isAddingToShelf, setIsAddingToShelf] = useState(false);
   const [addToShelfError, setAddToShelfError] = useState("");
   const [isCreatingShelf, setIsCreatingShelf] = useState(false);
   const [createShelfError, setCreateShelfError] = useState("");
+  const [editShelfError, setEditShelfError] = useState("");
+  const [deleteShelfError, setDeleteShelfError] = useState("");
+  const [isSavingShelfEdit, setIsSavingShelfEdit] = useState(false);
+  const [isDeletingShelf, setIsDeletingShelf] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [progressBook, setProgressBook] = useState<ShelfBook | null>(null);
   const [progressDraft, setProgressDraft] = useState("");
@@ -165,15 +208,28 @@ export function useBookcasePage() {
   const [selectedShelfBook, setSelectedShelfBook] = useState<ShelfBook | null>(null);
   const [bookDetailsError, setBookDetailsError] = useState("");
   const [isSavingShelfBookDetails, setIsSavingShelfBookDetails] = useState(false);
+  const [isRemovingBookFromShelf, setIsRemovingBookFromShelf] = useState(false);
   const [activeReviewId, setActiveReviewId] = useState<number | null>(null);
   const [reviewRatingDraft, setReviewRatingDraft] = useState(0);
   const [reviewCommentDraft, setReviewCommentDraft] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [isSavingReview, setIsSavingReview] = useState(false);
 
+  const isInsideCollection = selectedCollectionId !== null;
   const isInsideShelf = selectedShelfId !== null;
+  const selectedCollection =
+    selectedCollectionId === null ? null : collections.find((collection) => collection.id === selectedCollectionId) ?? null;
+  const selectedCollectionName = selectedCollection?.name ?? "";
+  const selectedCollectionShelves: BackendShelfSummaryResponse[] = selectedCollection
+    ? selectedCollection.shelfPreviews.map((shelfPreview) => ({
+        id: shelfPreview.id,
+        name: shelfPreview.name,
+        itemCount: shelfPreview.itemCount,
+        coverPreview: shelfPreview.firstBookCoverUrl ? [shelfPreview.firstBookCoverUrl] : [],
+      }))
+    : [];
   const normalizedTerm = normalizeSearchTerm(searchTerm);
-  const filteredShelves = shelves;
+  const filteredShelves = isInsideCollection ? selectedCollectionShelves : shelves;
   const filteredCollections = collections;
   const availableShelvesForManagedCollection = collectionToManage
     ? shelves.filter((shelf) => !collectionToManage.shelfPreviews.some((previewShelf) => previewShelf.id === shelf.id))
@@ -184,6 +240,8 @@ export function useBookcasePage() {
   let hasNoVisibleItems = false;
   if (isInsideShelf) {
     hasNoVisibleItems = filteredBooks.length === 0;
+  } else if (isInsideCollection) {
+    hasNoVisibleItems = filteredShelves.length === 0;
   } else if (rootViewMode === "estantes") {
     hasNoVisibleItems = filteredShelves.length === 0;
   } else {
@@ -199,6 +257,9 @@ export function useBookcasePage() {
     emptyStateDescription = normalizedTerm
       ? `Nenhum livro corresponde à busca por "${trimmedSearchTerm}".`
       : "Use o botão de adicionar livro para preencher esta estante.";
+  } else if (isInsideCollection) {
+    emptyStateTitle = "Esta coleção ainda não possui estantes";
+    emptyStateDescription = "Use o botão de adicionar estante para organizar esta coleção.";
   } else if (rootViewMode === "estantes") {
     emptyStateTitle = "Você ainda não possui estantes";
     emptyStateDescription = "Crie sua primeira estante para organizar seus livros.";
@@ -208,12 +269,17 @@ export function useBookcasePage() {
   }
 
   const normalizedAddBookTerm = normalizeSearchTerm(addBookSearchTerm);
+  const shouldSearchAddBook = normalizedAddBookTerm.length >= MIN_ADD_BOOK_SEARCH_LENGTH;
   const searchInputAriaLabel = "Pesquisar livros nesta estante";
   const searchInputPlaceholder = "Buscar livros nesta estante";
+  const validAddBookSuggestions = addBookSuggestions.filter(
+    (suggestion): suggestion is BackendBookResponse & { id: number } =>
+      typeof suggestion.id === "number" && Number.isFinite(suggestion.id),
+  );
 
   const computedSuggestions = computeBookSuggestions(
-    addBookSuggestions.map((suggestion) => ({
-      id: suggestion.id.toString(),
+    validAddBookSuggestions.map((suggestion) => ({
+      id: String(suggestion.id),
       title: suggestion.title,
       author: pickAuthor(suggestion.authors),
       readingStatus: "quero-ler",
@@ -222,7 +288,7 @@ export function useBookcasePage() {
   );
 
   const visibleAddBookSuggestions = computedSuggestions.map((suggestion) => {
-    const source = addBookSuggestions.find((item) => item.id.toString() === suggestion.id);
+    const source = validAddBookSuggestions.find((item) => String(item.id) === suggestion.id);
     return {
       id: suggestion.id,
       title: suggestion.title,
@@ -265,7 +331,9 @@ export function useBookcasePage() {
         setShelves([]);
         setCollections([]);
         setShelfBooks([]);
+        setSelectedCollectionId(null);
         setSelectedShelfId(null);
+        setSelectedShelfDescription("");
         return;
       }
 
@@ -273,8 +341,10 @@ export function useBookcasePage() {
         const [shelfSummaries, collectionSummaries] = await Promise.all([listShelves(), listCollections()]);
         setShelves(shelfSummaries);
         setCollections(collectionSummaries);
+        setSelectedCollectionId(null);
         setSelectedShelfId(null);
         setSelectedShelfName("");
+        setSelectedShelfDescription("");
         setShelfBooks([]);
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
@@ -290,21 +360,41 @@ export function useBookcasePage() {
 
   useEffect(() => {
     async function loadAddBookSuggestions() {
-      if (!isAddBookModalOpen || normalizedAddBookTerm.length < 2) {
+      if (!isAddBookModalOpen) {
         setAddBookSuggestions([]);
+        setAddBookSearchError("");
+        setIsSearchingAddBook(false);
+        return;
+      }
+
+      if (!shouldSearchAddBook) {
+        setAddBookSuggestions([]);
+        setAddBookSearchError("");
+        setIsSearchingAddBook(false);
         return;
       }
 
       try {
+        setIsSearchingAddBook(true);
+        setAddBookSearchError("");
         const searchResult = await searchBooks(addBookSearchTerm);
         setAddBookSuggestions(searchResult.slice(0, 8));
       } catch {
         setAddBookSuggestions([]);
+        setAddBookSearchError("Nao foi possivel buscar livros agora. Tente novamente.");
+      } finally {
+        setIsSearchingAddBook(false);
       }
     }
 
-    void loadAddBookSuggestions();
-  }, [addBookSearchTerm, isAddBookModalOpen, normalizedAddBookTerm.length]);
+    const timeoutId = globalThis.setTimeout(() => {
+      void loadAddBookSuggestions();
+    }, ADD_BOOK_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      globalThis.clearTimeout(timeoutId);
+    };
+  }, [addBookSearchTerm, isAddBookModalOpen, shouldSearchAddBook]);
 
   const handleSuggestionSelect = (suggestion: { id: string; title: string; author: string; coverUrl?: string }) => {
     async function loadBookDetails() {
@@ -345,6 +435,7 @@ export function useBookcasePage() {
 
   const handleChangeRootViewMode = (mode: RootViewMode) => {
     setRootViewMode(mode);
+    setSelectedCollectionId(null);
     setSearchTerm("");
   };
 
@@ -352,6 +443,8 @@ export function useBookcasePage() {
     setIsAddBookModalOpen(false);
     setAddBookSearchTerm("");
     setAddBookSuggestions([]);
+    setAddBookSearchError("");
+    setIsSearchingAddBook(false);
   };
 
   const handleOpenCreateCollectionModal = () => {
@@ -419,6 +512,20 @@ export function useBookcasePage() {
     setIsManageCollectionShelvesModalOpen(true);
   };
 
+  const handleEnterCollection = (collection: BackendCollectionSummaryResponse) => {
+    setSelectedCollectionId(collection.id);
+    setRootViewMode("colecoes");
+    setSearchTerm("");
+  };
+
+  const handleOpenAddShelfToSelectedCollection = () => {
+    if (!selectedCollection) {
+      return;
+    }
+
+    handleOpenManageCollectionShelvesModal(selectedCollection);
+  };
+
   const handleCloseManageCollectionShelvesModal = () => {
     setCollectionToManage(null);
     setManageCollectionShelfIds([]);
@@ -476,11 +583,13 @@ export function useBookcasePage() {
       setLoadError("");
       setSelectedShelfId(shelf.id);
       setSelectedShelfName(shelf.name);
+      setSelectedShelfDescription("");
       setStatusFilter("todos");
       setSearchTerm("");
 
       try {
-        await loadShelfBooks(shelf.id);
+        const [shelfDetails] = await Promise.all([getShelfById(shelf.id), loadShelfBooks(shelf.id)]);
+        setSelectedShelfDescription(shelfDetails.description?.trim() ?? "");
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
           setLoadError("Faça login para abrir esta estante.");
@@ -494,8 +603,15 @@ export function useBookcasePage() {
   };
 
   const handleBackToShelves = () => {
+    if (!isInsideShelf) {
+      setSelectedCollectionId(null);
+      setSearchTerm("");
+      return;
+    }
+
     setSelectedShelfId(null);
     setSelectedShelfName("");
+    setSelectedShelfDescription("");
     setShelfBooks([]);
     setStatusFilter("todos");
     setSearchTerm("");
@@ -528,6 +644,60 @@ export function useBookcasePage() {
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
     setReviewError("");
+  };
+
+  const handleRemoveSelectedShelfBook = () => {
+    if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
+      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      return;
+    }
+
+    const activeShelfId = selectedShelfId;
+    const activeItemId = Number(selectedShelfBook.shelfItemId);
+
+    async function removeSelectedShelfBookAction() {
+      setIsRemovingBookFromShelf(true);
+      setBookDetailsError("");
+
+      try {
+        await removeBookFromShelf(activeShelfId, activeItemId);
+
+        setShelfBooks((currentBooks) => {
+          const nextBooks = currentBooks.filter((book) => book.shelfItemId !== activeItemId);
+
+          setShelves((currentShelves) =>
+            currentShelves.map((shelf) =>
+              shelf.id === activeShelfId
+                ? {
+                    ...shelf,
+                    itemCount: Math.max(0, shelf.itemCount - 1),
+                    coverPreview: nextBooks
+                      .map((book) => book.coverUrl)
+                      .filter((coverUrl): coverUrl is string => typeof coverUrl === "string" && coverUrl.length > 0)
+                      .slice(0, 4),
+                  }
+                : shelf,
+            ),
+          );
+
+          return nextBooks;
+        });
+
+        handleCloseShelfBookDetails();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faca login para remover livros da estante.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Nao foi possivel remover o livro da estante.");
+        }
+      } finally {
+        setIsRemovingBookFromShelf(false);
+      }
+    }
+
+    void removeSelectedShelfBookAction();
   };
 
   const handleSelectShelfBookStatus = (nextStatus: Exclude<ReadingStatus, "todos">) => {
@@ -837,6 +1007,147 @@ export function useBookcasePage() {
     setNewShelfDescription("");
   };
 
+  const handleOpenEditShelfModal = (shelf: BackendShelfSummaryResponse) => {
+    setShelfToEdit(shelf);
+    setEditShelfName(shelf.name);
+    setEditShelfDescription("");
+    setEditShelfError("");
+    setIsEditShelfModalOpen(true);
+
+    async function loadShelfDetails() {
+      try {
+        const shelfDetails = await getShelfById(shelf.id);
+        setEditShelfDescription(shelfDetails.description ?? "");
+      } catch {
+        setEditShelfDescription("");
+      }
+    }
+
+    void loadShelfDetails();
+  };
+
+  const handleCloseEditShelfModal = () => {
+    setIsEditShelfModalOpen(false);
+    setShelfToEdit(null);
+    setEditShelfName("");
+    setEditShelfDescription("");
+    setEditShelfError("");
+  };
+
+  const handleSaveShelfEdit = () => {
+    if (!shelfToEdit) {
+      return;
+    }
+
+    const normalizedName = editShelfName.trim();
+    const normalizedDescription = editShelfDescription.trim();
+    const activeShelfId = shelfToEdit.id;
+
+    if (!normalizedName) {
+      setEditShelfError("Informe um nome para a estante.");
+      return;
+    }
+
+    if (normalizedName.length > 100) {
+      setEditShelfError("O nome da estante deve ter no maximo 100 caracteres.");
+      return;
+    }
+
+    if (normalizedDescription.length > 300) {
+      setEditShelfError("A descricao deve ter no maximo 300 caracteres.");
+      return;
+    }
+
+    async function saveShelfEditAction() {
+      setIsSavingShelfEdit(true);
+      setEditShelfError("");
+
+      try {
+        const updatedShelf = await updateShelf(activeShelfId, normalizedName, normalizedDescription);
+        const nextSummary = toShelfSummary(updatedShelf);
+
+        setShelves((currentShelves) =>
+          currentShelves.map((shelf) => (shelf.id === nextSummary.id ? nextSummary : shelf)),
+        );
+
+        if (selectedShelfId === nextSummary.id) {
+          setSelectedShelfName(nextSummary.name);
+          setSelectedShelfDescription(updatedShelf.description?.trim() ?? "");
+        }
+
+        handleCloseEditShelfModal();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setEditShelfError("Faca login para editar estantes.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setEditShelfError(error.message);
+        } else {
+          setEditShelfError("Nao foi possivel editar a estante. Tente novamente.");
+        }
+      } finally {
+        setIsSavingShelfEdit(false);
+      }
+    }
+
+    void saveShelfEditAction();
+  };
+
+  const handleOpenDeleteShelfModal = (shelf: BackendShelfSummaryResponse) => {
+    setShelfToDelete(shelf);
+    setDeleteShelfError("");
+    setIsDeleteShelfModalOpen(true);
+  };
+
+  const handleCloseDeleteShelfModal = () => {
+    setIsDeleteShelfModalOpen(false);
+    setShelfToDelete(null);
+    setDeleteShelfError("");
+  };
+
+  const handleDeleteShelf = () => {
+    if (!shelfToDelete) {
+      return;
+    }
+
+    const activeShelfId = shelfToDelete.id;
+
+    async function deleteShelfAction() {
+      setIsDeletingShelf(true);
+      setDeleteShelfError("");
+
+      try {
+        await deleteShelf(activeShelfId);
+
+        setShelves((currentShelves) => currentShelves.filter((shelf) => shelf.id !== activeShelfId));
+        setCollections((currentCollections) =>
+          currentCollections.map((collection) => removeShelfFromCollectionPreview(collection, activeShelfId)),
+        );
+
+        if (selectedShelfId === activeShelfId) {
+          handleBackToShelves();
+        }
+
+        if (shelfToEdit?.id === activeShelfId) {
+          handleCloseEditShelfModal();
+        }
+
+        handleCloseDeleteShelfModal();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setDeleteShelfError("Faca login para apagar estantes.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setDeleteShelfError(error.message);
+        } else {
+          setDeleteShelfError("Nao foi possivel apagar a estante. Tente novamente.");
+        }
+      } finally {
+        setIsDeletingShelf(false);
+      }
+    }
+
+    void deleteShelfAction();
+  };
+
   const handleCreateShelf = () => {
     const normalizedName = newShelfName.trim();
     const normalizedDescription = newShelfDescription.trim();
@@ -985,9 +1296,14 @@ export function useBookcasePage() {
   return {
     addBookSearchTerm,
     addToShelfError,
+    addBookSearchError,
     activeReviewId,
     availableShelvesForManagedCollection,
     bookDetailsError,
+    deleteShelfError,
+    editShelfDescription,
+    editShelfError,
+    editShelfName,
     createCollectionError,
     createShelfError,
     emptyStateDescription,
@@ -998,17 +1314,24 @@ export function useBookcasePage() {
     hasNoVisibleItems,
     isAddBookModalOpen,
     isAddingToShelf,
+    isSearchingAddBook,
     isBookDetailsOpen,
     isCreateCollectionModalOpen,
     isCreateShelfModalOpen,
+    isDeleteShelfModalOpen,
+    isDeletingShelf,
+    isEditShelfModalOpen,
     isCreatingCollection,
     isCreatingShelf,
+    isInsideCollection,
     isInsideShelf,
     isManageCollectionShelvesModalOpen,
     isProgressModalOpen,
     isSavingReview,
+    isSavingShelfEdit,
     isSavingCollectionShelves,
     isSavingShelfBookDetails,
+    isRemovingBookFromShelf,
     isSavingProgress,
     isShelfBookDetailsOpen,
     isSelectedBookAlreadyInShelf,
@@ -1029,10 +1352,16 @@ export function useBookcasePage() {
     rootViewMode,
     searchInputAriaLabel,
     searchInputPlaceholder,
+    shouldSearchAddBook,
     searchTerm,
+    selectedShelfId,
+    selectedCollectionName,
+    selectedShelfDescription,
     selectedShelfName,
     selectedShelfBook,
     selectedSuggestionBook,
+    shelfToDelete,
+    shelfToEdit,
     shelfBooks,
     shelves,
     statusFilter,
@@ -1044,6 +1373,8 @@ export function useBookcasePage() {
     handleChangeRootViewMode,
     handleCloseAddBookModal,
     handleCloseBookDetails,
+    handleCloseDeleteShelfModal,
+    handleCloseEditShelfModal,
     handleCloseShelfBookDetails,
     handleCloseCreateCollectionModal,
     handleCloseCreateShelfModal,
@@ -1051,10 +1382,15 @@ export function useBookcasePage() {
     handleCloseProgressModal,
     handleCreateCollection,
     handleCreateShelf,
+    handleDeleteShelf,
+    handleEnterCollection,
     handleEnterShelf,
     handleOpenCreateCollectionModal,
     handleOpenCreateShelfModal,
+    handleOpenDeleteShelfModal,
+    handleOpenEditShelfModal,
     handleOpenManageCollectionShelvesModal,
+    handleOpenAddShelfToSelectedCollection,
     handleOpenShelfBookDetails,
     handleOpenProgressModal,
     handleSelectShelfBookStatus,
@@ -1062,7 +1398,9 @@ export function useBookcasePage() {
     handleSetReviewRating,
     handleSaveBookReview,
     handleSaveCollectionShelves,
+    handleSaveShelfEdit,
     handleSaveProgress,
+    handleRemoveSelectedShelfBook,
     handleStepShelfBookPage,
     handleSuggestionSelect,
     setAddBookSearchTerm,
@@ -1074,6 +1412,8 @@ export function useBookcasePage() {
     },
     setNewShelfDescription,
     setNewShelfName,
+    setEditShelfDescription,
+    setEditShelfName,
     setProgressDraft,
     setSearchTerm,
     setStatusFilter,
