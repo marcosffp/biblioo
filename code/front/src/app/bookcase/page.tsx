@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { readingStatusOptions, useBookcasePage } from "@/hooks/useBookcasePage";
 import { BookcaseResults } from "@/components/bookcase/BookcaseResults";
 import { BookcaseModals } from "@/components/bookcase/BookcaseModals";
@@ -11,7 +11,6 @@ import type { BackendCollectionSummaryResponse } from "@/services";
 import {
   AppShell,
   BackArrowButton,
-  Button,
   ChipToggle,
   EmptyState,
   PageHeader,
@@ -239,37 +238,6 @@ export default function EstantePage() {
 
             {isInsideShelf ? (
               <>
-                <Button
-                  onClick={() => {
-                    if (selectedShelf) {
-                      handleOpenEditShelfModal(selectedShelf);
-                    }
-                  }}
-                  disabled={!selectedShelf}
-                  aria-label="Editar estante"
-                  title="Editar estante"
-                  variant="outline"
-                  size="icon"
-                  className="h-9 w-9 border-[var(--border-soft)] text-[var(--brand-600)] hover:bg-[var(--bg-soft)]"
-                >
-                  <Pencil size={16} />
-                </Button>
-
-                <Button
-                  onClick={() => {
-                    if (selectedShelf) {
-                      handleOpenDeleteShelfModal(selectedShelf);
-                    }
-                  }}
-                  disabled={!selectedShelf}
-                  aria-label="Apagar estante"
-                  title="Apagar estante"
-                  size="icon"
-                  className="h-9 w-9 bg-[var(--danger-500)] text-white hover:bg-[var(--danger-600)]"
-                >
-                  <Trash2 size={16} />
-                </Button>
-
                 <PrimaryButton onClick={handleAddBookClick} aria-label="Adicionar livro na estante">
                   <span className="inline-flex items-center gap-2">
                     <Plus size={16} />
