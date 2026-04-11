@@ -137,6 +137,7 @@ export default function EstantePage() {
     toggleManageShelfSelection,
     visibleAddBookSuggestions,
     handleStepShelfBookPage,
+    handleSetShelfBookPage,
   } = useBookcasePage();
 
   const counts = {
@@ -357,6 +358,7 @@ export default function EstantePage() {
         onClose={handleCloseShelfBookDetails}
         onSelectStatus={handleSelectShelfBookStatus}
         onStepPage={handleStepShelfBookPage}
+        onSetPage={handleSetShelfBookPage}
         reviewRating={reviewRatingDraft}
         reviewComment={reviewCommentDraft}
         reviewExists={typeof activeReviewId === "number"}

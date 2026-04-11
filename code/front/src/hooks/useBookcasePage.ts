@@ -57,6 +57,7 @@ export interface ShelfBook extends RuleBook {
   readingStatus: Exclude<ReadingStatus, "todos">;
   coverUrl?: string;
   synopsis?: string;
+  description?: string;
   currentPage?: number;
   totalPages?: number;
 }
@@ -317,7 +318,8 @@ export function useBookcasePage() {
           author: pickAuthor(book.authors),
           readingStatus: mapBackendReadingStatus(item.status),
           coverUrl: item.bookCoverUrl ?? book.coverUrl ?? undefined,
-          synopsis: book.description ?? undefined,
+          synopsis: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
+          description: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
           rating: book.averageRating ?? undefined,
           readerCount: book.readerCount ?? undefined,
           progress: item.progressPercent ?? undefined,
@@ -1448,6 +1450,7 @@ export function useBookcasePage() {
     handleSaveProgress,
     handleRemoveSelectedShelfBook,
     handleStepShelfBookPage,
+    handleSetShelfBookPage,
     handleSuggestionSelect,
     setAddBookSearchTerm,
     setManageCollectionShelfIds,

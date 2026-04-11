@@ -240,7 +240,8 @@ export default function PerfilPage() {
                 author,
                 coverUrl: item.bookCoverUrl ?? book.coverUrl ?? undefined,
                 rating: book.averageRating ?? undefined,
-                synopsis: book.description ?? undefined,
+                synopsis: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
+                description: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
                 readerCount: book.readerCount ?? undefined,
                 progress: item.progressPercent ?? undefined,
                 readingStatus: mapBackendReadingStatus(item.status),
@@ -258,6 +259,7 @@ export default function PerfilPage() {
                 coverUrl: item.bookCoverUrl ?? undefined,
                 rating: undefined,
                 synopsis: undefined,
+                description: undefined,
                 readerCount: undefined,
                 progress: item.progressPercent ?? undefined,
                 readingStatus: mapBackendReadingStatus(item.status),
@@ -403,6 +405,79 @@ export default function PerfilPage() {
     const nextPage = currentPage + delta;
 
     if (nextPage < 0) {
+      return;
+    }
+
+    if (typeof totalPages === "number" && nextPage > totalPages) {
+      return;
+    }
+
+    async function updateShelfBookProgressAction() {
+      setIsSavingShelfBookDetails(true);
+      setBookDetailsError("");
+
+      try {
+        const requiresReadingStatus = activeBook.readingStatus !== "lendo" && activeBook.readingStatus !== "relendo";
+
+        if (requiresReadingStatus) {
+          await changeShelfItemStatus(activeBook.shelfId, activeBook.shelfItemId, "READING");
+        }
+
+        const updatedItem = await updateShelfItemProgress(activeBook.shelfId, activeBook.shelfItemId, nextPage);
+
+        setShelfBooks((currentBooks) =>
+          currentBooks.map((book) =>
+            book.shelfItemId === updatedItem.id
+              ? {
+                  ...book,
+                  readingStatus: mapBackendReadingStatus(updatedItem.status),
+                  progress: updatedItem.progressPercent ?? undefined,
+                  currentPage: updatedItem.currentPage ?? undefined,
+                  totalPages: updatedItem.totalPages ?? book.totalPages,
+                }
+              : book,
+          ),
+        );
+
+        setSelectedShelfBook((currentBook) => {
+          if (!currentBook || currentBook.shelfItemId !== updatedItem.id) {
+            return currentBook;
+          }
+
+          return {
+            ...currentBook,
+            readingStatus: mapBackendReadingStatus(updatedItem.status),
+            progress: updatedItem.progressPercent ?? undefined,
+            currentPage: updatedItem.currentPage ?? undefined,
+            totalPages: updatedItem.totalPages ?? currentBook.totalPages,
+          };
+        });
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faca login para atualizar o progresso.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Nao foi possivel atualizar o progresso do livro.");
+        }
+      } finally {
+        setIsSavingShelfBookDetails(false);
+      }
+    }
+
+    void updateShelfBookProgressAction();
+  };
+
+  const handleSetShelfBookPage = (nextPage: number) => {
+    if (!selectedShelfBook) {
+      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      return;
+    }
+
+    const activeBook = selectedShelfBook;
+    const totalPages = activeBook.totalPages;
+
+    if (!Number.isInteger(nextPage) || nextPage < 0) {
       return;
     }
 
@@ -856,6 +931,7 @@ export default function PerfilPage() {
         onClose={handleCloseShelfBookDetails}
         onSelectStatus={handleSelectShelfBookStatus}
         onStepPage={handleStepShelfBookPage}
+        onSetPage={handleSetShelfBookPage}
         onRemoveFromShelf={() => {
           // Profile page does not expose shelf removal from this modal yet.
         }}

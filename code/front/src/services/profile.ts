@@ -57,6 +57,7 @@ export type BookResponse = {
   pageCount?: number | null;
   averageRating?: number | null;
   description?: string | null;
+  synopsis?: string | null;
   readerCount?: number | null;
 };
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Bookmark,
@@ -20,6 +20,7 @@ interface ShelfBookDetailsPanelProps {
   onClose: () => void;
   onSelectStatus: (status: Exclude<ReadingStatus, "todos">) => void;
   onStepPage: (delta: number) => void;
+  onSetPage?: (page: number) => void;
   onRemoveFromShelf: () => void;
   reviewRating: number;
   reviewComment: string;
@@ -186,6 +187,7 @@ export function ShelfBookDetailsPanel({
   onClose,
   onSelectStatus,
   onStepPage,
+  onSetPage,
   onRemoveFromShelf,
   reviewRating,
   reviewComment,
@@ -201,6 +203,16 @@ export function ShelfBookDetailsPanel({
   errorMessage,
 }: Readonly<ShelfBookDetailsPanelProps>) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [isSynopsisExpanded, setIsSynopsisExpanded] = useState(false);
+  const [pageInputDraft, setPageInputDraft] = useState("");
+
+  useEffect(() => {
+    setPageInputDraft(String(book?.currentPage ?? 0));
+  }, [book?.currentPage, book?.id]);
+
+  useEffect(() => {
+    setIsSynopsisExpanded(false);
+  }, [book?.id]);
 
   const progressPercent = useMemo(() => {
     if (!book) {
@@ -236,7 +248,39 @@ export function ShelfBookDetailsPanel({
   const wantedCount = book.readingStatus === "quero-ler" ? 1 : 0;
   const abandonedCount = book.readingStatus === "abandonei" ? 1 : 0;
   const reviewCount = reviewExists ? 1 : 0;
-  const publicRatingCount = book.readerCount ?? 0;
+  const synopsisText = (book.synopsis ?? book.description ?? "").trim();
+  const hasLongSynopsis = synopsisText.length > 100;
+  const displayedSynopsis = hasLongSynopsis && !isSynopsisExpanded ? `${synopsisText.slice(0, 100).trimEnd()}...` : synopsisText;
+
+  const commitTypedPage = () => {
+    const normalizedDraft = pageInputDraft.trim();
+    if (!normalizedDraft) {
+      setPageInputDraft(String(currentPage));
+      return;
+    }
+
+    const parsedPage = Number(normalizedDraft);
+    if (!Number.isInteger(parsedPage) || parsedPage < 0) {
+      setPageInputDraft(String(currentPage));
+      return;
+    }
+
+    if (totalPages > 0 && parsedPage > totalPages) {
+      setPageInputDraft(String(currentPage));
+      return;
+    }
+
+    if (parsedPage === currentPage) {
+      return;
+    }
+
+    if (onSetPage) {
+      onSetPage(parsedPage);
+      return;
+    }
+
+    onStepPage(parsedPage - currentPage);
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
@@ -325,7 +369,7 @@ export function ShelfBookDetailsPanel({
                   <div className="inline-flex rounded-md bg-[#02a362] px-2 py-1 text-2xl font-bold leading-none text-white">
                     {publicRatingValue}
                   </div>
-                  <div className="mt-2 flex items-center gap-1 text-[var(--text-primary)]">
+                  <div className="mt-3 flex items-center gap-1 text-5xl text-[var(--text-primary)]">
                     {typeof book.rating === "number" ? <RatingStars value={book.rating} /> : null}
                   </div>
                 </article>
@@ -357,11 +401,18 @@ export function ShelfBookDetailsPanel({
               </div>
 
               <section className="mt-6 bg-white">
-                <p className="text-xl leading-relaxed text-[var(--text-secondary)]">
-                  {book.synopsis?.trim()
-                    ? book.synopsis
-                    : "Sinopse indisponível no momento."}
+                <p className="text-base leading-relaxed text-[var(--text-secondary)]">
+                  {synopsisText ? displayedSynopsis : "Sinopse indisponível no momento."}
                 </p>
+                {hasLongSynopsis ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsSynopsisExpanded((current) => !current)}
+                    className="mt-2 text-sm font-semibold text-[var(--brand-600)] hover:text-[var(--brand-700)]"
+                  >
+                    {isSynopsisExpanded ? "Ver menos" : "Ver mais"}
+                  </button>
+                ) : null}
               </section>
             </div>
           </div>
