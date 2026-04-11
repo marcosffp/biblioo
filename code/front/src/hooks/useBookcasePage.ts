@@ -870,6 +870,82 @@ export function useBookcasePage() {
     void updateShelfBookProgressAction();
   };
 
+  const handleSetShelfBookPage = (page: number) => {
+    if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
+      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      return;
+    }
+
+    if (!Number.isInteger(page) || page < 0) {
+      return;
+    }
+
+    const activeBook = selectedShelfBook;
+    const activeShelfId = selectedShelfId;
+    const activeItemId = Number(activeBook.shelfItemId);
+    const totalPages = activeBook.totalPages;
+
+    if (typeof totalPages === "number" && page > totalPages) {
+      return;
+    }
+
+    async function setShelfBookProgressAction() {
+      setIsSavingShelfBookDetails(true);
+      setBookDetailsError("");
+
+      try {
+        const requiresReadingStatus =
+          activeBook.readingStatus !== "lendo" && activeBook.readingStatus !== "relendo";
+
+        if (requiresReadingStatus) {
+          await changeShelfItemStatus(activeShelfId, activeItemId, "READING");
+        }
+
+        const updatedItem = await updateShelfItemProgress(activeShelfId, activeItemId, page);
+
+        setShelfBooks((currentBooks) =>
+          currentBooks.map((book) =>
+            book.shelfItemId === updatedItem.id
+              ? {
+                  ...book,
+                  readingStatus: mapBackendReadingStatus(updatedItem.status),
+                  progress: updatedItem.progressPercent ?? undefined,
+                  currentPage: updatedItem.currentPage ?? undefined,
+                  totalPages: updatedItem.totalPages ?? book.totalPages,
+                }
+              : book,
+          ),
+        );
+
+        setSelectedShelfBook((currentBook) => {
+          if (!currentBook || currentBook.shelfItemId !== updatedItem.id) {
+            return currentBook;
+          }
+
+          return {
+            ...currentBook,
+            readingStatus: mapBackendReadingStatus(updatedItem.status),
+            progress: updatedItem.progressPercent ?? undefined,
+            currentPage: updatedItem.currentPage ?? undefined,
+            totalPages: updatedItem.totalPages ?? currentBook.totalPages,
+          };
+        });
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faca login para atualizar o progresso.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Nao foi possivel atualizar o progresso do livro.");
+        }
+      } finally {
+        setIsSavingShelfBookDetails(false);
+      }
+    }
+
+    void setShelfBookProgressAction();
+  };
+
   const handleSetReviewRating = (value: number) => {
     setReviewError("");
     setReviewRatingDraft(value);

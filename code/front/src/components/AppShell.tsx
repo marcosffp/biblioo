@@ -10,7 +10,7 @@ export interface AppShellProps {
 
 export function AppShell({ children, className }: Readonly<AppShellProps>) {
   return (
-    <div className={`min-h-screen bg-slate-50 dark:bg-slate-900 ${className ?? ""}`.trim()}>
+    <div className={`min-h-screen bg-[var(--bg-canvas)] ${className ?? ""}`.trim()}>
       <TopHeader />
       <Sidebar />
       <main className="w-full pt-16 pl-64">
