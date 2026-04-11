@@ -6,26 +6,16 @@ import { readingStatusOptions, useBookcasePage } from "@/hooks/useBookcasePage";
 import { BookcaseResults } from "@/components/bookcase/BookcaseResults";
 import { BookcaseModals } from "@/components/bookcase/BookcaseModals";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
-import type { BackendCollectionSummaryResponse } from "@/services";
 
 import {
   AppShell,
   BackArrowButton,
   ChipToggle,
-  EmptyState,
   PageHeader,
   PrimaryButton,
   SectionHeader,
   TextInput,
 } from "@/components";
-
-function collectionBookCount(collection: BackendCollectionSummaryResponse): number {
-  if (!collection.shelfPreviews?.length) {
-    return 0;
-  }
-
-  return collection.shelfPreviews.reduce((total, shelf) => total + (shelf.itemCount ?? 0), 0);
-}
 
 export default function EstantePage() {
   const {
@@ -126,7 +116,6 @@ export default function EstantePage() {
     shouldSearchAddBook,
     searchTerm,
     selectedCollectionName,
-    selectedShelfId,
     selectedShelfDescription,
     selectedShelfName,
     selectedShelfBook,
@@ -160,8 +149,6 @@ export default function EstantePage() {
   };
 
   const visibleStatusOptions = readingStatusOptions.filter((option) => option.value !== "relendo");
-  const selectedShelf = selectedShelfId === null ? undefined : shelves.find((shelf) => shelf.id === selectedShelfId);
-
   let pageHeaderTitle: ReactNode = "Minha Estante";
   if (isInsideShelf) {
     pageHeaderTitle = (
@@ -237,14 +224,12 @@ export default function EstantePage() {
             ) : null}
 
             {isInsideShelf ? (
-              <>
-                <PrimaryButton onClick={handleAddBookClick} aria-label="Adicionar livro na estante">
-                  <span className="inline-flex items-center gap-2">
-                    <Plus size={16} />
-                    <span>Adicionar livro</span>
-                  </span>
-                </PrimaryButton>
-              </>
+              <PrimaryButton onClick={handleAddBookClick} aria-label="Adicionar livro na estante">
+                <span className="inline-flex items-center gap-2">
+                  <Plus size={16} />
+                  <span>Adicionar livro</span>
+                </span>
+              </PrimaryButton>
             ) : null}
           </div>
         }
