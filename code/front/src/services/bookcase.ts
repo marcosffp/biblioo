@@ -97,6 +97,10 @@ export interface BackendReviewResponse {
   likeCount: number;
 }
 
+interface BackendPageResponse<T> {
+  content: T[];
+}
+
 export class BookcaseApiError extends Error {
   readonly status?: number;
 
@@ -116,6 +120,24 @@ function buildAuthHeaders(): HeadersInit {
   return {
     Authorization: `Bearer ${accessToken}`,
   };
+}
+
+function readCurrentUserIdFromToken(accessToken: string): number | null {
+  try {
+    const payload = accessToken.split(".")[1];
+    if (!payload) {
+      return null;
+    }
+
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedBase64 = `${base64}${"=".repeat((4 - (base64.length % 4)) % 4)}`;
+    const decodedPayload = JSON.parse(atob(paddedBase64)) as { sub?: string };
+    const subject = Number(decodedPayload.sub);
+
+    return Number.isFinite(subject) ? subject : null;
+  } catch {
+    return null;
+  }
 }
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string): Promise<T> {
@@ -500,4 +522,32 @@ export async function updateBookReview(
   }
 
   return parseJsonResponse<BackendReviewResponse>(response, "Falha ao atualizar avaliacao.");
+}
+
+export async function getMyBookReview(bookId: number): Promise<BackendReviewResponse | null> {
+  const accessToken = getAccessToken();
+  if (!accessToken) {
+    throw new BookcaseApiError("Usuario nao autenticado.", 401);
+  }
+
+  const userId = readCurrentUserIdFromToken(accessToken);
+  if (!userId) {
+    throw new BookcaseApiError("Nao foi possivel identificar o usuario autenticado.", 401);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/feed/reviews/user/${userId}?page=0&size=100&sort=createdAt,desc`, {
+      headers: buildAuthHeaders(),
+    });
+  } catch {
+    throw new BookcaseApiError("Nao foi possivel carregar sua avaliacao.");
+  }
+
+  const page = await parseJsonResponse<BackendPageResponse<BackendReviewResponse>>(
+    response,
+    "Falha ao carregar avaliacao.",
+  );
+
+  return page.content.find((review) => review.bookId === bookId) ?? null;
 }

@@ -19,6 +19,7 @@ import {
   deleteShelf,
   getAccessToken,
   getBookById,
+  getMyBookReview,
   getShelfById,
   getShelfItemById,
   listCollections,
@@ -150,6 +151,11 @@ function mapReviewText(review: BackendReviewResponse | null): string {
   }
 
   return review.text;
+}
+
+function isDuplicateReviewError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes("ja fez uma review") || normalized.includes("já fez uma review");
 }
 
 export function useBookcasePage() {
@@ -634,6 +640,28 @@ export function useBookcasePage() {
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
     setIsShelfBookDetailsOpen(true);
+
+    async function loadExistingReview() {
+      const bookId = Number(book.id);
+      if (Number.isNaN(bookId)) {
+        return;
+      }
+
+      try {
+        const existingReview = await getMyBookReview(bookId);
+        if (!existingReview) {
+          return;
+        }
+
+        setActiveReviewId(existingReview.id);
+        setReviewRatingDraft(existingReview.rating);
+        setReviewCommentDraft(mapReviewText(existingReview));
+      } catch {
+        // noop: if loading existing review fails, user can still write a new one
+      }
+    }
+
+    void loadExistingReview();
   };
 
   const handleCloseShelfBookDetails = () => {
@@ -888,6 +916,21 @@ export function useBookcasePage() {
         setReviewRatingDraft(savedReview.rating);
         setReviewCommentDraft(mapReviewText(savedReview));
       } catch (error) {
+        if (error instanceof BookcaseApiError && isDuplicateReviewError(error.message)) {
+          try {
+            const existingReview = await getMyBookReview(bookId);
+            if (existingReview) {
+              setActiveReviewId(existingReview.id);
+              setReviewRatingDraft(existingReview.rating);
+              setReviewCommentDraft(mapReviewText(existingReview));
+              setReviewError("");
+              return;
+            }
+          } catch {
+            // fallback to generic error handling below
+          }
+        }
+
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
           setReviewError("Faca login para salvar sua avaliacao.");
         } else if (error instanceof BookcaseApiError && error.message) {

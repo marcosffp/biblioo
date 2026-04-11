@@ -20,6 +20,7 @@ import {
   BookcaseApiError,
   changeShelfItemStatus,
   createBookReview,
+  getMyBookReview,
   getShelfItemById,
   updateBookReview,
   updateShelfItemProgress,
@@ -87,6 +88,11 @@ function mapFrontendReadingStatus(status: Exclude<ReadingStatus, "todos">) {
     default:
       return "WANT_TO_READ" as const;
   }
+}
+
+function isDuplicateReviewError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes("ja fez uma review") || normalized.includes("já fez uma review");
 }
 
 export default function PerfilPage() {
@@ -283,6 +289,28 @@ export default function PerfilPage() {
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
     setIsShelfBookDetailsOpen(true);
+
+    async function loadExistingReview() {
+      const bookId = Number(book.id);
+      if (Number.isNaN(bookId)) {
+        return;
+      }
+
+      try {
+        const existingReview = await getMyBookReview(bookId);
+        if (!existingReview) {
+          return;
+        }
+
+        setActiveReviewId(existingReview.id);
+        setReviewRatingDraft(existingReview.rating);
+        setReviewCommentDraft(existingReview.text ?? "");
+      } catch {
+        // noop: if loading existing review fails, user can still write a new one
+      }
+    }
+
+    void loadExistingReview();
   };
 
   const handleCloseShelfBookDetails = () => {
@@ -483,6 +511,21 @@ export default function PerfilPage() {
         setReviewRatingDraft(savedReview.rating);
         setReviewCommentDraft(savedReview.text ?? "");
       } catch (error) {
+        if (error instanceof BookcaseApiError && isDuplicateReviewError(error.message)) {
+          try {
+            const existingReview = await getMyBookReview(bookId);
+            if (existingReview) {
+              setActiveReviewId(existingReview.id);
+              setReviewRatingDraft(existingReview.rating);
+              setReviewCommentDraft(existingReview.text ?? "");
+              setReviewError("");
+              return;
+            }
+          } catch {
+            // fallback to generic error handling below
+          }
+        }
+
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
           setReviewError("Faca login para salvar sua avaliacao.");
         } else if (error instanceof BookcaseApiError && error.message) {
@@ -807,6 +850,9 @@ export default function PerfilPage() {
         onClose={handleCloseShelfBookDetails}
         onSelectStatus={handleSelectShelfBookStatus}
         onStepPage={handleStepShelfBookPage}
+        onRemoveFromShelf={() => {
+          // Profile page does not expose shelf removal from this modal yet.
+        }}
         reviewRating={reviewRatingDraft}
         reviewComment={reviewCommentDraft}
         reviewExists={typeof activeReviewId === "number"}
@@ -817,6 +863,7 @@ export default function PerfilPage() {
         isSavingReview={isSavingReview}
         isLoadingReview={false}
         isSaving={isSavingShelfBookDetails}
+        isRemovingFromShelf={false}
         errorMessage={bookDetailsError}
       />
 
