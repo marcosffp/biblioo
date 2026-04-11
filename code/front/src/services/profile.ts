@@ -28,6 +28,8 @@ export type FollowPageResponse = {
   hasMore: boolean;
 };
 
+export type FollowActionResult = "following" | "requested";
+
 export type ReadingStatus = "WANT_TO_READ" | "READING" | "REREADING" | "COMPLETED" | "ABANDONED";
 
 export type ShelfSummaryResponse = {
@@ -299,15 +301,29 @@ export async function searchUsersByUsername(
   return result.users;
 }
 
-export async function followUser(username: string, token?: string | null): Promise<void> {
+export async function followUser(username: string, token?: string | null): Promise<FollowActionResult> {
   const response = await fetch(`${API_BASE_URL}/users/${username}/follow`, {
     method: "POST",
     headers: bearerHeaders(token),
   });
 
+  if (response.status === 202) {
+    return "requested";
+  }
+
+  if (response.status === 204) {
+    return "following";
+  }
+
+  if (response.status === 409) {
+    return "requested";
+  }
+
   if (!response.ok) {
     throw new Error("follow_user_failed");
   }
+
+  return "following";
 }
 
 export async function unfollowUser(username: string, token?: string | null): Promise<void> {
@@ -321,8 +337,46 @@ export async function unfollowUser(username: string, token?: string | null): Pro
   }
 }
 
+export async function listPendingFollowRequests(
+  page = 0,
+  size = 20,
+  token?: string | null,
+): Promise<FollowPageResponse> {
+  const response = await fetch(`${API_BASE_URL}/users/me/follow-requests?page=${page}&size=${size}`, {
+    headers: bearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("load_pending_follow_requests_failed");
+  }
+
+  return (await response.json()) as FollowPageResponse;
+}
+
+export async function acceptFollowRequest(requesterUsername: string, token?: string | null): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/users/me/follow-requests/${encodeURIComponent(requesterUsername)}/accept`, {
+    method: "POST",
+    headers: bearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("accept_follow_request_failed");
+  }
+}
+
+export async function rejectFollowRequest(requesterUsername: string, token?: string | null): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/users/me/follow-requests/${encodeURIComponent(requesterUsername)}`, {
+    method: "DELETE",
+    headers: bearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("reject_follow_request_failed");
+  }
+}
+
 export function getProfilePreferences(): ProfilePreferences {
-  if (typeof window === "undefined") {
+  if (typeof globalThis.window === "undefined") {
     return DEFAULT_PROFILE_PREFERENCES;
   }
 
@@ -345,7 +399,7 @@ export function getProfilePreferences(): ProfilePreferences {
 }
 
 export function saveProfilePreferences(preferences: ProfilePreferences): void {
-  if (typeof window === "undefined") {
+  if (typeof globalThis.window === "undefined") {
     return;
   }
 

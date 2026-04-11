@@ -69,6 +69,32 @@ export function useNotifications(token: string | null) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  const refresh = useCallback(async () => {
+    if (!token) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const [notificationList, unread] = await Promise.all([
+        listNotifications(0, 20, token),
+        getUnreadNotificationsCount(token),
+      ]);
+
+      setNotifications(notificationList);
+      setUnreadCount(unread);
+    } catch {
+      setNotifications([]);
+      setUnreadCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (!token) {
       setNotifications([]);
@@ -77,41 +103,12 @@ export function useNotifications(token: string | null) {
       return;
     }
 
-    let cancelled = false;
-
     const loadInitialData = async () => {
-      setIsLoading(true);
-
-      try {
-        const [notificationList, unread] = await Promise.all([
-          listNotifications(0, 20, token),
-          getUnreadNotificationsCount(token),
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
-        setNotifications(notificationList);
-        setUnreadCount(unread);
-      } catch {
-        if (!cancelled) {
-          setNotifications([]);
-          setUnreadCount(0);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
+      await refresh();
     };
 
     void loadInitialData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  }, [refresh, token]);
 
   useEffect(() => {
     if (!token) {
@@ -189,6 +186,21 @@ export function useNotifications(token: string | null) {
     setUnreadCount(0);
   }, [token]);
 
+  const dismissNotification = useCallback((id: string) => {
+    setNotifications((previous) => {
+      const target = previous.find((item) => item.id === id);
+      if (!target) {
+        return previous;
+      }
+
+      if (!target.read) {
+        setUnreadCount((current) => Math.max(0, current - 1));
+      }
+
+      return previous.filter((item) => item.id !== id);
+    });
+  }, []);
+
   return useMemo(
     () => ({
       notifications,
@@ -196,7 +208,9 @@ export function useNotifications(token: string | null) {
       isLoading,
       markAsRead,
       markAllAsRead,
+      dismissNotification,
+      refresh,
     }),
-    [isLoading, markAllAsRead, markAsRead, notifications, unreadCount],
+    [dismissNotification, isLoading, markAllAsRead, markAsRead, notifications, refresh, unreadCount],
   );
 }

@@ -8,7 +8,14 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { searchBooks, type BackendBookResponse } from "@/services/bookcase";
 import { clearAuthSession, getAuthSession } from "@/services/auth";
 import { type NotificationSummary } from "@/services/notifications";
-import { getMyProfile, searchUsersByUsername, type UserSummaryResponse } from "@/services/profile";
+import {
+  acceptFollowRequest,
+  getMyProfile,
+  listPendingFollowRequests,
+  rejectFollowRequest,
+  searchUsersByUsername,
+  type UserSummaryResponse,
+} from "@/services/profile";
 
 type SearchScope = "general" | "user" | "book";
 
@@ -382,12 +389,94 @@ export function TopHeader({
   const [accessToken, setAccessToken] = React.useState<string | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
+  const [processingFollowRequestId, setProcessingFollowRequestId] = React.useState<string | null>(null);
+  const [pendingFollowRequestUsernames, setPendingFollowRequestUsernames] = React.useState<Record<string, true> | null>(null);
+  const [resolvedFollowRequestIds, setResolvedFollowRequestIds] = React.useState<Record<string, true>>({});
   const notificationsContainerRef = React.useRef<HTMLDivElement | null>(null);
   const profileMenuContainerRef = React.useRef<HTMLDivElement | null>(null);
 
-  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications(accessToken);
+  const {
+    notifications,
+    isLoading,
+    markAsRead,
+    dismissNotification,
+    refresh,
+  } = useNotifications(accessToken);
 
-  const shownNotificationsCount = accessToken ? unreadCount : notificationsCount;
+  const latestFollowedByActor = React.useMemo(() => {
+    const result: Record<string, string> = {};
+
+    notifications.forEach((notification) => {
+      if (notification.type !== "USER_FOLLOWED") {
+        return;
+      }
+
+      const actorKey = notification.actorUsername.toLowerCase();
+      const previous = result[actorKey];
+      if (!previous || new Date(notification.createdAt).getTime() >= new Date(previous).getTime()) {
+        result[actorKey] = notification.createdAt;
+      }
+    });
+
+    return result;
+  }, [notifications]);
+
+  const loadPendingFollowRequestUsernames = React.useCallback(async () => {
+    if (!accessToken) {
+      setPendingFollowRequestUsernames(null);
+      return;
+    }
+
+    try {
+      const page = await listPendingFollowRequests(0, 100, accessToken);
+      const nextState: Record<string, true> = {};
+
+      page.users.forEach((user) => {
+        nextState[user.username.toLowerCase()] = true;
+      });
+
+      setPendingFollowRequestUsernames(nextState);
+    } catch {
+      setPendingFollowRequestUsernames(null);
+    }
+  }, [accessToken]);
+
+  const visibleNotifications = React.useMemo(() => {
+    return notifications.filter((notification) => {
+      if (notification.type !== "USER_FOLLOW_REQUESTED") {
+        return true;
+      }
+
+      if (resolvedFollowRequestIds[notification.id]) {
+        return false;
+      }
+
+      const actorKey = notification.actorUsername.toLowerCase();
+      const latestFollowedAt = latestFollowedByActor[actorKey];
+
+      if (latestFollowedAt) {
+        const requestAt = new Date(notification.createdAt).getTime();
+        const followedAt = new Date(latestFollowedAt).getTime();
+        if (Number.isFinite(requestAt) && Number.isFinite(followedAt) && followedAt >= requestAt) {
+          return false;
+        }
+      }
+
+      if (pendingFollowRequestUsernames === null) {
+        return true;
+      }
+
+      return Boolean(pendingFollowRequestUsernames[actorKey]);
+    });
+  }, [latestFollowedByActor, notifications, pendingFollowRequestUsernames, resolvedFollowRequestIds]);
+
+  const visibleUnreadCount = React.useMemo(() => {
+    return visibleNotifications.reduce((total, notification) => {
+      return notification.read ? total : total + 1;
+    }, 0);
+  }, [visibleNotifications]);
+
+  const shownNotificationsCount = accessToken ? visibleUnreadCount : notificationsCount;
   const hasAnyNotifications = shownNotificationsCount > 0;
 
   React.useEffect(() => {
@@ -496,6 +585,13 @@ export function TopHeader({
     };
   }, []);
 
+  React.useEffect(() => {
+    if (!isNotificationsOpen) {
+      return;
+    }
+    void loadPendingFollowRequestUsernames();
+  }, [isNotificationsOpen, loadPendingFollowRequestUsernames]);
+
   const handleBellClick = React.useCallback(() => {
     setIsNotificationsOpen((previous) => !previous);
   }, []);
@@ -514,13 +610,83 @@ export function TopHeader({
     [markAsRead, router],
   );
 
-  const handleMarkAllAsRead = React.useCallback(async () => {
-    try {
-      await markAllAsRead();
-    } catch {
-      // Ignore UI crash when request fails.
-    }
-  }, [markAllAsRead]);
+  const handleAcceptFollowFromNotification = React.useCallback(
+    async (notification: NotificationSummary) => {
+      if (!accessToken || processingFollowRequestId) {
+        return;
+      }
+
+      setProcessingFollowRequestId(notification.id);
+      setResolvedFollowRequestIds((current) => ({ ...current, [notification.id]: true }));
+      setPendingFollowRequestUsernames((current) => {
+        if (current === null) {
+          return current;
+        }
+
+        const nextState = { ...current };
+        delete nextState[notification.actorUsername.toLowerCase()];
+        return nextState;
+      });
+
+      try {
+        await acceptFollowRequest(notification.actorUsername, accessToken);
+        dismissNotification(notification.id);
+        await Promise.all([refresh(), loadPendingFollowRequestUsernames()]);
+      } catch {
+        // Keep dropdown usable even if request fails.
+        setResolvedFollowRequestIds((current) => {
+          const nextState = { ...current };
+          delete nextState[notification.id];
+          return nextState;
+        });
+      } finally {
+        setProcessingFollowRequestId(null);
+      }
+    },
+    [
+      accessToken,
+      dismissNotification,
+      loadPendingFollowRequestUsernames,
+      processingFollowRequestId,
+      refresh,
+    ],
+  );
+
+  const handleRejectFollowFromNotification = React.useCallback(
+    async (notification: NotificationSummary) => {
+      if (!accessToken || processingFollowRequestId) {
+        return;
+      }
+
+      setProcessingFollowRequestId(notification.id);
+      setResolvedFollowRequestIds((current) => ({ ...current, [notification.id]: true }));
+      setPendingFollowRequestUsernames((current) => {
+        if (current === null) {
+          return current;
+        }
+
+        const nextState = { ...current };
+        delete nextState[notification.actorUsername.toLowerCase()];
+        return nextState;
+      });
+
+      try {
+        await rejectFollowRequest(notification.actorUsername, accessToken);
+        dismissNotification(notification.id);
+        await loadPendingFollowRequestUsernames();
+      } catch {
+        // Keep dropdown usable even if request fails.
+        setResolvedFollowRequestIds((current) => {
+          const nextState = { ...current };
+          delete nextState[notification.id];
+          return nextState;
+        });
+      } finally {
+        setProcessingFollowRequestId(null);
+      }
+    },
+    [accessToken, dismissNotification, loadPendingFollowRequestUsernames, processingFollowRequestId],
+  );
 
   const handleLogout = React.useCallback(() => {
     clearAuthSession();
@@ -534,7 +700,7 @@ export function TopHeader({
     notificationsContent = (
       <p className="px-4 py-4 text-sm text-[var(--text-secondary)] break-words">Carregando notificacoes...</p>
     );
-  } else if (notifications.length === 0) {
+  } else if (visibleNotifications.length === 0) {
     notificationsContent = (
       <p className="px-4 py-4 text-sm text-[var(--text-secondary)] break-words">
         Nenhuma notificacao por enquanto.
@@ -543,41 +709,65 @@ export function TopHeader({
   } else {
     notificationsContent = (
       <ul className="divide-y divide-emerald-50">
-        {notifications.map((notification) => (
-          <li key={notification.id}>
-            <button
-              type="button"
-              onClick={() => void handleNotificationClick(notification)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-emerald-50 ${
-                notification.read ? "opacity-75" : ""
-              }`}
-            >
-              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-emerald-100 bg-emerald-100">
-                {notification.actorAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={notification.actorAvatarUrl}
-                    alt={`Avatar de ${notification.actorUsername}`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-emerald-700">
-                    {notification.actorUsername.slice(0, 1).toUpperCase()}
-                  </div>
-                )}
-              </div>
+        {visibleNotifications.map((notification) => {
+          const isFollowRequest = notification.type === "USER_FOLLOW_REQUESTED";
+          const isProcessingFollowRequest = processingFollowRequestId === notification.id;
 
-              <div className="min-w-0">
-                <p className="text-sm text-[var(--deep-green)] break-words leading-5">
-                  {getNotificationText(notification)}
-                </p>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                  {formatNotificationDate(notification.createdAt)}
-                </p>
-              </div>
-            </button>
-          </li>
-        ))}
+          return (
+            <li key={notification.id} className={notification.read ? "opacity-75" : ""}>
+              <button
+                type="button"
+                onClick={() => void handleNotificationClick(notification)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-emerald-50"
+              >
+                <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-emerald-100 bg-emerald-100">
+                  {notification.actorAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={notification.actorAvatarUrl}
+                      alt={`Avatar de ${notification.actorUsername}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-emerald-700">
+                      {notification.actorUsername.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-sm text-[var(--deep-green)] break-words leading-5">
+                    {getNotificationText(notification)}
+                  </p>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    {formatNotificationDate(notification.createdAt)}
+                  </p>
+                </div>
+              </button>
+
+              {isFollowRequest ? (
+                <div className="px-4 pb-3 -mt-1.5 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleRejectFollowFromNotification(notification)}
+                    disabled={isProcessingFollowRequest}
+                    className="inline-flex items-center justify-center rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Recusar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleAcceptFollowFromNotification(notification)}
+                    disabled={isProcessingFollowRequest}
+                    className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Aceitar
+                  </button>
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     );
   }
@@ -621,15 +811,6 @@ export function TopHeader({
               >
                 <div className="flex items-center justify-between border-b border-emerald-100 px-4 py-3">
                   <h3 className="text-sm font-semibold text-[var(--deep-green)]">Notificacoes</h3>
-                  {unreadCount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => void handleMarkAllAsRead()}
-                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
-                    >
-                      Marcar lidas
-                    </button>
-                  ) : null}
                 </div>
 
                 <div className="max-h-80 overflow-y-auto">{notificationsContent}</div>

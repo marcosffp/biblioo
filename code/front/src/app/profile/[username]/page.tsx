@@ -36,8 +36,8 @@ function normalizeUsernameParam(value: string): string {
 
 function humanizeUsername(username: string): string {
   return username
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (match) => match.toUpperCase());
+    .replaceAll(/[_-]+/g, " ")
+    .replaceAll(/\b\w/g, (match) => match.toUpperCase());
 }
 
 export default function SeguidorProfilePage() {
@@ -53,7 +53,7 @@ export default function SeguidorProfilePage() {
   const [followersUsers, setFollowersUsers] = React.useState<UserSummaryResponse[]>([]);
   const [followingUsers, setFollowingUsers] = React.useState<UserSummaryResponse[]>([]);
   const [myFollowingUsernames, setMyFollowingUsernames] = React.useState<string[]>([]);
-  const [isFollowing, setIsFollowing] = React.useState(false);
+  const [followRelationship, setFollowRelationship] = React.useState<"none" | "following" | "requested">("none");
   const [isTogglingFollow, setIsTogglingFollow] = React.useState(false);
   const [isOwnProfile, setIsOwnProfile] = React.useState(false);
   const [shelfBooks, setShelfBooks] = React.useState<DisplayShelfBook[]>([]);
@@ -91,6 +91,7 @@ export default function SeguidorProfilePage() {
           ownProfileState = me.username.toLowerCase() === username;
           myFollowing = myFollowingList;
           followingState = myFollowing.some((user) => user.username.toLowerCase() === username);
+
         }
 
         let computedBooksRead: number | null = null;
@@ -139,7 +140,7 @@ export default function SeguidorProfilePage() {
         setFollowersCount(followersList.length);
         setFollowingCount(followingList.length);
         setMyFollowingUsernames(myFollowing.map((user) => user.username.toLowerCase()));
-        setIsFollowing(followingState);
+        setFollowRelationship(followingState ? "following" : "none");
         setIsOwnProfile(ownProfileState);
         setBooksRead(computedBooksRead);
         setPagesRead(computedPagesRead);
@@ -169,20 +170,34 @@ export default function SeguidorProfilePage() {
       return;
     }
 
-    const previous = isFollowing;
-    setIsFollowing(!previous);
+    const previous = followRelationship;
+    if (previous === "following") {
+      setFollowRelationship("none");
+    } else if (previous === "requested") {
+      setFollowRelationship("none");
+    } else {
+      setFollowRelationship("requested");
+    }
     setIsTogglingFollow(true);
 
     try {
-      if (previous) {
+      if (previous === "following" || previous === "requested") {
         await unfollowUser(username, accessToken);
-        setFollowersCount((prev) => Math.max(0, prev - 1));
+        if (previous === "following") {
+          setFollowersCount((prev) => Math.max(0, prev - 1));
+        }
       } else {
-        await followUser(username, accessToken);
-        setFollowersCount((prev) => prev + 1);
+        const result = await followUser(username, accessToken);
+
+        if (result === "following") {
+          setFollowRelationship("following");
+          setFollowersCount((prev) => prev + 1);
+        } else {
+          setFollowRelationship("requested");
+        }
       }
     } catch {
-      setIsFollowing(previous);
+      setFollowRelationship(previous);
     } finally {
       setIsTogglingFollow(false);
     }
@@ -194,9 +209,26 @@ export default function SeguidorProfilePage() {
     ? "Este perfil é privado. Algumas informações não estão disponíveis."
     : profile?.bio ?? "Sem bio cadastrada.";
   const initial = displayName[0]?.toUpperCase() ?? "U";
-  const booksReadLabel = booksRead !== null ? booksRead.toLocaleString("pt-BR") : "Sem dados";
-  const pagesReadLabel = pagesRead !== null ? pagesRead.toLocaleString("pt-BR") : "Sem dados";
+  const booksReadLabel = booksRead == null ? "Sem dados" : booksRead.toLocaleString("pt-BR");
+  const pagesReadLabel = pagesRead == null ? "Sem dados" : pagesRead.toLocaleString("pt-BR");
   const showFollowAction = Boolean(getAccessToken()) && !isOwnProfile;
+
+  const isFollowing = followRelationship === "following";
+  const isRequested = followRelationship === "requested";
+  const isPrivateTarget = profile?.isPrivate === true;
+  let followButtonLabel = "Seguir";
+  if (isFollowing) {
+    followButtonLabel = "Seguindo";
+  } else if (isRequested) {
+    followButtonLabel = "Solicitação enviada";
+  } else if (isPrivateTarget) {
+    followButtonLabel = "Solicitar para seguir";
+  }
+
+  let readerStatusLabel = "Sem dados";
+  if (booksRead != null) {
+    readerStatusLabel = booksRead > 0 ? "Leitor ativo" : "Sem leituras";
+  }
 
   return (
     <AppShell>
@@ -243,7 +275,7 @@ export default function SeguidorProfilePage() {
                     onClick={handleToggleFollow}
                     disabled={isTogglingFollow}
                   >
-                    {isFollowing ? "Seguindo" : "Seguir"}
+                    {followButtonLabel}
                   </Button>
                   <Button variant="ghost" size="icon" aria-label="Mais opcoes">
                     <MoreHorizontal size={18} />
@@ -292,9 +324,7 @@ export default function SeguidorProfilePage() {
                   <Sparkles size={16} className="text-premium" />
                   <span className="text-sm">Status</span>
                 </div>
-                <div className="font-display text-3xl font-bold text-deep-green">
-                  {booksRead !== null ? (booksRead > 0 ? "Leitor ativo" : "Sem leituras") : "Sem dados"}
-                </div>
+                <div className="font-display text-3xl font-bold text-deep-green">{readerStatusLabel}</div>
               </div>
               <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
                 <div className="mb-2 flex items-center gap-2 text-medium-text">

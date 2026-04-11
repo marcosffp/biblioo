@@ -16,8 +16,8 @@ import {
 
 function humanizeUsername(username: string): string {
   return username
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (match) => match.toUpperCase());
+    .replaceAll(/[_-]+/g, " ")
+    .replaceAll(/\b\w/g, (match) => match.toUpperCase());
 }
 
 export default function FollowingPage() {
@@ -29,6 +29,7 @@ export default function FollowingPage() {
   const [ownerUsername, setOwnerUsername] = React.useState("usuario");
   const [following, setFollowing] = React.useState<UserSummaryResponse[]>([]);
   const [followState, setFollowState] = React.useState<Record<string, boolean>>({});
+  const [requestedState, setRequestedState] = React.useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
     const accessToken = getAccessToken();
@@ -89,16 +90,32 @@ export default function FollowingPage() {
     }
 
     const currentlyFollowing = !!followState[username];
-    setFollowState((prev) => ({ ...prev, [username]: !currentlyFollowing }));
+    const currentlyRequested = !!requestedState[username];
+
+    if (currentlyFollowing || currentlyRequested) {
+      setFollowState((prev) => ({ ...prev, [username]: false }));
+      setRequestedState((prev) => ({ ...prev, [username]: false }));
+    } else {
+      setRequestedState((prev) => ({ ...prev, [username]: true }));
+    }
 
     try {
-      if (currentlyFollowing) {
+      if (currentlyFollowing || currentlyRequested) {
         await unfollowUser(username, accessToken);
       } else {
-        await followUser(username, accessToken);
+        const result = await followUser(username, accessToken);
+
+        if (result === "following") {
+          setFollowState((prev) => ({ ...prev, [username]: true }));
+          setRequestedState((prev) => ({ ...prev, [username]: false }));
+        } else {
+          setFollowState((prev) => ({ ...prev, [username]: false }));
+          setRequestedState((prev) => ({ ...prev, [username]: true }));
+        }
       }
     } catch {
       setFollowState((prev) => ({ ...prev, [username]: currentlyFollowing }));
+      setRequestedState((prev) => ({ ...prev, [username]: currentlyRequested }));
     }
   };
 
@@ -134,6 +151,13 @@ export default function FollowingPage() {
         <div className="space-y-3">
           {filteredFollowing.map((user) => {
             const isFollowing = !!followState[user.username];
+            const isRequested = !!requestedState[user.username];
+            let followLabel = "Seguir";
+            if (isFollowing) {
+              followLabel = "Seguindo";
+            } else if (isRequested) {
+              followLabel = "Solicitado";
+            }
             return (
               <div
                 key={user.id}
@@ -155,10 +179,10 @@ export default function FollowingPage() {
 
                 <Button
                   size="sm"
-                  variant={isFollowing ? "outline" : "default"}
+                  variant={isFollowing || isRequested ? "outline" : "default"}
                   onClick={() => handleToggleFollow(user.username)}
                 >
-                  {isFollowing ? "Seguindo" : "Seguir"}
+                  {followLabel}
                 </Button>
               </div>
             );
