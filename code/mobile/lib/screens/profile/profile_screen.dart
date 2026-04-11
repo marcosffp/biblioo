@@ -33,14 +33,23 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _loaded = false;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _reload();
+    });
+  }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_loaded) return;
-    _loaded = true;
-    _reload();
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final targetChanged = oldWidget.target != widget.target;
+    final usernameChanged = oldWidget.username != widget.username;
+    if (targetChanged || usernameChanged) {
+      _reload();
+    }
   }
 
   void _reload() {
@@ -103,6 +112,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               SliverAppBar(
                 pinned: true,
                 title: Text(isOwner ? 'Meu perfil' : 'Perfil'),
+                actions: [
+                  if (isOwner)
+                    IconButton(
+                      onPressed: () => context.push('/profile/settings'),
+                      icon: const Icon(Icons.settings_outlined),
+                      tooltip: 'Configuracoes',
+                    ),
+                ],
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -116,9 +133,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         isOwner: isOwner,
                         onPrimaryAction: isOwner
                             ? () => context.push('/profile/edit')
-                            : () => context.read<UserBloc>().add(
-                                FollowUser(user.username),
-                              ),
+                            : () {
+                                context.read<UserBloc>().add(
+                                  user.isFollowing
+                                      ? UnfollowUser(user.username)
+                                      : FollowUser(user.username),
+                                );
+                              },
                         onShare: _shareProfile,
                       ),
                       const SizedBox(height: 8),

@@ -6,10 +6,15 @@ import 'package:biblioo/screens/auth/register_screen.dart';
 import 'package:biblioo/screens/feed/feed_screen.dart';
 import 'package:biblioo/screens/profile/edit_profile_screen.dart';
 import 'package:biblioo/screens/profile/profile_screen.dart';
+import 'package:biblioo/screens/profile/settings_screen.dart';
 import 'package:biblioo/screens/recommendation/dice_screen.dart';
 import 'package:biblioo/screens/recommendation/recommendation_screen.dart';
 import 'package:biblioo/screens/search/book_search_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:biblioo/core/di/injector.dart';
+import 'package:biblioo/features/user/bloc/user_bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -25,6 +30,26 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/search',
       builder: (context, state) => const BookSearchScreen(),
+    ),
+
+    // ── PERFIL PUBLICO (fora do shell, exibido como janela elevada) ─────
+    GoRoute(
+      path: '/user/:username',
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        child: BlocProvider(
+          create: (_) => UserBloc(Injector.instance.userRepo),
+          child: ProfileScreen.forUser(state.pathParameters['username']!),
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+      ),
     ),
 
     // ── CHAT (desativado por enquanto; rota/tela não disponível) ───
@@ -124,13 +149,12 @@ final appRouter = GoRouter(
                   builder: (context, state) => const EditProfileScreen(),
                 ),
                 GoRoute(
-                  path: 'dna',
-                  builder: (context, state) => const DnaScreen(),
+                  path: 'settings',
+                  builder: (context, state) => const SettingsScreen(),
                 ),
                 GoRoute(
-                  path: ':username',
-                  builder: (context, state) =>
-                      ProfileScreen.forUser(state.pathParameters['username']!),
+                  path: 'dna',
+                  builder: (context, state) => const DnaScreen(),
                 ),
               ],
             ),

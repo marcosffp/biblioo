@@ -80,6 +80,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   Future<void> _onFollow(FollowUser e, Emitter<UserState> emit) async {
     try {
       await _repository.follow(e.username);
+      final current = state;
+      if (current is UserLoaded && current.user.username == e.username) {
+        emit(UserLoaded(current.user.copyWith(isFollowing: true)));
+      }
     } on Exception catch (e) {
       emit(UserError(e.toString()));
     }
@@ -88,6 +92,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   Future<void> _onUnfollow(UnfollowUser e, Emitter<UserState> emit) async {
     try {
       await _repository.unfollow(e.username);
+      final current = state;
+      if (current is UserLoaded && current.user.username == e.username) {
+        emit(UserLoaded(current.user.copyWith(isFollowing: false)));
+      }
     } on Exception catch (e) {
       emit(UserError(e.toString()));
     }

@@ -127,7 +127,14 @@ class AuthRepository {
 
   Future<void> logout() async {
     final refresh = _local.getRefreshToken();
-    if (refresh != null) await _remote.logout(refresh);
-    await _local.clearTokens();
+    try {
+      if (refresh != null) {
+        await _remote.logout(refresh);
+      }
+    } catch (_) {
+      // Logout remoto em best effort; limpeza local e obrigatoria.
+    } finally {
+      await _local.clearTokens();
+    }
   }
 }
