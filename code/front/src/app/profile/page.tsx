@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import React from "react";
-import { BookOpen, BookOpenCheck, MessageSquare, Sparkles, Tag, Users } from "lucide-react";
+import { BookOpen, BookOpenCheck, Lock, MessageSquare, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
   EmptyState,
   ProgressBar,
+  RatingStars,
   SectionHeader,
   StatHighlight,
   TagList,
@@ -106,6 +107,7 @@ export default function PerfilPage() {
   const [shelfBooks, setShelfBooks] = React.useState<DisplayShelfBook[]>([]);
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
+  const [readersReached, setReadersReached] = React.useState(0);
   const [authorItems, setAuthorItems] = React.useState<GenreDistribution[]>([]);
   const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
   const [preferences, setPreferences] = React.useState<ProfilePreferences>({
@@ -170,15 +172,20 @@ export default function PerfilPage() {
                 progressPercent: item.progressPercent ?? 0,
                 pageCount: book.pageCount ?? 0,
                 authors: book.authors ?? [],
+                readerCount: book.readerCount ?? 0,
               };
             } catch {
-              return { progressPercent: 0, pageCount: 0, authors: [] };
+              return { progressPercent: 0, pageCount: 0, authors: [], readerCount: 0 };
             }
           }),
         );
 
         const computedPagesRead = pageCountEntries.reduce((total, entry) => {
           return total + Math.round((entry.pageCount * entry.progressPercent) / 100);
+        }, 0);
+
+        const computedReadersReached = pageCountEntries.reduce((total, entry) => {
+          return total + Math.max(0, entry.readerCount ?? 0);
         }, 0);
 
         const authorCountMap = new Map<string, number>();
@@ -219,15 +226,17 @@ export default function PerfilPage() {
         setFollowingCount(following);
         setBooksRead(completedCount);
         setPagesRead(computedPagesRead);
+        setReadersReached(computedReadersReached);
         setAuthorItems(computedAuthorItems);
         setFavoriteAuthors(computedFavoriteAuthors);
         // build richer shelf book objects so we can render the same layout used in the main estante
         const shelfBookItems = await Promise.all(
           uniqueItems.slice(0, 8).map(async (item) => {
             try {
-              const [book, detailedItem] = await Promise.all([
+              const [book, detailedItem, myReview] = await Promise.all([
                 getBookById(item.bookId, accessToken),
                 getShelfItemById(item.shelfId, item.id),
+                getMyBookReview(item.bookId),
               ]);
               const author = (book.authors && book.authors.length > 0) ? book.authors.join(", ") : "Autor desconhecido";
 
@@ -239,7 +248,7 @@ export default function PerfilPage() {
                 title: item.bookTitle,
                 author,
                 coverUrl: item.bookCoverUrl ?? book.coverUrl ?? undefined,
-                rating: book.averageRating ?? undefined,
+                rating: myReview?.rating ?? book.averageRating ?? undefined,
                 synopsis: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
                 description: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
                 readerCount: book.readerCount ?? undefined,
@@ -625,7 +634,14 @@ export default function PerfilPage() {
   const profileName = preferences.displayName?.trim() ? preferences.displayName : profile?.username ?? "Usuário";
   const profileBio = profile?.bio ?? "Sem bio cadastrada.";
   const profileHandle = profile ? `@${profile.username}` : "@usuario";
-  const favoriteGenre = "Indisponível";
+
+  const statusFlagByReadingStatus: Record<Exclude<ReadingStatus, "todos">, { label: string; iconClassName: string }> = {
+    lendo: { label: "Lendo", iconClassName: "text-blue-600" },
+    "quero-ler": { label: "Quero ler", iconClassName: "text-violet-600" },
+    lido: { label: "Lido", iconClassName: "text-emerald-600" },
+    relendo: { label: "Relendo", iconClassName: "text-amber-500" },
+    abandonei: { label: "Abandonei", iconClassName: "text-rose-600" },
+  };
 
   const initial = (profileName[0] ?? "U").toUpperCase();
 
@@ -663,9 +679,15 @@ export default function PerfilPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-semibold text-gray-900">{profileName}</h1>
-                <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-1">
-                  {isPublicProfile ? "Perfil Público" : "Perfil Privado"}
-                </span>
+                {!isPublicProfile && (
+                  <span
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"
+                    title="Perfil privado"
+                    aria-label="Perfil privado"
+                  >
+                    <Lock size={14} />
+                  </span>
+                )}
               </div>
               <p className="text-md text-gray-400">{profileHandle}</p>
               <p className="mt-3 max-w-xl text-sm text-gray-600">{profileBio}</p>
@@ -725,7 +747,11 @@ export default function PerfilPage() {
               value={booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora"}
               icon={<Sparkles size={16} />}
             />
-            <StatHighlight label="Gênero favorito" value={favoriteGenre} icon={<Tag size={16} />} />
+            <StatHighlight
+              label="Leitores alcançados"
+              value={readersReached.toLocaleString("pt-BR")}
+              icon={<Users size={16} />}
+            />
           </div>
         </div>
       </section>
@@ -818,22 +844,6 @@ export default function PerfilPage() {
           {shelfBooks.length > 0 ? (
             <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] gap-4">
               {(() => {
-                const statusLabel = (status?: DisplayShelfBook["readingStatus"]) => {
-                  switch (status) {
-                    case "lendo":
-                      return "Lendo";
-                    case "relendo":
-                      return "Relendo";
-                    case "lido":
-                      return "Lido";
-                    case "abandonei":
-                      return "Abandonado";
-                    case "quero-ler":
-                    default:
-                      return "Quero ler";
-                  }
-                };
-
                 return shelfBooks.map((book) => (
                   <button
                     key={book.shelfItemId}
@@ -842,7 +852,17 @@ export default function PerfilPage() {
                     className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-3 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
                     aria-label={`Abrir opções do livro ${book.title}`}
                   >
-                    <div className="aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-soft)]">
+                    <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-soft)]">
+                      <span
+                        className="absolute left-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm"
+                        title={statusFlagByReadingStatus[book.readingStatus].label}
+                        aria-label={statusFlagByReadingStatus[book.readingStatus].label}
+                      >
+                        <span
+                          className={`icon-bookmark text-[16px] ${statusFlagByReadingStatus[book.readingStatus].iconClassName}`}
+                          aria-hidden="true"
+                        />
+                      </span>
                       {book.coverUrl ? (
                         <img src={book.coverUrl} alt={`Capa de ${book.title}`} className="h-full w-full object-cover" />
                       ) : (
@@ -852,30 +872,12 @@ export default function PerfilPage() {
                       )}
                     </div>
 
-                    <div className="mt-2">
-                      <p className="truncate text-[0.95rem] font-semibold leading-tight text-[var(--text-primary)]">{book.title}</p>
-                      <p className="truncate text-xs text-[var(--text-secondary)]">{book.author}</p>
+                    <div className="mt-3 flex items-center gap-2 text-[var(--text-primary)]">
+                      {typeof book.rating === "number" ? <RatingStars value={book.rating} size={22} /> : null}
+                      {typeof book.progress === "number" ? (
+                        <span className="text-sm font-semibold text-[var(--text-secondary)]">{Math.round(book.progress)}%</span>
+                      ) : null}
                     </div>
-
-                    <div className="mt-2">
-                      <span className="inline-flex rounded-full bg-[var(--bg-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--text-secondary)]">
-                        {statusLabel(book.readingStatus)}
-                      </span>
-                    </div>
-
-                    {(book.readingStatus === "lendo" || book.readingStatus === "relendo") && typeof book.progress === "number" ? (
-                      <div className="mt-2">
-                        <ProgressBar value={book.progress} />
-                        <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                          <span>
-                            {typeof book.currentPage === "number" && typeof book.totalPages === "number"
-                              ? `p. ${book.currentPage} / ${book.totalPages}`
-                              : "Progresso de leitura"}
-                          </span>
-                          <span className="font-semibold">{Math.round(book.progress)}%</span>
-                        </div>
-                      </div>
-                    ) : null}
                   </button>
                 ));
               })()}

@@ -49,3 +49,29 @@ textarea:focus-visible,
 select:focus-visible {
   box-shadow: none;
 }
+
+.icon-bookmark {
+  display: inline-block;
+  width: 0.78em;
+  height: 1em;
+  flex: none;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+}
+
+.icon-star,
+.icon-star-half {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: none;
+  clip-path: polygon(50% 2%, 61% 36%, 98% 36%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 36%, 39% 36%);
+}
+
+.icon-star {
+  background: currentColor;
+}
+
+.icon-star-half {
+  background: linear-gradient(90deg, currentColor 50%, var(--icon-star-empty, rgba(148, 163, 184, 0.45)) 50%);
+}

@@ -54,7 +54,7 @@ const statusOptions: Array<{
   Icon: typeof BookOpen;
   buttonClassName: string;
   menuActiveClassName: string;
-  flagClassName: string;
+  iconClassName: string;
 }> = [
   {
     value: "lendo",
@@ -62,7 +62,7 @@ const statusOptions: Array<{
     Icon: BookOpen,
     buttonClassName: "bg-blue-600 text-white",
     menuActiveClassName: "bg-blue-50 text-blue-800",
-    flagClassName: "",
+    iconClassName: "text-blue-600",
   },
   {
     value: "quero-ler",
@@ -70,7 +70,7 @@ const statusOptions: Array<{
     Icon: Bookmark,
     buttonClassName: "bg-violet-600 text-white",
     menuActiveClassName: "bg-violet-50 text-violet-800",
-    flagClassName: "",
+    iconClassName: "text-violet-600",
   },
   {
     value: "lido",
@@ -78,7 +78,7 @@ const statusOptions: Array<{
     Icon: CheckCircle2,
     buttonClassName: "bg-emerald-600 text-white",
     menuActiveClassName: "bg-emerald-50 text-emerald-800",
-    flagClassName: "",
+    iconClassName: "text-emerald-600",
   },
   {
     value: "relendo",
@@ -86,7 +86,7 @@ const statusOptions: Array<{
     Icon: RotateCcw,
     buttonClassName: "bg-amber-500 text-white",
     menuActiveClassName: "bg-amber-50 text-amber-800",
-    flagClassName: "",
+    iconClassName: "text-amber-500",
   },
   {
     value: "abandonei",
@@ -94,7 +94,7 @@ const statusOptions: Array<{
     Icon: XCircle,
     buttonClassName: "bg-rose-600 text-white",
     menuActiveClassName: "bg-rose-50 text-rose-800",
-    flagClassName: "",
+    iconClassName: "text-rose-600",
   },
 ];
 
@@ -133,7 +133,7 @@ function ReviewSection({
         <p className="mt-2 text-sm text-[var(--text-secondary)]">Carregando sua avaliação...</p>
       ) : (
         <>
-          <fieldset className="mt-3 flex items-center gap-2" aria-label="Selecionar nota de 1 a 5 estrelas">
+          <fieldset className="mt-3 flex items-center" aria-label="Selecionar nota de 1 a 5 estrelas">
             {[1, 2, 3, 4, 5].map((starValue) => {
               const isActive = reviewRating >= starValue;
               return (
@@ -145,8 +145,12 @@ function ReviewSection({
                     isActive ? "text-[var(--brand-500)]" : "text-[#a8b8aa] hover:text-[var(--brand-600)]"
                   }`}
                   aria-label={`${starValue} estrela${starValue > 1 ? "s" : ""}`}
+                  aria-pressed={isActive}
                 >
-                  ★
+                  <span
+                    className={`icon-star ${isActive ? "text-amber-300" : "text-amber-100"}`}
+                    aria-hidden="true"
+                  />
                 </button>
               );
             })}
@@ -236,8 +240,6 @@ export function ShelfBookDetailsPanel({
 
   const activeStatus =
     statusOptions.find((statusOption) => statusOption.value === book.readingStatus) ?? statusOptions[0];
-  const ActiveStatusIcon = activeStatus.Icon;
-
   const currentPage = book.currentPage ?? 0;
   const totalPages = book.totalPages ?? 0;
   const canDecreasePage = !isSaving && currentPage > 0;
@@ -322,8 +324,8 @@ export function ShelfBookDetailsPanel({
                   aria-label="Alternar opções de status"
                 >
                   <span className="inline-flex items-center gap-2">
-                    <ActiveStatusIcon size={16} />
-                    {activeStatus.label}
+                    <span className="icon-bookmark text-[16px] text-white" aria-hidden="true" />
+                    <span>{activeStatus.label}</span>
                   </span>
                   <ChevronDown size={16} />
                 </button>
@@ -333,7 +335,6 @@ export function ShelfBookDetailsPanel({
               {isStatusOpen ? (
                 <div className="mt-2 w-[180px] overflow-hidden rounded-xl bg-white shadow-[0_8px_28px_rgba(26,46,76,0.15)]">
                   {statusOptions.map((statusOption) => {
-                    const Icon = statusOption.Icon;
                     const isActive = statusOption.value === book.readingStatus;
 
                     return (
@@ -350,7 +351,10 @@ export function ShelfBookDetailsPanel({
                             : "text-[var(--text-primary)] hover:bg-[var(--bg-soft)]"
                         }`}
                       >
-                        <Icon size={15} className={isActive ? "text-current" : "text-[var(--text-secondary)]"} />
+                        <span
+                          className={`icon-bookmark text-[15px] ${isActive ? statusOption.iconClassName : "text-[var(--text-secondary)]"}`}
+                          aria-hidden="true"
+                        />
                         <span>{statusOption.label}</span>
                       </button>
                     );
@@ -369,7 +373,7 @@ export function ShelfBookDetailsPanel({
                   <div className="inline-flex rounded-md bg-[#02a362] px-2 py-1 text-2xl font-bold leading-none text-white">
                     {publicRatingValue}
                   </div>
-                  <div className="mt-3 flex items-center gap-1 text-5xl text-[var(--text-primary)]">
+                  <div className="mt-3 flex items-center gap-1 text-[var(--text-primary)]">
                     {typeof book.rating === "number" ? <RatingStars value={book.rating} /> : null}
                   </div>
                 </article>

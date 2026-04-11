@@ -780,8 +780,7 @@ export function TopHeader({
     >
       <div className="h-full w-full px-2 sm:px-4 lg:px-6 flex items-center gap-4 sm:gap-6">
         <div className="flex items-center gap-2 min-w-fit text-[var(--deep-green)]">
-          <BookOpen size={21} className="text-[hsl(var(--primary-dark))]" aria-hidden="true" />
-          <span className="font-heading text-[1.85rem] leading-none tracking-tight">{title}</span>
+          <img  className="h-8 w-17" src="biblioo-logo.png" alt="Biblioo" />
         </div>
 
         <TopHeaderSearchBar searchPlaceholder={searchPlaceholder} />
