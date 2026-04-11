@@ -26,19 +26,15 @@ import {
   updateShelfItemProgress,
 } from "@/services/bookcase";
 import {
-  acceptFollowRequest,
   getBookById,
   getFollowersCount,
   getFollowingCount,
   getMyProfile,
   getProfilePreferences,
-  listPendingFollowRequests,
   listMyShelves,
   listShelfItems,
-  rejectFollowRequest,
   type ProfilePreferences,
   type ShelfItemSummaryResponse,
-  type UserSummaryResponse,
   type UserProfileResponse,
 } from "@/services/profile";
 
@@ -112,8 +108,6 @@ export default function PerfilPage() {
   const [pagesRead, setPagesRead] = React.useState(0);
   const [authorItems, setAuthorItems] = React.useState<GenreDistribution[]>([]);
   const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
-  const [pendingFollowRequests, setPendingFollowRequests] = React.useState<UserSummaryResponse[]>([]);
-  const [isUpdatingFollowRequest, setIsUpdatingFollowRequest] = React.useState<string | null>(null);
   const [preferences, setPreferences] = React.useState<ProfilePreferences>({
     displayName: null,
     showReadingGoal: true,
@@ -209,10 +203,9 @@ export default function PerfilPage() {
           .slice(0, 5)
           .map(([name]) => name);
 
-        const [followers, following, pendingRequestsPage] = await Promise.all([
+        const [followers, following] = await Promise.all([
           getFollowersCount(loadedProfile.username, accessToken),
           getFollowingCount(loadedProfile.username, accessToken),
-          listPendingFollowRequests(0, 20, accessToken),
         ]);
 
         if (cancelled) {
@@ -224,7 +217,6 @@ export default function PerfilPage() {
         setIsPublicProfile(!loadedProfile.isPrivate);
         setFollowersCount(followers);
         setFollowingCount(following);
-        setPendingFollowRequests(pendingRequestsPage.users);
         setBooksRead(completedCount);
         setPagesRead(computedPagesRead);
         setAuthorItems(computedAuthorItems);
@@ -294,43 +286,6 @@ export default function PerfilPage() {
       cancelled = true;
     };
   }, []);
-
-  const handleAcceptFollowRequest = React.useCallback(async (requesterUsername: string) => {
-    const accessToken = getAccessToken();
-    if (!accessToken || isUpdatingFollowRequest) {
-      return;
-    }
-
-    setIsUpdatingFollowRequest(requesterUsername);
-
-    try {
-      await acceptFollowRequest(requesterUsername, accessToken);
-      setPendingFollowRequests((current) =>
-        current.filter((request) => request.username.toLowerCase() !== requesterUsername.toLowerCase()),
-      );
-      setFollowersCount((current) => current + 1);
-    } finally {
-      setIsUpdatingFollowRequest(null);
-    }
-  }, [isUpdatingFollowRequest]);
-
-  const handleRejectFollowRequest = React.useCallback(async (requesterUsername: string) => {
-    const accessToken = getAccessToken();
-    if (!accessToken || isUpdatingFollowRequest) {
-      return;
-    }
-
-    setIsUpdatingFollowRequest(requesterUsername);
-
-    try {
-      await rejectFollowRequest(requesterUsername, accessToken);
-      setPendingFollowRequests((current) =>
-        current.filter((request) => request.username.toLowerCase() !== requesterUsername.toLowerCase()),
-      );
-    } finally {
-      setIsUpdatingFollowRequest(null);
-    }
-  }, [isUpdatingFollowRequest]);
 
   const handleOpenShelfBookDetails = (book: DisplayShelfBook) => {
     setSelectedShelfBook(book);
@@ -699,60 +654,6 @@ export default function PerfilPage() {
           </div>
         </div>
       </section>
-
-      {pendingFollowRequests.length > 0 ? (
-        <section className="rounded-xl border border-emerald-100 bg-white p-5 shadow-sm">
-          <SectionHeader title="Solicitações para seguir" subtitle="Gerencie pedidos pendentes" />
-          <div className="mt-4 space-y-3">
-            {pendingFollowRequests.map((request) => {
-              const isProcessing = isUpdatingFollowRequest === request.username;
-
-              return (
-                <div
-                  key={request.id}
-                  className="flex flex-col gap-3 rounded-xl border border-gray-200 px-4 py-3 md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-emerald-100 overflow-hidden flex items-center justify-center">
-                      {request.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={request.avatarUrl} alt={`Avatar de ${request.username}`} className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="text-sm font-semibold text-emerald-700">
-                          {request.username.slice(0, 1).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">@{request.username}</p>
-                      <p className="text-xs text-gray-500">quer seguir seu perfil privado</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleRejectFollowRequest(request.username)}
-                      disabled={isProcessing}
-                      className="inline-flex items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Recusar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleAcceptFollowRequest(request.username)}
-                      disabled={isProcessing}
-                      className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Aceitar
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
 
       {preferences.showReadingGoal ? (
         <section className="rounded-lg border border-gray-200 bg-white p-5">
