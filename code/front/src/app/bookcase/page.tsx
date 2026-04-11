@@ -392,6 +392,8 @@ export default function EstantePage() {
         rootViewMode={rootViewMode}
         filteredShelves={filteredShelves}
         onEnterShelf={handleEnterShelf}
+        onOpenEditShelfModal={handleOpenEditShelfModal}
+        onOpenDeleteShelfModal={handleOpenDeleteShelfModal}
         filteredCollections={filteredCollections}
         onEnterCollection={handleEnterCollection}
       />

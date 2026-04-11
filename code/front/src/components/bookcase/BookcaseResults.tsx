@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { BookCoverPlaceholder, EmptyState, ProgressBar } from "@/components";
 import type { BackendCollectionSummaryResponse, BackendShelfSummaryResponse } from "@/services";
 import type { RootViewMode, ShelfBook } from "@/hooks/useBookcasePage";
@@ -15,6 +17,8 @@ interface BookcaseResultsProps {
   rootViewMode: RootViewMode;
   filteredShelves: BackendShelfSummaryResponse[];
   onEnterShelf: (shelf: BackendShelfSummaryResponse) => void;
+  onOpenEditShelfModal: (shelf: BackendShelfSummaryResponse) => void;
+  onOpenDeleteShelfModal: (shelf: BackendShelfSummaryResponse) => void;
   filteredCollections: BackendCollectionSummaryResponse[];
   onEnterCollection: (collection: BackendCollectionSummaryResponse) => void;
 }
@@ -47,9 +51,28 @@ export function BookcaseResults({
   rootViewMode,
   filteredShelves,
   onEnterShelf,
+  onOpenEditShelfModal,
+  onOpenDeleteShelfModal,
   filteredCollections,
   onEnterCollection,
 }: Readonly<BookcaseResultsProps>) {
+  const [openShelfMenuId, setOpenShelfMenuId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (openShelfMenuId === null) {
+      return;
+    }
+
+    const handleWindowClick = () => {
+      setOpenShelfMenuId(null);
+    };
+
+    window.addEventListener("click", handleWindowClick);
+    return () => {
+      window.removeEventListener("click", handleWindowClick);
+    };
+  }, [openShelfMenuId]);
+
   if (loadError) {
     return (
       <div className="space-y-4">
@@ -123,22 +146,74 @@ export function BookcaseResults({
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           {filteredShelves.map((shelf) => (
-            <button
+            <div
               key={shelf.id}
-              type="button"
-              onClick={() => onEnterShelf(shelf)}
-              className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
+              className="relative rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
             >
-              <div className="flex items-center gap-4 text-left">
-                <ShelfCoverFrame covers={shelf.coverPreview} shelfName={shelf.name} />
-                <div className="min-w-0">
-                  <p className="truncate text-base font-semibold text-[var(--text-primary)]">{shelf.name}</p>
-                  <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                    {shelf.itemCount} {shelf.itemCount === 1 ? "livro" : "livros"}
-                  </p>
+              <button
+                type="button"
+                onClick={() => onEnterShelf(shelf)}
+                className="w-full pr-12 text-left"
+                aria-label={`Abrir estante ${shelf.name}`}
+              >
+                <div className="flex items-center gap-4 text-left">
+                  <ShelfCoverFrame covers={shelf.coverPreview} shelfName={shelf.name} />
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-semibold text-[var(--text-primary)]">{shelf.name}</p>
+                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                      {shelf.itemCount} {shelf.itemCount === 1 ? "livro" : "livros"}
+                    </p>
+                  </div>
                 </div>
+              </button>
+
+              <div className="absolute right-3 top-3" onClick={(event) => event.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => setOpenShelfMenuId((currentId) => (currentId === shelf.id ? null : shelf.id))}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-soft)] text-[var(--text-secondary)] transition hover:bg-[var(--bg-soft)]"
+                  aria-label={`Mais ações para a estante ${shelf.name}`}
+                  aria-haspopup="menu"
+                  aria-expanded={openShelfMenuId === shelf.id}
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+
+                {openShelfMenuId === shelf.id ? (
+                  <div
+                    className="absolute right-0 z-20 mt-2 w-40 rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-1 shadow-[var(--shadow-soft)]"
+                    role="menu"
+                    aria-label={`Ações da estante ${shelf.name}`}
+                  >
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-2 text-sm text-[var(--text-primary)] transition hover:bg-[var(--bg-soft)]"
+                      role="menuitem"
+                      onClick={() => {
+                        setOpenShelfMenuId(null);
+                        onOpenEditShelfModal(shelf);
+                      }}
+                    >
+                      <Pencil size={14} />
+                      <span>Editar estante</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-2 text-sm text-[var(--danger-600)] transition hover:bg-[var(--bg-soft)]"
+                      role="menuitem"
+                      onClick={() => {
+                        setOpenShelfMenuId(null);
+                        onOpenDeleteShelfModal(shelf);
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      <span>Apagar estante</span>
+                    </button>
+                  </div>
+                ) : null}
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </div>
