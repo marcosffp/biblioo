@@ -202,6 +202,18 @@
             <version>5.18.0</version>
         </dependency>
 
+        <!-- Defesas de Segurança (XSS / Upload) -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+        
         <!-- Micrometer (métricas do consumer de recomendação) -->
         <dependency>
             <groupId>io.micrometer</groupId>

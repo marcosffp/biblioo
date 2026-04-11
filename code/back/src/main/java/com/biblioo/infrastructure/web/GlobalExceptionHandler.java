@@ -35,6 +35,12 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
   }
 
+  @ExceptionHandler(com.biblioo.feed.domain.exception.CommentBusinessException.class)
+  ResponseEntity<ErrorResponse> handleCommentBusiness(
+      com.biblioo.feed.domain.exception.CommentBusinessException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
   // ── User ──────────────────────────────────────────────────────────────────
 
   @ExceptionHandler(UserNotFoundException.class)
@@ -158,6 +164,12 @@ public class GlobalExceptionHandler {
   ResponseEntity<ErrorResponse> handleMaxUploadSize(
       MaxUploadSizeExceededException ex, HttpServletRequest request) {
     return buildError(HttpStatus.BAD_REQUEST, "Arquivo excede o tamanho máximo de 5MB", request);
+  }
+
+  @ExceptionHandler(org.springframework.dao.InvalidDataAccessApiUsageException.class)
+  ResponseEntity<ErrorResponse> handleInvalidDataAccess(
+      org.springframework.dao.InvalidDataAccessApiUsageException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, "Parâmetros de busca ou ordenação inválidos.", request);
   }
 
   @ExceptionHandler(Exception.class)

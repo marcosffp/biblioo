@@ -5,7 +5,6 @@ import com.biblioo.notification.domain.port.out.NotificationDeliveryPort;
 import com.biblioo.notification.infrastructure.persistence.DeviceTokenRepository;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification.Builder;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

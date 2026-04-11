@@ -3,6 +3,7 @@ package com.biblioo.feed.infrastructure.web;
 import com.biblioo.feed.domain.exception.ReviewBusinessException;
 import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
+import com.biblioo.feed.infrastructure.dto.like.LikeResponse;
 import com.biblioo.feed.infrastructure.dto.mapper.ReviewMapper;
 import com.biblioo.feed.infrastructure.dto.review.ReviewBasicResponse;
 import com.biblioo.feed.infrastructure.dto.review.ReviewResponse;
@@ -12,6 +13,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.tika.Tika;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -203,20 +207,21 @@ public class ReviewController {
   @Operation(
       summary = "Curtir ou remover curtida da avaliação",
       description =
-          "Adiciona uma curtida na avaliação do livro, caso não curtido; remove a curtida se já curtido.")
-  public ResponseEntity<Void> likeReview(
+          "Adiciona uma curtida na avaliação do livro, caso não curtido; remove a curtida se já curtido."
+              + " Retorna o estado atual da curtida do usuário após a operação.")
+  public ResponseEntity<LikeResponse> likeReview(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação a curtir/descurtir", example = "1") @PathVariable
           Long reviewId) {
 
     Long userId = Long.parseLong(principal.getUsername());
-    reviewUseCase.likeReview(userId, reviewId);
-    return ResponseEntity.ok().build();
+    boolean liked = reviewUseCase.likeReview(userId, reviewId);
+    return ResponseEntity.ok(new LikeResponse(liked));
   }
 
   private String sanitize(String html) {
     if (html == null) return null;
-    return html.replaceAll("<[^>]*>", "");
+    return Jsoup.clean(html, Safelist.none());
   }
 
   private void validateFiles(List<MultipartFile> images, MultipartFile gif) {
@@ -227,24 +232,35 @@ public class ReviewController {
       images.forEach(this::validateImageFile);
     }
     if (gif != null) {
-      String ct = gif.getContentType();
-      if (ct == null || !ct.equals("image/gif")) {
-        throw new ReviewBusinessException("O GIF deve ser image/gif");
-      }
       if (gif.getSize() > 10 * 1024 * 1024) { // 10MB
         throw new ReviewBusinessException("O limite de tamanho do GIF foi excedido");
+      }
+      try {
+        Tika tika = new Tika();
+        String detectedType = tika.detect(gif.getInputStream());
+        if (!"image/gif".equals(detectedType)) {
+          throw new ReviewBusinessException("O GIF deve ser do tipo image/gif validado");
+        }
+      } catch (IOException e) {
+        throw new ReviewBusinessException("Erro ao processar o arquivo GIF");
       }
     }
   }
 
   private void validateImageFile(MultipartFile file) {
-    String ct = file.getContentType();
-    if (ct == null
-        || (!ct.equals("image/jpeg") && !ct.equals("image/png") && !ct.equals("image/webp"))) {
-      throw new ReviewBusinessException("A imagem deve ser JPEG, PNG ou WebP");
-    }
     if (file.getSize() > 5 * 1024 * 1024) { // 5MB limit
       throw new ReviewBusinessException("O limite de tamanho da imagem foi excedido");
+    }
+    try {
+      Tika tika = new Tika();
+      String detectedType = tika.detect(file.getInputStream());
+      if (!"image/jpeg".equals(detectedType)
+          && !"image/png".equals(detectedType)
+          && !"image/webp".equals(detectedType)) {
+        throw new ReviewBusinessException("A imagem deve ser JPEG, PNG ou WebP validada");
+      }
+    } catch (IOException e) {
+      throw new ReviewBusinessException("Erro ao processar a imagem do upload");
     }
   }
 
