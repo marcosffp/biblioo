@@ -9,17 +9,21 @@ class UserLocalDatasource {
   const UserLocalDatasource(this._prefs);
 
   Future<void> saveProfile(UserModel user) async {
-    await _prefs.setString(_keyProfile, jsonEncode({
-      'id': user.id,
-      'username': user.username,
-      'email': user.email,
-      'bio': user.bio,
-      'avatarUrl': user.avatarUrl,
-      'bannerUrl': user.bannerUrl,
-      'isPrivate': user.isPrivate,
-      'restricted': user.restricted,
-      'createdAt': user.createdAt,
-    }));
+    await _prefs.setString(
+      _keyProfile,
+      jsonEncode({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'bio': user.bio,
+        'avatarUrl': user.avatarUrl,
+        'bannerUrl': user.bannerUrl,
+        'isPrivate': user.isPrivate,
+        'restricted': user.restricted,
+        'isFollowing': user.isFollowing,
+        'createdAt': user.createdAt,
+      }),
+    );
   }
 
   UserModel? getProfile() {

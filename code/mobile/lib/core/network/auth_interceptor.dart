@@ -9,10 +9,19 @@ class AuthInterceptor extends Interceptor {
   final AuthRemoteDatasource _remote;
   final Dio _dio;
 
+  static const _retriedKey = '__auth_retried';
+
   AuthInterceptor(this._local, this._remote, this._dio);
+
+  bool _isAuthPath(String path) => path.startsWith('/auth/');
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    if (_isAuthPath(options.path)) {
+      handler.next(options);
+      return;
+    }
+
     final token = _local.getAccessToken();
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
@@ -26,6 +35,19 @@ class AuthInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     if (err.response?.statusCode != 401) {
+      handler.next(err);
+      return;
+    }
+
+    // Never recurse when refresh itself fails.
+    if (_isAuthPath(err.requestOptions.path)) {
+      await _local.clearTokens();
+      handler.next(err);
+      return;
+    }
+
+    // Retry only once per request.
+    if (err.requestOptions.extra[_retriedKey] == true) {
       handler.next(err);
       return;
     }
@@ -47,6 +69,7 @@ class AuthInterceptor extends Interceptor {
 
       // reexecuta o request original com o novo token
       final opts = err.requestOptions;
+      opts.extra[_retriedKey] = true;
       opts.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
       final response = await _dio.fetch(opts);
       handler.resolve(response);

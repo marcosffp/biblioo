@@ -34,22 +34,44 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     }
   }
 
-  Future<void> _onUpdateProfile(UpdateProfile e, Emitter<UserState> emit) async {
+  Future<void> _onUpdateProfile(
+    UpdateProfile e,
+    Emitter<UserState> emit,
+  ) async {
     emit(UserLoading());
     try {
-      emit(UserLoaded(await _repository.updateProfile(
+      var user = await _repository.updateProfile(
         bio: e.bio,
         avatarUrl: e.avatarUrl,
         bannerUrl: e.bannerUrl,
-      )));
+      );
+
+      if (e.isPrivate != null && user.isPrivate != e.isPrivate) {
+        user = await _repository.updateVisibility(isPrivate: e.isPrivate!);
+      }
+
+      if (e.avatarFilePath != null && e.avatarFilePath!.isNotEmpty) {
+        user = await _repository.uploadAvatar(e.avatarFilePath!);
+      }
+
+      if (e.bannerFilePath != null && e.bannerFilePath!.isNotEmpty) {
+        user = await _repository.uploadBanner(e.bannerFilePath!);
+      }
+
+      emit(UserLoaded(user));
     } on Exception catch (e) {
       emit(UserError(e.toString()));
     }
   }
 
-  Future<void> _onUpdateVisibility(UpdateVisibility e, Emitter<UserState> emit) async {
+  Future<void> _onUpdateVisibility(
+    UpdateVisibility e,
+    Emitter<UserState> emit,
+  ) async {
     try {
-      emit(UserLoaded(await _repository.updateVisibility(isPrivate: e.isPrivate)));
+      emit(
+        UserLoaded(await _repository.updateVisibility(isPrivate: e.isPrivate)),
+      );
     } on Exception catch (e) {
       emit(UserError(e.toString()));
     }
@@ -58,6 +80,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   Future<void> _onFollow(FollowUser e, Emitter<UserState> emit) async {
     try {
       await _repository.follow(e.username);
+      final current = state;
+      if (current is UserLoaded && current.user.username == e.username) {
+        emit(UserLoaded(current.user.copyWith(isFollowing: true)));
+      }
     } on Exception catch (e) {
       emit(UserError(e.toString()));
     }
@@ -66,12 +92,19 @@ class UserBloc extends Bloc<UserEvent, UserState> {
   Future<void> _onUnfollow(UnfollowUser e, Emitter<UserState> emit) async {
     try {
       await _repository.unfollow(e.username);
+      final current = state;
+      if (current is UserLoaded && current.user.username == e.username) {
+        emit(UserLoaded(current.user.copyWith(isFollowing: false)));
+      }
     } on Exception catch (e) {
       emit(UserError(e.toString()));
     }
   }
 
-  Future<void> _onDeleteAccount(DeleteAccount e, Emitter<UserState> emit) async {
+  Future<void> _onDeleteAccount(
+    DeleteAccount e,
+    Emitter<UserState> emit,
+  ) async {
     try {
       await _repository.deleteAccount();
     } on Exception catch (e) {
