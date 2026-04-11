@@ -4,7 +4,6 @@ import {
   Bookmark,
   CheckCircle2,
   ChevronDown,
-  ChevronUp,
   Minus,
   Plus,
   RotateCcw,
@@ -48,12 +47,54 @@ interface ReviewSectionProps {
   isLoadingReview: boolean;
 }
 
-const statusOptions: Array<{ value: Exclude<ReadingStatus, "todos">; label: string; Icon: typeof BookOpen }> = [
-  { value: "lendo", label: "Lendo", Icon: BookOpen },
-  { value: "quero-ler", label: "Quero Ler", Icon: Bookmark },
-  { value: "lido", label: "Lido", Icon: CheckCircle2 },
-  { value: "relendo", label: "Relendo", Icon: RotateCcw },
-  { value: "abandonei", label: "Abandonei", Icon: XCircle },
+const statusOptions: Array<{
+  value: Exclude<ReadingStatus, "todos">;
+  label: string;
+  Icon: typeof BookOpen;
+  buttonClassName: string;
+  menuActiveClassName: string;
+  flagClassName: string;
+}> = [
+  {
+    value: "lendo",
+    label: "Lendo",
+    Icon: BookOpen,
+    buttonClassName: "bg-blue-600 text-white",
+    menuActiveClassName: "bg-blue-50 text-blue-800",
+    flagClassName: "",
+  },
+  {
+    value: "quero-ler",
+    label: "Quero Ler",
+    Icon: Bookmark,
+    buttonClassName: "bg-violet-600 text-white",
+    menuActiveClassName: "bg-violet-50 text-violet-800",
+    flagClassName: "",
+  },
+  {
+    value: "lido",
+    label: "Lido",
+    Icon: CheckCircle2,
+    buttonClassName: "bg-emerald-600 text-white",
+    menuActiveClassName: "bg-emerald-50 text-emerald-800",
+    flagClassName: "",
+  },
+  {
+    value: "relendo",
+    label: "Relendo",
+    Icon: RotateCcw,
+    buttonClassName: "bg-amber-500 text-white",
+    menuActiveClassName: "bg-amber-50 text-amber-800",
+    flagClassName: "",
+  },
+  {
+    value: "abandonei",
+    label: "Abandonei",
+    Icon: XCircle,
+    buttonClassName: "bg-rose-600 text-white",
+    menuActiveClassName: "bg-rose-50 text-rose-800",
+    flagClassName: "",
+  },
 ];
 
 function clampPercent(value: number): number {
@@ -189,84 +230,144 @@ export function ShelfBookDetailsPanel({
   const totalPages = book.totalPages ?? 0;
   const canDecreasePage = !isSaving && currentPage > 0;
   const canIncreasePage = !isSaving && (totalPages <= 0 || currentPage < totalPages);
+  const publicRatingValue = typeof book.rating === "number" ? book.rating.toFixed(1) : "--";
+  const readCount = book.readerCount ?? (totalPages > 0 && currentPage >= totalPages ? 1 : 0);
+  const readingCount = currentPage > 0 && (totalPages <= 0 || currentPage < totalPages) ? 1 : 0;
+  const wantedCount = book.readingStatus === "quero-ler" ? 1 : 0;
+  const abandonedCount = book.readingStatus === "abandonei" ? 1 : 0;
+  const reviewCount = reviewExists ? 1 : 0;
+  const publicRatingCount = book.readerCount ?? 0;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--bg-canvas)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 pb-12 pt-6 sm:px-6 lg:px-10">
-        <BackArrowButton onClick={onClose} ariaLabel="Voltar para estante" />
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
+      <div className="sticky top-0 z-20 border-b border-[var(--border-soft)] bg-[var(--bg-surface)]">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-10">
+          <BackArrowButton onClick={onClose} ariaLabel="Voltar para estante" />
+          <span className="text-sm font-semibold text-[var(--text-secondary)]">Detalhes do livro</span>
+        </div>
+      </div>
 
-        <div className="mt-5 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
-          <div className="mx-auto max-w-3xl text-center">
-            {book.coverUrl ? (
-              <img
-                src={book.coverUrl}
-                alt={`Capa de ${book.title}`}
-                className="mx-auto h-44 w-32 rounded-[14px] object-cover sm:h-52 sm:w-36"
-              />
-            ) : (
-              <div className="mx-auto flex h-44 w-32 items-center justify-center rounded-[14px] bg-[var(--brand-100)] text-sm font-medium text-[var(--brand-600)] sm:h-52 sm:w-36">
-                Capa do Livro
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-12 pt-8 sm:px-6 lg:px-10">
+        <div className="mt-1 bg-white sm:p-2">
+          <div className="grid gap-6 md:grid-cols-[250px_1fr] md:items-start">
+            <div>
+              {book.coverUrl ? (
+                <img
+                  src={book.coverUrl}
+                  alt={`Capa de ${book.title}`}
+                  className="h-72 w-52 rounded-[14px] object-cover"
+                />
+              ) : (
+                <div className="flex h-72 w-52 items-center justify-center rounded-[14px] bg-[var(--bg-soft)] text-sm font-medium text-[var(--brand-600)]">
+                  Capa do Livro
+                </div>
+              )}
+
+              <div className="mt-4 space-y-2 text-sm text-[var(--text-secondary)]">
+                <p>
+                  <span className="font-semibold text-[var(--text-primary)]">Páginas:</span> {totalPages > 0 ? totalPages : "--"}
+                </p>
               </div>
-            )}
 
-            <h2 className="mt-5 text-4xl font-semibold tracking-tight text-[var(--text-primary)]">{book.title}</h2>
-            <p className="mt-1 text-2xl text-[var(--text-secondary)]">{book.author}</p>
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsStatusOpen((current) => !current)}
+                  className={`inline-flex min-w-[140px] items-center justify-between rounded-full px-4 py-2 text-sm font-semibold ${activeStatus.buttonClassName}`}
+                  aria-expanded={isStatusOpen}
+                  aria-label="Alternar opções de status"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <ActiveStatusIcon size={16} />
+                    {activeStatus.label}
+                  </span>
+                  <ChevronDown size={16} />
+                </button>
 
-            {typeof book.rating === "number" ? (
-              <div className="mt-4 flex items-center justify-center gap-2 text-[var(--text-primary)]">
-                <RatingStars value={book.rating} />
-                <span className="text-xl font-semibold">{book.rating.toFixed(1)}</span>
-                <span className="text-base text-[var(--text-secondary)]">(avaliações)</span>
               </div>
-            ) : null}
 
-            <p className="mt-4 text-base text-[var(--text-secondary)]">
-              {totalPages > 0 ? `${totalPages} páginas` : "Páginas indisponíveis"}
-            </p>
+              {isStatusOpen ? (
+                <div className="mt-2 w-[180px] overflow-hidden rounded-xl bg-white shadow-[0_8px_28px_rgba(26,46,76,0.15)]">
+                  {statusOptions.map((statusOption) => {
+                    const Icon = statusOption.Icon;
+                    const isActive = statusOption.value === book.readingStatus;
+
+                    return (
+                      <button
+                        key={statusOption.value}
+                        type="button"
+                        onClick={() => {
+                          setIsStatusOpen(false);
+                          onSelectStatus(statusOption.value);
+                        }}
+                        className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition ${
+                          isActive
+                            ? `${statusOption.menuActiveClassName}`
+                            : "text-[var(--text-primary)] hover:bg-[var(--bg-soft)]"
+                        }`}
+                      >
+                        <Icon size={15} className={isActive ? "text-current" : "text-[var(--text-secondary)]"} />
+                        <span>{statusOption.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+            </div>
+
+            <div>
+              <h2 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">{book.title}</h2>
+              <p className="mt-1 text-3xl text-[var(--text-primary)]">{book.author}</p>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
+                  <div className="inline-flex rounded-md bg-[#02a362] px-2 py-1 text-2xl font-bold leading-none text-white">
+                    {publicRatingValue}
+                  </div>
+                  <div className="mt-2 flex items-center gap-1 text-[var(--text-primary)]">
+                    {typeof book.rating === "number" ? <RatingStars value={book.rating} /> : null}
+                  </div>
+                </article>
+
+                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
+                  <p className="text-base text-[var(--text-primary)]">Leram</p>
+                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{readCount}</p>
+                </article>
+
+                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
+                  <p className="text-base text-[var(--text-primary)]">Lendo</p>
+                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{readingCount}</p>
+                </article>
+
+                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
+                  <p className="text-base text-[var(--text-primary)]">Querem</p>
+                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{wantedCount}</p>
+                </article>
+
+                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
+                  <p className="text-base text-[var(--text-primary)]">Abandonos</p>
+                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{abandonedCount}</p>
+                </article>
+
+                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
+                  <p className="text-base text-[var(--text-primary)]">Resenhas</p>
+                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{reviewCount}</p>
+                </article>
+              </div>
+
+              <section className="mt-6 bg-white">
+                <p className="text-xl leading-relaxed text-[var(--text-secondary)]">
+                  {book.synopsis?.trim()
+                    ? book.synopsis
+                    : "Sinopse indisponível no momento."}
+                </p>
+              </section>
+            </div>
           </div>
         </div>
 
-        <section className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
-          <button
-            type="button"
-            onClick={() => setIsStatusOpen((current) => !current)}
-            className="flex w-full items-center justify-between rounded-[var(--radius-md)] bg-[var(--brand-500)] px-4 py-3 text-left text-white"
-            aria-expanded={isStatusOpen}
-            aria-label="Alternar opções de status"
-          >
-            <span className="inline-flex items-center gap-2 text-xl font-semibold">
-              <ActiveStatusIcon size={20} />
-              {activeStatus.label}
-            </span>
-            {isStatusOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </button>
-
-          {isStatusOpen ? (
-            <div className="mt-2 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)]">
-              {statusOptions.map((statusOption) => {
-                const Icon = statusOption.Icon;
-                const isActive = statusOption.value === book.readingStatus;
-
-                return (
-                  <button
-                    key={statusOption.value}
-                    type="button"
-                    onClick={() => {
-                      setIsStatusOpen(false);
-                      onSelectStatus(statusOption.value);
-                    }}
-                    className={`flex w-full items-center gap-3 px-4 py-3 text-left text-[var(--text-primary)] transition ${
-                      isActive ? "bg-[var(--brand-100)]" : "bg-[var(--bg-surface)] hover:bg-[var(--bg-soft)]"
-                    }`}
-                  >
-                    <Icon size={18} className="text-[var(--text-secondary)]" />
-                    <span className="text-xl">{statusOption.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-
+        <section className="mt-5 rounded-3xl bg-[var(--bg-soft)] p-5">
           <div className="mt-6">
             <div className="mb-2 flex items-center justify-between text-sm text-[var(--text-secondary)]">
               <span>Progresso de leitura</span>
@@ -286,7 +387,7 @@ export function ShelfBookDetailsPanel({
                 type="button"
                 onClick={() => onStepPage(-1)}
                 disabled={!canDecreasePage}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-soft)] text-[var(--text-primary)] transition hover:bg-[var(--bg-soft)] disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-soft)] text-[var(--text-primary)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
                 aria-label="Diminuir página atual"
               >
                 <Minus size={16} />
@@ -296,7 +397,7 @@ export function ShelfBookDetailsPanel({
                 type="button"
                 onClick={() => onStepPage(1)}
                 disabled={!canIncreasePage}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-soft)] text-[var(--text-primary)] transition hover:bg-[var(--bg-soft)] disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-soft)] text-[var(--text-primary)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
                 aria-label="Aumentar página atual"
               >
                 <Plus size={16} />
@@ -320,33 +421,24 @@ export function ShelfBookDetailsPanel({
           isLoadingReview={isLoadingReview ?? false}
         />
 
-        <section className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+        <section className="mt-4 rounded-3xl bg-[var(--bg-soft)] p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bg-soft)] text-[var(--brand-600)]">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--brand-600)]">
                 <Users size={18} />
               </span>
               <div>
                 <h3 className="text-xl font-semibold text-[var(--text-primary)]">Comunidade do Livro</h3>
-                <p className="text-sm text-[var(--text-secondary)]">Leitores discutindo este título</p>
+                <p className="text-sm text-[var(--text-secondary)]">Leitores discutindo este titulo</p>
               </div>
             </div>
             <button
               type="button"
-              className="rounded-[var(--radius-md)] border border-[var(--border-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-soft)]"
+              className="rounded-full border border-[var(--border-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-white"
             >
               Participar
             </button>
           </div>
-        </section>
-
-        <section className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
-          <h3 className="text-xl font-semibold text-[var(--text-primary)]">Sinopse</h3>
-          <p className="mt-3 text-base leading-relaxed text-[var(--text-secondary)]">
-            {book.synopsis?.trim()
-              ? book.synopsis
-              : "Sinopse indisponível no momento. Assim que o conteúdo estiver disponível na API, ele será exibido aqui."}
-          </p>
         </section>
 
         <div className="mt-3 flex justify-end">

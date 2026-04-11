@@ -54,6 +54,8 @@ export type BookResponse = {
   coverUrl?: string | null;
   pageCount?: number | null;
   averageRating?: number | null;
+  description?: string | null;
+  readerCount?: number | null;
 };
 
 export type ProfilePreferences = {
