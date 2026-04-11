@@ -1,5 +1,6 @@
 import 'package:biblioo/core/shell/main_shell.dart';
-import 'package:biblioo/screens/_placeholders.dart' show ShelfListScreen, CommunityListScreen, DnaScreen;
+import 'package:biblioo/screens/_placeholders.dart'
+    show ShelfListScreen, CommunityListScreen, DnaScreen;
 import 'package:biblioo/screens/auth/login_screen.dart';
 import 'package:biblioo/screens/auth/register_screen.dart';
 import 'package:biblioo/screens/feed/feed_screen.dart';
@@ -9,7 +10,6 @@ import 'package:biblioo/screens/recommendation/dice_screen.dart';
 import 'package:biblioo/screens/recommendation/recommendation_screen.dart';
 import 'package:biblioo/screens/search/book_search_screen.dart';
 import 'package:go_router/go_router.dart';
-
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -117,7 +117,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/profile',
-              builder: (context, state) => const ProfileScreen(),
+              builder: (context, state) => const ProfileScreen.forMe(),
               routes: [
                 GoRoute(
                   path: 'edit',
@@ -126,6 +126,11 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'dna',
                   builder: (context, state) => const DnaScreen(),
+                ),
+                GoRoute(
+                  path: ':username',
+                  builder: (context, state) =>
+                      ProfileScreen.forUser(state.pathParameters['username']!),
                 ),
               ],
             ),

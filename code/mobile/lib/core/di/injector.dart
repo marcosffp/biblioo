@@ -1,5 +1,6 @@
 import 'package:biblioo/core/network/dio_client.dart';
 import 'package:biblioo/core/network/auth_interceptor.dart';
+import 'package:biblioo/core/network/retry_interceptor.dart';
 import 'package:biblioo/features/auth/bloc/auth_bloc.dart';
 import 'package:biblioo/features/auth/bloc/auth_event.dart';
 import 'package:biblioo/features/auth/data/auth_local_datasource.dart';
@@ -26,6 +27,9 @@ class Injector {
   static Future<Injector> init() async {
     final prefs = await SharedPreferences.getInstance();
     final dio = createDio();
+
+    // Retry transient failures with exponential backoff.
+    dio.interceptors.add(RetryInterceptor(dio));
 
     // Wire auth token injection + refresh/retry for protected endpoints.
     final authLocal = AuthLocalDatasource(prefs);
