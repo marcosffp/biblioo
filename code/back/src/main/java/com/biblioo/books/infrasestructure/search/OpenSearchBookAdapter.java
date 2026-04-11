@@ -39,8 +39,8 @@ public class OpenSearchBookAdapter {
 
   @Retryable(
       retryFor = RuntimeException.class,
-      maxAttempts = 3,
-      backoff = @Backoff(delay = 200, multiplier = 2),
+      maxAttempts = 2,
+      backoff = @Backoff(delay = 50),
       recover = "searchFallback")
   public List<Book> search(String query) {
     try {
@@ -76,7 +76,7 @@ public class OpenSearchBookAdapter {
   @Recover
   public List<Book> searchFallback(RuntimeException e, String query) {
     log.warn(
-        "OpenSearch indisponível durante search após 3 tentativas. query='{}'. Causa: {}",
+        "OpenSearch indisponível durante search após 2 tentativas. query='{}'. Causa: {}",
         query,
         e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
     return List.of();
@@ -84,8 +84,8 @@ public class OpenSearchBookAdapter {
 
   @Retryable(
       retryFor = RuntimeException.class,
-      maxAttempts = 3,
-      backoff = @Backoff(delay = 200, multiplier = 2),
+      maxAttempts = 2,
+      backoff = @Backoff(delay = 50),
       recover = "suggestFallback")
   public List<Book> suggest(String query) {
     try {
@@ -116,7 +116,7 @@ public class OpenSearchBookAdapter {
   @Recover
   public List<Book> suggestFallback(RuntimeException e, String query) {
     log.warn(
-        "OpenSearch indisponível durante suggest após 3 tentativas. query='{}'. Causa: {}",
+        "OpenSearch indisponível durante suggest após 2 tentativas. query='{}'. Causa: {}",
         query,
         e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
     return List.of();

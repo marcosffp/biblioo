@@ -29,6 +29,19 @@ public class RabbitMQConfig {
   public static final String EVENT_BOOK_SHELF_REMOVED = "BOOK_SHELF_REMOVED";
   public static final String EVENT_BOOK_REVIEW_STATS = "BOOK_REVIEW_STATS";
 
+  // ── Notifications ────────────────────────────────────────────────────────────
+  public static final String NOTIFICATION_QUEUE = "biblioo.notification";
+  public static final String NOTIFICATION_DLQ = "biblioo.notification.dlq";
+  public static final String NOTIFICATION_ROUTING_PATTERN = "notification.#";
+  public static final String NOTIFICATION_DLQ_ROUTING_KEY = "notification.dead";
+
+  public static final String NOTIFICATION_FOLLOW_REQUESTED_ROUTING_KEY =
+      "notification.user.follow-request";
+  public static final String NOTIFICATION_FOLLOWED_ROUTING_KEY = "notification.user.followed";
+
+  public static final String EVENT_USER_FOLLOW_REQUESTED = "USER_FOLLOW_REQUESTED";
+  public static final String EVENT_USER_FOLLOWED = "USER_FOLLOWED";
+
   // ── Recommendation T1 — BECAUSE_YOU_READ ────────────────────────────────────
   public static final String REC_QUEUE = "rec.shelf.completed";
   public static final String REC_DLQ = "rec.shelf.completed.dlq";
@@ -67,6 +80,33 @@ public class RabbitMQConfig {
   @Bean
   Binding dlqBinding(Queue bookStatsDlq, DirectExchange dlxExchange) {
     return BindingBuilder.bind(bookStatsDlq).to(dlxExchange).with(BOOK_STATS_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue notificationQueue() {
+    return QueueBuilder.durable(NOTIFICATION_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", NOTIFICATION_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue notificationDlq() {
+    return QueueBuilder.durable(NOTIFICATION_DLQ).build();
+  }
+
+  @Bean
+  Binding notificationBinding(Queue notificationQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(notificationQueue)
+        .to(mainExchange)
+        .with(NOTIFICATION_ROUTING_PATTERN);
+  }
+
+  @Bean
+  Binding notificationDlqBinding(Queue notificationDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(notificationDlq)
+        .to(dlxExchange)
+        .with(NOTIFICATION_DLQ_ROUTING_KEY);
   }
 
   @Bean

@@ -80,6 +80,43 @@ public class ShelfController {
     return ResponseEntity.ok(mapper.toResponse(shelf, items.size(), covers));
   }
 
+  @GetMapping("/user/{userId}")
+  @Operation(
+      summary = "Lista estantes de um usuário específico",
+      description = "Retorna todas as estantes de um usuário específico no formato resumido.")
+  public ResponseEntity<List<ShelfSummaryResponse>> listUserShelves(
+      @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId) {
+
+    List<Shelf> shelves = shelfUseCase.listShelves(userId);
+
+    List<ShelfSummaryResponse> response =
+        shelves.stream()
+            .map(
+                shelf -> {
+                  List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
+                  List<String> covers = buildCoverPreview(items);
+                  return mapper.toSummaryResponse(shelf, items.size(), covers);
+                })
+            .toList();
+
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/user/{userId}/{shelfId}")
+  @Operation(
+      summary = "Detalhes de uma estante de um usuário",
+      description = "Retorna os detalhes completos de uma estante de um usuário específico.")
+  public ResponseEntity<ShelfResponse> getUserShelf(
+      @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
+      @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId) {
+
+    Shelf shelf = shelfUseCase.getShelf(userId, shelfId);
+    List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelfId);
+    List<String> covers = buildCoverPreview(items);
+
+    return ResponseEntity.ok(mapper.toResponse(shelf, items.size(), covers));
+  }
+
   @PostMapping
   @Operation(
       summary = "Cria uma estante",

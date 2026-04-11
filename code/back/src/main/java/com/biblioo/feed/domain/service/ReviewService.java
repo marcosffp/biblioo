@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -170,6 +172,23 @@ public class ReviewService implements ReviewUseCase {
 
     // TODO: Futuramente chamar a Service/Repository de 'Like' aqui, verificar se já deu like,
     // e chamar reviewRepository.incrementLikeCount()
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Review getReviewById(Long reviewId) {
+    return reviewRepository
+        .findByIdAndIsDeletedFalse(reviewId)
+        .orElseThrow(() -> new ReviewBusinessException("Review não encontrada."));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Page<Review> getRecentReviewsByUserId(Long userId, Pageable pageable) {
+    if (!userPort.existsById(userId)) {
+      throw new ReviewBusinessException("Usuário não encontrado.");
+    }
+    return reviewRepository.findRecentReviewsByUserId(userId, pageable);
   }
 
   private List<String> uploadImages(List<byte[]> images, String referenceId) {

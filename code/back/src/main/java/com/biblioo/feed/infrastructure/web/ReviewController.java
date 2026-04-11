@@ -4,6 +4,7 @@ import com.biblioo.feed.domain.exception.ReviewBusinessException;
 import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
 import com.biblioo.feed.infrastructure.dto.mapper.ReviewMapper;
+import com.biblioo.feed.infrastructure.dto.review.ReviewBasicResponse;
 import com.biblioo.feed.infrastructure.dto.review.ReviewResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,12 +12,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -146,6 +151,52 @@ public class ReviewController {
     Long userId = Long.parseLong(principal.getUsername());
     reviewUseCase.deleteReview(userId, reviewId);
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/{reviewId}")
+  @Operation(
+      summary = "Obtém uma avaliação por ID de forma completa",
+      description = "Retorna os detalhes completos de uma avaliação específica.")
+  public ResponseEntity<ReviewResponse> getReview(
+      @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
+
+    Review review = reviewUseCase.getReviewById(reviewId);
+    return ResponseEntity.ok(reviewMapper.toResponse(review));
+  }
+
+  @GetMapping("/{reviewId}/basic")
+  @Operation(
+      summary = "Obtém informações principais de uma avaliação",
+      description = "Retorna as informações resumidas de uma avaliação específica.")
+  public ResponseEntity<ReviewBasicResponse> getReviewBasic(
+      @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
+
+    Review review = reviewUseCase.getReviewById(reviewId);
+    return ResponseEntity.ok(reviewMapper.toBasicResponse(review));
+  }
+
+  @GetMapping("/user/{userId}")
+  @Operation(
+      summary = "Lista avaliações de um usuário de forma completa",
+      description = "Retorna as avaliações recentes de um usuário específico, com todos os detalhes.")
+  public ResponseEntity<Page<ReviewResponse>> getUserReviews(
+      @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
+      @PageableDefault(size = 10) Pageable pageable) {
+
+    Page<Review> reviews = reviewUseCase.getRecentReviewsByUserId(userId, pageable);
+    return ResponseEntity.ok(reviews.map(reviewMapper::toResponse));
+  }
+
+  @GetMapping("/user/{userId}/basic")
+  @Operation(
+      summary = "Lista avaliações de um usuário de forma resumida",
+      description = "Retorna as informações básicas das avaliações recentes de um usuário específico.")
+  public ResponseEntity<Page<ReviewBasicResponse>> getUserReviewsBasic(
+      @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
+      @PageableDefault(size = 10) Pageable pageable) {
+
+    Page<Review> reviews = reviewUseCase.getRecentReviewsByUserId(userId, pageable);
+    return ResponseEntity.ok(reviews.map(reviewMapper::toBasicResponse));
   }
 
   @PostMapping("/{reviewId}/like")

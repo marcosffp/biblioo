@@ -51,11 +51,21 @@
             <version>2.1.3</version>
         </dependency>
 
-        <!-- HttpClient 5 (Correção para o erro NoClassDefFoundError) -->
+        <!-- HttpClient 5 + HttpCore 5 alinhados com o que o Firebase Admin SDK puxa transitivamente -->
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>
             <artifactId>httpclient5</artifactId>
-            <version>5.2.1</version>
+            <version>5.5.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5</artifactId>
+            <version>5.3.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5-h2</artifactId>
+            <version>5.3.6</version>
         </dependency>
 
         <!-- Web -->
@@ -196,6 +206,13 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
+        </dependency>
+
+        <!-- Firebase Admin SDK (FCM push notifications) -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.4.1</version>
         </dependency>
     </dependencies>
 

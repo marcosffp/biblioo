@@ -1,5 +1,6 @@
 package com.biblioo.user.infrastructure.cache;
 
+import com.biblioo.user.domain.model.FollowStatus;
 import com.biblioo.user.domain.model.ProfileAccess;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.UserUseCase;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Decorator de cache sobre UserService. Cache único "user-profile" com chave = id do usuário.
@@ -56,11 +58,13 @@ public class CachedUserService implements UserUseCase {
   }
 
   @Override
-  public void follow(Long followerId, Long followedId) {
-    delegate.follow(followerId, followedId);
+  @Transactional
+  public FollowStatus follow(Long followerId, Long followedId) {
+    return delegate.follow(followerId, followedId);
   }
 
   @Override
+  @Transactional
   public void unfollow(Long followerId, Long followedId) {
     delegate.unfollow(followerId, followedId);
   }
@@ -68,6 +72,23 @@ public class CachedUserService implements UserUseCase {
   @Override
   public boolean isFollowing(Long followerId, Long followedId) {
     return delegate.isFollowing(followerId, followedId);
+  }
+
+  @Override
+  @Transactional
+  public void acceptFollowRequest(Long userId, Long requesterId) {
+    delegate.acceptFollowRequest(userId, requesterId);
+  }
+
+  @Override
+  @Transactional
+  public void rejectFollowRequest(Long userId, Long requesterId) {
+    delegate.rejectFollowRequest(userId, requesterId);
+  }
+
+  @Override
+  public List<User> getPendingFollowRequests(Long userId, int page, int size) {
+    return delegate.getPendingFollowRequests(userId, page, size);
   }
 
   @Override
