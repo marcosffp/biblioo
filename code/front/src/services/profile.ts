@@ -61,6 +61,13 @@ export type BookResponse = {
   readerCount?: number | null;
 };
 
+export type UserReviewResponse = {
+  id: number;
+  userId: number;
+  bookId: number;
+  rating: number;
+};
+
 export type ProfilePreferences = {
   displayName?: string | null;
   showReadingGoal: boolean;
@@ -177,6 +184,18 @@ export async function listMyShelves(token?: string | null): Promise<ShelfSummary
   return (await response.json()) as ShelfSummaryResponse[];
 }
 
+export async function listShelvesByUserId(userId: number, token?: string | null): Promise<ShelfSummaryResponse[]> {
+  const response = await fetch(`${API_BASE_URL}/shelves/user/${userId}`, {
+    headers: optionalBearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("load_user_shelves_failed");
+  }
+
+  return (await response.json()) as ShelfSummaryResponse[];
+}
+
 export async function listShelfItems(shelfId: number, token?: string | null): Promise<ShelfItemSummaryResponse[]> {
   const response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items`, {
     headers: bearerHeaders(token),
@@ -189,9 +208,25 @@ export async function listShelfItems(shelfId: number, token?: string | null): Pr
   return (await response.json()) as ShelfItemSummaryResponse[];
 }
 
+export async function listShelfItemsByUserId(
+  shelfId: number,
+  userId: number,
+  token?: string | null,
+): Promise<ShelfItemSummaryResponse[]> {
+  const response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items/user/${userId}`, {
+    headers: optionalBearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("load_user_shelf_items_failed");
+  }
+
+  return (await response.json()) as ShelfItemSummaryResponse[];
+}
+
 export async function getBookById(bookId: number, token?: string | null): Promise<BookResponse> {
   const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
-    headers: bearerHeaders(token),
+    headers: optionalBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -199,6 +234,49 @@ export async function getBookById(bookId: number, token?: string | null): Promis
   }
 
   return (await response.json()) as BookResponse;
+}
+
+type PageResponse<T> = {
+  content: T[];
+  totalPages?: number;
+  last?: boolean;
+  number?: number;
+};
+
+export async function listUserReviewsByUserId(
+  userId: number,
+  token?: string | null,
+  pageSize = 100,
+): Promise<UserReviewResponse[]> {
+  let page = 0;
+  const reviews: UserReviewResponse[] = [];
+
+  while (true) {
+    const response = await fetch(`${API_BASE_URL}/feed/reviews/user/${userId}?page=${page}&size=${pageSize}`, {
+      headers: bearerHeaders(token),
+    });
+
+    if (!response.ok) {
+      throw new Error("load_user_reviews_failed");
+    }
+
+    const result = (await response.json()) as PageResponse<UserReviewResponse>;
+    reviews.push(...(result.content ?? []));
+
+    const finishedByFlag = result.last === true;
+    const finishedByPageCount =
+      typeof result.totalPages === "number" && typeof result.number === "number"
+        ? result.number >= result.totalPages - 1
+        : false;
+
+    if (finishedByFlag || finishedByPageCount || (result.content?.length ?? 0) === 0) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return reviews;
 }
 
 async function fetchFollowCount(url: string, token?: string | null): Promise<number> {

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
-import { BookMarked, BookOpen, Library, MoreHorizontal, Sparkles, Users } from "lucide-react";
+import { BookMarked, BookOpen, Library, MoreHorizontal, Sparkles, Star, Users } from "lucide-react";
 import { AppShell, Avatar, AvatarFallback, AvatarImage, Button } from "@/components";
 import { getAccessToken } from "@/services/auth";
 import {
@@ -12,9 +12,10 @@ import {
   getProfileByUsername,
   listFollowersByUsername,
   listFollowingByUsername,
-  listMyShelves,
+  listUserReviewsByUserId,
+  listShelvesByUserId,
   listMyFollowing,
-  listShelfItems,
+  listShelfItemsByUserId,
   type ShelfItemSummaryResponse,
   type UserSummaryResponse,
   unfollowUser,
@@ -28,6 +29,7 @@ type DisplayShelfBook = {
   title: string;
   coverUrl?: string;
   progressPercent?: number;
+  userRating?: number;
 };
 
 function normalizeUsernameParam(value: string): string {
@@ -98,12 +100,26 @@ export default function SeguidorProfilePage() {
         let computedPagesRead: number | null = null;
         let computedShelfBooks: DisplayShelfBook[] = [];
 
-        if (accessToken && ownProfileState) {
-          const shelves = await listMyShelves(accessToken);
-          const shelfItemGroups = await Promise.all(shelves.map((shelf) => listShelfItems(shelf.id, accessToken)));
+        if (!loadedProfile.restricted) {
+          const shelves = await listShelvesByUserId(loadedProfile.id, accessToken);
+          const shelfItemGroups = await Promise.all(
+            shelves.map((shelf) => listShelfItemsByUserId(shelf.id, loadedProfile.id, accessToken)),
+          );
 
           const flatItems = shelfItemGroups.flat();
           const uniqueItems = Array.from(new Map(flatItems.map((item) => [item.id, item])).values());
+
+          const ratingsByBookId = new Map<number, number>();
+          if (accessToken) {
+            try {
+              const reviews = await listUserReviewsByUserId(loadedProfile.id, accessToken);
+              reviews.forEach((review) => {
+                ratingsByBookId.set(review.bookId, review.rating);
+              });
+            } catch {
+              // Rating is optional in this view. If it fails, shelf data still renders.
+            }
+          }
 
           computedBooksRead = uniqueItems.filter((item) => item.status === "COMPLETED").length;
 
@@ -122,11 +138,12 @@ export default function SeguidorProfilePage() {
             return total + Math.round((entry.pageCount * entry.progressPercent) / 100);
           }, 0);
 
-          computedShelfBooks = uniqueItems.slice(0, 12).map((item: ShelfItemSummaryResponse) => ({
+          computedShelfBooks = uniqueItems.map((item: ShelfItemSummaryResponse) => ({
             id: item.id,
             title: item.bookTitle,
             coverUrl: item.bookCoverUrl ?? undefined,
             progressPercent: item.progressPercent ?? undefined,
+            userRating: ratingsByBookId.get(item.bookId),
           }));
         }
 
@@ -206,7 +223,7 @@ export default function SeguidorProfilePage() {
   const displayName = profile ? humanizeUsername(profile.username) : humanizeUsername(username || "usuario");
   const isRestrictedProfileView = Boolean(profile?.restricted && !isOwnProfile);
   const bio = isRestrictedProfileView
-    ? "Este perfil é privado. Algumas informações não estão disponíveis."
+    ? ""
     : profile?.bio ?? "Sem bio cadastrada.";
   const initial = displayName[0]?.toUpperCase() ?? "U";
   const booksReadLabel = booksRead == null ? "Sem dados" : booksRead.toLocaleString("pt-BR");
@@ -291,16 +308,18 @@ export default function SeguidorProfilePage() {
               <span>
                 <strong className="text-deep-green">{followingCount}</strong> <span className="text-medium-text">Seguindo</span>
               </span>
-              <span>
-                <strong className="text-deep-green">{booksReadLabel}</strong> <span className="text-medium-text">Livros lidos</span>
-              </span>
+              {!isRestrictedProfileView ? (
+                <span>
+                  <strong className="text-deep-green">{booksReadLabel}</strong> <span className="text-medium-text">Livros lidos</span>
+                </span>
+              ) : null}
             </div>
           </div>
         </section>
 
         {isRestrictedProfileView ? (
           <section className="rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
-            Este perfil é privado. Apenas informações públicas do cabeçalho estão disponíveis.
+            <strong>Este perfil é privado.</strong>  Apenas seguidores tem acesso às informações. Clique em seguir para solicitar acesso.
           </section>
         ) : (
           <>
@@ -370,6 +389,12 @@ export default function SeguidorProfilePage() {
                       </div>
                       <div className="border-t border-border p-3">
                         <p className="truncate text-sm font-semibold text-deep-green">{book.title}</p>
+                        {typeof book.userRating === "number" ? (
+                          <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
+                            <Star size={12} className="fill-amber-500 text-amber-500" />
+                            {book.userRating.toFixed(1)}
+                          </p>
+                        ) : null}
                         <p className="truncate text-xs text-medium-text">
                           {typeof book.progressPercent === "number"
                             ? `${book.progressPercent}% concluído`
