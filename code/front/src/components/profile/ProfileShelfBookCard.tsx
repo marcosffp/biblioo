@@ -31,7 +31,7 @@ export function ProfileShelfBookCard({
   statusClassName,
   showProgress = false,
   onClick,
-}: ProfileShelfBookCardProps) {
+}: Readonly<ProfileShelfBookCardProps>) {
   const statusTextClass = statusClassName?.split(" ").find((token) => token.startsWith("text-"));
   const lighterStatusTextClass =
     statusTextClass
@@ -48,12 +48,19 @@ export function ProfileShelfBookCard({
     "Quero ler": "text-violet-500",
   };
   const bookmarkColorClass = lighterStatusTextClass ?? (statusLabel ? bookmarkColorByLabel[statusLabel] : undefined) ?? "text-primary-dark";
+  const shouldShowProgress = showProgress;
+  const shouldShowRating =
+    typeof userRating === "number" &&
+    globalThis.window !== undefined &&
+    globalThis.window?.location.pathname.includes("/profile") === true;
+  const normalizedProgressPercent = typeof progressPercent === "number" ? progressPercent : 0;
+  const progressLabel = typeof progressPercent === "number" ? `${Math.round(progressPercent)}%` : "--";
 
   const content = (
     <>
-      <div className="relative aspect-[3/4] overflow-hidden rounded-t-[22px]">
+      <div className="relative aspect-[3/4] rounded-t-[22px]">
         {statusLabel ? <Bookmark label={statusLabel} className={bookmarkColorClass} /> : null}
-        <div className="absolute inset-0 h-full w-full">
+        <div className="absolute inset-0 h-full w-full overflow-hidden rounded-t-[22px]">
           {coverUrl ? (
             <img
               src={coverUrl}
@@ -71,27 +78,24 @@ export function ProfileShelfBookCard({
       <div className="border-t border-border p-3">
         <p className="truncate text-sm font-semibold text-deep-green">{title}</p>
         {author ? <p className="truncate text-xs text-medium-text">{author}</p> : null}
-        {/* Reserve a consistent space for progress so the top of the card stays identical */}
-        <div className="mt-2">
-          {showProgress && typeof progressPercent === "number" ? (
-            <>
-              <ProgressBar value={progressPercent} />
-              <div className="mt-2 flex items-center justify-between text-xs text-medium-text">
-                {showPageCount && typeof currentPage === "number" && typeof totalPages === "number" && totalPages > 0 ? (
-                  <span>
-                    p. {Math.max(0, Math.floor(currentPage))} / {Math.max(1, Math.floor(totalPages))}
-                  </span>
-                ) : (
-                  <span />
-                )}
-                <span className="font-semibold">{Math.round(progressPercent)}%</span>
-              </div>
-            </>
-          ) : null}
-        </div>
-        {typeof userRating === "number" && typeof window !== "undefined" && window.location.pathname.includes("/profile") ? (
-          <RatingStars value={userRating} className="mt-1" />
+        {shouldShowProgress ? (
+          <div className="mt-2 min-h-[36px]">
+            <ProgressBar value={normalizedProgressPercent} />
+            <div className="mt-2 flex items-center justify-between text-xs text-medium-text">
+              {showPageCount && typeof currentPage === "number" && typeof totalPages === "number" && totalPages > 0 ? (
+                <span>
+                  p. {Math.max(0, Math.floor(currentPage))} / {Math.max(1, Math.floor(totalPages))}
+                </span>
+              ) : (
+                <span className="opacity-0">p. 0 / 0</span>
+              )}
+              <span className="font-semibold">{progressLabel}</span>
+            </div>
+          </div>
         ) : null}
+        <div className="mt-1 h-[14px]">
+          {shouldShowRating ? <RatingStars value={userRating} /> : null}
+        </div>
       </div>
     </>
   );
@@ -101,12 +105,12 @@ export function ProfileShelfBookCard({
       <button
         type="button"
         onClick={onClick}
-        className="overflow-visible rounded-[22px] border border-border bg-card text-left transition-all hover:shadow-card-hover"
+        className="self-start overflow-visible rounded-[22px] border border-border bg-card text-left transition-all hover:shadow-card-hover"
       >
         {content}
       </button>
     );
   }
 
-  return <article className="overflow-visible rounded-[22px] border border-border bg-card transition-all hover:shadow-card-hover">{content}</article>;
+  return <article className="self-start overflow-visible rounded-[22px] border border-border bg-card transition-all hover:shadow-card-hover">{content}</article>;
 }

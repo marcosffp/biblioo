@@ -762,7 +762,7 @@ export default function PerfilPage() {
       {activeTab === "Estante" ? (
         <section>
           {shelfBooks.length > 0 ? (
-            <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] gap-4">
+            <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4">
               {shelfBooks.map((book) => (
                 <ProfileShelfBookCard
                   key={book.shelfItemId}

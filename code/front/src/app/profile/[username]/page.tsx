@@ -340,7 +340,7 @@ export default function SeguidorProfilePage() {
             <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
             {activeTab === "Estante" ? (
-              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              <section className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {shelfBooks.length > 0 ? (
                   shelfBooks.map((book) => (
                     <ProfileShelfBookCard
