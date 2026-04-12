@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 
@@ -8,7 +8,7 @@ export interface CommentComposerProps {
   className?: string;
 }
 
-export function CommentComposer({ placeholder = "Escreva um comentario...", onSubmit, className }: CommentComposerProps) {
+export function CommentComposer({ placeholder = "Escreva um comentário...", onSubmit, className }: CommentComposerProps) {
   const [value, setValue] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
@@ -39,3 +39,4 @@ export function CommentComposer({ placeholder = "Escreva um comentario...", onSu
 }
 
 export default CommentComposer;
+

@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { RatingStars } from "./RatingStars";
 import { ProgressBar } from "./ProgressBar";
@@ -11,6 +11,8 @@ export interface BookCardProps {
   coverUrl?: string;
   rating?: number;
   progress?: number;
+  currentPage?: number;
+  totalPages?: number;
   variant?: BookCardVariant;
   className?: string;
 }
@@ -21,15 +23,17 @@ export function BookCard({
   coverUrl,
   rating,
   progress,
+  currentPage,
+  totalPages,
   variant = "list",
   className,
-}: BookCardProps) {
+}: Readonly<BookCardProps>) {
   const isCompact = variant === "compact";
   const coverSize = isCompact ? 96 : 72;
 
   return (
     <div
-      className={`flex gap-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 ${
+      className={`flex gap-4 rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 ${
         isCompact ? "flex-col items-start" : "items-center"
       } ${className ?? ""}`.trim()}
     >
@@ -47,19 +51,25 @@ export function BookCard({
 
       <div className="flex-1 w-full">
         <div className="flex flex-col gap-1">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-          <p className="text-sm text-gray-500">{author}</p>
+          <h3 className="text-[1.85rem] leading-tight font-bold text-[var(--text-primary)]">{title}</h3>
+          <p className="text-xl text-[var(--text-secondary)]">{author}</p>
         </div>
 
-        {typeof rating === "number" ? (
-          <div className="mt-2">
-            <RatingStars value={rating} />
-          </div>
-        ) : null}
+        <div className="mt-2">
+          <RatingStars value={rating} />
+        </div>
 
         {typeof progress === "number" ? (
           <div className="mt-3">
             <ProgressBar value={progress} />
+            <div className="mt-2 flex items-center justify-between gap-3 text-base text-[var(--text-secondary)]">
+              <span>
+                {typeof currentPage === "number" && typeof totalPages === "number"
+                  ? `Página ${currentPage} de ${totalPages}`
+                  : "Progresso de leitura"}
+              </span>
+              <span className="font-semibold text-[var(--text-secondary)]">{Math.round(progress)}%</span>
+            </div>
           </div>
         ) : null}
       </div>
@@ -68,3 +78,4 @@ export function BookCard({
 }
 
 export default BookCard;
+

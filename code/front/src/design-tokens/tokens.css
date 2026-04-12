@@ -1,14 +1,58 @@
 :root {
-  /* Color tokens */
-  --bg-canvas: #e7eee9;
-  --bg-surface: #f4f7f4;
-  --bg-soft: #dfe9e1;
-  --brand-500: #1f8f3a;
-  --brand-600: #17752f;
-  --brand-100: #b7dfbb;
-  --text-primary: #122016;
-  --text-secondary: #4b5e4f;
-  --border-soft: #b6d2b9;
+  /* Core semantic tokens (HSL values only) */
+  --background: 156 53% 97%;
+  --foreground: 174 33% 18%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 174 33% 18%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 174 33% 18%;
+
+  --primary: 157 50% 67%;
+  --primary-foreground: 174 33% 18%;
+  --primary-light: 158 55% 78%;
+  --primary-dark: 165 53% 49%;
+
+  --secondary: 150 100% 98%;
+  --secondary-foreground: 174 33% 18%;
+
+  --muted: 156 20% 94%;
+  --muted-foreground: 168 14% 43%;
+
+  --accent: 158 55% 78%;
+  --accent-foreground: 174 33% 18%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 160 20% 90%;
+  --input: 160 20% 88%;
+  --ring: 157 50% 67%;
+
+  --premium: 43 70% 69%;
+  --premium-foreground: 174 33% 18%;
+
+  --deep-green: 174 33% 18%;
+  --medium-text: 168 14% 43%;
+  --light-text: 166 12% 67%;
+
+  /* Legacy aliases used in existing components */
+  --bg-canvas: #f2fbf8;
+  --bg-surface: #ffffff;
+  --bg-soft: #f5fffb;
+  --brand-100: #a8e6cf;
+  --brand-500: #7ed9b6;
+  --brand-600: #3bbe9e;
+  --danger-500: #d95b5b;
+  --danger-600: #c74d4d;
+  --text-primary: #1f3d3a;
+  --text-secondary: #5f7d78;
+  --border-soft: hsl(160 20% 90%);
+
+  /* Typography tokens */
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-heading: "Manrope", system-ui, sans-serif;
 
   /* Spacing tokens */
   --space-1: 4px;
@@ -20,6 +64,7 @@
   --space-10: 40px;
 
   /* Radius tokens */
+  --radius: 12px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -27,7 +72,7 @@
   --radius-full: 9999px;
 
   /* Elevation tokens */
-  --shadow-soft: 0 10px 24px rgba(18, 32, 22, 0.06);
+  --shadow-soft: 0 10px 24px rgba(31, 61, 58, 0.08);
 
   /* Motion tokens */
   --duration-fast: 120ms;
@@ -35,5 +80,5 @@
   --easing-standard: ease-out;
 
   /* Accessibility token */
-  --focus-ring: 0 0 0 3px rgba(31, 143, 58, 0.35);
+  --focus-ring: 0 0 0 3px rgba(126, 217, 182, 0.35);
 }

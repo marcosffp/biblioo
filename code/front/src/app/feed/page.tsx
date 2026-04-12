@@ -1,5 +1,7 @@
+"use client";
+
 import React from "react";
-import { AppShell, EmptyState, PageHeader, PostCard, SectionHeader, TextInput } from "@/components";
+import { AppShell, EmptyState, PageHeader, PostCard, SectionHeader } from "@/components";
 
 const posts = [
   {
@@ -26,8 +28,6 @@ export default function FeedPage() {
   return (
     <AppShell>
       <PageHeader title="Feed" subtitle="Atualizacoes da comunidade" />
-      <TextInput label="Buscar" placeholder="Buscar posts ou pessoas" />
-
       <SectionHeader title="Ultimos posts" />
       <div className="space-y-4">
         {posts.length ? (

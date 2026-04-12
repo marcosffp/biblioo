@@ -14,8 +14,10 @@ export function ChipToggle({ label, active, onClick, className }: ChipToggleProp
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`px-3 py-1 rounded-full font-semibold cursor-pointer ${
-        active ? "bg-indigo-100 text-indigo-600 border border-indigo-100" : "bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-200 border border-gray-200"
+      className={`px-4 py-1.5 rounded-full font-semibold text-sm cursor-pointer transition-colors ${
+        active
+          ? "bg-[var(--brand-600)] text-white border border-[var(--brand-600)]"
+          : "bg-[var(--bg-soft)] text-[var(--text-secondary)] border border-transparent hover:border-[var(--border-soft)]"
       } ${className ?? ""}`.trim()}
     >
       {label}

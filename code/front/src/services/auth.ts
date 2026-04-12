@@ -1,4 +1,4 @@
-import { AuthSession, LoginRequest, RegisterRequest } from "@/types";
+﻿import { AuthSession, LoginRequest, RegisterRequest } from "@/types";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
 export const AUTH_SESSION_STORAGE_KEY = "biblioo.auth.session";
@@ -35,7 +35,7 @@ export async function loginWithEmailPassword(payload: LoginRequest): Promise<Aut
       body: JSON.stringify(payload),
     });
   } catch {
-    throw new AuthApiError("NETWORK", "Nao foi possivel conectar ao servidor.");
+    throw new AuthApiError("NETWORK", "Não foi possível conectar ao servidor.");
   }
 
   if (!response.ok) {
@@ -64,7 +64,7 @@ export async function registerWithEmailPassword(payload: RegisterRequest): Promi
       body: JSON.stringify(payload),
     });
   } catch {
-    throw new AuthApiError("NETWORK", "Nao foi possivel conectar ao servidor.");
+    throw new AuthApiError("NETWORK", "Não foi possível conectar ao servidor.");
   }
 
   if (!response.ok) {
@@ -85,24 +85,24 @@ async function mapAuthError(response: Response, mode: "login" | "register"): Pro
   const errorDetails = await readErrorDetails(response);
 
   if (mode === "login" && (response.status === 401 || response.status === 403)) {
-    return new AuthApiError("INVALID_CREDENTIALS", "Email ou senha invalidos.", response.status);
+    return new AuthApiError("INVALID_CREDENTIALS", "E-mail ou senha inválidos.", response.status);
   }
 
   if (mode === "register" && response.status === 409) {
     const lowered = errorDetails.toLowerCase();
 
-    if (lowered.includes("username") || lowered.includes("usuario")) {
-      return new AuthApiError("USERNAME_IN_USE", "Esse nome de usuario ja esta em uso.", response.status);
+    if (lowered.includes("username") || lowered.includes("usuario") || lowered.includes("usuário")) {
+      return new AuthApiError("USERNAME_IN_USE", "Esse nome de usuário já está em uso.", response.status);
     }
 
-    return new AuthApiError("EMAIL_IN_USE", "Esse email ja esta em uso.", response.status);
+    return new AuthApiError("EMAIL_IN_USE", "Esse e-mail já está em uso.", response.status);
   }
 
   if (response.status === 400 || response.status === 422) {
     return new AuthApiError("VALIDATION", "Confira os dados informados e tente novamente.", response.status);
   }
 
-  return new AuthApiError("UNKNOWN", "Nao foi possivel autenticar. Tente novamente.", response.status);
+  return new AuthApiError("UNKNOWN", "Não foi possível autenticar. Tente novamente.", response.status);
 }
 
 async function readErrorDetails(response: Response): Promise<string> {
@@ -143,3 +143,4 @@ export function clearAuthSession(): void {
 export function getAccessToken(): string | null {
   return getAuthSession()?.accessToken ?? null;
 }
+

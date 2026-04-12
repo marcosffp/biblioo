@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { UserBadge } from "./UserBadge";
 import { ActionRow } from "./ActionRow";
 
@@ -36,7 +36,7 @@ export function PostCard({
         <ActionRow
           items={[
             { label: `${likes} curtidas` },
-            { label: `${comments} comentarios` },
+            { label: `${comments} comentários` },
           ]}
         />
       </div>
@@ -45,3 +45,4 @@ export function PostCard({
 }
 
 export default PostCard;
+

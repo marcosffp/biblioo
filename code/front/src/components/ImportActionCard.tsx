@@ -24,7 +24,7 @@ export function ImportActionCard({
       <button
         type="button"
         onClick={onAction}
-        className="mt-4 px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-semibold"
+        className="mt-4 px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold"
       >
         {actionLabel}
       </button>
