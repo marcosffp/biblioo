@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import React from "react";
-import { BookOpen, BookOpenCheck, Lock, MessageSquare, Sparkles, Users } from "lucide-react";
+import { BookOpen, BookOpenCheck, MessageSquare, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
   EmptyState,
+  ProfileHeaderCard,
+  ProfileShelfBookCard,
+  ProfileStatsGrid,
+  ProfileTabs,
   ProgressBar,
-  RatingStars,
   SectionHeader,
-  StatHighlight,
   TagList,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
@@ -635,126 +637,68 @@ export default function PerfilPage() {
   const profileBio = profile?.bio ?? "Sem bio cadastrada.";
   const profileHandle = profile ? `@${profile.username}` : "@usuario";
 
-  const statusFlagByReadingStatus: Record<Exclude<ReadingStatus, "todos">, { label: string; iconClassName: string }> = {
-    lendo: { label: "Lendo", iconClassName: "text-blue-600" },
-    "quero-ler": { label: "Quero ler", iconClassName: "text-violet-600" },
-    lido: { label: "Lido", iconClassName: "text-emerald-600" },
-    relendo: { label: "Relendo", iconClassName: "text-amber-500" },
-    abandonei: { label: "Abandonei", iconClassName: "text-rose-600" },
-  };
-
   const initial = (profileName[0] ?? "U").toUpperCase();
+  const tabIcons = {
+    Estante: BookOpen,
+    Comunidades: Users,
+    Resenhas: MessageSquare,
+  };
 
   return (
     <AppShell>
       {loadError ? <p className="text-sm text-red-600">{loadError}</p> : null}
 
-      <section className="rounded-xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
-        <div
-          className="relative h-36 md:h-44 bg-gradient-to-br from-emerald-100 via-emerald-50 to-white"
-          style={
-            profile?.bannerUrl
-              ? {
-                  backgroundImage: `url(${profile.bannerUrl})`,
-                  backgroundPosition: "center",
-                  backgroundSize: "cover",
-                }
-              : undefined
-          }
-        >
-          <div className="absolute -bottom-8 left-6 md:left-10">
-            <div className="h-20 w-20 rounded-full bg-emerald-600 text-white text-lg font-bold flex items-center justify-center shadow-lg overflow-hidden">
-              {profile?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatarUrl} alt="Foto do usuario" className="h-full w-full object-cover" />
-              ) : (
-                <span>{initial}</span>
-              )}
-            </div>
-          </div>
-        </div>
+      <ProfileHeaderCard
+        name={profileName}
+        handle={profileHandle}
+        bio={profileBio}
+        initial={initial}
+        avatarUrl={profile?.avatarUrl ?? undefined}
+        bannerUrl={profile?.bannerUrl ?? undefined}
+        isPrivate={!isPublicProfile}
+        followersCount={followersCount}
+        followingCount={followingCount}
+        followersHref="/profile/followers"
+        followingHref="/profile/following"
+        action={
+          isOwner ? (
+            <Link
+              href="/profile/edit"
+              className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+              Editar perfil
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+              Seguir
+            </button>
+          )
+        }
+      />
 
-        <div className="px-6 md:px-10 pt-12 pb-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold text-gray-900">{profileName}</h1>
-                {!isPublicProfile && (
-                  <span
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700"
-                    title="Perfil privado"
-                    aria-label="Perfil privado"
-                  >
-                    <Lock size={14} />
-                  </span>
-                )}
-              </div>
-              <p className="text-md text-gray-400">{profileHandle}</p>
-              <p className="mt-3 max-w-xl text-sm text-gray-600">{profileBio}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-emerald-900">
-                <Link href="/profile/followers" className="hover:text-emerald-700">
-                  <strong>{followersCount}</strong> seguidores
-                </Link>
-                <Link href="/profile/following" className="hover:text-emerald-700">
-                  <strong>{followingCount}</strong> seguindo
-                </Link>
-              </div>
-            </div>
-            <div className="w-full md:w-auto md:ml-auto">
-              {isOwner ? (
-                <Link
-                  href="/profile/edit"
-                  className="mt-0 inline-flex items-center gap-2 rounded-md border 
-                  border-gray-300 bg-transparent px-4 py-2 text-sm
-                  text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 
-                  hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 
-                  focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                  </svg>
-                  Editar perfil
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  className="mt-0 inline-flex items-center gap-2 rounded-md border 
-                  border-gray-300 bg-transparent px-4 py-2 text-sm
-                  text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 
-                  hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 
-                  focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                  </svg>
-                  Seguir
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-4">
-            <StatHighlight label="Livros lidos" value={booksRead} icon={<BookOpen size={16} />} />
-            <StatHighlight
-              label="Páginas lidas"
-              value={pagesRead.toLocaleString("pt-BR")}
-              icon={<BookOpenCheck size={16} />}
-            />
-            <StatHighlight
-              label="Status"
-              value={booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora"}
-              icon={<Sparkles size={16} />}
-            />
-            <StatHighlight
-              label="Leitores alcançados"
-              value={readersReached.toLocaleString("pt-BR")}
-              icon={<Users size={16} />}
-            />
-          </div>
-        </div>
-      </section>
+      <ProfileStatsGrid
+        items={[
+          { label: "Livros lidos", value: booksRead, icon: <BookOpen size={16} /> },
+          { label: "Páginas lidas", value: pagesRead.toLocaleString("pt-BR"), icon: <BookOpenCheck size={16} /> },
+          {
+            label: "Status",
+            value: booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora",
+            icon: <Sparkles size={16} />,
+          },
+          { label: "Leitores alcançados", value: readersReached.toLocaleString("pt-BR"), icon: <Users size={16} /> },
+        ]}
+      />
 
       {preferences.showReadingGoal ? (
         <section className="rounded-lg border border-gray-200 bg-white p-5">
@@ -813,74 +757,22 @@ export default function PerfilPage() {
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-gray-200 bg-gray-100 p-1.5">
-        <div className="grid grid-cols-3 gap-1">
-          {tabs.map((tab) => {
-            const active = activeTab === tab;
-
-            const Icon = tab === "Estante" ? BookOpen : tab === "Comunidades" ? Users : MessageSquare;
-
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
-                  active
-                    ? "bg-white text-emerald-700 shadow-sm"
-                    : "text-gray-700 hover:bg-white/60"
-                }`}
-              >
-                <Icon size={16} />
-                {tab}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
       {activeTab === "Estante" ? (
         <section>
           {shelfBooks.length > 0 ? (
             <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] gap-4">
-              {(() => {
-                return shelfBooks.map((book) => (
-                  <button
-                    key={book.shelfItemId}
-                    type="button"
-                    onClick={() => handleOpenShelfBookDetails(book)}
-                    className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-3 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
-                    aria-label={`Abrir opções do livro ${book.title}`}
-                  >
-                    <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-soft)]">
-                      <span
-                        className="absolute left-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm"
-                        title={statusFlagByReadingStatus[book.readingStatus].label}
-                        aria-label={statusFlagByReadingStatus[book.readingStatus].label}
-                      >
-                        <span
-                          className={`icon-bookmark text-[16px] ${statusFlagByReadingStatus[book.readingStatus].iconClassName}`}
-                          aria-hidden="true"
-                        />
-                      </span>
-                      {book.coverUrl ? (
-                        <img src={book.coverUrl} alt={`Capa de ${book.title}`} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <div className="h-20 w-14" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-3 flex items-center gap-2 text-[var(--text-primary)]">
-                      {typeof book.rating === "number" ? <RatingStars value={book.rating} size={22} /> : null}
-                      {typeof book.progress === "number" ? (
-                        <span className="text-sm font-semibold text-[var(--text-secondary)]">{Math.round(book.progress)}%</span>
-                      ) : null}
-                    </div>
-                  </button>
-                ));
-              })()}
+              {shelfBooks.map((book) => (
+                <ProfileShelfBookCard
+                  key={book.shelfItemId}
+                  title={book.title}
+                  coverUrl={book.coverUrl}
+                  progressPercent={book.progress}
+                  userRating={book.rating}
+                  onClick={() => handleOpenShelfBookDetails(book)}
+                />
+              ))}
             </section>
           ) : (
             <EmptyState

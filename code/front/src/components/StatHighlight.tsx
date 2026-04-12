@@ -2,7 +2,7 @@ import React from "react";
 
 export interface StatHighlightProps {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   icon?: React.ReactNode;
   className?: string;
 }

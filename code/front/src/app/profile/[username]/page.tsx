@@ -2,8 +2,17 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
-import { BookMarked, BookOpen, Library, MoreHorizontal, Sparkles, Star, Users } from "lucide-react";
-import { AppShell, Avatar, AvatarFallback, AvatarImage, Button } from "@/components";
+import { BookMarked, BookOpen, Library, MoreHorizontal, Sparkles, Users } from "lucide-react";
+import {
+  AppShell,
+  Button,
+  ProfileFollowersPanel,
+  ProfileHeaderCard,
+  ProfileShelfBookCard,
+  ProfileStatsGrid,
+  ProfileTabs,
+  UnfollowPrivateConfirmModal,
+} from "@/components";
 import { getAccessToken } from "@/services/auth";
 import {
   followUser,
@@ -57,6 +66,7 @@ export default function SeguidorProfilePage() {
   const [myFollowingUsernames, setMyFollowingUsernames] = React.useState<string[]>([]);
   const [followRelationship, setFollowRelationship] = React.useState<"none" | "following" | "requested">("none");
   const [isTogglingFollow, setIsTogglingFollow] = React.useState(false);
+  const [isUnfollowConfirmOpen, setIsUnfollowConfirmOpen] = React.useState(false);
   const [isOwnProfile, setIsOwnProfile] = React.useState(false);
   const [shelfBooks, setShelfBooks] = React.useState<DisplayShelfBook[]>([]);
   const [booksRead, setBooksRead] = React.useState<number | null>(null);
@@ -188,6 +198,11 @@ export default function SeguidorProfilePage() {
     }
 
     const previous = followRelationship;
+    if (previous === "following" && profile?.isPrivate) {
+      setIsUnfollowConfirmOpen(true);
+      return;
+    }
+
     if (previous === "following") {
       setFollowRelationship("none");
     } else if (previous === "requested") {
@@ -220,6 +235,23 @@ export default function SeguidorProfilePage() {
     }
   };
 
+  const handleConfirmPrivateUnfollow = async () => {
+    const accessToken = getAccessToken();
+    if (!accessToken || isTogglingFollow) {
+      return;
+    }
+
+    setIsTogglingFollow(true);
+    try {
+      await unfollowUser(username, accessToken);
+      setFollowRelationship("none");
+      setFollowersCount((prev) => Math.max(0, prev - 1));
+      setIsUnfollowConfirmOpen(false);
+    } finally {
+      setIsTogglingFollow(false);
+    }
+  };
+
   const displayName = profile ? humanizeUsername(profile.username) : humanizeUsername(username || "usuario");
   const isRestrictedProfileView = Boolean(profile?.restricted && !isOwnProfile);
   const bio = isRestrictedProfileView
@@ -246,76 +278,49 @@ export default function SeguidorProfilePage() {
   if (booksRead != null) {
     readerStatusLabel = booksRead > 0 ? "Leitor ativo" : "Sem leituras";
   }
+  const tabIcons = {
+    Estante: BookOpen,
+    "Comunidades em comum": Users,
+  };
 
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[1040px] space-y-6">
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-        <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
-          <div
-            className="h-56 bg-gradient-to-br from-[#e6c77a33] via-primary/25 to-primary-dark/25"
-            style={
-              profile?.bannerUrl
-                ? {
-                    backgroundImage: `url(${profile.bannerUrl})`,
-                    backgroundPosition: "center",
-                    backgroundSize: "cover",
-                  }
-                : undefined
-            }
-          />
-          <div className="relative px-8 pb-8 pt-14">
-            <div className="absolute -top-12 left-8">
-              <Avatar className="h-24 w-24 border-4 border-card bg-primary/20 shadow-card">
-                <AvatarImage src={profile?.avatarUrl ?? undefined} alt={displayName} />
-                <AvatarFallback className="bg-primary/20 text-3xl font-bold text-deep-green">{initial}</AvatarFallback>
-              </Avatar>
-            </div>
-
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h1 className="font-display text-4xl font-bold text-deep-green">{displayName}</h1>
-                <p className="mt-1 text-lg text-medium-text">@{username}</p>
-                <p className="mt-3 max-w-2xl text-xl text-deep-green">{bio}</p>
-                {profile?.createdAt ? (
-                  <p className="mt-2 text-sm text-medium-text">
-                    Membro desde {new Date(profile.createdAt).toLocaleDateString("pt-BR")}
-                  </p>
-                ) : null}
+        <ProfileHeaderCard
+          name={displayName}
+          handle={`@${username}`}
+          bio={bio}
+          initial={initial}
+          avatarUrl={profile?.avatarUrl ?? undefined}
+          bannerUrl={profile?.bannerUrl ?? undefined}
+          isPrivate={profile?.isPrivate === true}
+          followersCount={followersCount}
+          followingCount={followingCount}
+          extraInfo={
+            profile?.createdAt ? `Membro desde ${new Date(profile.createdAt).toLocaleDateString("pt-BR")}` : undefined
+          }
+          footerContent={
+            !isRestrictedProfileView ? (
+              <span>
+                <strong>{booksReadLabel}</strong> livros lidos
+              </span>
+            ) : null
+          }
+          action={
+            showFollowAction ? (
+              <div className="flex items-center gap-2">
+                <Button variant={isFollowing ? "outline" : "default"} onClick={handleToggleFollow} disabled={isTogglingFollow}>
+                  {followButtonLabel}
+                </Button>
+                <Button variant="ghost" size="icon" aria-label="Mais opcoes">
+                  <MoreHorizontal size={18} />
+                </Button>
               </div>
-
-              {showFollowAction ? (
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={isFollowing ? "outline" : "default"}
-                    onClick={handleToggleFollow}
-                    disabled={isTogglingFollow}
-                  >
-                    {followButtonLabel}
-                  </Button>
-                  <Button variant="ghost" size="icon" aria-label="Mais opcoes">
-                    <MoreHorizontal size={18} />
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="mt-6 flex flex-wrap items-center gap-7 text-lg">
-              <span>
-                <strong className="text-deep-green">{followersCount}</strong> <span className="text-medium-text">Seguidores</span>
-              </span>
-              <span>
-                <strong className="text-deep-green">{followingCount}</strong> <span className="text-medium-text">Seguindo</span>
-              </span>
-              {!isRestrictedProfileView ? (
-                <span>
-                  <strong className="text-deep-green">{booksReadLabel}</strong> <span className="text-medium-text">Livros lidos</span>
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </section>
+            ) : null
+          }
+        />
 
         {isRestrictedProfileView ? (
           <section className="rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
@@ -323,85 +328,28 @@ export default function SeguidorProfilePage() {
           </section>
         ) : (
           <>
-            <section className="grid gap-4 md:grid-cols-4">
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-                <div className="mb-2 flex items-center gap-2 text-medium-text">
-                  <BookOpen size={16} className="text-primary-dark" />
-                  <span className="text-sm">Livros lidos</span>
-                </div>
-                <div className="font-display text-4xl font-bold text-deep-green">{booksReadLabel}</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-                <div className="mb-2 flex items-center gap-2 text-medium-text">
-                  <BookMarked size={16} className="text-primary-dark" />
-                  <span className="text-sm">Páginas lidas</span>
-                </div>
-                <div className="font-display text-4xl font-bold text-deep-green">{pagesReadLabel}</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-                <div className="mb-2 flex items-center gap-2 text-medium-text">
-                  <Sparkles size={16} className="text-premium" />
-                  <span className="text-sm">Status</span>
-                </div>
-                <div className="font-display text-3xl font-bold text-deep-green">{readerStatusLabel}</div>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
-                <div className="mb-2 flex items-center gap-2 text-medium-text">
-                  <Library size={16} className="text-primary-dark" />
-                  <span className="text-sm">Gênero favorito</span>
-                </div>
-                <div className="font-display text-3xl font-bold text-deep-green">Sem dados</div>
-              </div>
-            </section>
+            <ProfileStatsGrid
+              items={[
+                { label: "Livros lidos", value: booksReadLabel, icon: <BookOpen size={16} className="text-primary-dark" /> },
+                { label: "Páginas lidas", value: pagesReadLabel, icon: <BookMarked size={16} className="text-primary-dark" /> },
+                { label: "Status", value: readerStatusLabel, icon: <Sparkles size={16} className="text-premium" /> },
+                { label: "Gênero favorito", value: "Sem dados", icon: <Library size={16} className="text-primary-dark" /> },
+              ]}
+            />
 
-            <section className="rounded-xl border border-border bg-muted p-1.5">
-              <div className="grid grid-cols-2 gap-1">
-                {tabs.map((tab) => {
-                  const active = activeTab === tab;
-                  const Icon = tab === "Estante" ? BookOpen : Users;
-                  return (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setActiveTab(tab)}
-                      className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
-                        active ? "bg-card text-deep-green shadow-sm" : "text-medium-text hover:bg-card/60"
-                      }`}
-                    >
-                      <Icon size={16} />
-                      {tab}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+            <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
             {activeTab === "Estante" ? (
               <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {shelfBooks.length > 0 ? (
                   shelfBooks.map((book) => (
-                    <article
+                    <ProfileShelfBookCard
                       key={book.id}
-                      className="overflow-hidden rounded-2xl border border-border bg-card transition-all hover:shadow-card-hover"
-                    >
-                      <div className="aspect-[3/4] bg-gradient-to-br from-primary/10 to-primary-dark/10 p-3">
-                        <div className="line-clamp-3 pt-8 text-center text-xl font-medium text-deep-green">{book.title}</div>
-                      </div>
-                      <div className="border-t border-border p-3">
-                        <p className="truncate text-sm font-semibold text-deep-green">{book.title}</p>
-                        {typeof book.userRating === "number" ? (
-                          <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
-                            <Star size={12} className="fill-amber-500 text-amber-500" />
-                            {book.userRating.toFixed(1)}
-                          </p>
-                        ) : null}
-                        <p className="truncate text-xs text-medium-text">
-                          {typeof book.progressPercent === "number"
-                            ? `${book.progressPercent}% concluído`
-                            : "Progresso indisponível"}
-                        </p>
-                      </div>
-                    </article>
+                      title={book.title}
+                      coverUrl={book.coverUrl}
+                      userRating={book.userRating}
+                      progressPercent={book.progressPercent}
+                    />
                   ))
                 ) : (
                   <div className="col-span-full rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
@@ -413,47 +361,21 @@ export default function SeguidorProfilePage() {
               </section>
             ) : (
               <section className="grid gap-4 lg:grid-cols-2">
-                <article className="rounded-2xl border border-border bg-card p-5 shadow-card">
-                  <h2 className="mb-3 font-display text-2xl font-semibold text-deep-green">Seguidores</h2>
-                  {followersUsers.length > 0 ? (
-                    <ul className="space-y-2">
-                      {followersUsers.slice(0, 8).map((user) => {
-                        const followedByMe = myFollowingUsernames.includes(user.username.toLowerCase());
+                <ProfileFollowersPanel
+                  title="Seguidores"
+                  emptyLabel="Nenhum seguidor visível."
+                  users={followersUsers.slice(0, 8).map((user) => ({
+                    id: user.id,
+                    username: user.username,
+                    sideLabel: myFollowingUsernames.includes(user.username.toLowerCase()) ? "Você segue" : "",
+                  }))}
+                />
 
-                        return (
-                          <li
-                            key={`follower-${user.id}`}
-                            className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2"
-                          >
-                            <span className="truncate text-sm font-semibold text-deep-green">@{user.username}</span>
-                            <span className="text-xs text-medium-text">{followedByMe ? "Você segue" : ""}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-medium-text">Nenhum seguidor visível.</p>
-                  )}
-                </article>
-
-                <article className="rounded-2xl border border-border bg-card p-5 shadow-card">
-                  <h2 className="mb-3 font-display text-2xl font-semibold text-deep-green">Seguindo</h2>
-                  {followingUsers.length > 0 ? (
-                    <ul className="space-y-2">
-                      {followingUsers.slice(0, 8).map((user) => (
-                        <li
-                          key={`following-${user.id}`}
-                          className="flex items-center justify-between rounded-lg border border-border/60 px-3 py-2"
-                        >
-                          <span className="truncate text-sm font-semibold text-deep-green">@{user.username}</span>
-                          <span className="text-xs text-medium-text">Leitor</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-medium-text">Não segue nenhum usuário visível.</p>
-                  )}
-                </article>
+                <ProfileFollowersPanel
+                  title="Seguindo"
+                  emptyLabel="Não segue nenhum usuário visível."
+                  users={followingUsers.slice(0, 8).map((user) => ({ id: user.id, username: user.username, sideLabel: "Leitor" }))}
+                />
               </section>
             )}
           </>
@@ -461,6 +383,13 @@ export default function SeguidorProfilePage() {
 
         {isLoading ? <p className="text-sm text-medium-text">Carregando...</p> : null}
       </div>
+      <UnfollowPrivateConfirmModal
+        isOpen={isUnfollowConfirmOpen}
+        username={username}
+        isLoading={isTogglingFollow}
+        onCancel={() => setIsUnfollowConfirmOpen(false)}
+        onConfirm={handleConfirmPrivateUnfollow}
+      />
     </AppShell>
   );
 }
