@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/shelf_repository.dart';
 import 'shelf_event.dart';
@@ -27,7 +28,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
     try {
       final shelves = await _repository.getShelves();
       emit(ShelfLoaded(shelves));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao carregar estantes.'));
     }
   }
@@ -43,7 +45,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
         description: event.description,
       );
       emit(ShelfMutationSuccess('Estante criada com sucesso!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao criar estante.'));
     }
   }
@@ -60,7 +63,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
         description: event.description,
       );
       emit(ShelfMutationSuccess('Estante atualizada!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao atualizar estante.'));
     }
   }
@@ -73,7 +77,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
     try {
       await _repository.deleteShelf(event.shelfId);
       emit(ShelfMutationSuccess('Estante excluída!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao excluir estante.'));
     }
   }
@@ -86,7 +91,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
     try {
       final items = await _repository.getItems(event.shelfId);
       emit(ShelfItemsLoaded(shelfId: event.shelfId, items: items));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfItemsError('Erro ao carregar itens da estante.'));
     }
   }
@@ -103,7 +109,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
         initialStatus: event.initialStatus,
       );
       emit(ShelfMutationSuccess('Livro adicionado à estante!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao adicionar livro.'));
     }
   }
@@ -116,7 +123,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
     try {
       await _repository.removeItem(event.shelfId, event.itemId);
       emit(ShelfMutationSuccess('Livro removido da estante!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao remover livro.'));
     }
   }
@@ -133,7 +141,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
         currentPage: event.currentPage,
       );
       emit(ShelfMutationSuccess('Progresso atualizado!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao atualizar progresso.'));
     }
   }
@@ -150,7 +159,8 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
         newStatus: event.newStatus,
       );
       emit(ShelfMutationSuccess('Status atualizado!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao atualizar status.'));
     }
   }

@@ -182,7 +182,7 @@ public class OpenSearchBookAdapter {
     }
   }
 
-  @Async
+  @Async("bookEnrichExecutor")
   @EventListener(ApplicationReadyEvent.class)
   public void bootstrapIndex() {
     try {

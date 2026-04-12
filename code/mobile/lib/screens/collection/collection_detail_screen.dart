@@ -1,5 +1,6 @@
 import 'package:biblioo/features/collection/bloc/collection_bloc.dart';
 import 'package:biblioo/features/collection/bloc/collection_event.dart';
+import 'package:biblioo/features/collection/bloc/collection_state.dart';
 import 'package:biblioo/features/collection/domain/collection.dart';
 import 'package:biblioo/features/shelf/domain/shelf.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_bloc.dart';
@@ -156,7 +157,16 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
     final shelfBlocState = context.read<ShelfBloc>().state;
     if (shelfBlocState is! ShelfLoaded) return;
 
-    final collectionShelfIds = widget.collection.shelfPreviews.map((p) => p.id).toSet();
+    // Usa o estado atualizado do CollectionBloc para obter os IDs atuais,
+    // evitando exibir como disponíveis estantes já adicionadas após mutações.
+    final colState = context.read<CollectionBloc>().state;
+    final Set<int> collectionShelfIds;
+    if (colState is CollectionLoaded) {
+      final fresh = colState.collections.where((c) => c.id == widget.collection.id).firstOrNull;
+      collectionShelfIds = fresh?.shelfPreviews.map((p) => p.id).toSet() ?? widget.collection.shelfPreviews.map((p) => p.id).toSet();
+    } else {
+      collectionShelfIds = widget.collection.shelfPreviews.map((p) => p.id).toSet();
+    }
     final availableShelves = shelfBlocState.shelves.where((s) => !collectionShelfIds.contains(s.id)).toList();
 
     showModalBottomSheet(

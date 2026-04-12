@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../data/collection_repository.dart';
 import 'collection_event.dart';
@@ -23,7 +24,8 @@ class CollectionBloc extends Bloc<CollectionEvent, CollectionState> {
     try {
       final collections = await _repository.getCollections();
       emit(CollectionLoaded(collections));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[CollectionBloc] ${event.runtimeType}: $e\n$st');
       emit(CollectionError('Erro ao carregar coleções.'));
     }
   }
@@ -40,7 +42,8 @@ class CollectionBloc extends Bloc<CollectionEvent, CollectionState> {
         initialShelfIds: event.initialShelfIds,
       );
       emit(CollectionMutationSuccess('Coleção criada com sucesso!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[CollectionBloc] ${event.runtimeType}: $e\n$st');
       emit(CollectionError('Erro ao criar coleção.'));
     }
   }
@@ -57,7 +60,8 @@ class CollectionBloc extends Bloc<CollectionEvent, CollectionState> {
         description: event.description,
       );
       emit(CollectionMutationSuccess('Coleção atualizada!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[CollectionBloc] ${event.runtimeType}: $e\n$st');
       emit(CollectionError('Erro ao atualizar coleção.'));
     }
   }
@@ -70,7 +74,8 @@ class CollectionBloc extends Bloc<CollectionEvent, CollectionState> {
     try {
       await _repository.deleteCollection(event.id);
       emit(CollectionMutationSuccess('Coleção excluída!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[CollectionBloc] ${event.runtimeType}: $e\n$st');
       emit(CollectionError('Erro ao excluir coleção.'));
     }
   }
@@ -83,7 +88,8 @@ class CollectionBloc extends Bloc<CollectionEvent, CollectionState> {
     try {
       await _repository.addShelfToCollection(event.collectionId, event.shelfId);
       emit(CollectionMutationSuccess('Estante adicionada à coleção!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[CollectionBloc] ${event.runtimeType}: $e\n$st');
       emit(CollectionError('Erro ao adicionar estante.'));
     }
   }
@@ -96,7 +102,8 @@ class CollectionBloc extends Bloc<CollectionEvent, CollectionState> {
     try {
       await _repository.removeShelfFromCollection(event.collectionId, event.shelfId);
       emit(CollectionMutationSuccess('Estante removida da coleção!'));
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[CollectionBloc] ${event.runtimeType}: $e\n$st');
       emit(CollectionError('Erro ao remover estante.'));
     }
   }

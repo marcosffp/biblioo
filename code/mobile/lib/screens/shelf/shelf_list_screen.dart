@@ -22,15 +22,23 @@ import 'widgets/create_shelf_sheet.dart';
 
 /// Tela principal de estantes — Tab 2 do bottom nav.
 /// Segue wireframe: header com total + FAB, lista de estantes com cover preview.
-class ShelfListScreen extends StatelessWidget {
+class ShelfListScreen extends StatefulWidget {
   const ShelfListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Dispara o carregamento ao entrar na tela
+  State<ShelfListScreen> createState() => _ShelfListScreenState();
+}
+
+class _ShelfListScreenState extends State<ShelfListScreen> {
+  @override
+  void initState() {
+    super.initState();
     context.read<ShelfBloc>().add(ShelfLoadRequested());
     context.read<CollectionBloc>().add(CollectionLoadRequested());
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: BlocConsumer<ShelfBloc, ShelfState>(
         listener: (context, state) {
@@ -453,7 +461,7 @@ class ShelfListScreen extends StatelessWidget {
       ),
     );
   }
-}
+} // end _ShelfListScreenState
 
 /// Página de detalhe — navegação empilhada sobre a tab Shell.
 /// Mostra os itens/livros dentro de uma estante específica.

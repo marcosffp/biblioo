@@ -8,6 +8,7 @@ import com.biblioo.books.infrasestructure.persistence.CollectionRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionException;
 import lombok.AllArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -95,12 +96,24 @@ public class CollectionService implements CollectionUseCase {
 
   @Override
   public void addShelfToCollection(Long userId, Long collectionId, Long shelfId) {
-    collectionShelfService.addShelfAsync(userId, collectionId, shelfId).join();
+    try {
+      collectionShelfService.addShelfAsync(userId, collectionId, shelfId).join();
+    } catch (CompletionException ex) {
+      Throwable cause = ex.getCause();
+      if (cause instanceof ShelfBusinessException sbe) throw sbe;
+      throw new ShelfBusinessException("Erro ao adicionar estante à coleção.");
+    }
   }
 
   @Override
   public void removeShelfFromCollection(Long userId, Long collectionId, Long shelfId) {
-    collectionShelfService.removeShelfAsync(userId, collectionId, shelfId).join();
+    try {
+      collectionShelfService.removeShelfAsync(userId, collectionId, shelfId).join();
+    } catch (CompletionException ex) {
+      Throwable cause = ex.getCause();
+      if (cause instanceof ShelfBusinessException sbe) throw sbe;
+      throw new ShelfBusinessException("Erro ao remover estante da coleção.");
+    }
   }
 
   @Override
