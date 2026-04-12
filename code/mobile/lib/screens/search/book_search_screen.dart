@@ -1,12 +1,17 @@
 import 'package:biblioo/features/book/bloc/book_bloc.dart';
 import 'package:biblioo/features/book/bloc/book_event.dart';
 import 'package:biblioo/features/book/bloc/book_state.dart';
+import 'package:biblioo/features/user/bloc/user_search_bloc.dart';
+import 'package:biblioo/features/user/bloc/user_search_event.dart';
+import 'package:biblioo/features/user/bloc/user_search_state.dart';
 import 'package:biblioo/screens/search/widgets/book_result_card.dart';
 import 'package:biblioo/screens/search/widgets/book_shimmer_card.dart';
+import 'package:biblioo/screens/search/widgets/user_result_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
-/// Tela de busca de livros — monta o contexto do BookBloc.
+/// Busca multi-tipo sem quebrar o fluxo existente de livros.
 /// Rota: /search (fora do shell, sem bottom nav).
 class BookSearchScreen extends StatelessWidget {
   final bool isPicker;
@@ -14,12 +19,17 @@ class BookSearchScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: context.read<BookBloc>(),
-      child: _BookSearchView(isPicker: isPicker),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: context.read<BookBloc>()),
+        BlocProvider.value(value: context.read<UserSearchBloc>()),
+      ],
+      child: const _BookSearchView(isPicker: isPicker),
     );
   }
 }
+
+enum _SearchTab { books, users }
 
 class _BookSearchView extends StatefulWidget {
   final bool isPicker;
@@ -32,11 +42,11 @@ class _BookSearchView extends StatefulWidget {
 class _BookSearchViewState extends State<_BookSearchView> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  _SearchTab _activeTab = _SearchTab.books;
 
   @override
   void initState() {
     super.initState();
-    // Autofocus no campo de busca ao entrar na tela
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -49,6 +59,24 @@ class _BookSearchViewState extends State<_BookSearchView> {
     super.dispose();
   }
 
+  void _triggerSearch() {
+    final query = _controller.text;
+    if (_activeTab == _SearchTab.books) {
+      if (query.trim().isEmpty) {
+        context.read<BookBloc>().add(BookSearchCleared());
+      } else {
+        context.read<BookBloc>().add(BookSearchRequested(query));
+      }
+      return;
+    }
+
+    if (query.trim().isEmpty) {
+      context.read<UserSearchBloc>().add(UserSearchCleared());
+    } else {
+      context.read<UserSearchBloc>().add(UserSearchRequested(query));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -56,81 +84,130 @@ class _BookSearchViewState extends State<_BookSearchView> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // ── SliverAppBar com campo de busca ──────────────
           SliverAppBar(
             floating: true,
             snap: true,
-            title: const Text('Buscar Livros'),
+            title: const Text('Buscar'),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(64),
+              preferredSize: const Size.fromHeight(116),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  onChanged: (value) {
-                    if (value.trim().isEmpty) {
-                      context.read<BookBloc>().add(BookSearchCleared());
-                    } else {
-                      context
-                          .read<BookBloc>()
-                          .add(BookSearchRequested(value));
-                    }
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Título, autor ou ISBN...',
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    suffixIcon: ValueListenableBuilder<TextEditingValue>(
-                      valueListenable: _controller,
-                      builder: (context, value, child) {
-                        if (value.text.isEmpty) return const SizedBox.shrink();
-                        return IconButton(
-                          icon: const Icon(Icons.close, size: 20),
-                          onPressed: () {
-                            _controller.clear();
-                            context
-                                .read<BookBloc>()
-                                .add(BookSearchCleared());
-                            _focusNode.requestFocus();
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      onChanged: (_) => _triggerSearch(),
+                      decoration: InputDecoration(
+                        hintText: _activeTab == _SearchTab.books
+                            ? 'Titulo, autor ou ISBN...'
+                            : 'Nome de usuario...',
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _controller,
+                          builder: (context, value, child) {
+                            if (value.text.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return IconButton(
+                              icon: const Icon(Icons.close, size: 20),
+                              onPressed: () {
+                                _controller.clear();
+                                context.read<BookBloc>().add(
+                                  BookSearchCleared(),
+                                );
+                                context.read<UserSearchBloc>().add(
+                                  UserSearchCleared(),
+                                );
+                                _focusNode.requestFocus();
+                              },
+                            );
                           },
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          ChoiceChip(
+                            label: const Text('Livros'),
+                            selected: _activeTab == _SearchTab.books,
+                            onSelected: (_) {
+                              setState(() => _activeTab = _SearchTab.books);
+                              _triggerSearch();
+                            },
+                          ),
+                          ChoiceChip(
+                            label: const Text('Usuarios'),
+                            selected: _activeTab == _SearchTab.users,
+                            onSelected: (_) {
+                              setState(() => _activeTab = _SearchTab.users);
+                              _triggerSearch();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-
-          // ── Conteúdo dinâmico conforme estado ───────────
-          BlocBuilder<BookBloc, BookState>(
-            builder: (context, state) {
-              if (state is BookLoading) {
-                return _buildShimmer();
-              }
-              if (state is BookLoaded) {
-                return _buildResults(state);
-              }
-              if (state is BookEmpty) {
-                return _buildEmpty(theme, state.query);
-              }
-              if (state is BookError) {
-                return _buildError(theme, state.message);
-              }
-              // BookInitial
-              return _buildInitial(theme);
-            },
-          ),
+          if (_activeTab == _SearchTab.books)
+            BlocBuilder<BookBloc, BookState>(
+              builder: (context, state) {
+                if (state is BookLoading) return _buildShimmer();
+                if (state is BookLoaded) return _buildBookResults(state);
+                if (state is BookEmpty) {
+                  return _buildEmpty(theme, state.query, 'livro');
+                }
+                if (state is BookError) {
+                  return _buildError(theme, state.message);
+                }
+                return _buildInitial(theme, 'livros');
+              },
+            )
+          else
+            BlocBuilder<UserSearchBloc, UserSearchState>(
+              builder: (context, state) {
+                if (state is UserSearchLoading) return _buildShimmer();
+                if (state is UserSearchLoaded) {
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => UserResultCard(
+                          user: state.users[index],
+                          onTap: () => context.push(
+                            '/user/${state.users[index].username}',
+                          ),
+                        ),
+                        childCount: state.users.length,
+                      ),
+                    ),
+                  );
+                }
+                if (state is UserSearchEmpty) {
+                  return _buildEmpty(theme, state.query, 'usuario');
+                }
+                if (state is UserSearchError) {
+                  return _buildError(theme, state.message);
+                }
+                return _buildInitial(theme, 'usuarios');
+              },
+            ),
         ],
       ),
     );
   }
 
-  // ── Estado: inicial ─────────────────────────────────────
-  Widget _buildInitial(ThemeData theme) {
+  Widget _buildInitial(ThemeData theme, String label) {
     return SliverFillRemaining(
       hasScrollBody: false,
       child: Center(
@@ -144,7 +221,7 @@ class _BookSearchViewState extends State<_BookSearchView> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Busque por título, autor ou ISBN',
+              'Busque por $label',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -155,7 +232,6 @@ class _BookSearchViewState extends State<_BookSearchView> {
     );
   }
 
-  // ── Estado: loading (shimmer) ──────────────────────────
   Widget _buildShimmer() {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -168,8 +244,7 @@ class _BookSearchViewState extends State<_BookSearchView> {
     );
   }
 
-  // ── Estado: resultados ────────────────────────────────
-  Widget _buildResults(BookLoaded state) {
+  Widget _buildBookResults(BookLoaded state) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList(
@@ -190,8 +265,7 @@ class _BookSearchViewState extends State<_BookSearchView> {
     );
   }
 
-  // ── Estado: vazio ──────────────────────────────────────
-  Widget _buildEmpty(ThemeData theme, String query) {
+  Widget _buildEmpty(ThemeData theme, String query, String label) {
     return SliverFillRemaining(
       hasScrollBody: false,
       child: Center(
@@ -205,7 +279,7 @@ class _BookSearchViewState extends State<_BookSearchView> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Nenhum livro encontrado',
+              'Nenhum $label encontrado',
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -214,7 +288,9 @@ class _BookSearchViewState extends State<_BookSearchView> {
             Text(
               'Tente buscar por "$query" com outros termos',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.7,
+                ),
               ),
               textAlign: TextAlign.center,
             ),
@@ -224,7 +300,6 @@ class _BookSearchViewState extends State<_BookSearchView> {
     );
   }
 
-  // ── Estado: erro ───────────────────────────────────────
   Widget _buildError(ThemeData theme, String message) {
     return SliverFillRemaining(
       hasScrollBody: false,
@@ -247,16 +322,10 @@ class _BookSearchViewState extends State<_BookSearchView> {
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () {
-                context
-                    .read<BookBloc>()
-                    .add(BookSearchRequested(_controller.text));
-              },
+              onPressed: _triggerSearch,
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text('Tentar novamente'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 44),
-              ),
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
             ),
           ],
         ),

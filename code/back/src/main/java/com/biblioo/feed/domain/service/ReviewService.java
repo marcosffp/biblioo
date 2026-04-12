@@ -3,11 +3,16 @@ package com.biblioo.feed.domain.service;
 import com.biblioo.feed.domain.exception.ReviewBusinessException;
 import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
+import com.biblioo.feed.domain.model.Like;
+import com.biblioo.feed.domain.model.LikeType;
 import com.biblioo.feed.domain.port.out.BookPort;
 import com.biblioo.feed.domain.port.out.FeedEventPublisherPort;
 import com.biblioo.feed.domain.port.out.FeedImagePort;
+import com.biblioo.feed.infrastructure.persistence.LikeRepository;
 import com.biblioo.feed.domain.port.out.ShelfInteractionPort;
 import com.biblioo.feed.domain.port.out.UserPort;
+import com.biblioo.feed.infrastructure.persistence.CommentRepository;
+import com.biblioo.feed.infrastructure.persistence.LikeSaveHelper;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReviewService implements ReviewUseCase {
 
   private final ReviewRepository reviewRepository;
+  private final CommentRepository commentRepository;
+  private final LikeRepository likeRepository;
+  private final LikeSaveHelper likeSaveHelper;
   private final BookPort bookPort;
   private final UserPort userPort;
   private final ShelfInteractionPort shelfInteractionPort;
@@ -150,7 +158,9 @@ public class ReviewService implements ReviewUseCase {
 
     if (review.getCommentCount() != null && review.getCommentCount() > 0) {
       reviewRepository.softDeleteReview(reviewId, userId);
+      commentRepository.softDeleteAllByParentId(reviewId);
     } else {
+      commentRepository.deleteAllByParentId(reviewId);
       reviewRepository.deleteById(reviewId);
     }
 
@@ -159,19 +169,30 @@ public class ReviewService implements ReviewUseCase {
 
   @Override
   @Transactional
-  public void likeReview(Long userId, Long reviewId) {
+  public boolean likeReview(Long userId, Long reviewId) {
     var review =
         reviewRepository
             .findByIdAndIsDeletedFalse(reviewId)
             .orElseThrow(() -> new ReviewBusinessException("Review não encontrada."));
 
-    // Regra de negócio: O próprio criador do conteúdo não pode dar like no próprio conteúdo
     if (review.getUserId().equals(userId)) {
       throw new ReviewBusinessException("Você não pode curtir sua própria review.");
     }
 
-    // TODO: Futuramente chamar a Service/Repository de 'Like' aqui, verificar se já deu like,
-    // e chamar reviewRepository.incrementLikeCount()
+    if (likeRepository.existsByContentIdAndUserId(reviewId, userId)) {
+      int rowsDeleted = likeRepository.deleteByContentIdAndUserId(reviewId, userId);
+      if (rowsDeleted > 0) {
+        reviewRepository.decrementLikeCount(reviewId);
+      }
+      return false;
+    }
+
+var like = Like.builder().contentId(reviewId).userId(userId).type(LikeType.LIKE).build();
+    boolean inserted = likeSaveHelper.tryInsert(like);
+    if (inserted) {
+      reviewRepository.incrementLikeCount(reviewId);
+    }
+    return true;
   }
 
   @Override

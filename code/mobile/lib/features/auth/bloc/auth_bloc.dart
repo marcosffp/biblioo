@@ -31,12 +31,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthAuthenticated(user));
+    } on AuthFailure catch (e) {
+      emit(AuthError(e.message));
     } on Exception catch (e) {
       emit(AuthError(e.toString()));
     }
   }
 
-  Future<void> _onRegister(RegisterRequested event, Emitter<AuthState> emit) async {
+  Future<void> _onRegister(
+    RegisterRequested event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
     try {
       final user = await _repository.register(
@@ -45,6 +50,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthAuthenticated(user));
+    } on AuthFailure catch (e) {
+      emit(AuthError(e.message));
     } on Exception catch (e) {
       emit(AuthError(e.toString()));
     }

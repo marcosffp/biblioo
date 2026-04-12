@@ -9,6 +9,7 @@ class UserModel {
   final String? bannerUrl;
   final bool isPrivate;
   final bool restricted;
+  final bool isFollowing;
   final String? createdAt;
 
   const UserModel({
@@ -20,6 +21,7 @@ class UserModel {
     this.bannerUrl,
     required this.isPrivate,
     required this.restricted,
+    this.isFollowing = false,
     this.createdAt,
   });
 
@@ -32,6 +34,7 @@ class UserModel {
     bannerUrl: json['bannerUrl'] as String?,
     isPrivate: json['isPrivate'] as bool? ?? false,
     restricted: json['restricted'] as bool? ?? false,
+    isFollowing: json['isFollowing'] as bool? ?? false,
     createdAt: json['createdAt'] as String?,
   );
 
@@ -44,6 +47,7 @@ class UserModel {
     bannerUrl: bannerUrl,
     isPrivate: isPrivate,
     restricted: restricted,
+    isFollowing: isFollowing,
     createdAt: createdAt,
   );
 }

@@ -21,7 +21,7 @@ public interface ReviewUseCase {
 
   void deleteReview(Long userId, Long reviewId);
 
-  void likeReview(Long userId, Long reviewId);
+  boolean likeReview(Long userId, Long reviewId);
 
   Review getReviewById(Long reviewId);
 
