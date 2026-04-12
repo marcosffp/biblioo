@@ -51,14 +51,14 @@ export function ProfileShelfBookCard({
 
   const content = (
     <>
-      <div className="relative aspect-[3/4] overflow-visible">
+      <div className="relative aspect-[3/4] overflow-hidden rounded-t-[22px]">
         {statusLabel ? <Bookmark label={statusLabel} className={bookmarkColorClass} /> : null}
-        <div className="relative h-full w-full overflow-hidden rounded-[22px] bg-gradient-to-br from-primary/10 to-primary-dark/10">
+        <div className="absolute inset-0 h-full w-full">
           {coverUrl ? (
             <img
               src={coverUrl}
               alt={`Capa de ${title}`}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="h-full w-full object-cover"
               loading="lazy"
             />
           ) : (
@@ -72,7 +72,7 @@ export function ProfileShelfBookCard({
         <p className="truncate text-sm font-semibold text-deep-green">{title}</p>
         {author ? <p className="truncate text-xs text-medium-text">{author}</p> : null}
         {/* Reserve a consistent space for progress so the top of the card stays identical */}
-        <div className="mt-2 min-h-[34px]">
+        <div className="mt-2">
           {showProgress && typeof progressPercent === "number" ? (
             <>
               <ProgressBar value={progressPercent} />
@@ -87,9 +87,7 @@ export function ProfileShelfBookCard({
                 <span className="font-semibold">{Math.round(progressPercent)}%</span>
               </div>
             </>
-          ) : (
-            <div className="h-[34px]" aria-hidden="true" />
-          )}
+          ) : null}
         </div>
         {typeof userRating === "number" && typeof window !== "undefined" && window.location.pathname.includes("/profile") ? (
           <RatingStars value={userRating} className="mt-1" />
