@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -30,7 +30,7 @@ type SearchSuggestion = {
 
 const SEARCH_SCOPE_OPTIONS: Array<{ value: SearchScope; label: string }> = [
   { value: "general", label: "Geral" },
-  { value: "user", label: "Usuario" },
+  { value: "user", label: "Usuário" },
   { value: "book", label: "Livro" },
 ];
 
@@ -42,9 +42,9 @@ function getNotificationText(notification: NotificationSummary): string {
     case "USER_FOLLOW_REQUESTED":
       return `${notification.actorUsername} quer te seguir.`;
     case "USER_FOLLOWED":
-      return `${notification.actorUsername} comecou a te seguir.`;
+      return `${notification.actorUsername} começou a te seguir.`;
     case "COMMENT_REPLIED":
-      return `${notification.actorUsername} respondeu seu comentario.`;
+      return `${notification.actorUsername} respondeu seu comentário.`;
     case "REVIEW_LIKED":
       return `${notification.actorUsername} curtiu sua resenha.`;
   }
@@ -90,14 +90,14 @@ function userToSuggestion(user: UserSummaryResponse): SearchSuggestion {
     id: `user-${user.id}`,
     type: "user",
     title: username,
-    subtitle: "Usuario",
+    subtitle: "Usuário",
     imageUrl: user.avatarUrl ?? undefined,
     href: `/profile/${encodeURIComponent(username)}`,
   };
 }
 
 function bookToSuggestion(book: BackendBookResponse): SearchSuggestion {
-  const authorLabel = book.authors.length > 0 ? book.authors.join(", ") : "Autores nao informados";
+  const authorLabel = book.authors.length > 0 ? book.authors.join(", ") : "Autores não informados";
   return {
     id: `book-${book.id}`,
     type: "book",
@@ -304,7 +304,7 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
           setSuggestions(nextSuggestions);
         } catch {
           setSuggestions([]);
-          setSearchError("Nao foi possivel buscar agora. Tente novamente.");
+          setSearchError("Não foi possível buscar agora. Tente novamente.");
         } finally {
           setIsSearching(false);
         }
@@ -698,7 +698,7 @@ export function TopHeader({
   let notificationsContent: React.ReactNode;
   if (isLoading) {
     notificationsContent = (
-      <p className="px-4 py-4 text-sm text-[var(--text-secondary)] break-words">Carregando notificacoes...</p>
+      <p className="px-4 py-4 text-sm text-[var(--text-secondary)] break-words">Carregando Notificações...</p>
     );
   } else if (visibleNotifications.length === 0) {
     notificationsContent = (
@@ -791,7 +791,7 @@ export function TopHeader({
               type="button"
               onClick={handleBellClick}
               className="relative h-10 w-10 rounded-full text-[var(--deep-green)] hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-200 transition-colors"
-              aria-label="Notificacoes"
+              aria-label="Notificações"
               aria-expanded={isNotificationsOpen}
               aria-haspopup="dialog"
             >
@@ -805,11 +805,11 @@ export function TopHeader({
 
             {isNotificationsOpen ? (
               <div
-                aria-label="Notificacoes"
+                aria-label="Notificações"
                 className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[22rem] max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-emerald-100 bg-white shadow-xl"
               >
                 <div className="flex items-center justify-between border-b border-emerald-100 px-4 py-3">
-                  <h3 className="text-sm font-semibold text-[var(--deep-green)]">Notificacoes</h3>
+                  <h3 className="text-sm font-semibold text-[var(--deep-green)]">Notificações</h3>
                 </div>
 
                 <div className="max-h-80 overflow-y-auto">{notificationsContent}</div>
@@ -866,3 +866,4 @@ export function TopHeader({
 }
 
 export default TopHeader;
+

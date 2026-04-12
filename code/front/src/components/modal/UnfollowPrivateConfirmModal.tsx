@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 import { Button } from "@/components/Button";
 
@@ -26,7 +26,7 @@ export function UnfollowPrivateConfirmModal({
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-card">
         <h2 className="text-xl font-semibold text-deep-green">Parar de seguir conta privada?</h2>
         <p className="mt-2 text-sm text-medium-text">
-          Tem certeza que deseja parar de seguir @{username}? Como a conta e privada, voce precisara enviar uma nova solicitacao para voltar a ver o conteudo.
+          Tem certeza que deseja parar de seguir @{username}? Como a conta e privada, você precisara enviar uma nova solicitacao para voltar a ver o conteudo.
         </p>
 
         <div className="mt-6 flex justify-end gap-2">
@@ -41,3 +41,4 @@ export function UnfollowPrivateConfirmModal({
     </div>
   );
 }
+

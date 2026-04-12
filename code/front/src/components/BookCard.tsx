@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { RatingStars } from "./RatingStars";
 import { ProgressBar } from "./ProgressBar";
@@ -65,7 +65,7 @@ export function BookCard({
             <div className="mt-2 flex items-center justify-between gap-3 text-base text-[var(--text-secondary)]">
               <span>
                 {typeof currentPage === "number" && typeof totalPages === "number"
-                  ? `Pagina ${currentPage} de ${totalPages}`
+                  ? `Página ${currentPage} de ${totalPages}`
                   : "Progresso de leitura"}
               </span>
               <span className="font-semibold text-[var(--text-secondary)]">{Math.round(progress)}%</span>
@@ -78,3 +78,4 @@ export function BookCard({
 }
 
 export default BookCard;
+

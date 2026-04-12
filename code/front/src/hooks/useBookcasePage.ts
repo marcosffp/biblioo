@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   computeBookSuggestions,
   filterBooksByStatusAndSearch,
@@ -391,7 +391,7 @@ export function useBookcasePage() {
         setAddBookSuggestions(searchResult.slice(0, 8));
       } catch {
         setAddBookSuggestions([]);
-        setAddBookSearchError("Nao foi possivel buscar livros agora. Tente novamente.");
+        setAddBookSearchError("Não foi possível buscar livros agora. Tente novamente.");
       } finally {
         setIsSearchingAddBook(false);
       }
@@ -681,7 +681,7 @@ export function useBookcasePage() {
 
   const handleRemoveSelectedShelfBook = () => {
     if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
-      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
 
@@ -719,11 +719,11 @@ export function useBookcasePage() {
         handleCloseShelfBookDetails();
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setBookDetailsError("Faca login para remover livros da estante.");
+          setBookDetailsError("Faça login para remover livros da estante.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setBookDetailsError(error.message);
         } else {
-          setBookDetailsError("Nao foi possivel remover o livro da estante.");
+          setBookDetailsError("Não foi possível remover o livro da estante.");
         }
       } finally {
         setIsRemovingBookFromShelf(false);
@@ -735,7 +735,7 @@ export function useBookcasePage() {
 
   const handleSelectShelfBookStatus = (nextStatus: Exclude<ReadingStatus, "todos">) => {
     if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
-      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
 
@@ -779,11 +779,11 @@ export function useBookcasePage() {
         });
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setBookDetailsError("Faca login para atualizar o status do livro.");
+          setBookDetailsError("Faça login para atualizar o status do livro.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setBookDetailsError(error.message);
         } else {
-          setBookDetailsError("Nao foi possivel atualizar o status do livro.");
+          setBookDetailsError("Não foi possível atualizar o status do livro.");
         }
       } finally {
         setIsSavingShelfBookDetails(false);
@@ -795,7 +795,7 @@ export function useBookcasePage() {
 
   const handleStepShelfBookPage = (delta: number) => {
     if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
-      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
 
@@ -856,11 +856,11 @@ export function useBookcasePage() {
         });
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setBookDetailsError("Faca login para atualizar o progresso.");
+          setBookDetailsError("Faça login para atualizar o progresso.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setBookDetailsError(error.message);
         } else {
-          setBookDetailsError("Nao foi possivel atualizar o progresso do livro.");
+          setBookDetailsError("Não foi possível atualizar o progresso do livro.");
         }
       } finally {
         setIsSavingShelfBookDetails(false);
@@ -872,7 +872,7 @@ export function useBookcasePage() {
 
   const handleSetShelfBookPage = (page: number) => {
     if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
-      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
 
@@ -932,11 +932,11 @@ export function useBookcasePage() {
         });
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setBookDetailsError("Faca login para atualizar o progresso.");
+          setBookDetailsError("Faça login para atualizar o progresso.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setBookDetailsError(error.message);
         } else {
-          setBookDetailsError("Nao foi possivel atualizar o progresso do livro.");
+          setBookDetailsError("Não foi possível atualizar o progresso do livro.");
         }
       } finally {
         setIsSavingShelfBookDetails(false);
@@ -958,13 +958,13 @@ export function useBookcasePage() {
 
   const handleSaveBookReview = () => {
     if (!selectedShelfBook) {
-      setReviewError("Nao foi possivel identificar o livro para avaliar.");
+      setReviewError("Não foi possível identificar o livro para avaliar.");
       return;
     }
 
     const bookId = Number(selectedShelfBook.id);
     if (Number.isNaN(bookId)) {
-      setReviewError("Nao foi possivel identificar o livro para avaliar.");
+      setReviewError("Não foi possível identificar o livro para avaliar.");
       return;
     }
 
@@ -975,12 +975,12 @@ export function useBookcasePage() {
 
     const normalizedComment = reviewCommentDraft.trim();
     if (normalizedComment.length > 2000) {
-      setReviewError("O comentario deve ter no maximo 2000 caracteres.");
+      setReviewError("O comentário deve ter no máximo 2000 caracteres.");
       return;
     }
 
     if (activeReviewId && normalizedComment.length === 0) {
-      setReviewError("Para editar a avaliacao com as rotas atuais, informe um comentario.");
+      setReviewError("Para editar a avaliação com as rotas atuais, informe um comentário.");
       return;
     }
 
@@ -1013,11 +1013,11 @@ export function useBookcasePage() {
         }
 
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setReviewError("Faca login para salvar sua avaliacao.");
+          setReviewError("Faça login para salvar sua avaliação.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setReviewError(error.message);
         } else {
-          setReviewError("Nao foi possivel salvar sua avaliacao. Tente novamente.");
+          setReviewError("Não foi possível salvar sua avaliação. Tente novamente.");
         }
       } finally {
         setIsSavingReview(false);
@@ -1173,12 +1173,12 @@ export function useBookcasePage() {
     }
 
     if (normalizedName.length > 100) {
-      setEditShelfError("O nome da estante deve ter no maximo 100 caracteres.");
+      setEditShelfError("O nome da estante deve ter no máximo 100 caracteres.");
       return;
     }
 
     if (normalizedDescription.length > 300) {
-      setEditShelfError("A descricao deve ter no maximo 300 caracteres.");
+      setEditShelfError("A Descrição deve ter no máximo 300 caracteres.");
       return;
     }
 
@@ -1202,11 +1202,11 @@ export function useBookcasePage() {
         handleCloseEditShelfModal();
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setEditShelfError("Faca login para editar estantes.");
+          setEditShelfError("Faça login para editar estantes.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setEditShelfError(error.message);
         } else {
-          setEditShelfError("Nao foi possivel editar a estante. Tente novamente.");
+          setEditShelfError("Não foi possível editar a estante. Tente novamente.");
         }
       } finally {
         setIsSavingShelfEdit(false);
@@ -1258,11 +1258,11 @@ export function useBookcasePage() {
         handleCloseDeleteShelfModal();
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setDeleteShelfError("Faca login para apagar estantes.");
+          setDeleteShelfError("Faça login para apagar estantes.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setDeleteShelfError(error.message);
         } else {
-          setDeleteShelfError("Nao foi possivel apagar a estante. Tente novamente.");
+          setDeleteShelfError("Não foi possível apagar a estante. Tente novamente.");
         }
       } finally {
         setIsDeletingShelf(false);
@@ -1314,11 +1314,11 @@ export function useBookcasePage() {
         handleCloseCreateShelfModal();
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setCreateShelfError("Faca login para criar estantes.");
+          setCreateShelfError("Faça login para criar estantes.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setCreateShelfError(error.message);
         } else {
-          setCreateShelfError("Nao foi possivel criar a estante. Verifique os campos e tente novamente.");
+          setCreateShelfError("Não foi possível criar a estante. Verifique os campos e tente novamente.");
         }
       } finally {
         setIsCreatingShelf(false);
@@ -1391,9 +1391,9 @@ export function useBookcasePage() {
         setIsBookDetailsOpen(false);
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setAddToShelfError("Faca login para adicionar livros na estante.");
+          setAddToShelfError("Faça login para adicionar livros na estante.");
         } else {
-          setAddToShelfError("Nao foi possivel adicionar o livro. Tente novamente.");
+          setAddToShelfError("Não foi possível adicionar o livro. Tente novamente.");
         }
       } finally {
         setIsAddingToShelf(false);
@@ -1554,3 +1554,4 @@ export function useBookcasePage() {
     },
   };
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -24,27 +24,27 @@ function validateRegisterFields(username: string, email: string, password: strin
   const normalizedEmail = email.trim();
 
   if (!normalizedUsername) {
-    nextErrors.username = "Nome de usuario obrigatorio";
+    nextErrors.username = "Nome de usuário obrigatório";
   } else if (!/^\w{3,30}$/.test(normalizedUsername)) {
     nextErrors.username = "Use de 3 a 30 caracteres (letras, numeros e _)";
   }
 
   if (!normalizedEmail) {
-    nextErrors.email = "Email obrigatorio";
+    nextErrors.email = "E-mail obrigatório";
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-    nextErrors.email = "Email invalido";
+    nextErrors.email = "E-mail inválido";
   }
 
   if (!password.trim()) {
-    nextErrors.password = "Senha obrigatoria";
+    nextErrors.password = "Senha obrigatória";
   } else if (password.length < 8) {
-    nextErrors.password = "A senha deve ter no minimo 8 caracteres";
+    nextErrors.password = "A senha deve ter no mínimo 8 caracteres";
   }
 
   if (!confirmPassword.trim()) {
     nextErrors.confirmPassword = "Confirme sua senha";
   } else if (password !== confirmPassword) {
-    nextErrors.confirmPassword = "As senhas nao coincidem";
+    nextErrors.confirmPassword = "As senhas não coincidem";
   }
 
   return nextErrors;
@@ -52,22 +52,22 @@ function validateRegisterFields(username: string, email: string, password: strin
 
 function mapRegisterErrorMessage(error: unknown): string {
   if (error instanceof AuthApiError && error.code === "EMAIL_IN_USE") {
-    return "Esse email ja esta em uso.";
+    return "Esse e-mail já está em uso.";
   }
 
   if (error instanceof AuthApiError && error.code === "USERNAME_IN_USE") {
-    return "Esse nome de usuario ja esta em uso.";
+    return "Esse nome de usuário já está em uso.";
   }
 
   if (error instanceof AuthApiError && error.code === "VALIDATION") {
-    return "Dados invalidos. Revise os campos e tente novamente.";
+    return "Dados inválidos. Revise os campos e tente novamente.";
   }
 
   if (error instanceof AuthApiError && error.code === "NETWORK") {
-    return "Falha de comunicacao com o servidor.";
+    return "Falha de comunicação com o servidor.";
   }
 
-  return "Nao foi possivel criar sua conta. Tente novamente.";
+  return "Não foi possível criar sua conta. Tente novamente.";
 }
 
 export default function RegisterPage() {
@@ -116,7 +116,7 @@ export default function RegisterPage() {
       subtitle="Comece sua jornada literária no Biblioo"
       footer={
         <p className="mt-8 text-center text-base text-[var(--text-secondary)]">
-          Ja possui uma conta?{" "}
+          Já possui uma conta?{" "}
           <Link href="/login" className="font-semibold text-[var(--brand-500)] hover:text-[var(--brand-600)]">
             Entrar
           </Link>
@@ -125,7 +125,7 @@ export default function RegisterPage() {
     >
       <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
         <TextInput
-          label="Nome de usuario"
+          label="Nome de usuário"
           type="text"
           placeholder="leitor_123"
           value={username}
@@ -182,3 +182,4 @@ export default function RegisterPage() {
     </AuthCard>
   );
 }
+

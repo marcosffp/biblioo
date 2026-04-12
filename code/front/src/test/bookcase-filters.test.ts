@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 
 import {
   addBookToShelfWithoutDuplicate,
@@ -39,11 +39,11 @@ describe("bookcase-filters", () => {
     expect(result[0]?.id).toBe("c1");
   });
 
-  it("nao exibe sugestoes com menos de 2 caracteres", () => {
+  it("Não exibe Sugestões com menos de 2 caracteres", () => {
     expect(computeBookSuggestions(books, "a")).toHaveLength(0);
   });
 
-  it("exibe sugestoes com 2 ou mais caracteres", () => {
+  it("exibe Sugestões com 2 ou mais caracteres", () => {
     const result = computeBookSuggestions(books, "19");
     expect(result).toHaveLength(1);
     expect(result[0]?.id).toBe("b1");
@@ -59,3 +59,4 @@ describe("bookcase-filters", () => {
     expect(appended[2]?.id).toBe("b3");
   });
 });
+

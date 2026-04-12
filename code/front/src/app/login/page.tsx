@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
@@ -25,12 +25,12 @@ export default function LoginPage() {
     const normalizedEmail = email.trim();
 
     if (!normalizedEmail) {
-      nextErrors.email = "Email obrigatorio";
+      nextErrors.email = "E-mail obrigatório";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      nextErrors.email = "Email invalido";
+      nextErrors.email = "E-mail inválido";
     }
 
-    if (!password.trim()) nextErrors.password = "Senha obrigatoria";
+    if (!password.trim()) nextErrors.password = "Senha obrigatória";
 
     setErrors(nextErrors);
     setFormError("");
@@ -49,11 +49,11 @@ export default function LoginPage() {
       router.push("/feed");
     } catch (error) {
       if (error instanceof AuthApiError && error.code === "INVALID_CREDENTIALS") {
-        setFormError("Email ou senha invalidos.");
+        setFormError("E-mail ou senha inválidos.");
       } else if (error instanceof AuthApiError && error.code === "NETWORK") {
         setFormError("Falha de comunicação com o servidor.");
       } else {
-        setFormError("Nao foi possivel entrar. Tente novamente.");
+        setFormError("Não foi possível entrar. Tente novamente.");
       }
     } finally {
       setIsLoading(false);
@@ -122,3 +122,4 @@ export default function LoginPage() {
     </AuthCard>
   );
 }
+

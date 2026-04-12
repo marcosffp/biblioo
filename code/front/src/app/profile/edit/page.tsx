@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,7 +19,7 @@ import {
 export default function EditarPerfilPage() {
   const router = useRouter();
 
-  const [displayName, setDisplayName] = React.useState("Usuario");
+  const [displayName, setDisplayName] = React.useState("Usuário");
   const [username, setUsername] = React.useState("usuario");
   const [email, setEmail] = React.useState<string | null>(null);
   const [bio, setBio] = React.useState("");
@@ -149,7 +149,7 @@ export default function EditarPerfilPage() {
               className="inline-flex items-center justify-center rounded-md px-2 py-2 text-gray-700 hover:bg-gray-100"
               aria-label="Voltar"
             >
-              <span aria-hidden className="text-lg">←</span>
+              <span aria-hidden className="text-lg">� �</span>
             </Link>
             <h1 className="text-lg font-semibold text-gray-900">Editar perfil</h1>
           </div>
@@ -191,13 +191,13 @@ export default function EditarPerfilPage() {
                   onClick={handleAvatarPick}
                   disabled={isSaving || isLoading}
                   className="group relative h-16 w-16 rounded-full border-4 border-white bg-emerald-600 text-white text-sm font-bold flex items-center justify-center shadow-md overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed"
-                  aria-label="Alterar foto do usuario"
+                  aria-label="Alterar foto do usuário"
                 >
                   {avatarPreviewUrl || avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={avatarPreviewUrl ?? avatarUrl ?? ""}
-                      alt="Foto do usuario"
+                      alt="Foto do usuário"
                       className="h-full w-full object-cover"
                     />
                   ) : (
@@ -347,7 +347,7 @@ export default function EditarPerfilPage() {
           <div className="mt-4 grid gap-4">
             <div className="rounded-md border border-gray-200 bg-white px-4 py-4 flex items-center justify-between">
               <div>
-                <div className="text-sm font-semibold text-gray-900">Email</div>
+                <div className="text-sm font-semibold text-gray-900">E-mail</div>
                 <div className="mt-1 text-xs text-gray-400">{email ?? "-"}</div>
               </div>
               <button
@@ -375,7 +375,7 @@ export default function EditarPerfilPage() {
 
         <section className="mt-6 rounded-lg border border-red-200 bg-white px-8 py-6">
           <div className="flex items-center gap-2 text-red-600 font-semibold">
-            <span aria-hidden>⚠</span>
+            <span aria-hidden>�a�</span>
             <span>Zona de perigo</span>
           </div>
           <button
@@ -389,3 +389,4 @@ export default function EditarPerfilPage() {
     </AppShell>
   );
 }
+

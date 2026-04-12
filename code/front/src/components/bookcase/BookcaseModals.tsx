@@ -1,4 +1,4 @@
-import {
+﻿import {
   BookcaseModal,
   BookDetailsCard,
   Button,
@@ -169,8 +169,8 @@ export function BookcaseModals({
             />
 
             <TextInput
-              aria-label="Descricao da estante"
-              placeholder="Descricao (opcional)"
+              aria-label="Descrição da estante"
+              placeholder="Descrição (opcional)"
               value={newShelfDescription}
               maxLength={300}
               onChange={(event) => setNewShelfDescription(event.target.value)}
@@ -188,19 +188,19 @@ export function BookcaseModals({
       ) : null}
 
       {isCreateCollectionModalOpen ? (
-        <BookcaseModal title="Criar colecao" onClose={handleCloseCreateCollectionModal}>
+        <BookcaseModal title="Criar coleção" onClose={handleCloseCreateCollectionModal}>
           <div className="mt-4 space-y-3">
             <TextInput
-              aria-label="Nome da colecao"
-              placeholder="Nome da colecao"
+              aria-label="Nome da coleção"
+              placeholder="Nome da coleção"
               value={newCollectionName}
               maxLength={100}
               onChange={(event) => setNewCollectionName(event.target.value)}
             />
 
             <TextInput
-              aria-label="Descricao da colecao"
-              placeholder="Descricao (opcional)"
+              aria-label="Descrição da coleção"
+              placeholder="Descrição (opcional)"
               value={newCollectionDescription}
               maxLength={500}
               onChange={(event) => setNewCollectionDescription(event.target.value)}
@@ -221,7 +221,7 @@ export function BookcaseModals({
 
             <div className="flex justify-end">
               <Button onClick={handleCreateCollection} disabled={isCreatingCollection}>
-                {isCreatingCollection ? "Criando..." : "Salvar colecao"}
+                {isCreatingCollection ? "Criando..." : "Salvar coleção"}
               </Button>
             </div>
           </div>
@@ -242,8 +242,8 @@ export function BookcaseModals({
             />
 
             <TextInput
-              aria-label="Descricao da estante"
-              placeholder="Descricao (opcional)"
+              aria-label="Descrição da estante"
+              placeholder="Descrição (opcional)"
               value={editShelfDescription}
               maxLength={300}
               onChange={(event) => setEditShelfDescription(event.target.value)}
@@ -290,7 +290,7 @@ export function BookcaseModals({
       ) : null}
 
       {isManageCollectionShelvesModalOpen ? (
-        <BookcaseModal title="Adicionar estantes na colecao" onClose={handleCloseManageCollectionShelvesModal}>
+        <BookcaseModal title="Adicionar estantes na coleção" onClose={handleCloseManageCollectionShelvesModal}>
           <p className="mt-3 text-sm text-[var(--text-secondary)]">{collectionToManage?.name ?? ""}</p>
 
           <div className="mt-3 rounded-xl border border-[var(--border-soft)] p-3">
@@ -361,14 +361,14 @@ export function BookcaseModals({
             <p className="text-sm text-[var(--text-secondary)]">{progressBook?.title ?? ""}</p>
 
             <TextInput
-              aria-label="Pagina atual"
-              placeholder="Pagina atual"
+              aria-label="Página atual"
+              placeholder="Página atual"
               value={progressDraft}
               onChange={(event) => setProgressDraft(event.target.value)}
             />
 
             {typeof progressBook?.totalPages === "number" ? (
-              <p className="text-xs text-[var(--text-secondary)]">Total de paginas: {progressBook.totalPages}</p>
+              <p className="text-xs text-[var(--text-secondary)]">Total de Páginas: {progressBook.totalPages}</p>
             ) : null}
 
             {progressError ? <p className="text-sm text-red-600">{progressError}</p> : null}

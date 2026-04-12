@@ -62,7 +62,7 @@ export function BookDetailsCard({
             <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</p>
             <p className="mt-1 text-sm text-gray-500">{author}</p>
             <p className="mt-4 text-sm leading-6 text-gray-700 dark:text-gray-300">
-              {synopsis?.trim() ? synopsis : "Sinopse indisponivel"}
+              {synopsis?.trim() ? synopsis : "Sinopse indisponível"}
             </p>
 
             <div className="mt-5">
@@ -76,7 +76,7 @@ export function BookDetailsCard({
                     : "bg-emerald-600 text-white hover:bg-emerald-700"
                 }`.trim()}
               >
-                {isAlreadyInShelf ? "Ja esta na estante" : isAddingToShelf ? "Adicionando..." : "Adicionar a estante"}
+                {isAlreadyInShelf ? "Já está na estante" : isAddingToShelf ? "Adicionando..." : "Adicionar à estante"}
               </button>
             </div>
 

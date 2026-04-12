@@ -11,7 +11,7 @@ export interface GenreDistributionCardProps {
   className?: string;
 }
 
-export function GenreDistributionCard({ title = "DNA literario", items, className }: GenreDistributionCardProps) {
+export function GenreDistributionCard({ title = "DNA literário", items, className }: GenreDistributionCardProps) {
   const total = items.reduce((acc, item) => acc + item.value, 0) || 1;
 
   return (

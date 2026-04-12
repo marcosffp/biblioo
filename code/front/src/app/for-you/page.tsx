@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { AppShell, BookCard, PageHeader, SectionHeader, Button } from "@/components";
 
 const highlights = [
@@ -18,9 +18,9 @@ const discoveries = [
 export default function ParaVocePage() {
   return (
     <AppShell>
-      <PageHeader title="Para Você" subtitle="Sugestoes baseadas no seu historico" />
+      <PageHeader title="Para Você" subtitle="Sugestões baseadas no seu histórico" />
 
-      <SectionHeader title="Recomendacao do dia" action={<Button>Sortear recomendacao</Button>} />
+      <SectionHeader title="Recomendação do dia" action={<Button>Sortear recomendação</Button>} />
       <div className="space-y-4">
         {highlights.map((book) => (
           <BookCard key={book.id} title={book.title} author={book.author} rating={book.rating} progress={book.progress} />
@@ -43,3 +43,4 @@ export default function ParaVocePage() {
     </AppShell>
   );
 }
+

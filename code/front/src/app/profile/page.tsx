@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import React from "react";
@@ -344,7 +344,7 @@ export default function PerfilPage() {
 
   const handleSelectShelfBookStatus = (nextStatus: Exclude<ReadingStatus, "todos">) => {
     if (!selectedShelfBook) {
-      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
 
@@ -390,11 +390,11 @@ export default function PerfilPage() {
         });
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setBookDetailsError("Faca login para atualizar o status do livro.");
+          setBookDetailsError("Faça login para atualizar o status do livro.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setBookDetailsError(error.message);
         } else {
-          setBookDetailsError("Nao foi possivel atualizar o status do livro.");
+          setBookDetailsError("Não foi possível atualizar o status do livro.");
         }
       } finally {
         setIsSavingShelfBookDetails(false);
@@ -406,7 +406,7 @@ export default function PerfilPage() {
 
   const handleStepShelfBookPage = (delta: number) => {
     if (!selectedShelfBook) {
-      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
 
@@ -465,11 +465,11 @@ export default function PerfilPage() {
         });
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setBookDetailsError("Faca login para atualizar o progresso.");
+          setBookDetailsError("Faça login para atualizar o progresso.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setBookDetailsError(error.message);
         } else {
-          setBookDetailsError("Nao foi possivel atualizar o progresso do livro.");
+          setBookDetailsError("Não foi possível atualizar o progresso do livro.");
         }
       } finally {
         setIsSavingShelfBookDetails(false);
@@ -481,7 +481,7 @@ export default function PerfilPage() {
 
   const handleSetShelfBookPage = (nextPage: number) => {
     if (!selectedShelfBook) {
-      setBookDetailsError("Nao foi possivel identificar o item da estante.");
+      setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
 
@@ -538,11 +538,11 @@ export default function PerfilPage() {
         });
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setBookDetailsError("Faca login para atualizar o progresso.");
+          setBookDetailsError("Faça login para atualizar o progresso.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setBookDetailsError(error.message);
         } else {
-          setBookDetailsError("Nao foi possivel atualizar o progresso do livro.");
+          setBookDetailsError("Não foi possível atualizar o progresso do livro.");
         }
       } finally {
         setIsSavingShelfBookDetails(false);
@@ -564,13 +564,13 @@ export default function PerfilPage() {
 
   const handleSaveBookReview = () => {
     if (!selectedShelfBook) {
-      setReviewError("Nao foi possivel identificar o livro para avaliar.");
+      setReviewError("Não foi possível identificar o livro para avaliar.");
       return;
     }
 
     const bookId = Number(selectedShelfBook.id);
     if (Number.isNaN(bookId)) {
-      setReviewError("Nao foi possivel identificar o livro para avaliar.");
+      setReviewError("Não foi possível identificar o livro para avaliar.");
       return;
     }
 
@@ -581,12 +581,12 @@ export default function PerfilPage() {
 
     const normalizedComment = reviewCommentDraft.trim();
     if (normalizedComment.length > 2000) {
-      setReviewError("O comentario deve ter no maximo 2000 caracteres.");
+      setReviewError("O comentário deve ter no máximo 2000 caracteres.");
       return;
     }
 
     if (activeReviewId && normalizedComment.length === 0) {
-      setReviewError("Para editar a avaliacao com as rotas atuais, informe um comentario.");
+      setReviewError("Para editar a avaliação com as rotas atuais, informe um comentário.");
       return;
     }
 
@@ -619,11 +619,11 @@ export default function PerfilPage() {
         }
 
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setReviewError("Faca login para salvar sua avaliacao.");
+          setReviewError("Faça login para salvar sua avaliação.");
         } else if (error instanceof BookcaseApiError && error.message) {
           setReviewError(error.message);
         } else {
-          setReviewError("Nao foi possivel salvar sua avaliacao. Tente novamente.");
+          setReviewError("Não foi possível salvar sua avaliação. Tente novamente.");
         }
       } finally {
         setIsSavingReview(false);
@@ -849,3 +849,4 @@ export default function PerfilPage() {
 
   
 }
+

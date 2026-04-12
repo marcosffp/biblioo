@@ -1,4 +1,4 @@
-import { getAccessToken } from "./auth";
+﻿import { getAccessToken } from "./auth";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
 
@@ -117,7 +117,7 @@ export class BookcaseApiError extends Error {
 function buildAuthHeaders(): HeadersInit {
   const accessToken = getAccessToken();
   if (!accessToken) {
-    throw new BookcaseApiError("Usuario nao autenticado.", 401);
+    throw new BookcaseApiError("Usuário não autenticado.", 401);
   }
 
   return {
@@ -178,12 +178,12 @@ export async function suggestBooks(query: string): Promise<BackendBookSuggestRes
   try {
     response = await fetch(`${API_BASE_URL}/books/suggest?q=${encodeURIComponent(normalized)}`);
   } catch {
-    throw new BookcaseApiError("Nao foi possivel obter sugestoes de livros.");
+    throw new BookcaseApiError("Não foi possível obter sugestões de livros.");
   }
 
   return parseJsonResponse<BackendBookSuggestResponse[]>(
     response,
-    "Falha ao buscar sugestoes de livros.",
+    "Falha ao buscar sugestões de livros.",
   );
 }
 
@@ -197,7 +197,7 @@ export async function searchBooks(query: string): Promise<BackendBookResponse[]>
   try {
     response = await fetch(`${API_BASE_URL}/books/search?q=${encodeURIComponent(normalized)}`);
   } catch {
-    throw new BookcaseApiError("Nao foi possivel pesquisar livros.");
+    throw new BookcaseApiError("Não foi possível pesquisar livros.");
   }
 
   return parseJsonResponse<BackendBookResponse[]>(response, "Falha ao pesquisar livros.");
@@ -208,7 +208,7 @@ export async function getBookById(bookId: number): Promise<BackendBookResponse> 
   try {
     response = await fetch(`${API_BASE_URL}/books/${bookId}`);
   } catch {
-    throw new BookcaseApiError("Nao foi possivel carregar os detalhes do livro.");
+    throw new BookcaseApiError("Não foi possível carregar os detalhes do livro.");
   }
 
   return parseJsonResponse<BackendBookResponse>(response, "Falha ao carregar detalhes do livro.");
@@ -221,7 +221,7 @@ export async function listShelves(): Promise<BackendShelfSummaryResponse[]> {
       headers: buildAuthHeaders(),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel carregar as estantes.");
+    throw new BookcaseApiError("Não foi possível carregar as estantes.");
   }
 
   return parseJsonResponse<BackendShelfSummaryResponse[]>(response, "Falha ao carregar estantes.");
@@ -234,7 +234,7 @@ export async function getShelfById(shelfId: number): Promise<BackendShelfRespons
       headers: buildAuthHeaders(),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel carregar os detalhes da estante.");
+    throw new BookcaseApiError("Não foi possível carregar os detalhes da estante.");
   }
 
   return parseJsonResponse<BackendShelfResponse>(response, "Falha ao carregar os detalhes da estante.");
@@ -255,7 +255,7 @@ export async function createShelf(name: string, description = ""): Promise<Backe
       }),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel criar uma estante para adicionar o livro.");
+    throw new BookcaseApiError("Não foi possível criar uma estante para adicionar o livro.");
   }
 
   return parseJsonResponse<BackendShelfResponse>(response, "Falha ao criar estante.");
@@ -280,7 +280,7 @@ export async function updateShelf(
       }),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel atualizar a estante.");
+    throw new BookcaseApiError("Não foi possível atualizar a estante.");
   }
 
   return parseJsonResponse<BackendShelfResponse>(response, "Falha ao atualizar estante.");
@@ -294,7 +294,7 @@ export async function deleteShelf(shelfId: number): Promise<void> {
       headers: buildAuthHeaders(),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel apagar a estante.");
+    throw new BookcaseApiError("Não foi possível apagar a estante.");
   }
 
   await ensureSuccessResponse(response, "Falha ao apagar estante.");
@@ -307,7 +307,7 @@ export async function listShelfItems(shelfId: number): Promise<BackendShelfItemS
       headers: buildAuthHeaders(),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel carregar os itens da estante.");
+    throw new BookcaseApiError("Não foi possível carregar os itens da estante.");
   }
 
   return parseJsonResponse<BackendShelfItemSummaryResponse[]>(
@@ -323,7 +323,7 @@ export async function getShelfItemById(shelfId: number, itemId: number): Promise
       headers: buildAuthHeaders(),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel carregar o item da estante.");
+    throw new BookcaseApiError("Não foi possível carregar o item da estante.");
   }
 
   return parseJsonResponse<BackendShelfItemResponse>(response, "Falha ao carregar item da estante.");
@@ -348,7 +348,7 @@ export async function addBookToShelf(
       }),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel adicionar o livro na estante.");
+    throw new BookcaseApiError("Não foi possível adicionar o livro na estante.");
   }
 
   return parseJsonResponse<BackendShelfItemResponse>(response, "Falha ao adicionar livro na estante.");
@@ -362,7 +362,7 @@ export async function removeBookFromShelf(shelfId: number, itemId: number): Prom
       headers: buildAuthHeaders(),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel remover o livro da estante.");
+    throw new BookcaseApiError("Não foi possível remover o livro da estante.");
   }
 
   await ensureSuccessResponse(response, "Falha ao remover livro da estante.");
@@ -386,7 +386,7 @@ export async function updateShelfItemProgress(
       }),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel atualizar o progresso de leitura.");
+    throw new BookcaseApiError("Não foi possível atualizar o progresso de leitura.");
   }
 
   return parseJsonResponse<BackendShelfItemResponse>(response, "Falha ao atualizar progresso de leitura.");
@@ -410,7 +410,7 @@ export async function changeShelfItemStatus(
       }),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel atualizar o status do livro.");
+    throw new BookcaseApiError("Não foi possível atualizar o status do livro.");
   }
 
   return parseJsonResponse<BackendShelfItemResponse>(response, "Falha ao atualizar status do livro.");
@@ -423,10 +423,10 @@ export async function listCollections(): Promise<BackendCollectionSummaryRespons
       headers: buildAuthHeaders(),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel carregar as colecoes.");
+    throw new BookcaseApiError("Não foi possível carregar as coleções.");
   }
 
-  return parseJsonResponse<BackendCollectionSummaryResponse[]>(response, "Falha ao carregar colecoes.");
+  return parseJsonResponse<BackendCollectionSummaryResponse[]>(response, "Falha ao carregar coleções.");
 }
 
 export async function createCollection(
@@ -449,10 +449,10 @@ export async function createCollection(
       }),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel criar a colecao.");
+    throw new BookcaseApiError("Não foi possível criar a coleção.");
   }
 
-  return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao criar colecao.");
+  return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao criar coleção.");
 }
 
 export async function addShelfToCollection(
@@ -472,10 +472,10 @@ export async function addShelfToCollection(
       }),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel adicionar estante na colecao.");
+    throw new BookcaseApiError("Não foi possível adicionar estante na coleção.");
   }
 
-  return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao vincular estante na colecao.");
+  return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao vincular estante na coleção.");
 }
 
 export async function createBookReview(
@@ -498,10 +498,10 @@ export async function createBookReview(
       body: formData,
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel registrar sua avaliacao.");
+    throw new BookcaseApiError("Não foi possível registrar sua avaliação.");
   }
 
-  return parseJsonResponse<BackendReviewResponse>(response, "Falha ao registrar avaliacao.");
+  return parseJsonResponse<BackendReviewResponse>(response, "Falha ao registrar avaliação.");
 }
 
 export async function updateBookReview(
@@ -521,21 +521,21 @@ export async function updateBookReview(
       body: formData,
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel atualizar sua avaliacao.");
+    throw new BookcaseApiError("Não foi possível atualizar sua avaliação.");
   }
 
-  return parseJsonResponse<BackendReviewResponse>(response, "Falha ao atualizar avaliacao.");
+  return parseJsonResponse<BackendReviewResponse>(response, "Falha ao atualizar avaliação.");
 }
 
 export async function getMyBookReview(bookId: number): Promise<BackendReviewResponse | null> {
   const accessToken = getAccessToken();
   if (!accessToken) {
-    throw new BookcaseApiError("Usuario nao autenticado.", 401);
+    throw new BookcaseApiError("Usuário não autenticado.", 401);
   }
 
   const userId = readCurrentUserIdFromToken(accessToken);
   if (!userId) {
-    throw new BookcaseApiError("Nao foi possivel identificar o usuario autenticado.", 401);
+    throw new BookcaseApiError("Não foi possível identificar o usuário autenticado.", 401);
   }
 
   let response: Response;
@@ -544,13 +544,14 @@ export async function getMyBookReview(bookId: number): Promise<BackendReviewResp
       headers: buildAuthHeaders(),
     });
   } catch {
-    throw new BookcaseApiError("Nao foi possivel carregar sua avaliacao.");
+    throw new BookcaseApiError("Não foi possível carregar sua avaliação.");
   }
 
   const page = await parseJsonResponse<BackendPageResponse<BackendReviewResponse>>(
     response,
-    "Falha ao carregar avaliacao.",
+    "Falha ao carregar avaliação.",
   );
 
   return page.content.find((review) => review.bookId === bookId) ?? null;
 }
+
