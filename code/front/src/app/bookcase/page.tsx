@@ -9,7 +9,7 @@ import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPan
 
 import {
   AppShell,
-  BackArrowButton,
+  BackHeader,
   ChipToggle,
   PageHeader,
   PrimaryButton,
@@ -153,22 +153,22 @@ export default function EstantePage() {
   let pageHeaderTitle: ReactNode = "Minha Estante";
   if (isInsideShelf) {
     pageHeaderTitle = (
-      <div className="inline-flex items-start gap-2">
-        <BackArrowButton onClick={handleBackToShelves} ariaLabel="Voltar para estantes" />
-        <div>
-          <p>{selectedShelfName}</p>
-          {selectedShelfDescription ? (
-            <p className="mt-0.5 text-sm font-normal text-[var(--text-secondary)]">{selectedShelfDescription}</p>
-          ) : null}
-        </div>
-      </div>
+      <BackHeader
+        onBack={handleBackToShelves}
+        ariaLabel="Voltar para estantes"
+        title={selectedShelfName}
+        subtitle={selectedShelfDescription ? selectedShelfDescription : null}
+        subtitleClassName="mt-0.5 text-sm font-normal text-[var(--text-secondary)]"
+      />
     );
   } else if (isInsideCollection) {
     pageHeaderTitle = (
-      <span className="inline-flex items-center gap-2">
-        <BackArrowButton onClick={handleBackToShelves} ariaLabel="Voltar para coleções" />
-        <span>{selectedCollectionName}</span>
-      </span>
+      <BackHeader
+        onBack={handleBackToShelves}
+        ariaLabel="Voltar para coleções"
+        title={selectedCollectionName}
+        className="items-center"
+      />
     );
   }
 
@@ -353,6 +353,7 @@ export default function EstantePage() {
       />
 
       <ShelfBookDetailsPanel
+        key={selectedShelfBook?.id ?? "closed"}
         isOpen={isShelfBookDetailsOpen}
         book={selectedShelfBook}
         onClose={handleCloseShelfBookDetails}

@@ -35,6 +35,7 @@ export * from "./ProgressBar";
 export * from "./Sidebar";
 export * from "./AuthCard";
 export * from "./BackArrowButton";
+export * from "./BackHeader";
 export * from "./profile/ProfileHeaderCard";
 export * from "./profile/ProfileStatsGrid";
 export * from "./profile/ProfileTabs";

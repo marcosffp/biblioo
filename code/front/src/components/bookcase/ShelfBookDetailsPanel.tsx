@@ -1,16 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  BookOpen,
-  Bookmark,
-  CheckCircle2,
-  ChevronDown,
-  Minus,
-  Plus,
-  RotateCcw,
-  Users,
-  XCircle,
-} from "lucide-react";
-import { BackArrowButton, RatingStars } from "@/components";
+import { useMemo, useState } from "react";
+import { ChevronDown, Minus, Plus, Users } from "lucide-react";
+import { BackHeader, RatingStars } from "@/components";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
 import type { ReadingStatus } from "@/utils/bookcase-filters";
 
@@ -51,50 +41,44 @@ interface ReviewSectionProps {
 const statusOptions: Array<{
   value: Exclude<ReadingStatus, "todos">;
   label: string;
-  Icon: typeof BookOpen;
   buttonClassName: string;
   menuActiveClassName: string;
-  iconClassName: string;
+  swatchClassName: string;
 }> = [
   {
     value: "lendo",
     label: "Lendo",
-    Icon: BookOpen,
     buttonClassName: "bg-blue-600 text-white",
     menuActiveClassName: "bg-blue-50 text-blue-800",
-    iconClassName: "text-blue-600",
+    swatchClassName: "bg-blue-600",
   },
   {
     value: "quero-ler",
     label: "Quero Ler",
-    Icon: Bookmark,
     buttonClassName: "bg-violet-600 text-white",
     menuActiveClassName: "bg-violet-50 text-violet-800",
-    iconClassName: "text-violet-600",
+    swatchClassName: "bg-violet-600",
   },
   {
     value: "lido",
     label: "Lido",
-    Icon: CheckCircle2,
     buttonClassName: "bg-emerald-600 text-white",
     menuActiveClassName: "bg-emerald-50 text-emerald-800",
-    iconClassName: "text-emerald-600",
+    swatchClassName: "bg-emerald-600",
   },
   {
     value: "relendo",
     label: "Relendo",
-    Icon: RotateCcw,
     buttonClassName: "bg-amber-500 text-white",
     menuActiveClassName: "bg-amber-50 text-amber-800",
-    iconClassName: "text-amber-500",
+    swatchClassName: "bg-amber-500",
   },
   {
     value: "abandonei",
     label: "Abandonei",
-    Icon: XCircle,
     buttonClassName: "bg-rose-600 text-white",
     menuActiveClassName: "bg-rose-50 text-rose-800",
-    iconClassName: "text-rose-600",
+    swatchClassName: "bg-rose-600",
   },
 ];
 
@@ -134,26 +118,7 @@ function ReviewSection({
       ) : (
         <>
           <fieldset className="mt-3 flex items-center" aria-label="Selecionar nota de 1 a 5 estrelas">
-            {[1, 2, 3, 4, 5].map((starValue) => {
-              const isActive = reviewRating >= starValue;
-              return (
-                <button
-                  key={starValue}
-                  type="button"
-                  onClick={() => onChangeReviewRating(starValue)}
-                  className={`text-3xl leading-none transition ${
-                    isActive ? "text-[var(--brand-500)]" : "text-[#a8b8aa] hover:text-[var(--brand-600)]"
-                  }`}
-                  aria-label={`${starValue} estrela${starValue > 1 ? "s" : ""}`}
-                  aria-pressed={isActive}
-                >
-                  <span
-                    className={`icon-star ${isActive ? "text-amber-300" : "text-amber-100"}`}
-                    aria-hidden="true"
-                  />
-                </button>
-              );
-            })}
+            <RatingStars value={reviewRating} size={28} onChange={onChangeReviewRating} />
           </fieldset>
 
           <p className="mt-2 text-sm text-[var(--text-secondary)]">Comentário (opcional)</p>
@@ -191,7 +156,6 @@ export function ShelfBookDetailsPanel({
   onClose,
   onSelectStatus,
   onStepPage,
-  onSetPage,
   onRemoveFromShelf,
   reviewRating,
   reviewComment,
@@ -208,15 +172,6 @@ export function ShelfBookDetailsPanel({
 }: Readonly<ShelfBookDetailsPanelProps>) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isSynopsisExpanded, setIsSynopsisExpanded] = useState(false);
-  const [pageInputDraft, setPageInputDraft] = useState("");
-
-  useEffect(() => {
-    setPageInputDraft(String(book?.currentPage ?? 0));
-  }, [book?.currentPage, book?.id]);
-
-  useEffect(() => {
-    setIsSynopsisExpanded(false);
-  }, [book?.id]);
 
   const progressPercent = useMemo(() => {
     if (!book) {
@@ -254,42 +209,17 @@ export function ShelfBookDetailsPanel({
   const hasLongSynopsis = synopsisText.length > 100;
   const displayedSynopsis = hasLongSynopsis && !isSynopsisExpanded ? `${synopsisText.slice(0, 100).trimEnd()}...` : synopsisText;
 
-  const commitTypedPage = () => {
-    const normalizedDraft = pageInputDraft.trim();
-    if (!normalizedDraft) {
-      setPageInputDraft(String(currentPage));
-      return;
-    }
-
-    const parsedPage = Number(normalizedDraft);
-    if (!Number.isInteger(parsedPage) || parsedPage < 0) {
-      setPageInputDraft(String(currentPage));
-      return;
-    }
-
-    if (totalPages > 0 && parsedPage > totalPages) {
-      setPageInputDraft(String(currentPage));
-      return;
-    }
-
-    if (parsedPage === currentPage) {
-      return;
-    }
-
-    if (onSetPage) {
-      onSetPage(parsedPage);
-      return;
-    }
-
-    onStepPage(parsedPage - currentPage);
-  };
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
       <div className="sticky top-0 z-20 border-b border-[var(--border-soft)] bg-[var(--bg-surface)]">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-10">
-          <BackArrowButton onClick={onClose} ariaLabel="Voltar para estante" />
-          <span className="text-sm font-semibold text-[var(--text-secondary)]">Detalhes do livro</span>
+          <BackHeader
+            onBack={onClose}
+            ariaLabel="Voltar para estante"
+            title="Detalhes do livro"
+            className="items-center"
+            titleClassName="text-sm font-semibold text-[var(--text-secondary)]"
+          />
         </div>
       </div>
 
@@ -323,10 +253,7 @@ export function ShelfBookDetailsPanel({
                   aria-expanded={isStatusOpen}
                   aria-label="Alternar opções de status"
                 >
-                  <span className="inline-flex items-center gap-2">
-                    <span className="icon-bookmark text-[16px] text-white" aria-hidden="true" />
-                    <span>{activeStatus.label}</span>
-                  </span>
+                  <span>{activeStatus.label}</span>
                   <ChevronDown size={16} />
                 </button>
 
@@ -351,10 +278,7 @@ export function ShelfBookDetailsPanel({
                             : "text-[var(--text-primary)] hover:bg-[var(--bg-soft)]"
                         }`}
                       >
-                        <span
-                          className={`icon-bookmark text-[15px] ${isActive ? statusOption.iconClassName : "text-[var(--text-secondary)]"}`}
-                          aria-hidden="true"
-                        />
+                        <span className={`h-3 w-3 rounded-full ${statusOption.swatchClassName}`} aria-hidden="true" />
                         <span>{statusOption.label}</span>
                       </button>
                     );

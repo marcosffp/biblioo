@@ -767,6 +767,7 @@ export default function PerfilPage() {
                 <ProfileShelfBookCard
                   key={book.shelfItemId}
                   title={book.title}
+                  author={book.author}
                   coverUrl={book.coverUrl}
                   progressPercent={book.progress}
                   userRating={book.rating}

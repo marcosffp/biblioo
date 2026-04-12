@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { BookCoverPlaceholder, EmptyState, ProgressBar } from "@/components";
+import { EmptyState, ProfileShelfBookCard } from "@/components";
 import type { BackendCollectionSummaryResponse, BackendShelfSummaryResponse } from "@/services";
 import type { RootViewMode, ShelfBook } from "@/hooks/useBookcasePage";
 import { ShelfCoverFrame } from "./ShelfCoverFrame";
@@ -21,6 +21,23 @@ interface BookcaseResultsProps {
   onOpenDeleteShelfModal: (shelf: BackendShelfSummaryResponse) => void;
   filteredCollections: BackendCollectionSummaryResponse[];
   onEnterCollection: (collection: BackendCollectionSummaryResponse) => void;
+}
+
+function statusClassName(status: ShelfBook["readingStatus"]): string {
+  switch (status) {
+    case "lendo":
+      return "bg-blue-50 text-blue-800";
+    case "quero-ler":
+      return "bg-violet-50 text-violet-800";
+    case "lido":
+      return "bg-emerald-50 text-emerald-800";
+    case "relendo":
+      return "bg-amber-50 text-amber-800";
+    case "abandonei":
+      return "bg-rose-50 text-rose-800";
+    default:
+      return "bg-[var(--bg-soft)] text-[var(--text-secondary)]";
+  }
 }
 
 function statusLabel(status: ShelfBook["readingStatus"]): string {
@@ -93,49 +110,23 @@ export function BookcaseResults({
     return (
       <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] gap-4">
         {filteredBooks.map((book) => (
-          <button
+          <ProfileShelfBookCard
             key={book.id}
-            type="button"
+            title={book.title}
+            author={book.author}
+            coverUrl={book.coverUrl}
+            userRating={book.rating}
+            statusLabel={statusLabel(book.readingStatus)}
+            statusClassName={statusClassName(book.readingStatus)}
+            showProgress={
+              (book.readingStatus === "lendo" || book.readingStatus === "relendo") && typeof book.progress === "number"
+            }
+            progressPercent={book.progress}
+            currentPage={book.currentPage}
+            totalPages={book.totalPages}
+            showPageCount={true}
             onClick={() => onOpenBookDetails(book)}
-            className="rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-3 text-left transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
-            aria-label={`Abrir opções do livro ${book.title}`}
-          >
-            <div className="aspect-[4/5] overflow-hidden rounded-[var(--radius-md)] bg-[var(--bg-soft)]">
-              {book.coverUrl ? (
-                <img src={book.coverUrl} alt={`Capa de ${book.title}`} className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <BookCoverPlaceholder size={84} />
-                </div>
-              )}
-            </div>
-
-            <div className="mt-2">
-              <p className="truncate text-[0.95rem] font-semibold leading-tight text-[var(--text-primary)]">{book.title}</p>
-              <p className="truncate text-xs text-[var(--text-secondary)]">{book.author}</p>
-            </div>
-
-            <div className="mt-2">
-              <span className="inline-flex rounded-full bg-[var(--bg-soft)] px-2 py-0.5 text-xs font-semibold text-[var(--text-secondary)]">
-                {statusLabel(book.readingStatus)}
-              </span>
-            </div>
-
-            {(book.readingStatus === "lendo" || book.readingStatus === "relendo") &&
-            typeof book.progress === "number" ? (
-              <div className="mt-2">
-                <ProgressBar value={book.progress} />
-                <div className="mt-2 flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                  <span>
-                    {typeof book.currentPage === "number" && typeof book.totalPages === "number"
-                      ? `p. ${book.currentPage} / ${book.totalPages}`
-                      : "Progresso de leitura"}
-                  </span>
-                  <span className="font-semibold">{Math.round(book.progress)}%</span>
-                </div>
-              </div>
-            ) : null}
-          </button>
+          />
         ))}
       </div>
     );

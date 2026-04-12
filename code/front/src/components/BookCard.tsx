@@ -55,11 +55,9 @@ export function BookCard({
           <p className="text-xl text-[var(--text-secondary)]">{author}</p>
         </div>
 
-        {typeof rating === "number" ? (
-          <div className="mt-2">
-            <RatingStars value={rating} />
-          </div>
-        ) : null}
+        <div className="mt-2">
+          <RatingStars value={rating} />
+        </div>
 
         {typeof progress === "number" ? (
           <div className="mt-3">
