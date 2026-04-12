@@ -24,7 +24,7 @@ class BookSearchScreen extends StatelessWidget {
         BlocProvider.value(value: context.read<BookBloc>()),
         BlocProvider.value(value: context.read<UserSearchBloc>()),
       ],
-      child: const _BookSearchView(isPicker: isPicker),
+      child: _BookSearchView(isPicker: isPicker),
     );
   }
 }
