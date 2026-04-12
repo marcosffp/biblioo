@@ -11,6 +11,14 @@ import 'package:biblioo/features/book/bloc/book_bloc.dart';
 import 'package:biblioo/features/book/data/book_local_datasource.dart';
 import 'package:biblioo/features/book/data/book_remote_datasource.dart';
 import 'package:biblioo/features/book/data/book_repository.dart';
+import 'package:biblioo/features/shelf/bloc/shelf_bloc.dart';
+import 'package:biblioo/features/shelf/data/shelf_local_datasource.dart';
+import 'package:biblioo/features/shelf/data/shelf_remote_datasource.dart';
+import 'package:biblioo/features/shelf/data/shelf_repository.dart';
+import 'package:biblioo/features/collection/bloc/collection_bloc.dart';
+import 'package:biblioo/features/collection/data/collection_local_datasource.dart';
+import 'package:biblioo/features/collection/data/collection_remote_datasource.dart';
+import 'package:biblioo/features/collection/data/collection_repository.dart';
 import 'package:biblioo/features/user/bloc/user_bloc.dart';
 import 'package:biblioo/features/user/bloc/user_search_bloc.dart';
 import 'package:biblioo/features/user/data/user_local_datasource.dart';
@@ -57,6 +65,16 @@ class Injector {
   BookRemoteDatasource get _bookRemote => BookRemoteDatasource(_dio);
   BookRepository       get bookRepo    => BookRepository(_bookRemote, _bookLocal);
 
+  // ── shelf ─────────────────────────────────────────────
+  ShelfLocalDatasource get _shelfLocal => ShelfLocalDatasource(_prefs);
+  ShelfRemoteDatasource get _shelfRemote => ShelfRemoteDatasource(_dio);
+  ShelfRepository get shelfRepo => ShelfRepository(_shelfRemote, _shelfLocal);
+
+  // ── collection ────────────────────────────────────────
+  CollectionLocalDatasource get _collectionLocal => CollectionLocalDatasource(_prefs);
+  CollectionRemoteDatasource get _collectionRemote => CollectionRemoteDatasource(_dio);
+  CollectionRepository get collectionRepo => CollectionRepository(_collectionRemote, _collectionLocal);
+
   // ── providers ─────────────────────────────────────────
   List<BlocProvider> get providers => [
     BlocProvider<ThemeModeCubit>(create: (_) => ThemeModeCubit(_prefs)),
@@ -66,5 +84,7 @@ class Injector {
     BlocProvider<UserBloc>(create: (_) => UserBloc(userRepo)),
     BlocProvider<UserSearchBloc>(create: (_) => UserSearchBloc(userRepo)),
     BlocProvider<BookBloc>(create: (_) => BookBloc(bookRepo)),
+    BlocProvider<ShelfBloc>(create: (_) => ShelfBloc(shelfRepo)),
+    BlocProvider<CollectionBloc>(create: (_) => CollectionBloc(collectionRepo)),
   ];
 }

@@ -14,7 +14,8 @@ import 'package:go_router/go_router.dart';
 /// Busca multi-tipo sem quebrar o fluxo existente de livros.
 /// Rota: /search (fora do shell, sem bottom nav).
 class BookSearchScreen extends StatelessWidget {
-  const BookSearchScreen({super.key});
+  final bool isPicker;
+  const BookSearchScreen({super.key, this.isPicker = false});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +24,7 @@ class BookSearchScreen extends StatelessWidget {
         BlocProvider.value(value: context.read<BookBloc>()),
         BlocProvider.value(value: context.read<UserSearchBloc>()),
       ],
-      child: const _BookSearchView(),
+      child: const _BookSearchView(isPicker: isPicker),
     );
   }
 }
@@ -31,7 +32,8 @@ class BookSearchScreen extends StatelessWidget {
 enum _SearchTab { books, users }
 
 class _BookSearchView extends StatefulWidget {
-  const _BookSearchView();
+  final bool isPicker;
+  const _BookSearchView({required this.isPicker});
 
   @override
   State<_BookSearchView> createState() => _BookSearchViewState();
@@ -247,8 +249,16 @@ class _BookSearchViewState extends State<_BookSearchView> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) =>
-              BookResultCard(book: state.books[index], onTap: () {}),
+          (context, index) => BookResultCard(
+            book: state.books[index],
+            onTap: () {
+              if (widget.isPicker) {
+                Navigator.of(context).pop(state.books[index]);
+              } else {
+                // TODO: navegar para detalhes do livro (feature futura)
+              }
+            },
+          ),
           childCount: state.books.length,
         ),
       ),

@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+@Slf4j
 @RestController
 @RequestMapping("/shelves")
 @RequiredArgsConstructor
@@ -172,6 +174,8 @@ public class ShelfController {
               try {
                 return bookUseCase.getById(item.getBookId()).getCoverUrl();
               } catch (Exception e) {
+                log.debug(
+                    "Cover não encontrada para bookId={}: {}", item.getBookId(), e.getMessage());
                 return null;
               }
             })

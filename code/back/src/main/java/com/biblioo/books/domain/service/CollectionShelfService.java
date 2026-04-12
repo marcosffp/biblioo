@@ -30,33 +30,25 @@ public class CollectionShelfService {
         @CacheEvict(value = "collection-list", key = "#userId")
       })
   public CompletableFuture<Void> addShelfAsync(Long userId, Long collectionId, Long shelfId) {
-    try {
-      Collection collection =
-          collectionRepository
-              .findByIdAndUserIdWithShelves(collectionId, userId)
-              .orElseThrow(() -> new ShelfBusinessException("Coleção não encontrada."));
+    Collection collection =
+        collectionRepository
+            .findByIdAndUserIdWithShelves(collectionId, userId)
+            .orElseThrow(() -> new ShelfBusinessException("Coleção não encontrada."));
 
-      Shelf shelf =
-          shelfRepository
-              .findByIdAndUserId(shelfId, userId)
-              .orElseThrow(() -> new ShelfBusinessException("Estante não encontrada."));
+    Shelf shelf =
+        shelfRepository
+            .findByIdAndUserId(shelfId, userId)
+            .orElseThrow(() -> new ShelfBusinessException("Estante não encontrada."));
 
-      boolean alreadyExists =
-          collection.getShelves().stream()
-              .anyMatch(existing -> existing.getId().equals(shelf.getId()));
+    boolean alreadyExists =
+        collection.getShelves().stream()
+            .anyMatch(existing -> existing.getId().equals(shelf.getId()));
 
-      if (!alreadyExists) {
-        collection.getShelves().add(shelf);
-        collectionRepository.save(collection);
-      }
-    } catch (Exception e) {
-      log.warn(
-          "Falha ao adicionar estante {} à coleção {} (usuário {}): {}",
-          shelfId,
-          collectionId,
-          userId,
-          e.getMessage());
+    if (!alreadyExists) {
+      collection.getShelves().add(shelf);
+      collectionRepository.save(collection);
     }
+
     return CompletableFuture.completedFuture(null);
   }
 
@@ -68,25 +60,17 @@ public class CollectionShelfService {
         @CacheEvict(value = "collection-list", key = "#userId")
       })
   public CompletableFuture<Void> removeShelfAsync(Long userId, Long collectionId, Long shelfId) {
-    try {
-      Collection collection =
-          collectionRepository
-              .findByIdAndUserIdWithShelves(collectionId, userId)
-              .orElseThrow(() -> new ShelfBusinessException("Coleção não encontrada."));
+    Collection collection =
+        collectionRepository
+            .findByIdAndUserIdWithShelves(collectionId, userId)
+            .orElseThrow(() -> new ShelfBusinessException("Coleção não encontrada."));
 
-      boolean removed = collection.getShelves().removeIf(shelf -> shelf.getId().equals(shelfId));
+    boolean removed = collection.getShelves().removeIf(shelf -> shelf.getId().equals(shelfId));
 
-      if (removed) {
-        collectionRepository.save(collection);
-      }
-    } catch (Exception e) {
-      log.warn(
-          "Falha ao remover estante {} da coleção {} (usuário {}): {}",
-          shelfId,
-          collectionId,
-          userId,
-          e.getMessage());
+    if (removed) {
+      collectionRepository.save(collection);
     }
+
     return CompletableFuture.completedFuture(null);
   }
 }
