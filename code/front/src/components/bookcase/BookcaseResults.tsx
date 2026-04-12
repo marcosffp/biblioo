@@ -118,9 +118,7 @@ export function BookcaseResults({
             userRating={book.rating}
             statusLabel={statusLabel(book.readingStatus)}
             statusClassName={statusClassName(book.readingStatus)}
-            showProgress={
-              (book.readingStatus === "lendo" || book.readingStatus === "relendo") && typeof book.progress === "number"
-            }
+            showProgress={typeof book.progress === "number" && book.progress > 0}
             progressPercent={book.progress}
             currentPage={book.currentPage}
             totalPages={book.totalPages}
