@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { Bell, BookOpen, Search } from "lucide-react";
+import { Bell, Search, X } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { searchBooks, type BackendBookResponse } from "@/services/bookcase";
 import { clearAuthSession, getAuthSession } from "@/services/auth";
@@ -241,6 +241,7 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [isSearchFocused, setIsSearchFocused] = React.useState(false);
   const searchContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const normalizedQuery = query.trim();
   const shouldSearch = normalizedQuery.length >= MIN_SEARCH_LENGTH;
@@ -327,8 +328,9 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
               aria-hidden="true"
             />
             <input
+              ref={searchInputRef}
               id="global-search"
-              type="search"
+              type="text"
               value={query}
               placeholder={searchPlaceholder}
               onFocus={() => {
@@ -345,8 +347,25 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
                   executeSearchNavigation(searchScope, normalizedQuery);
                 }
               }}
-              className="w-full h-10 rounded-xl border border-emerald-200 bg-emerald-50/40 pl-11 pr-4 text-sm text-[var(--deep-green)] placeholder:text-[hsl(var(--muted-foreground))] transition-all duration-200 focus:border-emerald-300 focus:bg-white"
+              className="w-full h-10 rounded-xl border border-emerald-200 bg-emerald-50/40 pl-11 pr-10 text-sm text-[var(--deep-green)] placeholder:text-[hsl(var(--muted-foreground))] transition-all duration-200 focus:border-emerald-300 focus:bg-white"
             />
+            {query ? (
+              <button
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  setQuery("");
+                  setSuggestions([]);
+                  setSearchError("");
+                  setIsDropdownOpen(true);
+                  searchInputRef.current?.focus();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--deep-green)] hover:bg-emerald-100"
+                aria-label="Limpar busca"
+              >
+                <X size={14} />
+              </button>
+            ) : null}
           </label>
 
           {isDropdownOpen && isSearchFocused ? (

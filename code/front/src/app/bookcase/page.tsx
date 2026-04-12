@@ -243,6 +243,8 @@ export default function EstantePage() {
           placeholder={searchInputPlaceholder}
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
+          clearable
+          onClear={() => setSearchTerm("")}
         />
       ) : null}
 

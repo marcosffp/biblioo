@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, X } from "lucide-react";
 import { AppShell, Avatar, AvatarFallback, AvatarImage, Button } from "@/components";
 import { getAccessToken } from "@/services/auth";
 import {
@@ -149,8 +149,18 @@ export default function FollowersPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar seguidores..."
-            className="h-12 w-full rounded-xl border border-border bg-card pl-11 pr-3 text-sm text-deep-green placeholder:text-light-text"
+            className="h-12 w-full rounded-xl border border-border bg-card pl-11 pr-10 text-sm text-deep-green placeholder:text-light-text"
           />
+          {search ? (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--deep-green)] hover:bg-emerald-100"
+              aria-label="Limpar busca"
+            >
+              <X size={14} />
+            </button>
+          ) : null}
         </div>
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}

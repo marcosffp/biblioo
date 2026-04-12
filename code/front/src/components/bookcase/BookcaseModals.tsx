@@ -322,6 +322,8 @@ export function BookcaseModals({
               placeholder="Digite pelo menos 2 caracteres"
               value={addBookSearchTerm}
               onChange={(event) => setAddBookSearchTerm(event.target.value)}
+              clearable
+              onClear={() => setAddBookSearchTerm("")}
             />
 
             {!shouldSearchAddBook ? (
