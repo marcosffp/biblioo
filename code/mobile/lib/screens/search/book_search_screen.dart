@@ -9,19 +9,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 /// Tela de busca de livros — monta o contexto do BookBloc.
 /// Rota: /search (fora do shell, sem bottom nav).
 class BookSearchScreen extends StatelessWidget {
-  const BookSearchScreen({super.key});
+  final bool isPicker;
+  const BookSearchScreen({super.key, this.isPicker = false});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: context.read<BookBloc>(),
-      child: const _BookSearchView(),
+      child: _BookSearchView(isPicker: isPicker),
     );
   }
 }
 
 class _BookSearchView extends StatefulWidget {
-  const _BookSearchView();
+  final bool isPicker;
+  const _BookSearchView({required this.isPicker});
 
   @override
   State<_BookSearchView> createState() => _BookSearchViewState();
@@ -175,7 +177,11 @@ class _BookSearchViewState extends State<_BookSearchView> {
           (context, index) => BookResultCard(
             book: state.books[index],
             onTap: () {
-              // TODO: navegar para detalhes do livro (feature futura)
+              if (widget.isPicker) {
+                Navigator.of(context).pop(state.books[index]);
+              } else {
+                // TODO: navegar para detalhes do livro (feature futura)
+              }
             },
           ),
           childCount: state.books.length,

@@ -49,9 +49,8 @@ public class OpenSearchBookAdapter {
               mm ->
                   mm.query(query)
                       .fields("title^10", "authors^2", "isbn^5", "searchText^1")
-                      .fuzziness("AUTO")
                       .operator(org.opensearch.client.opensearch._types.query_dsl.Operator.And)
-                      .type(TextQueryType.BestFields));
+                      .type(TextQueryType.PhrasePrefix));
 
       var request =
           SearchRequest.of(

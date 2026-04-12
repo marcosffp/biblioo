@@ -30,6 +30,12 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
+    // prevent infinite loop: if the error is from the refresh endpoint itself, do not retry
+    if (err.requestOptions.path.contains('/auth/refresh')) {
+      handler.next(err);
+      return;
+    }
+
     final refreshToken = _local.getRefreshToken();
     if (refreshToken == null) {
       handler.next(err);

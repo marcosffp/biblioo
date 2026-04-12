@@ -95,12 +95,12 @@ public class CollectionService implements CollectionUseCase {
 
   @Override
   public void addShelfToCollection(Long userId, Long collectionId, Long shelfId) {
-    collectionShelfService.addShelfAsync(userId, collectionId, shelfId);
+    collectionShelfService.addShelfAsync(userId, collectionId, shelfId).join();
   }
 
   @Override
   public void removeShelfFromCollection(Long userId, Long collectionId, Long shelfId) {
-    collectionShelfService.removeShelfAsync(userId, collectionId, shelfId);
+    collectionShelfService.removeShelfAsync(userId, collectionId, shelfId).join();
   }
 
   @Override
