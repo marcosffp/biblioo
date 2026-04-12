@@ -90,6 +90,28 @@ function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, value));
 }
 
+const COLLAPSED_SYNOPSIS_MAX_SENTENCES = 3;
+const COLLAPSED_SYNOPSIS_FALLBACK_CHARS = 280;
+
+function buildCollapsedSynopsis(text: string): string {
+  const normalized = text.trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const sentences = normalized.match(/[^.!?]+[.!?]+(?:\s+|$)/g);
+  if (sentences && sentences.length >= COLLAPSED_SYNOPSIS_MAX_SENTENCES) {
+    return sentences.slice(0, COLLAPSED_SYNOPSIS_MAX_SENTENCES).join("").trim();
+  }
+
+  const byChars = normalized.slice(0, COLLAPSED_SYNOPSIS_FALLBACK_CHARS).trimEnd();
+  if (byChars.length >= normalized.length) {
+    return normalized;
+  }
+
+  return `${byChars}...`;
+}
+
 function ReviewSection({
   reviewRating,
   reviewComment,
@@ -206,8 +228,9 @@ export function ShelfBookDetailsPanel({
   const abandonedCount = book.readingStatus === "abandonei" ? 1 : 0;
   const reviewCount = reviewExists ? 1 : 0;
   const synopsisText = (book.synopsis ?? book.description ?? "").trim();
-  const hasLongSynopsis = synopsisText.length > 100;
-  const displayedSynopsis = hasLongSynopsis && !isSynopsisExpanded ? `${synopsisText.slice(0, 100).trimEnd()}...` : synopsisText;
+  const collapsedSynopsis = buildCollapsedSynopsis(synopsisText);
+  const hasLongSynopsis = synopsisText.length > collapsedSynopsis.length;
+  const displayedSynopsis = hasLongSynopsis && !isSynopsisExpanded ? collapsedSynopsis : synopsisText;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
