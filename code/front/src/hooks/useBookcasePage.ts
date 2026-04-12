@@ -191,6 +191,7 @@ export function useBookcasePage() {
   const [isSavingCollectionShelves, setIsSavingCollectionShelves] = useState(false);
   const [selectedSuggestionBook, setSelectedSuggestionBook] = useState<ShelfBook | null>(null);
   const [isBookDetailsOpen, setIsBookDetailsOpen] = useState(false);
+  const [selectedShelfIdForSuggestion, setSelectedShelfIdForSuggestion] = useState<number | null>(null);
   const [shelves, setShelves] = useState<BackendShelfSummaryResponse[]>([]);
   const [collections, setCollections] = useState<BackendCollectionSummaryResponse[]>([]);
   const [shelfBooks, setShelfBooks] = useState<ShelfBook[]>([]);
@@ -305,7 +306,7 @@ export function useBookcasePage() {
     };
   });
 
-  const loadShelfBooks = async (shelfId: number) => {
+  const loadShelfBooks = async (shelfId: number): Promise<ShelfBook[]> => {
     const items = await listShelfItems(shelfId);
     const mappedItems = await Promise.all(
       items.map(async (item) => {
@@ -330,6 +331,7 @@ export function useBookcasePage() {
     );
 
     setShelfBooks(mappedItems);
+    return mappedItems;
   };
 
   useEffect(() => {
@@ -406,14 +408,54 @@ export function useBookcasePage() {
     };
   }, [addBookSearchTerm, isAddBookModalOpen, shouldSearchAddBook]);
 
-  const handleSuggestionSelect = (suggestion: { id: string; title: string; author: string; coverUrl?: string }) => {
+  const handleOpenSuggestionBookById = (bookId: number) => {
     async function loadBookDetails() {
-      const bookId = Number(suggestion.id);
       if (Number.isNaN(bookId)) {
         return;
       }
 
       try {
+        const availableShelves = shelves.length > 0 ? shelves : await listShelves();
+        if (shelves.length === 0 && availableShelves.length > 0) {
+          setShelves(availableShelves);
+        }
+
+        let shelfWithBook: BackendShelfSummaryResponse | null = null;
+        for (const shelf of availableShelves) {
+          const shelfItems = await listShelfItems(shelf.id);
+          if (shelfItems.some((item) => item.bookId === bookId)) {
+            shelfWithBook = shelf;
+            break;
+          }
+        }
+
+        if (shelfWithBook) {
+          setLoadError("");
+          setSelectedCollectionId(null);
+          setSelectedShelfId(shelfWithBook.id);
+          setSelectedShelfName(shelfWithBook.name);
+          setSelectedShelfDescription("");
+          setStatusFilter("todos");
+          setSearchTerm("");
+          setIsBookDetailsOpen(false);
+          setSelectedSuggestionBook(null);
+          setAddToShelfError("");
+          setIsAddBookModalOpen(false);
+
+          const [shelfDetails, loadedShelfBooks] = await Promise.all([
+            getShelfById(shelfWithBook.id),
+            loadShelfBooks(shelfWithBook.id),
+          ]);
+
+          setSelectedShelfDescription(shelfDetails.description?.trim() ?? "");
+
+          const existingShelfBook = loadedShelfBooks.find((item) => Number(item.id) === bookId) ?? null;
+          if (existingShelfBook) {
+            handleOpenShelfBookDetails(existingShelfBook);
+            return;
+          }
+        }
+
         const book = await getBookById(bookId);
         const nextSelectedBook: ShelfBook = {
           id: book.id.toString(),
@@ -429,6 +471,7 @@ export function useBookcasePage() {
 
         setSelectedSuggestionBook(nextSelectedBook);
         setAddBookSearchTerm(book.title);
+        setSelectedShelfIdForSuggestion((current) => selectedShelfId ?? current ?? shelves[0]?.id ?? null);
         setIsBookDetailsOpen(true);
         setIsAddBookModalOpen(false);
       } catch {
@@ -439,8 +482,18 @@ export function useBookcasePage() {
     void loadBookDetails();
   };
 
+  const handleSuggestionSelect = (suggestion: { id: string; title: string; author: string; coverUrl?: string }) => {
+    const bookId = Number(suggestion.id);
+    handleOpenSuggestionBookById(bookId);
+  };
+
   const handleCloseBookDetails = () => {
     setIsBookDetailsOpen(false);
+    setAddToShelfError("");
+  };
+
+  const handleSelectShelfForSuggestion = (shelfId: number) => {
+    setSelectedShelfIdForSuggestion(shelfId);
     setAddToShelfError("");
   };
 
@@ -1328,9 +1381,10 @@ export function useBookcasePage() {
     void createShelfAction();
   };
 
-  const isSelectedBookAlreadyInShelf = selectedSuggestionBook
-    ? shelfBooks.some((book) => book.id === selectedSuggestionBook.id)
-    : false;
+  const isSelectedBookAlreadyInShelf =
+    selectedSuggestionBook && selectedShelfId !== null && selectedShelfIdForSuggestion === selectedShelfId
+      ? shelfBooks.some((book) => book.id === selectedSuggestionBook.id)
+      : false;
 
   const handleAddSelectedBookToShelf = () => {
     const selectedBook = selectedSuggestionBook;
@@ -1344,12 +1398,13 @@ export function useBookcasePage() {
       setAddToShelfError("");
 
       try {
-        if (selectedShelfId === null) {
+        const targetShelfId = selectedShelfIdForSuggestion ?? selectedShelfId;
+        if (targetShelfId === null) {
           setAddToShelfError("Selecione uma estante para adicionar livros.");
           return;
         }
 
-        const createdItem = await addBookToShelf(selectedShelfId, selectedBookId);
+        const createdItem = await addBookToShelf(targetShelfId, selectedBookId);
         const fullBook = await getBookById(createdItem.bookId);
 
         const createdShelfBook: ShelfBook = {
@@ -1366,17 +1421,19 @@ export function useBookcasePage() {
           totalPages: createdItem.totalPages ?? fullBook.pageCount ?? undefined,
         };
 
-        setShelfBooks((currentShelfBooks) => {
-          if (currentShelfBooks.some((book) => book.id === createdShelfBook.id)) {
-            return currentShelfBooks;
-          }
+        if (selectedShelfId !== null && selectedShelfId === targetShelfId) {
+          setShelfBooks((currentShelfBooks) => {
+            if (currentShelfBooks.some((book) => book.id === createdShelfBook.id)) {
+              return currentShelfBooks;
+            }
 
-          return [...currentShelfBooks, createdShelfBook];
-        });
+            return [...currentShelfBooks, createdShelfBook];
+          });
+        }
 
         setShelves((currentShelves) =>
           currentShelves.map((shelf) =>
-            shelf.id === selectedShelfId
+            shelf.id === targetShelfId
               ? {
                   ...shelf,
                   itemCount: shelf.itemCount + 1,
@@ -1410,12 +1467,32 @@ export function useBookcasePage() {
 
     setIsAddBookModalOpen(true);
     setIsBookDetailsOpen(false);
+    setSelectedShelfIdForSuggestion(selectedShelfId);
 
     requestAnimationFrame(() => {
       const searchInput = document.getElementById("bookcase-add-search-input") as HTMLInputElement | null;
       searchInput?.focus();
     });
   };
+
+  useEffect(() => {
+    if (!isBookDetailsOpen) {
+      return;
+    }
+
+    if (selectedShelfIdForSuggestion !== null) {
+      return;
+    }
+
+    if (selectedShelfId !== null) {
+      setSelectedShelfIdForSuggestion(selectedShelfId);
+      return;
+    }
+
+    if (shelves.length > 0) {
+      setSelectedShelfIdForSuggestion(shelves[0]?.id ?? null);
+    }
+  }, [isBookDetailsOpen, selectedShelfId, selectedShelfIdForSuggestion, shelves]);
 
   return {
     addBookSearchTerm,
@@ -1484,6 +1561,7 @@ export function useBookcasePage() {
     selectedShelfName,
     selectedShelfBook,
     selectedSuggestionBook,
+    selectedShelfIdForSuggestion,
     shelfToDelete,
     shelfToEdit,
     shelfBooks,
@@ -1493,6 +1571,8 @@ export function useBookcasePage() {
     collectionToManage,
     handleAddBookClick,
     handleAddSelectedBookToShelf,
+    handleOpenSuggestionBookById,
+    handleSelectShelfForSuggestion,
     handleBackToShelves,
     handleChangeRootViewMode,
     handleCloseAddBookModal,

@@ -77,6 +77,8 @@ interface BookcaseModalsProps {
   selectedSuggestionBook: ShelfBook | null;
   handleCloseBookDetails: () => void;
   handleAddSelectedBookToShelf: () => void;
+  selectedShelfIdForSuggestion: number | null;
+  handleSelectShelfForSuggestion: (shelfId: number) => void;
   isSelectedBookAlreadyInShelf: boolean;
   isAddingToShelf: boolean;
   addToShelfError: string;
@@ -150,6 +152,8 @@ export function BookcaseModals({
   selectedSuggestionBook,
   handleCloseBookDetails,
   handleAddSelectedBookToShelf,
+  selectedShelfIdForSuggestion,
+  handleSelectShelfForSuggestion,
   isSelectedBookAlreadyInShelf,
   isAddingToShelf,
   addToShelfError,
@@ -392,6 +396,9 @@ export function BookcaseModals({
         synopsis={selectedSuggestionBook?.synopsis}
         onClose={handleCloseBookDetails}
         onAddToShelf={handleAddSelectedBookToShelf}
+        availableShelves={shelves.map((shelf) => ({ id: shelf.id, name: shelf.name }))}
+        selectedShelfId={selectedShelfIdForSuggestion}
+        onSelectShelf={handleSelectShelfForSuggestion}
         isAlreadyInShelf={isSelectedBookAlreadyInShelf}
         isAddingToShelf={isAddingToShelf}
         addToShelfError={addToShelfError}

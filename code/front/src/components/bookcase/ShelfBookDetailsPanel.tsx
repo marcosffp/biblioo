@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, Minus, Plus, Users } from "lucide-react";
-import { BackHeader, RatingStars } from "@/components";
+import { BackHeader, RatingStars, TopHeader } from "@/components";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
 import type { ReadingStatus } from "@/utils/bookcase-filters";
 
@@ -234,8 +234,11 @@ export function ShelfBookDetailsPanel({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
-      <div className="sticky top-0 z-20 border-b border-[var(--border-soft)] bg-[var(--bg-surface)]">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-10">
+      <TopHeader />
+      <div className="h-16" aria-hidden="true" />
+
+      <div className="sticky top-16 z-20 bg-[var(--bg-surface)]">
+        <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center gap-3 px-4 sm:px-8 lg:px-12">
           <BackHeader
             onBack={onClose}
             ariaLabel="Voltar para estante"
@@ -246,7 +249,7 @@ export function ShelfBookDetailsPanel({
         </div>
       </div>
 
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 pb-12 pt-8 sm:px-6 lg:px-10">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1280px] flex-col px-4 pb-12 pt-8 sm:px-8 lg:px-12">
         <div className="mt-1 bg-white sm:p-2">
           <div className="grid gap-6 md:grid-cols-[250px_1fr] md:items-start">
             <div>

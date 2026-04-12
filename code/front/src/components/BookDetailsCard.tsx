@@ -9,6 +9,9 @@ export interface BookDetailsCardProps {
   synopsis?: string;
   onClose: () => void;
   onAddToShelf: () => void;
+  availableShelves?: Array<{ id: number; name: string }>;
+  selectedShelfId?: number | null;
+  onSelectShelf?: (shelfId: number) => void;
   isAlreadyInShelf?: boolean;
   isAddingToShelf?: boolean;
   addToShelfError?: string;
@@ -22,10 +25,20 @@ export function BookDetailsCard({
   synopsis,
   onClose,
   onAddToShelf,
+  availableShelves = [],
+  selectedShelfId = null,
+  onSelectShelf,
   isAlreadyInShelf = false,
   isAddingToShelf = false,
   addToShelfError,
-}: BookDetailsCardProps) {
+}: Readonly<BookDetailsCardProps>) {
+  let addButtonLabel = "Adicionar à estante";
+  if (isAlreadyInShelf) {
+    addButtonLabel = "Já está na estante";
+  } else if (isAddingToShelf) {
+    addButtonLabel = "Adicionando...";
+  }
+
   if (!isOpen) {
     return null;
   }
@@ -65,18 +78,40 @@ export function BookDetailsCard({
               {synopsis?.trim() ? synopsis : "Sinopse indisponível"}
             </p>
 
+            <div className="mt-4">
+              <label htmlFor="book-details-shelf-select" className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                Adicionar na estante
+              </label>
+              <select
+                id="book-details-shelf-select"
+                value={selectedShelfId ?? ""}
+                onChange={(event) => onSelectShelf?.(Number(event.target.value))}
+                disabled={availableShelves.length === 0 || isAddingToShelf}
+                className="mt-2 w-full rounded-md border border-[var(--border-soft)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--brand-500)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <option value="" disabled>
+                  {availableShelves.length > 0 ? "Selecione uma estante" : "Nenhuma estante disponível"}
+                </option>
+                {availableShelves.map((shelf) => (
+                  <option key={shelf.id} value={shelf.id}>
+                    {shelf.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="mt-5">
               <button
                 type="button"
                 onClick={onAddToShelf}
-                disabled={isAlreadyInShelf || isAddingToShelf}
+                disabled={isAlreadyInShelf || isAddingToShelf || availableShelves.length === 0 || selectedShelfId === null}
                 className={`rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
-                  isAlreadyInShelf || isAddingToShelf
+                  isAlreadyInShelf || isAddingToShelf || availableShelves.length === 0 || selectedShelfId === null
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-emerald-600 text-white hover:bg-emerald-700"
                 }`.trim()}
               >
-                {isAlreadyInShelf ? "Já está na estante" : isAddingToShelf ? "Adicionando..." : "Adicionar à estante"}
+                {addButtonLabel}
               </button>
             </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { readingStatusOptions, useBookcasePage } from "@/hooks/useBookcasePage";
 import { BookcaseResults } from "@/components/bookcase/BookcaseResults";
@@ -18,6 +19,11 @@ import {
 } from "@/components";
 
 export default function EstantePage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const handledOpenBookParamsRef = useRef<string | null>(null);
+
   const {
     addBookSearchTerm,
     addBookSearchError,
@@ -60,6 +66,7 @@ export default function EstantePage() {
     handleOpenEditShelfModal,
     handleOpenAddShelfToSelectedCollection,
     handleOpenShelfBookDetails,
+    handleOpenSuggestionBookById,
     handleRemoveSelectedShelfBook,
     handleSelectShelfBookStatus,
     handleSaveCollectionShelves,
@@ -131,6 +138,7 @@ export default function EstantePage() {
     setProgressDraft,
     setSearchTerm,
     setStatusFilter,
+    selectedShelfIdForSuggestion,
     shelves,
     statusFilter,
     toggleCollectionShelfSelection,
@@ -138,7 +146,36 @@ export default function EstantePage() {
     visibleAddBookSuggestions,
     handleStepShelfBookPage,
     handleSetShelfBookPage,
+    handleSelectShelfForSuggestion,
   } = useBookcasePage();
+
+  useEffect(() => {
+    const openBookDetailsFlag = searchParams.get("openBookDetails");
+    const rawBookId = searchParams.get("bookId");
+
+    if (openBookDetailsFlag !== "1" || !rawBookId) {
+      return;
+    }
+
+    const bookId = Number(rawBookId);
+    if (Number.isNaN(bookId)) {
+      return;
+    }
+
+    const paramsKey = `${openBookDetailsFlag}:${bookId}`;
+    if (handledOpenBookParamsRef.current === paramsKey) {
+      return;
+    }
+
+    handledOpenBookParamsRef.current = paramsKey;
+    handleOpenSuggestionBookById(bookId);
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("openBookDetails");
+    nextParams.delete("bookId");
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
+  }, [handleOpenSuggestionBookById, pathname, router, searchParams]);
 
   const counts = {
     todos: shelfBooks.length,
@@ -316,6 +353,8 @@ export default function EstantePage() {
         selectedSuggestionBook={selectedSuggestionBook}
         handleCloseBookDetails={handleCloseBookDetails}
         handleAddSelectedBookToShelf={handleAddSelectedBookToShelf}
+        selectedShelfIdForSuggestion={selectedShelfIdForSuggestion}
+        handleSelectShelfForSuggestion={handleSelectShelfForSuggestion}
         isSelectedBookAlreadyInShelf={isSelectedBookAlreadyInShelf}
         isAddingToShelf={isAddingToShelf}
         addToShelfError={addToShelfError}

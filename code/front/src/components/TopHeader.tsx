@@ -104,7 +104,7 @@ function bookToSuggestion(book: BackendBookResponse): SearchSuggestion {
     title: book.title,
     subtitle: `Livro • ${authorLabel}`,
     imageUrl: book.coverUrl ?? undefined,
-    href: `/bookcase?search=${encodeURIComponent(book.title)}`,
+    href: `/bookcase?search=${encodeURIComponent(book.title)}&bookId=${book.id}&openBookDetails=1`,
   };
 }
 
