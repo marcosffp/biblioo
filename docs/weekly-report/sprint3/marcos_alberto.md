@@ -19,3 +19,8 @@
 ## Semana 2 (06/04/2026 - 11/04/2026)
 
 ### O que foi feito:
+- Desenvolvi os endpoints que faltou
+- Implementei curtidas e comentários em review
+
+- [PR #84](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/84)
+- [PR #85](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/85)
