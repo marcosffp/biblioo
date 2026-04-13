@@ -23,7 +23,7 @@ public abstract class Content {
   @Column(name = "user_id", nullable = false)
   private Long userId;
 
-  @Column(length = 2000, nullable = false)
+  @Column(length = 2000)
   private String text;
 
   @ElementCollection(fetch = FetchType.EAGER)

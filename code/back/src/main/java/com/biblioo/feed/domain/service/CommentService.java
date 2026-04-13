@@ -35,11 +35,7 @@ public class CommentService implements CommentUseCase {
       throw new CommentBusinessException("Usuário não encontrado.");
     }
 
-    if (text == null || text.isBlank()) {
-      throw new CommentBusinessException("O texto do comentário não pode estar vazio.");
-    }
-
-    if (text.length() > 2000) {
+    if (text != null && text.length() > 2000) {
       throw new CommentBusinessException("O texto do comentário não deve exceder 2000 caracteres.");
     }
 

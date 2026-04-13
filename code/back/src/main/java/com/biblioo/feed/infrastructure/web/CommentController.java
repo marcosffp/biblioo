@@ -52,13 +52,13 @@ public class CommentController {
   @Operation(
       summary = "Cria um comentário em uma avaliação",
       description =
-          "Cria um novo comentário na avaliação indicada. Permite texto (obrigatório),"
+          "Cria um novo comentário na avaliação indicada. Permite texto (opcional),"
               + " até 5 imagens e 1 GIF.")
   public ResponseEntity<CommentResponse> createComment(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId,
       @Parameter(description = "Texto do comentário (até 2000 caracteres)", example = "Ótima review!")
-          @RequestParam
+          @RequestParam(required = false)
           String text,
       @Parameter(description = "Imagens a anexar ao comentário (máx 5)")
           @RequestPart(required = false)

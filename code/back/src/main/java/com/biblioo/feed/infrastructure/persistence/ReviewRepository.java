@@ -4,7 +4,6 @@ import com.biblioo.feed.domain.model.Review;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,15 +15,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
   boolean existsByUserIdAndBookIdAndIsDeletedFalse(Long userId, Long bookId);
 
-  @EntityGraph(attributePaths = {"book"})
   Optional<Review> findByIdAndIsDeletedFalse(Long id);
 
-  @EntityGraph(attributePaths = {"book"})
   @Query(
-      "SELECT r FROM Review r WHERE r.book.id = :bookId AND r.isDeleted = false ORDER BY r.createdAt DESC")
+      "SELECT r FROM Review r WHERE r.bookId = :bookId AND r.isDeleted = false ORDER BY r.createdAt DESC")
   Page<Review> findRecentReviewsByBookId(@Param("bookId") Long bookId, Pageable pageable);
 
-  @EntityGraph(attributePaths = {"book"})
   @Query(
       "SELECT r FROM Review r WHERE r.userId = :userId AND r.isDeleted = false ORDER BY r.createdAt DESC")
   Page<Review> findRecentReviewsByUserId(@Param("userId") Long userId, Pageable pageable);

@@ -1,6 +1,5 @@
 package com.biblioo.feed.domain.model;
 
-import com.biblioo.books.domain.model.Book;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.Data;
@@ -26,9 +25,8 @@ import org.hibernate.annotations.UpdateTimestamp;
     })
 public class Review extends FeedContent {
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "book_id", nullable = false)
-  private Book book;
+  @Column(name = "book_id", nullable = false)
+  private Long bookId;
 
   @Column(nullable = false)
   private Integer rating;

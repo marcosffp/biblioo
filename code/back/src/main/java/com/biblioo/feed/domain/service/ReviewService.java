@@ -57,7 +57,7 @@ public class ReviewService implements ReviewUseCase {
 
     shelfInteractionPort.ensureBookReadStatusIsCompleted(userId, bookId);
 
-    var review = Review.builder().userId(userId).book(book).rating(rating).text(text).build();
+    var review = Review.builder().userId(userId).bookId(bookId).rating(rating).text(text).build();
 
     var savedReview = reviewRepository.save(review);
 
@@ -133,7 +133,7 @@ public class ReviewService implements ReviewUseCase {
     var savedReview = reviewRepository.save(review);
 
     feedEventPublisherPort.publishBookReviewStatsUpdated(
-        review.getBook().getId(), oldRating, rating);
+        review.getBookId(), oldRating, rating);
 
     return savedReview;
   }
@@ -164,7 +164,7 @@ public class ReviewService implements ReviewUseCase {
       reviewRepository.deleteById(reviewId);
     }
 
-    feedEventPublisherPort.publishBookReviewStatsUpdated(review.getBook().getId(), oldRating, null);
+    feedEventPublisherPort.publishBookReviewStatsUpdated(review.getBookId(), oldRating, null);
   }
 
   @Override
