@@ -45,4 +45,4 @@
 - Adicionei melhorias visuais e funcionais em componentes e navegação (ex: TopHeader e ajustes de layout).
 
 ### Links dos Pull Requests:
-- [PR #88]((https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/88/commits)
+- [PR #88](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/88/commits)
