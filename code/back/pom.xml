@@ -233,6 +233,14 @@
             <artifactId>firebase-admin</artifactId>
             <version>9.4.1</version>
         </dependency>
+
+                <!-- Gatling -->
+        <dependency>
+            <groupId>io.gatling.highcharts</groupId>
+            <artifactId>gatling-charts-highcharts</artifactId>
+            <version>3.10.5</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 
@@ -284,6 +292,21 @@
                         <removeUnusedImports/>
                         <importOrder/>
                     </java>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-maven-plugin</artifactId>
+                <version>4.8.1</version>
+                <configuration>
+                    <!-- Indica a base da Simulação -->
+                    <jvmArgs>
+                        <jvmArg>--add-opens=java.base/java.lang=ALL-UNNAMED</jvmArg>
+                        <jvmArg>--add-opens=java.base/java.lang.reflect=ALL-UNNAMED</jvmArg>
+                        <jvmArg>--add-opens=java.base/sun.misc=ALL-UNNAMED</jvmArg>
+                        <jvmArg>--add-opens=java.base/sun.nio.ch=ALL-UNNAMED</jvmArg>
+                    </jvmArgs>
                 </configuration>
             </plugin>
         </plugins>
