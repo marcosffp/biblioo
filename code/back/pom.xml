@@ -195,6 +195,13 @@
             <version>2.0.0</version>
         </dependency>
 
+                <!-- Bucket4j Rate Limiter -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
         <!-- Neo4j Java Driver (official — sem Spring Data Neo4j para controle total sobre Cypher) -->
         <dependency>
             <groupId>org.neo4j.driver</groupId>
