@@ -25,9 +25,13 @@ export function BackHeader({
 }: Readonly<BackHeaderProps>) {
   return (
     <span className={`inline-flex items-start gap-2 ${className ?? ""}`.trim()}>
-      <BackArrowButton onClick={onBack} ariaLabel={ariaLabel} className={backButtonClassName} />
+      <BackArrowButton
+        onClick={onBack}
+        ariaLabel={ariaLabel}
+        className={`-mt-0.5 ${backButtonClassName ?? ""}`.trim()}
+      />
       <span className="min-w-0">
-        <span className={titleClassName}>{title}</span>
+        <span className={`block ${titleClassName ?? ""}`.trim()}>{title}</span>
         {subtitle ? <span className={`block ${subtitleClassName ?? ""}`.trim()}>{subtitle}</span> : null}
       </span>
     </span>

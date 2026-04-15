@@ -1,20 +1,15 @@
 "use client";
 
 import React from "react";
-import { Plus } from "lucide-react";
+import { MessageCircle, Plus, Users, X } from "lucide-react";
 import {
   AppShell,
-  BookcaseModal,
-  Button,
   ChipToggle,
   CommunityCard,
   PageHeader,
-  SearchSuggestionsList,
   SectionHeader,
   SecondaryButton,
-  TextInput,
 } from "@/components";
-import { searchBooks, type BackendBookResponse } from "@/services/bookcase";
 
 type CommunityVisibility = "PUBLIC" | "PRIVATE";
 
@@ -29,15 +24,11 @@ type Community = {
   isMember: boolean;
 };
 
-type BookSuggestion = {
-  id: string;
+type BookOption = {
+  id: number;
   title: string;
   author: string;
-  coverUrl?: string;
-  bookId: number;
 };
-
-const MIN_BOOK_QUERY_LENGTH = 2;
 
 const initialCommunities: Community[] = [
   {
@@ -82,15 +73,14 @@ const initialCommunities: Community[] = [
   },
 ];
 
-function mapBookToSuggestion(book: BackendBookResponse): BookSuggestion {
+const initialBookOptions: BookOption[] = initialCommunities.map((community) => {
+  const [title, ...authorParts] = community.bookTitle.split(" - ");
   return {
-    id: `book-${book.id}`,
-    bookId: book.id,
-    title: book.title,
-    author: book.authors.length > 0 ? book.authors.join(", ") : "Autor desconhecido",
-    coverUrl: book.coverUrl ?? undefined,
+    id: community.bookId,
+    title,
+    author: authorParts.join(" - ") || "Autor desconhecido",
   };
-}
+});
 
 function normalizeCommunityName(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -110,16 +100,13 @@ export default function ComunidadesPage() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [communityName, setCommunityName] = React.useState("");
+  const [communityDescription, setCommunityDescription] = React.useState("");
   const [visibility, setVisibility] = React.useState<CommunityVisibility>("PUBLIC");
-  const [bookQuery, setBookQuery] = React.useState("");
-  const [bookSuggestions, setBookSuggestions] = React.useState<BookSuggestion[]>([]);
-  const [selectedBook, setSelectedBook] = React.useState<BookSuggestion | null>(null);
-  const [isSearchingBooks, setIsSearchingBooks] = React.useState(false);
-  const [searchError, setSearchError] = React.useState("");
+  const [selectedBookId, setSelectedBookId] = React.useState("");
+  const [bookOptions] = React.useState<BookOption[]>(initialBookOptions);
   const [submitError, setSubmitError] = React.useState("");
 
   const normalizedCommunityName = normalizeCommunityName(communityName);
-  const shouldSearchBooks = selectedBook === null && bookQuery.trim().length >= MIN_BOOK_QUERY_LENGTH;
 
   const filteredCommunities = React.useMemo(() => {
     if (tab === "minhas") {
@@ -131,11 +118,9 @@ export default function ComunidadesPage() {
 
   const resetCreateForm = React.useCallback(() => {
     setCommunityName("");
+    setCommunityDescription("");
     setVisibility("PUBLIC");
-    setBookQuery("");
-    setBookSuggestions([]);
-    setSelectedBook(null);
-    setSearchError("");
+    setSelectedBookId("");
     setSubmitError("");
   }, []);
 
@@ -148,62 +133,6 @@ export default function ComunidadesPage() {
     setIsCreateModalOpen(false);
   }, []);
 
-  React.useEffect(() => {
-    if (!shouldSearchBooks) {
-      setBookSuggestions([]);
-      setSearchError("");
-      return;
-    }
-
-    let cancelled = false;
-    const timeoutId = window.setTimeout(async () => {
-      setIsSearchingBooks(true);
-      setSearchError("");
-
-      try {
-        const books = await searchBooks(bookQuery);
-        if (cancelled) {
-          return;
-        }
-
-        setBookSuggestions(books.slice(0, 8).map(mapBookToSuggestion));
-      } catch {
-        if (!cancelled) {
-          setBookSuggestions([]);
-          setSearchError("Nao foi possivel buscar livros agora.");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsSearchingBooks(false);
-        }
-      }
-    }, 350);
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-    };
-  }, [bookQuery, shouldSearchBooks]);
-
-  const handleSelectBook = (item: { id: string; title: string; author: string; coverUrl?: string }) => {
-    const selected = bookSuggestions.find((suggestion) => suggestion.id === item.id);
-    if (!selected) {
-      return;
-    }
-
-    setSelectedBook(selected);
-    setBookQuery("");
-    setBookSuggestions([]);
-    setSearchError("");
-  };
-
-  const handleClearSelectedBook = () => {
-    setSelectedBook(null);
-    setBookQuery("");
-    setBookSuggestions([]);
-    setSearchError("");
-  };
-
   const handleSubmitCreateCommunity = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSubmitError("");
@@ -212,6 +141,8 @@ export default function ComunidadesPage() {
       setSubmitError("Informe um nome para a comunidade com pelo menos 3 caracteres.");
       return;
     }
+
+    const selectedBook = bookOptions.find((book) => String(book.id) === selectedBookId);
 
     if (!selectedBook) {
       setSubmitError("Selecione um livro existente do catalogo para criar a comunidade.");
@@ -230,7 +161,7 @@ export default function ComunidadesPage() {
     const newCommunity: Community = {
       id: buildCommunityId(),
       name: normalizedCommunityName,
-      bookId: selectedBook.bookId,
+      bookId: selectedBook.id,
       bookTitle: `${selectedBook.title} - ${selectedBook.author}`,
       visibility,
       members: 1,
@@ -269,15 +200,25 @@ export default function ComunidadesPage() {
       <button
         type="button"
         onClick={openCreateModal}
-        className="mt-4 flex w-full items-center gap-4 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/40 px-4 py-4 text-left transition-colors hover:bg-emerald-100/40"
+        className="mt-4 w-full rounded-lg border border-border bg-card p-5 text-left transition-shadow hover:shadow-sm"
       >
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-[var(--brand-700)]">
-          <Plus size={24} />
-        </span>
-        <span>
-          <strong className="block text-lg text-[var(--text-primary)]">Criar Comunidade</strong>
-          <span className="text-base text-[var(--text-secondary)]">Inicie uma discussao sobre um livro</span>
-        </span>
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+            <Users className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div>
+            <strong className="block text-sm font-semibold text-foreground">Criar Comunidade</strong>
+            <p className="text-xs text-muted-foreground">Convide leitores para discutir sua leitura atual</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[11px] text-muted-foreground">Personalize nome, visibilidade e livro do grupo</p>
+          <span className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted/50">
+            <MessageCircle className="h-4 w-4" />
+            Criar agora
+          </span>
+        </div>
       </button>
 
       <SectionHeader title={tab === "minhas" ? "Minhas comunidades" : "Comunidades para descobrir"} />
@@ -295,86 +236,110 @@ export default function ComunidadesPage() {
       </div>
 
       {isCreateModalOpen ? (
-        <BookcaseModal title="Criar comunidade" onClose={closeCreateModal} maxWidthClassName="max-w-3xl">
-          <form className="mt-5 space-y-5" onSubmit={handleSubmitCreateCommunity}>
-            <TextInput
-              label="Nome da comunidade"
-              placeholder="Ex: Clube do Livro: 1984"
-              value={communityName}
-              onChange={(event) => setCommunityName(event.target.value)}
-              maxLength={80}
-              autoFocus
-            />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-xl border border-border bg-card shadow-xl">
+            <div className="flex items-center justify-between border-b border-border p-5">
+              <h2 className="text-[34px] leading-none font-semibold text-foreground">Criar Clube do Livro</h2>
+              <button
+                type="button"
+                onClick={closeCreateModal}
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted"
+                aria-label="Fechar modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-bold text-[var(--text-primary)]">Visibilidade</p>
-              <div className="flex flex-wrap gap-2">
-                <ChipToggle
-                  label="Publica"
-                  active={visibility === "PUBLIC"}
-                  onClick={() => setVisibility("PUBLIC")}
-                />
-                <ChipToggle
-                  label="Privada"
-                  active={visibility === "PRIVATE"}
-                  onClick={() => setVisibility("PRIVATE")}
+            <form className="space-y-4 p-5" onSubmit={handleSubmitCreateCommunity}>
+              <div>
+                <label htmlFor="community-name" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Nome do clube
+                </label>
+                <input
+                  id="community-name"
+                  type="text"
+                  value={communityName}
+                  onChange={(event) => setCommunityName(event.target.value)}
+                  placeholder="Ex: Clube Machado de Assis"
+                  maxLength={80}
+                  autoFocus
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <TextInput
-                label="Livro da comunidade"
-                placeholder="Busque um livro do catalogo"
-                value={bookQuery}
-                onChange={(event) => {
-                  setBookQuery(event.target.value);
-                  setSearchError("");
-                }}
-                disabled={Boolean(selectedBook)}
-              />
-
-              {selectedBook ? (
-                <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--text-primary)]">{selectedBook.title}</p>
-                    <p className="text-xs text-[var(--text-secondary)]">{selectedBook.author}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleClearSelectedBook}
-                    className="text-sm font-semibold text-[var(--brand-700)] hover:underline"
-                  >
-                    Trocar
-                  </button>
-                </div>
-              ) : null}
-
-              {isSearchingBooks ? <p className="text-sm text-[var(--text-secondary)]">Buscando livros...</p> : null}
-              {searchError ? <p className="text-sm text-red-600">{searchError}</p> : null}
-
-              {!selectedBook ? (
-                <SearchSuggestionsList
-                  items={bookSuggestions}
-                  onSelect={handleSelectBook}
+              <div>
+                <label htmlFor="community-description" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Descricao <span className="font-normal text-muted-foreground">(opcional)</span>
+                </label>
+                <textarea
+                  id="community-description"
+                  value={communityDescription}
+                  onChange={(event) => setCommunityDescription(event.target.value)}
+                  placeholder="Descreva o objetivo da comunidade..."
+                  rows={3}
+                  maxLength={300}
+                  className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
                 />
-              ) : null}
+              </div>
 
-              {!isSearchingBooks && !searchError && shouldSearchBooks && bookSuggestions.length === 0 ? (
-                <p className="text-sm text-[var(--text-secondary)]">Nenhum livro encontrado.</p>
-              ) : null}
-            </div>
+              <div>
+                <label htmlFor="community-book" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Livro atual da leitura
+                </label>
+                <select
+                  id="community-book"
+                  value={selectedBookId}
+                  onChange={(event) => setSelectedBookId(event.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">Selecione um livro...</option>
+                  {bookOptions.map((book) => (
+                    <option key={book.id} value={book.id}>
+                      {book.title} - {book.author}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+              <label className="flex items-center gap-3 cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => setVisibility((current) => (current === "PRIVATE" ? "PUBLIC" : "PRIVATE"))}
+                  className={`relative h-6 w-10 rounded-full transition-colors ${visibility === "PRIVATE" ? "bg-primary" : "bg-muted"}`}
+                  aria-label="Alternar privacidade do clube"
+                  aria-pressed={visibility === "PRIVATE"}
+                >
+                  <span
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${visibility === "PRIVATE" ? "translate-x-5" : "translate-x-1"}`}
+                  />
+                </button>
+                <span>
+                  <span className="block text-sm font-medium text-foreground">Clube privado</span>
+                  <span className="block text-xs text-muted-foreground">Apenas membros convidados podem participar</span>
+                </span>
+              </label>
 
-            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-[var(--border-soft)] pt-4">
-              <SecondaryButton type="button" onClick={closeCreateModal}>
-                Cancelar
-              </SecondaryButton>
-              <Button type="submit">Criar comunidade</Button>
-            </div>
-          </form>
-        </BookcaseModal>
+              {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+
+              <div className="flex items-center justify-end gap-3 border-t border-border pt-5">
+                <button
+                  type="button"
+                  onClick={closeCreateModal}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={normalizedCommunityName.length < 3 || !selectedBookId}
+                  className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Criar Clube
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       ) : null}
     </AppShell>
   );

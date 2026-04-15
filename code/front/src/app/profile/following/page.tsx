@@ -126,10 +126,11 @@ export default function FollowingPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="rounded-lg p-2 text-deep-green hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-md px-1 py-1 text-sm font-medium text-medium-text transition-colors hover:text-deep-green"
             aria-label="Voltar"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
+            <span>Voltar</span>
           </button>
           <h1 className="font-display text-3xl font-bold text-deep-green">
             @{ownerUsername} · Seguindo ({following.length})
