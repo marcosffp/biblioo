@@ -37,27 +37,19 @@ public class OpenSearchBookAdapter {
   private final OpenSearchClient client;
   private final BookRepository repository;
 
-  @Retryable(
-      retryFor = RuntimeException.class,
-      maxAttempts = 2,
-      backoff = @Backoff(delay = 50),
-      recover = "searchFallback")
+  @Retryable(retryFor = RuntimeException.class, maxAttempts = 2, backoff = @Backoff(delay = 50), recover = "searchFallback")
   public List<Book> search(String query) {
     try {
-      var multiMatch =
-          MultiMatchQuery.of(
-              mm ->
-                  mm.query(query)
-                      .fields("title^10", "authors^2", "isbn^5", "searchText^1")
-                      .operator(org.opensearch.client.opensearch._types.query_dsl.Operator.And)
-                      .type(TextQueryType.PhrasePrefix));
+      var multiMatch = MultiMatchQuery.of(
+          mm -> mm.query(query)
+              .fields("title^10", "authors^2", "isbn^5", "searchText^1")
+              .operator(org.opensearch.client.opensearch._types.query_dsl.Operator.And)
+              .type(TextQueryType.PhrasePrefix));
 
-      var request =
-          SearchRequest.of(
-              sr ->
-                  sr.index(INDEX_NAME)
-                      .query(q -> q.multiMatch(multiMatch))
-                      .size(MAX_SEARCH_RESULTS));
+      var request = SearchRequest.of(
+          sr -> sr.index(INDEX_NAME)
+              .query(q -> q.multiMatch(multiMatch))
+              .size(MAX_SEARCH_RESULTS));
 
       var response = client.search(request, BookDocument.class);
 
@@ -81,23 +73,17 @@ public class OpenSearchBookAdapter {
     return List.of();
   }
 
-  @Retryable(
-      retryFor = RuntimeException.class,
-      maxAttempts = 2,
-      backoff = @Backoff(delay = 50),
-      recover = "suggestFallback")
+  @Retryable(retryFor = RuntimeException.class, maxAttempts = 2, backoff = @Backoff(delay = 50), recover = "suggestFallback")
   public List<Book> suggest(String query) {
     try {
       var prefixQuery = MatchPhrasePrefixQuery.of(mp -> mp.field("title").query(query));
 
-      var request =
-          SearchRequest.of(
-              sr ->
-                  sr.index(INDEX_NAME)
-                      .query(q -> q.matchPhrasePrefix(prefixQuery))
-                      .size(MAX_SUGGEST_RESULTS)
-                      .source(
-                          s -> s.filter(f -> f.includes("isbn", "title", "authors", "coverUrl"))));
+      var request = SearchRequest.of(
+          sr -> sr.index(INDEX_NAME)
+              .query(q -> q.matchPhrasePrefix(prefixQuery))
+              .size(MAX_SUGGEST_RESULTS)
+              .source(
+                  s -> s.filter(f -> f.includes("isbn", "title", "authors", "coverUrl"))));
 
       var response = client.search(request, BookDocument.class);
 
@@ -124,9 +110,8 @@ public class OpenSearchBookAdapter {
   public void index(Book book) {
     try {
       var doc = BookDocument.fromBook(book);
-      var request =
-          IndexRequest.of(
-              ir -> ir.index(INDEX_NAME).id(String.valueOf(book.getId())).document(doc));
+      var request = IndexRequest.of(
+          ir -> ir.index(INDEX_NAME).id(String.valueOf(book.getId())).document(doc));
       client.index(request);
       log.debug("Livro indexado no OpenSearch. isbn={}", book.getIsbn());
     } catch (IOException e) {
@@ -138,22 +123,19 @@ public class OpenSearchBookAdapter {
   }
 
   public void indexAll(List<Book> books) {
-    if (books.isEmpty()) return;
+    if (books.isEmpty())
+      return;
 
     try {
-      var operations =
-          books.stream()
-              .map(
-                  book ->
-                      BulkOperation.of(
-                          op ->
-                              op.index(
-                                  IndexOperation.of(
-                                      io ->
-                                          io.index(INDEX_NAME)
-                                              .id(String.valueOf(book.getId()))
-                                              .document(BookDocument.fromBook(book))))))
-              .toList();
+      var operations = books.stream()
+          .map(
+              book -> BulkOperation.of(
+                  op -> op.index(
+                      IndexOperation.of(
+                          io -> io.index(INDEX_NAME)
+                              .id(String.valueOf(book.getId()))
+                              .document(BookDocument.fromBook(book))))))
+          .toList();
 
       var response = client.bulk(b -> b.operations(operations));
 
@@ -184,6 +166,7 @@ public class OpenSearchBookAdapter {
 
   @Async("bookEnrichExecutor")
   @EventListener(ApplicationReadyEvent.class)
+  @Retryable(retryFor = Exception.class, maxAttempts = 5, backoff = @Backoff(delay = 5000, multiplier = 2))
   public void bootstrapIndex() {
     try {
       BooleanResponse exists = client.indices().exists(e -> e.index(INDEX_NAME));

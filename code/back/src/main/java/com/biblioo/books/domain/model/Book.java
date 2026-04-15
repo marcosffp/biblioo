@@ -12,8 +12,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import tools.jackson.databind.annotation.JsonDeserialize;
-import tools.jackson.databind.annotation.JsonSerialize;
 
 @Entity
 @Table(
@@ -44,8 +42,6 @@ public class Book {
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "book_authors", joinColumns = @JoinColumn(name = "book_id"))
   @Column(name = "author")
-  @JsonSerialize(as = ArrayList.class)
-  @JsonDeserialize(as = ArrayList.class)
   private List<String> authors;
 
   @Column(length = 300)
@@ -55,7 +51,7 @@ public class Book {
   private LocalDate publishedAt;
 
   @Lob
-  @Basic(fetch = FetchType.LAZY)
+  @Basic(fetch = FetchType.EAGER)
   private String description;
 
   @Column(name = "cover_url", length = 1000)
@@ -70,7 +66,7 @@ public class Book {
   private Integer readerCount;
 
   @JsonIgnore
-  @ManyToMany(fetch = FetchType.LAZY)
+  @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(
       name = "book_categories",
       joinColumns = @JoinColumn(name = "book_id"),

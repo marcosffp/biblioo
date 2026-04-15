@@ -1,5 +1,6 @@
 package com.biblioo.books.infrasestructure.web;
 
+import com.biblioo.books.domain.exception.ShelfBusinessException;
 import com.biblioo.books.domain.model.Shelf;
 import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.BookUseCase;
@@ -15,6 +16,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Objects;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -44,32 +47,31 @@ public class ShelfController {
   private final ShelfMapper mapper;
 
   @GetMapping
-  @Operation(
-      summary = "Lista estantes",
-      description = "Retorna todas as estantes do usuário autenticado no formato resumido.")
+  @Operation(summary = "Lista estantes", description = "Retorna todas as estantes do usuário autenticado no formato resumido.")
   public ResponseEntity<List<ShelfSummaryResponse>> listShelves(
       @AuthenticationPrincipal UserDetails principal) {
 
     Long userId = currentUserId(principal);
     List<Shelf> shelves = shelfUseCase.listShelves(userId);
 
-    List<ShelfSummaryResponse> response =
-        shelves.stream()
-            .map(
-                shelf -> {
-                  List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
-                  List<String> covers = buildCoverPreview(items);
-                  return mapper.toSummaryResponse(shelf, items.size(), covers);
-                })
-            .toList();
+    List<ShelfSummaryResponse> response = shelves.stream()
+        .map(shelf -> {
+          try {
+            List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
+            List<String> covers = buildCoverPreview(items);
+            return mapper.toSummaryResponse(shelf, items.size(), covers);
+          } catch (ShelfBusinessException e) {
+            return null;
+          }
+        })
+        .filter(Objects::nonNull)
+        .toList();
 
     return ResponseEntity.ok(response);
   }
 
   @GetMapping("/{shelfId}")
-  @Operation(
-      summary = "Detalhes de uma estante",
-      description = "Retorna os detalhes completos de uma estante.")
+  @Operation(summary = "Detalhes de uma estante", description = "Retorna os detalhes completos de uma estante.")
   public ResponseEntity<ShelfResponse> getShelf(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId) {
@@ -83,31 +85,30 @@ public class ShelfController {
   }
 
   @GetMapping("/user/{userId}")
-  @Operation(
-      summary = "Lista estantes de um usuário específico",
-      description = "Retorna todas as estantes de um usuário específico no formato resumido.")
+  @Operation(summary = "Lista estantes de um usuário específico", description = "Retorna todas as estantes de um usuário específico no formato resumido.")
   public ResponseEntity<List<ShelfSummaryResponse>> listUserShelves(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId) {
 
     List<Shelf> shelves = shelfUseCase.listShelves(userId);
 
-    List<ShelfSummaryResponse> response =
-        shelves.stream()
-            .map(
-                shelf -> {
-                  List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
-                  List<String> covers = buildCoverPreview(items);
-                  return mapper.toSummaryResponse(shelf, items.size(), covers);
-                })
-            .toList();
+    List<ShelfSummaryResponse> response = shelves.stream()
+        .map(shelf -> {
+          try {
+            List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
+            List<String> covers = buildCoverPreview(items);
+            return mapper.toSummaryResponse(shelf, items.size(), covers);
+          } catch (ShelfBusinessException e) {
+            return null;
+          }
+        })
+        .filter(Objects::nonNull)
+        .toList();
 
     return ResponseEntity.ok(response);
   }
 
   @GetMapping("/user/{userId}/{shelfId}")
-  @Operation(
-      summary = "Detalhes de uma estante de um usuário",
-      description = "Retorna os detalhes completos de uma estante de um usuário específico.")
+  @Operation(summary = "Detalhes de uma estante de um usuário", description = "Retorna os detalhes completos de uma estante de um usuário específico.")
   public ResponseEntity<ShelfResponse> getUserShelf(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
       @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId) {
@@ -120,28 +121,23 @@ public class ShelfController {
   }
 
   @PostMapping
-  @Operation(
-      summary = "Cria uma estante",
-      description = "Cria uma nova estante para o usuário autenticado.")
+  @Operation(summary = "Cria uma estante", description = "Cria uma nova estante para o usuário autenticado.")
   public ResponseEntity<ShelfResponse> createShelf(
       @AuthenticationPrincipal UserDetails principal,
       @Valid @RequestBody CreateShelfRequest request) {
 
     Long userId = currentUserId(principal);
     Shelf shelf = shelfUseCase.createShelf(userId, request.name(), request.description());
-    URI location =
-        ServletUriComponentsBuilder.fromCurrentRequest()
-            .path("/{shelfId}")
-            .buildAndExpand(shelf.getId())
-            .toUri();
+    URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+        .path("/{shelfId}")
+        .buildAndExpand(shelf.getId())
+        .toUri();
 
     return ResponseEntity.created(location).body(mapper.toResponse(shelf, 0, List.of()));
   }
 
   @PutMapping("/{shelfId}")
-  @Operation(
-      summary = "Atualiza uma estante",
-      description = "Atualiza o nome e/ou descrição de uma estante.")
+  @Operation(summary = "Atualiza uma estante", description = "Atualiza o nome e/ou descrição de uma estante.")
   public ResponseEntity<ShelfResponse> updateShelf(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId,
@@ -155,9 +151,7 @@ public class ShelfController {
   }
 
   @DeleteMapping("/{shelfId}")
-  @Operation(
-      summary = "Deleta uma estante",
-      description = "Deleta a estante e todos os itens (livros) contidos nela.")
+  @Operation(summary = "Deleta uma estante", description = "Deleta a estante e todos os itens (livros) contidos nela.")
   public ResponseEntity<Void> deleteShelf(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId) {

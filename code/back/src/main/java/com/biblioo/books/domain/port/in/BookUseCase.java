@@ -6,7 +6,5 @@ import java.util.List;
 public interface BookUseCase {
   List<Book> search(String query);
 
-  List<Book> suggest(String query);
-
   Book getById(Long id);
 }

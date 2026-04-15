@@ -48,7 +48,7 @@ public class GoogleBooksAdapter {
   @Cacheable(
       value = "google-books",
       key = "#query.strip().toLowerCase()",
-      unless = "#result.isEmpty()")
+      sync = true)
   public List<Book> search(String query) {
     log.debug("Chamando Google Books API. query='{}'", query);
 

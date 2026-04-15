@@ -28,17 +28,30 @@ public class CollectionService implements CollectionUseCase {
   @Transactional(readOnly = true)
   @Cacheable(value = "collection-list", key = "#userId", unless = "#result.isEmpty()")
   public List<Collection> listCollections(Long userId) {
-    return collectionRepository.findAllByUserIdOrderByUpdatedAtDesc(userId);
+    List<Collection> collections = collectionRepository.findAllByUserIdOrderByUpdatedAtDesc(userId);
+    collections.forEach(c -> {
+      if (c.getShelves() != null) {
+        c.setShelves(new ArrayList<>(c.getShelves()));
+      }
+    });
+    return collections;
   }
 
   @Override
   @Transactional(readOnly = true)
-  @Cacheable(value = "collection-detail", key = "#userId + ':' + #collectionId")
+  @Cacheable(value = "collection-detail", key = "#userId + ':' + #collectionId", sync = true)
   public Collection getCollection(Long userId, Long collectionId) {
-    return collectionRepository
-        .findByIdAndUserIdWithShelves(collectionId, userId)
-        .orElseThrow(
-            () -> new ShelfBusinessException("Coleção não encontrada ou não pertence ao usuário."));
+    Collection collection =
+        collectionRepository
+            .findByIdAndUserIdWithShelves(collectionId, userId)
+            .orElseThrow(
+                () ->
+                    new ShelfBusinessException(
+                        "Coleção não encontrada ou não pertence ao usuário."));
+    if (collection.getShelves() != null) {
+      collection.setShelves(new ArrayList<>(collection.getShelves()));
+    }
+    return collection;
   }
 
   @Override
@@ -91,7 +104,19 @@ public class CollectionService implements CollectionUseCase {
     collection.setName(name.trim());
     collection.setDescription(description);
 
-    return collectionRepository.save(collection);
+    collectionRepository.save(collection);
+
+    Collection updated =
+        collectionRepository
+            .findByIdAndUserIdWithShelves(collectionId, userId)
+            .orElseThrow(
+                () ->
+                    new ShelfBusinessException(
+                        "Coleção não encontrada ou não pertence ao usuário."));
+    if (updated.getShelves() != null) {
+      updated.setShelves(new ArrayList<>(updated.getShelves()));
+    }
+    return updated;
   }
 
   @Override

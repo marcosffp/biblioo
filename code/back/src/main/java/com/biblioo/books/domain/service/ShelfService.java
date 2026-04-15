@@ -56,35 +56,39 @@ public class ShelfService implements ShelfUseCase {
     return shelfRepository.save(shelf);
   }
 
-  @Override
-  @Transactional
-  @Caching(
-      evict = {@CacheEvict(value = "shelf-list", key = "#userId")},
-      put = {@CachePut(value = "shelf", key = "#shelfId")})
-  public Shelf updateShelf(Long userId, Long shelfId, String name, String description) {
-    Shelf shelf =
-        shelfRepository
-            .findByIdAndUserId(shelfId, userId)
-            .orElseThrow(() -> new ShelfBusinessException("Estante não encontrada"));
+@Override
+@Transactional
+@Caching(
+    evict = {@CacheEvict(value = "shelf-list", key = "#userId")},
+    put = {@CachePut(value = "shelf", key = "#shelfId")})
+public Shelf updateShelf(Long userId, Long shelfId, String name, String description) {
+  Shelf shelf = shelfRepository
+      .findByIdAndUserId(shelfId, userId)
+      .orElseThrow(() -> new ShelfBusinessException("Estante não encontrada"));
 
-    validateName(name);
-    String trimmedName = name.trim();
+  validateName(name);
+  String trimmedName = name.trim();
 
-    boolean isNameUnchanged = shelf.getName().equals(trimmedName);
-    boolean isDescriptionUnchanged =
-        (description == null || description.equals(shelf.getDescription()));
+  boolean isNameUnchanged = shelf.getName().equals(trimmedName);
+  boolean isDescriptionUnchanged =
+      (description == null || description.equals(shelf.getDescription()));
 
-    if (isNameUnchanged && isDescriptionUnchanged) {
-      return shelf;
-    }
-
-    shelf.setName(trimmedName);
-    if (description != null) {
-      shelf.setDescription(description.isBlank() ? null : description.trim());
-    }
-
-    return shelfRepository.save(shelf);
+  if (isNameUnchanged && isDescriptionUnchanged) {
+    return shelf;
   }
+
+  if (!isNameUnchanged &&
+      shelfRepository.existsByUserIdAndNameAndIdNot(userId, trimmedName, shelfId)) {
+    throw new ShelfBusinessException("Já existe uma estante com este nome.");
+  }
+
+  shelf.setName(trimmedName);
+  if (description != null) {
+    shelf.setDescription(description.isBlank() ? null : description.trim());
+  }
+
+  return shelfRepository.save(shelf);
+}
 
   @Override
   @Transactional
@@ -109,30 +113,57 @@ public class ShelfService implements ShelfUseCase {
       Long userId, Long shelfId, Long bookId, ReadingStatus initialStatus) {
     verifyShelfOwnership(shelfId, userId);
 
-    if (shelfItemRepository.existsByShelfIdAndBookId(shelfId, bookId)) {
-      throw new ShelfBusinessException("O livro já está nesta estante.");
-    }
-
     Book book = bookUseCase.getById(bookId);
 
     ReadingStatus statusToSet = initialStatus != null ? initialStatus : ReadingStatus.WANT_TO_READ;
     LocalDate finishedAt = (statusToSet == ReadingStatus.COMPLETED) ? LocalDate.now() : null;
+    LocalDate startedAt =
+        (statusToSet == ReadingStatus.READING || statusToSet == ReadingStatus.REREADING)
+            ? LocalDate.now()
+            : null;
+    int totalPages = book.getPageCount() != null ? book.getPageCount() : 0;
+    int currentPage =
+        (statusToSet == ReadingStatus.COMPLETED && book.getPageCount() != null)
+            ? book.getPageCount()
+            : 0;
+    int progressPercent = statusToSet == ReadingStatus.COMPLETED ? 100 : 0;
 
-    ShelfItem item =
-        ShelfItem.builder()
-            .shelfId(shelfId)
-            .bookId(bookId)
-            .status(statusToSet)
-            .totalPages(book.getPageCount() != null ? book.getPageCount() : 0)
-            .currentPage(
-                statusToSet == ReadingStatus.COMPLETED && book.getPageCount() != null
-                    ? book.getPageCount()
-                    : 0)
-            .progressPercent(statusToSet == ReadingStatus.COMPLETED ? 100 : 0)
-            .finishedAt(finishedAt)
-            .build();
-
-    ShelfItem savedItem = shelfItemRepository.save(item);
+    // Check for any existing row, including soft-deleted ones.
+    // existsByShelfIdAndBookId is filtered by @SQLRestriction (deleted_at IS NULL) — it misses
+    // soft-deleted rows. A subsequent INSERT then violates the unique constraint uk_shelf_book.
+    // Instead, look up the row regardless of deletion state and reactivate if soft-deleted.
+    ShelfItem savedItem =
+        shelfItemRepository
+            .findByShelfIdAndBookIdIncludingDeleted(shelfId, bookId)
+            .map(
+                existing -> {
+                  if (existing.getDeletedAt() == null) {
+                    throw new ShelfBusinessException("O livro já está nesta estante.");
+                  }
+                  // Reactivate the soft-deleted row in-place to avoid uk_shelf_book violation
+                  existing.setDeletedAt(null);
+                  existing.setStatus(statusToSet);
+                  existing.setTotalPages(totalPages);
+                  existing.setCurrentPage(currentPage);
+                  existing.setProgressPercent(progressPercent);
+                  existing.setFinishedAt(finishedAt);
+                  existing.setStartedAt(startedAt);
+                  return shelfItemRepository.save(existing);
+                })
+            .orElseGet(
+                () -> {
+                  ShelfItem item =
+                      ShelfItem.builder()
+                          .shelfId(shelfId)
+                          .bookId(bookId)
+                          .status(statusToSet)
+                          .totalPages(totalPages)
+                          .currentPage(currentPage)
+                          .progressPercent(progressPercent)
+                          .finishedAt(finishedAt)
+                          .build();
+                  return shelfItemRepository.save(item);
+                });
 
     shelfEventPublisherPort.publishReaderCountIncrement(bookId);
 

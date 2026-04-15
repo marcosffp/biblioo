@@ -23,6 +23,13 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
 
   boolean existsByShelfIdAndBookId(Long shelfId, Long bookId);
 
+  // Bypasses @SQLRestriction to find any row (including soft-deleted)
+  @Query(
+      value = "SELECT * FROM shelf_items WHERE shelf_id = :shelfId AND book_id = :bookId LIMIT 1",
+      nativeQuery = true)
+  Optional<ShelfItem> findByShelfIdAndBookIdIncludingDeleted(
+      @Param("shelfId") Long shelfId, @Param("bookId") Long bookId);
+
   @Modifying
   @Query(
       """

@@ -20,8 +20,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
   @Query("SELECT b.isbn FROM Book b WHERE b.isbn IN :isbns")
   Set<String> findExistingIsbns(@Param("isbns") List<String> isbns);
 
-  List<Book> findByTitleContainingIgnoreCaseOrderByTitleAsc(String title);
-
   @Query(
       value =
           "SELECT * FROM books WHERE MATCH(search_text) AGAINST (:term IN BOOLEAN MODE)"

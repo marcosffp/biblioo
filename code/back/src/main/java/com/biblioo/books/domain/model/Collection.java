@@ -11,8 +11,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.Hibernate;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import tools.jackson.databind.annotation.JsonDeserialize;
-import tools.jackson.databind.annotation.JsonSerialize;
 
 @Entity
 @Table(
@@ -45,8 +43,6 @@ public class Collection {
   @Column(length = 500)
   private String description;
 
-  @JsonSerialize(as = ArrayList.class)
-  @JsonDeserialize(as = ArrayList.class)
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(
       name = "collection_shelves",
