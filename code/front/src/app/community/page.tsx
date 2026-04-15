@@ -237,9 +237,9 @@ export default function ComunidadesPage() {
 
       {isCreateModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl rounded-xl border border-border bg-card shadow-xl">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl">
             <div className="flex items-center justify-between border-b border-border p-5">
-              <h2 className="text-[34px] leading-none font-semibold text-foreground">Criar Clube do Livro</h2>
+              <h2 className="text-2xl leading-none font-semibold text-foreground">Criar Clube do Livro</h2>
               <button
                 type="button"
                 onClick={closeCreateModal}
@@ -263,7 +263,7 @@ export default function ComunidadesPage() {
                   placeholder="Ex: Clube Machado de Assis"
                   maxLength={80}
                   autoFocus
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
                 />
               </div>
 
@@ -278,7 +278,7 @@ export default function ComunidadesPage() {
                   placeholder="Descreva o objetivo da comunidade..."
                   rows={3}
                   maxLength={300}
-                  className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
+                  className="w-full resize-none rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
                 />
               </div>
 
@@ -290,7 +290,7 @@ export default function ComunidadesPage() {
                   id="community-book"
                   value={selectedBookId}
                   onChange={(event) => setSelectedBookId(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/30"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
                 >
                   <option value="">Selecione um livro...</option>
                   {bookOptions.map((book) => (
@@ -310,7 +310,7 @@ export default function ComunidadesPage() {
                   aria-pressed={visibility === "PRIVATE"}
                 >
                   <span
-                    className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${visibility === "PRIVATE" ? "translate-x-5" : "translate-x-1"}`}
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-all ${visibility === "PRIVATE" ? "left-5" : "left-1"}`}
                   />
                 </button>
                 <span>
