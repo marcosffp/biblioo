@@ -24,7 +24,7 @@ export function ActionRow({ items, className }: ActionRowProps) {
           className="inline-flex items-center gap-2 hover:text-gray-700"
           disabled={!item.onClick}
         >
-          {item.icon ? <span className="inline-flex">{item.icon}</span> : null}
+          {item.icon ? <span className="inline-flex items-center">{item.icon}</span> : null}
           <span>{item.label}</span>
         </button>
       ))}
