@@ -8,6 +8,7 @@ import com.biblioo.books.domain.port.in.CollectionUseCase;
 import com.biblioo.books.domain.port.in.ShelfUseCase;
 import com.biblioo.books.infrasestructure.dto.collection.AddShelfToCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionResponse;
+import com.biblioo.books.infrasestructure.dto.collection.CollectionStatisticsResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionSummaryResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CreateCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.ShelfPreview;
@@ -197,6 +198,57 @@ public class CollectionController {
     List<ShelfPreview> previews = buildShelfPreviews(updated.getShelves(), userId);
 
     return ResponseEntity.ok(mapper.toResponse(updated, previews));
+  }
+
+  @GetMapping("/{collectionId}/statistics")
+  @Operation(
+      summary = "Estatísticas de uma coleção",
+      description =
+          "Agrega as métricas de leitura de todas as estantes da coleção: total de livros,"
+              + " status de leitura, páginas lidas e total de páginas.")
+  public ResponseEntity<CollectionStatisticsResponse> getCollectionStatistics(
+      @AuthenticationPrincipal UserDetails principal,
+      @Parameter(description = "ID da coleção", example = "1") @PathVariable Long collectionId) {
+
+    Long userId = currentUserId(principal);
+    Collection col = collectionUseCase.getCollection(userId, collectionId);
+
+    int totalBooks = 0;
+    int booksCompleted = 0;
+    int booksReading = 0;
+    int booksRereading = 0;
+    int booksWantToRead = 0;
+    int booksAbandoned = 0;
+    int totalPages = 0;
+    int pagesRead = 0;
+
+    for (Shelf shelf : col.getShelves()) {
+      List<ShelfItem> items = loadItemsSafely(userId, shelf.getId());
+      for (ShelfItem item : items) {
+        totalBooks++;
+        switch (item.getStatus()) {
+          case COMPLETED -> booksCompleted++;
+          case READING -> booksReading++;
+          case REREADING -> booksRereading++;
+          case WANT_TO_READ -> booksWantToRead++;
+          case ABANDONED -> booksAbandoned++;
+        }
+        if (item.getTotalPages() != null) totalPages += item.getTotalPages();
+        if (item.getCurrentPage() != null) pagesRead += item.getCurrentPage();
+      }
+    }
+
+    return ResponseEntity.ok(
+        new CollectionStatisticsResponse(
+            collectionId,
+            totalBooks,
+            booksCompleted,
+            booksReading,
+            booksRereading,
+            booksWantToRead,
+            booksAbandoned,
+            totalPages,
+            pagesRead));
   }
 
   @DeleteMapping("/{collectionId}")
