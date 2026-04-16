@@ -3,10 +3,11 @@ import React from "react";
 import { BackArrowButton } from "./BackArrowButton";
 
 export interface BackHeaderProps {
-  title: ReactNode;
+  title?: ReactNode;
   subtitle?: ReactNode;
   onBack: () => void;
   ariaLabel?: string;
+  backLabel?: string;
   className?: string;
   titleClassName?: string;
   subtitleClassName?: string;
@@ -18,6 +19,7 @@ export function BackHeader({
   subtitle,
   onBack,
   ariaLabel = "Voltar",
+  backLabel,
   className,
   titleClassName,
   subtitleClassName,
@@ -28,12 +30,15 @@ export function BackHeader({
       <BackArrowButton
         onClick={onBack}
         ariaLabel={ariaLabel}
+        label={backLabel ?? ariaLabel}
         className={`-mt-0.5 ${backButtonClassName ?? ""}`.trim()}
       />
-      <span className="min-w-0">
-        <span className={`block ${titleClassName ?? ""}`.trim()}>{title}</span>
-        {subtitle ? <span className={`block ${subtitleClassName ?? ""}`.trim()}>{subtitle}</span> : null}
-      </span>
+      {title || subtitle ? (
+        <span className="min-w-0">
+          {title ? <span className={`block ${titleClassName ?? ""}`.trim()}>{title}</span> : null}
+          {subtitle ? <span className={`block ${subtitleClassName ?? ""}`.trim()}>{subtitle}</span> : null}
+        </span>
+      ) : null}
     </span>
   );
 }

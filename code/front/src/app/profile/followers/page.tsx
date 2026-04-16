@@ -134,10 +134,10 @@ export default function FollowersPage() {
             type="button"
             onClick={() => router.back()}
             className="inline-flex items-center gap-2 rounded-md px-1 py-1 text-sm font-medium text-medium-text transition-colors hover:text-deep-green"
-            aria-label="Voltar"
+            aria-label="Voltar para perfil"
           >
             <ArrowLeft size={18} />
-            <span>Voltar</span>
+            <span>Voltar para perfil</span>
           </button>
           <h1 className="font-display text-3xl font-bold text-deep-green">
             @{ownerUsername} · Seguidores ({followers.length})

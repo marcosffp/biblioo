@@ -148,10 +148,10 @@ export default function EditarPerfilPage() {
             <Link
               href="/profile"
               className="inline-flex items-center gap-2 rounded-md px-1 py-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
-              aria-label="Voltar"
+              aria-label="Voltar para perfil"
             >
               <ArrowLeft size={18} />
-              <span>Voltar</span>
+              <span>Voltar para perfil</span>
             </Link>
             <h1 className="text-lg font-semibold text-gray-900">Editar perfil</h1>
           </div>
