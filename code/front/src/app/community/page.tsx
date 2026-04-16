@@ -24,6 +24,7 @@ const initialCommunities: Community[] = [
     members: 156,
     discussions: 342,
     isMember: true,
+    ownerId: "u1",
     description: "Leitura conjunta de classicos distopicos com encontros semanais.",
     createdAtLabel: "marco de 2025",
   },
@@ -36,6 +37,7 @@ const initialCommunities: Community[] = [
     members: 89,
     discussions: 127,
     isMember: true,
+    ownerId: "u2",
     description: "Espaco para discutir Clarice com sensibilidade e sem pressa.",
     createdAtLabel: "abril de 2025",
   },
@@ -48,6 +50,7 @@ const initialCommunities: Community[] = [
     members: 234,
     discussions: 891,
     isMember: true,
+    ownerId: "u3",
     description: "Grupo fechado para leitores de fantasia epica.",
     createdAtLabel: "julho de 2025",
   },
@@ -60,6 +63,7 @@ const initialCommunities: Community[] = [
     members: 72,
     discussions: 95,
     isMember: false,
+    ownerId: "u4",
     description: "Debates mensais sobre distopias classicas e modernas.",
     createdAtLabel: "janeiro de 2026",
   },
@@ -164,6 +168,7 @@ export default function ComunidadesPage() {
       members: 1,
       discussions: 0,
       isMember: true,
+      ownerId: "u1",
       description: communityDescription.trim() || "Comunidade criada para discutir a leitura atual em grupo.",
       createdAtLabel: "abril de 2026",
     };
@@ -178,6 +183,11 @@ export default function ComunidadesPage() {
       <CommunityChatView
         community={selectedCommunity}
         onBack={() => setSelectedCommunityId(null)}
+        onUpdateCommunity={(nextCommunity) => {
+          setCommunities((current) =>
+            current.map((item) => (item.id === nextCommunity.id ? { ...item, ...nextCommunity } : item)),
+          );
+        }}
       />
     );
   }
@@ -187,17 +197,6 @@ export default function ComunidadesPage() {
       <PageHeader
         title="Comunidades"
         subtitle="Encontre comunidades de leitura"
-        action={
-          <SecondaryButton
-            type="button"
-            onClick={openCreateModal}
-            className="h-10 w-10 p-0 text-xl leading-none"
-            aria-label="Criar comunidade"
-            title="Criar comunidade"
-          >
-            <Plus size={18} />
-          </SecondaryButton>
-        }
       />
 
       <div className="flex gap-2">

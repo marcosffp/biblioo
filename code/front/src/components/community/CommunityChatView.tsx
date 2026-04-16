@@ -10,6 +10,7 @@ import type { Community, CommunityChatMessage, CommunityMember } from "./types";
 export interface CommunityChatViewProps {
   community: Community;
   onBack: () => void;
+  onUpdateCommunity: (community: Community) => void;
 }
 
 const mockMembers: CommunityMember[] = [
@@ -91,8 +92,10 @@ const mockMessages: CommunityChatMessage[] = [
   },
 ];
 
-export function CommunityChatView({ community, onBack }: Readonly<CommunityChatViewProps>) {
+export function CommunityChatView({ community, onBack, onUpdateCommunity }: Readonly<CommunityChatViewProps>) {
   const [isInfoOpen, setIsInfoOpen] = React.useState(false);
+  const currentUserId = "u1";
+  const isOwner = community.ownerId === currentUserId;
 
   return (
     <div className="min-h-screen bg-[var(--bg-canvas)]">
@@ -114,6 +117,8 @@ export function CommunityChatView({ community, onBack }: Readonly<CommunityChatV
               <CommunityInfoPanel
                 community={community}
                 members={mockMembers}
+                canEdit={isOwner}
+                onSaveCommunity={onUpdateCommunity}
                 onClose={() => setIsInfoOpen(false)}
               />
             ) : null}

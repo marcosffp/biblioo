@@ -9,6 +9,8 @@ export interface Community {
   members: number;
   discussions: number;
   isMember: boolean;
+  ownerId?: string;
+  coverUrl?: string;
   description?: string;
   createdAtLabel?: string;
 }

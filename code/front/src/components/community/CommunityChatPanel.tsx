@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, ArrowLeft, Info, Send } from "lucide-react";
+import { AlertTriangle, ArrowLeft, BookOpen, Info, Send } from "lucide-react";
 import type { Community, CommunityChatMessage } from "./types";
 
 export interface CommunityChatPanelProps {
@@ -60,8 +60,8 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-[var(--bg-canvas)]">
-      <div className="flex items-center gap-3 border-b border-border bg-card px-4 py-3">
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-white">
+      <div className="flex items-center gap-3 border-b border-border bg-white px-4 py-3">
         <button
           type="button"
           onClick={onBack}
@@ -70,6 +70,14 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
+
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 bg-cover bg-center"
+          style={community.coverUrl ? { backgroundImage: `url(${community.coverUrl})` } : undefined}
+          aria-hidden="true"
+        >
+          {community.coverUrl ? null : <BookOpen className="h-5 w-5 text-primary" />}
+        </div>
 
         <button
           type="button"
@@ -91,8 +99,8 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-[#f6f8f7] px-4 py-5">
-        <div className="mx-auto flex h-full w-full max-w-[1180px] flex-col gap-2">
+      <div className="flex-1 overflow-y-auto bg-white px-4 py-4 pb-12">
+        <div className="mx-auto flex h-full w-full max-w-[1180px] flex-col gap-2.5">
           {messages.map((message) => {
             if (message.isSystem) {
               return (
@@ -104,13 +112,13 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
 
             return (
               <div key={message.id} className={`flex ${message.isMine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[68%] ${message.isMine ? "items-end" : "items-start"}`}>
+                <div className={`max-w-[56%] ${message.isMine ? "items-end" : "items-start"}`}>
                   {!message.isMine ? (
                     <p className="mb-0.5 ml-1 text-[11px] font-medium text-primary">{message.userName}</p>
                   ) : null}
 
                   <div
-                    className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                    className={`rounded-2xl px-4 py-1.5 text-[13px] leading-relaxed ${
                       message.isMine
                         ? "rounded-tr-sm bg-primary text-primary-foreground"
                         : "rounded-tl-sm border border-border bg-white text-foreground"
@@ -155,15 +163,15 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
               </div>
             );
           })}
-          <div ref={bottomRef} />
+          <div className="h-10" ref={bottomRef} />
         </div>
       </div>
 
-      <div className="border-t border-border bg-card px-3 py-2">
+      <div className="border-t border-border bg-cardar px-3 py-2">
         {spoilerEnabled ? (
           <div className="mb-2 ml-1 flex items-center gap-1.5 text-[11px] text-amber-600">
             <AlertTriangle className="h-3 w-3" />
-            Mensagem sera marcada como spoiler
+            Mensagem será marcada como spoiler!
           </div>
         ) : null}
 
@@ -187,7 +195,7 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
             onChange={(event) => setNewMessage(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Digite uma mensagem..."
-            className="h-10 flex-1 rounded-full border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
+            className="h-10 flex-1 rounded-full border border-border bg-white px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
           />
 
           <button
