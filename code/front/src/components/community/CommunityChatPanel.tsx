@@ -202,7 +202,7 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
             type="button"
             onClick={handleSend}
             disabled={!newMessage.trim()}
-            className="rounded-full bg-primary p-2.5 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-primary text-white p-2.5 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Enviar mensagem"
           >
             <Send className="h-5 w-5" />
