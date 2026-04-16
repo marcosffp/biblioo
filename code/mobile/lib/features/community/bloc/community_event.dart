@@ -26,3 +26,8 @@ class CommunityJoinRequested extends CommunityEvent {
   final int communityId;
   CommunityJoinRequested(this.communityId);
 }
+
+class CommunityJoinByInviteRequested extends CommunityEvent {
+  final String inviteCode;
+  CommunityJoinByInviteRequested(this.inviteCode);
+}

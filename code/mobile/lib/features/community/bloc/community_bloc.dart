@@ -11,6 +11,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     on<CommunityLoadRequested>(_onLoad);
     on<CommunityCreateRequested>(_onCreate);
     on<CommunityJoinRequested>(_onJoin);
+    on<CommunityJoinByInviteRequested>(_onJoinByInvite);
   }
 
   Future<void> _onLoad(
@@ -61,6 +62,21 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     } catch (e, st) {
       debugPrint('[CommunityBloc] ${event.runtimeType}: $e\n$st');
       emit(CommunityError('Erro ao entrar na comunidade.'));
+    }
+  }
+
+  Future<void> _onJoinByInvite(
+    CommunityJoinByInviteRequested event,
+    Emitter<CommunityState> emit,
+  ) async {
+    emit(CommunityMutating());
+    try {
+      await _repository.joinCommunityByInvite(event.inviteCode);
+      emit(CommunityMutationSuccess('Você entrou na comunidade!'));
+      add(CommunityLoadRequested());
+    } catch (e, st) {
+      debugPrint('[CommunityBloc] ${event.runtimeType}: $e\n$st');
+      emit(CommunityError('Código de convite inválido.'));
     }
   }
 }

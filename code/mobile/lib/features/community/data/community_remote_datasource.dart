@@ -72,6 +72,17 @@ class CommunityRemoteDatasource {
           isMember: false,
           createdAt: DateTime.now().subtract(const Duration(days: 15)),
         ),
+        CommunityModel(
+          id: 6,
+          name: 'Kafka Secreto',
+          bookTitle: 'O Processo',
+          bookAuthor: 'Franz Kafka',
+          bookCoverUrl: null,
+          memberCount: 47,
+          visibility: 'PRIVATE',
+          isMember: false,
+          createdAt: DateTime.now().subtract(const Duration(days: 5)),
+        ),
       ],
     );
   }
@@ -100,4 +111,9 @@ class CommunityRemoteDatasource {
 
   Future<void> joinCommunity(int communityId) =>
       Future.delayed(const Duration(milliseconds: 200));
+
+  Future<void> joinCommunityByInvite(String code) async {
+    if (code.length < 6) throw Exception('Código de convite inválido.');
+    await Future.delayed(const Duration(milliseconds: 400));
+  }
 }

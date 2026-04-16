@@ -4,6 +4,7 @@ import 'package:biblioo/features/community/bloc/community_event.dart';
 import 'package:biblioo/features/community/bloc/community_state.dart';
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/screens/community/widgets/create_community_sheet.dart';
+import 'package:biblioo/screens/community/widgets/invite_code_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -80,19 +81,21 @@ class _CommunityListView extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          shape: BoxShape.circle,
+                      _CircularActionButton(
+                        backgroundColor: theme.colorScheme.secondaryContainer,
+                        icon: Icon(
+                          Icons.link_rounded,
+                          color: theme.colorScheme.onSecondaryContainer,
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.add, color: Colors.white),
-                          tooltip: 'Nova comunidade',
-                          onPressed: () =>
-                              CreateCommunitySheet.show(context),
-                        ),
+                        tooltip: 'Entrar com código de convite',
+                        onPressed: () => InviteCodeSheet.show(context),
+                      ),
+                      const SizedBox(width: 8),
+                      _CircularActionButton(
+                        backgroundColor: theme.colorScheme.primary,
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        tooltip: 'Nova comunidade',
+                        onPressed: () => CreateCommunitySheet.show(context),
                       ),
                     ],
                   ),
@@ -294,13 +297,27 @@ class _SuggestionCard extends StatelessWidget {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           leading: const _CommunityAvatar(),
-          title: Text(
-            community.name,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  community.name,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                community.isPublic
+                    ? Icons.language_rounded
+                    : Icons.lock_rounded,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
           ),
           subtitle: Text(
             '${community.memberCount} membros',
@@ -308,18 +325,44 @@ class _SuggestionCard extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
-          trailing: FilledButton(
-            onPressed: () {
-              context
-                  .read<CommunityBloc>()
-                  .add(CommunityJoinRequested(community.id));
-            },
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(72, 36),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            child: const Text('Entrar'),
-          ),
+          trailing: community.isPublic
+              ? FilledButton(
+                  onPressed: () {
+                    context
+                        .read<CommunityBloc>()
+                        .add(CommunityJoinRequested(community.id));
+                  },
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(72, 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  child: const Text('Entrar'),
+                )
+              : Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.lock_rounded,
+                        size: 12,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Via convite',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
         ),
       ),
     );
@@ -337,6 +380,37 @@ class _CommunityAvatar extends StatelessWidget {
       child: Icon(
         Icons.group_rounded,
         color: Theme.of(context).colorScheme.primary,
+      ),
+    );
+  }
+}
+
+class _CircularActionButton extends StatelessWidget {
+  final Color backgroundColor;
+  final Widget icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _CircularActionButton({
+    required this.backgroundColor,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        icon: icon,
+        tooltip: tooltip,
+        onPressed: onPressed,
       ),
     );
   }

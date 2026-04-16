@@ -37,4 +37,7 @@ class CommunityRepository {
 
   Future<void> joinCommunity(int communityId) =>
       _remote.joinCommunity(communityId);
+
+  Future<void> joinCommunityByInvite(String code) =>
+      _remote.joinCommunityByInvite(code);
 }
