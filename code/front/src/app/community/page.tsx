@@ -12,7 +12,7 @@ import {
 } from "@/components";
 import { CommunityChatView } from "@/components/community/CommunityChatView";
 import { CommunityCreateModal } from "@/components/community/CommunityCreateModal";
-import type { Community, CommunityBookOption, CommunityVisibility } from "@/components/community/types";
+import type { Community, CommunityBookOption, CommunityVisibility } from "@/hooks/useCommunity";
 
 const initialCommunities: Community[] = [
   {

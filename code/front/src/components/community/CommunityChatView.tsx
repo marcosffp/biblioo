@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { TopHeader } from "@/components/TopHeader";
 import { CommunityChatPanel } from "./CommunityChatPanel";
 import { CommunityInfoPanel } from "./CommunityInfoPanel";
-import type { Community, CommunityChatMessage, CommunityMember } from "./types";
+import type { Community, CommunityChatMessage, CommunityMember } from "../../hooks/useCommunity";
 
 export interface CommunityChatViewProps {
   community: Community;

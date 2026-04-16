@@ -2,7 +2,7 @@
 
 import React from "react";
 import { X } from "lucide-react";
-import type { CommunityBookOption, CommunityVisibility } from "./types";
+import type { CommunityBookOption, CommunityVisibility } from "../../hooks/useCommunity";
 
 export interface CommunityCreateModalProps {
   isOpen: boolean;

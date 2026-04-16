@@ -36,7 +36,7 @@ export * from "./Sidebar";
 export * from "./AuthCard";
 export * from "./BackArrowButton";
 export * from "./BackHeader";
-export * from "./community/types";
+export * from "../hooks/useCommunity";
 export * from "./community/CommunityChatView";
 export * from "./community/CommunityChatPanel";
 export * from "./community/CommunityInfoPanel";

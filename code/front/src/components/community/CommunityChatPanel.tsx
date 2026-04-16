@@ -2,7 +2,7 @@
 
 import React from "react";
 import { AlertTriangle, ArrowLeft, BookOpen, Info, Send } from "lucide-react";
-import type { Community, CommunityChatMessage } from "./types";
+import type { Community, CommunityChatMessage } from "../../hooks/useCommunity";
 
 export interface CommunityChatPanelProps {
   community: Community;

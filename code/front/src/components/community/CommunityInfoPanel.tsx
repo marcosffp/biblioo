@@ -3,7 +3,7 @@
 import React from "react";
 import { BookOpen, Calendar, Globe, Users, X } from "lucide-react";
 import { ProgressBar } from "@/components/ProgressBar";
-import type { Community, CommunityMember } from "./types";
+import type { Community, CommunityMember } from "../../hooks/useCommunity";
 
 export interface CommunityInfoPanelProps {
   community: Community;
