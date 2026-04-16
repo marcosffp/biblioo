@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MessageCircle, Plus, Users, X } from "lucide-react";
+import { MessageCircle, Plus, Users } from "lucide-react";
 import {
   AppShell,
   ChipToggle,
@@ -10,25 +10,9 @@ import {
   SectionHeader,
   SecondaryButton,
 } from "@/components";
-
-type CommunityVisibility = "PUBLIC" | "PRIVATE";
-
-type Community = {
-  id: string;
-  name: string;
-  bookId: number;
-  bookTitle: string;
-  visibility: CommunityVisibility;
-  members: number;
-  discussions: number;
-  isMember: boolean;
-};
-
-type BookOption = {
-  id: number;
-  title: string;
-  author: string;
-};
+import { CommunityChatView } from "@/components/community/CommunityChatView";
+import { CommunityCreateModal } from "@/components/community/CommunityCreateModal";
+import type { Community, CommunityBookOption, CommunityVisibility } from "@/components/community/types";
 
 const initialCommunities: Community[] = [
   {
@@ -40,6 +24,8 @@ const initialCommunities: Community[] = [
     members: 156,
     discussions: 342,
     isMember: true,
+    description: "Leitura conjunta de classicos distopicos com encontros semanais.",
+    createdAtLabel: "marco de 2025",
   },
   {
     id: "c2",
@@ -50,6 +36,8 @@ const initialCommunities: Community[] = [
     members: 89,
     discussions: 127,
     isMember: true,
+    description: "Espaco para discutir Clarice com sensibilidade e sem pressa.",
+    createdAtLabel: "abril de 2025",
   },
   {
     id: "c3",
@@ -60,6 +48,8 @@ const initialCommunities: Community[] = [
     members: 234,
     discussions: 891,
     isMember: true,
+    description: "Grupo fechado para leitores de fantasia epica.",
+    createdAtLabel: "julho de 2025",
   },
   {
     id: "c4",
@@ -70,10 +60,12 @@ const initialCommunities: Community[] = [
     members: 72,
     discussions: 95,
     isMember: false,
+    description: "Debates mensais sobre distopias classicas e modernas.",
+    createdAtLabel: "janeiro de 2026",
   },
 ];
 
-const initialBookOptions: BookOption[] = initialCommunities.map((community) => {
+const initialBookOptions: CommunityBookOption[] = initialCommunities.map((community) => {
   const [title, ...authorParts] = community.bookTitle.split(" - ");
   return {
     id: community.bookId,
@@ -97,16 +89,21 @@ function buildCommunityId() {
 export default function ComunidadesPage() {
   const [tab, setTab] = React.useState<"minhas" | "descobrir">("minhas");
   const [communities, setCommunities] = React.useState<Community[]>(initialCommunities);
+  const [selectedCommunityId, setSelectedCommunityId] = React.useState<string | null>(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [communityName, setCommunityName] = React.useState("");
   const [communityDescription, setCommunityDescription] = React.useState("");
   const [visibility, setVisibility] = React.useState<CommunityVisibility>("PUBLIC");
   const [selectedBookId, setSelectedBookId] = React.useState("");
-  const [bookOptions] = React.useState<BookOption[]>(initialBookOptions);
+  const [bookOptions] = React.useState<CommunityBookOption[]>(initialBookOptions);
   const [submitError, setSubmitError] = React.useState("");
 
   const normalizedCommunityName = normalizeCommunityName(communityName);
+  const selectedCommunity = React.useMemo(
+    () => communities.find((community) => community.id === selectedCommunityId) ?? null,
+    [communities, selectedCommunityId],
+  );
 
   const filteredCommunities = React.useMemo(() => {
     if (tab === "minhas") {
@@ -167,12 +164,23 @@ export default function ComunidadesPage() {
       members: 1,
       discussions: 0,
       isMember: true,
+      description: communityDescription.trim() || "Comunidade criada para discutir a leitura atual em grupo.",
+      createdAtLabel: "abril de 2026",
     };
 
     setCommunities((current) => [newCommunity, ...current]);
     setTab("minhas");
     closeCreateModal();
   };
+
+  if (selectedCommunity) {
+    return (
+      <CommunityChatView
+        community={selectedCommunity}
+        onBack={() => setSelectedCommunityId(null)}
+      />
+    );
+  }
 
   return (
     <AppShell>
@@ -227,120 +235,32 @@ export default function ComunidadesPage() {
           <CommunityCard
             key={community.id}
             name={community.name}
+            description={community.description}
             bookTitle={community.bookTitle}
             visibility={community.visibility}
             members={community.members}
             discussions={community.discussions}
+            onClick={() => setSelectedCommunityId(community.id)}
           />
         ))}
       </div>
 
-      {isCreateModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border p-5">
-              <h2 className="text-2xl leading-none font-semibold text-foreground">Criar Clube do Livro</h2>
-              <button
-                type="button"
-                onClick={closeCreateModal}
-                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted"
-                aria-label="Fechar modal"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form className="space-y-4 p-5" onSubmit={handleSubmitCreateCommunity}>
-              <div>
-                <label htmlFor="community-name" className="mb-1.5 block text-sm font-medium text-foreground">
-                  Nome do clube
-                </label>
-                <input
-                  id="community-name"
-                  type="text"
-                  value={communityName}
-                  onChange={(event) => setCommunityName(event.target.value)}
-                  placeholder="Ex: Clube Machado de Assis"
-                  maxLength={80}
-                  autoFocus
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="community-description" className="mb-1.5 block text-sm font-medium text-foreground">
-                  Descricao <span className="font-normal text-muted-foreground">(opcional)</span>
-                </label>
-                <textarea
-                  id="community-description"
-                  value={communityDescription}
-                  onChange={(event) => setCommunityDescription(event.target.value)}
-                  placeholder="Descreva o objetivo da comunidade..."
-                  rows={3}
-                  maxLength={300}
-                  className="w-full resize-none rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="community-book" className="mb-1.5 block text-sm font-medium text-foreground">
-                  Livro atual da leitura
-                </label>
-                <select
-                  id="community-book"
-                  value={selectedBookId}
-                  onChange={(event) => setSelectedBookId(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
-                >
-                  <option value="">Selecione um livro...</option>
-                  {bookOptions.map((book) => (
-                    <option key={book.id} value={book.id}>
-                      {book.title} - {book.author}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <button
-                  type="button"
-                  onClick={() => setVisibility((current) => (current === "PRIVATE" ? "PUBLIC" : "PRIVATE"))}
-                  className={`relative h-6 w-10 rounded-full transition-colors ${visibility === "PRIVATE" ? "bg-primary" : "bg-muted"}`}
-                  aria-label="Alternar privacidade do clube"
-                  aria-pressed={visibility === "PRIVATE"}
-                >
-                  <span
-                    className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-all ${visibility === "PRIVATE" ? "left-5" : "left-1"}`}
-                  />
-                </button>
-                <span>
-                  <span className="block text-sm font-medium text-foreground">Clube privado</span>
-                  <span className="block text-xs text-muted-foreground">Apenas membros convidados podem participar</span>
-                </span>
-              </label>
-
-              {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
-
-              <div className="flex items-center justify-end gap-3 border-t border-border pt-5">
-                <button
-                  type="button"
-                  onClick={closeCreateModal}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={normalizedCommunityName.length < 3 || !selectedBookId}
-                  className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Criar Clube
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      <CommunityCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={closeCreateModal}
+        onSubmit={handleSubmitCreateCommunity}
+        communityName={communityName}
+        onChangeCommunityName={setCommunityName}
+        communityDescription={communityDescription}
+        onChangeCommunityDescription={setCommunityDescription}
+        selectedBookId={selectedBookId}
+        onChangeSelectedBookId={setSelectedBookId}
+        visibility={visibility}
+        onToggleVisibility={() => setVisibility((current) => (current === "PRIVATE" ? "PUBLIC" : "PRIVATE"))}
+        bookOptions={bookOptions}
+        submitError={submitError}
+        canSubmit={normalizedCommunityName.length >= 3 && Boolean(selectedBookId)}
+      />
     </AppShell>
   );
 }

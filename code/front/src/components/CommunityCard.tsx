@@ -30,7 +30,20 @@ export function CommunityCard({
 
   return (
     <div
-      className={`rounded-2xl border border-emerald-200 bg-white px-4 py-5 shadow-sm sm:px-5 ${className ?? ""}`.trim()}
+      className={`rounded-2xl border border-emerald-200 bg-white px-4 py-5 shadow-sm sm:px-5 ${onClick ? "cursor-pointer transition-colors hover:bg-emerald-50/40" : ""} ${className ?? ""}`.trim()}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       <div className="flex items-center gap-4">
         <div
@@ -68,7 +81,10 @@ export function CommunityCard({
 
         <button
           type="button"
-          onClick={onClick}
+          onClick={(event) => {
+            event.stopPropagation();
+            onClick?.();
+          }}
           className="rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-soft)]"
           aria-label={`Abrir comunidade ${name}`}
         >
