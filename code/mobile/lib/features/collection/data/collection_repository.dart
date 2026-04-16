@@ -1,4 +1,5 @@
 import 'package:biblioo/features/collection/domain/collection.dart';
+import 'package:biblioo/features/collection/domain/collection_statistics.dart';
 import 'collection_local_datasource.dart';
 import 'collection_remote_datasource.dart';
 
@@ -77,5 +78,10 @@ class CollectionRepository {
 
   Future<void> removeShelfFromCollection(int collectionId, int shelfId) async {
     await _remote.removeShelfFromCollection(collectionId, shelfId);
+  }
+
+  Future<CollectionStatistics> getCollectionStatistics(int collectionId) async {
+    final model = await _remote.getStatistics(collectionId);
+    return model.toEntity();
   }
 }
