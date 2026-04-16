@@ -83,7 +83,7 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
           type="button"
           onClick={onOpenInfo}
           className="min-w-0 flex-1 text-left"
-          aria-label="Abrir informacoes do grupo"
+          aria-label="Abrir Informações do grupo"
         >
           <h2 className="truncate text-sm font-semibold text-foreground">{community.name}</h2>
           <p className="truncate text-xs text-muted-foreground">{community.members} membros - {community.bookTitle}</p>

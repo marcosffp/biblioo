@@ -69,7 +69,7 @@ export function CommunityInfoPanel({
   return (
     <aside className="h-[calc(100vh-4rem)] w-[340px] shrink-0 overflow-y-auto border-l border-border bg-card">
       <div className="flex items-center justify-between border-b border-border p-4">
-        <h3 className="text-sm font-semibold text-foreground">Informacoes do grupo</h3>
+        <h3 className="text-sm font-semibold text-foreground">Informações do grupo</h3>
         <button
           type="button"
           onClick={onClose}
@@ -159,7 +159,7 @@ export function CommunityInfoPanel({
                 onClick={handleSave}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
-                Salvar alteracoes
+                Salvar alterações
               </button>
             </div>
           </div>
