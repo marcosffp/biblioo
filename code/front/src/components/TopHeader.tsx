@@ -318,8 +318,8 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
   }, [isDropdownOpen, normalizedQuery, searchScope, shouldSearch]);
 
   return (
-    <div className="flex flex-1 justify-start px-1 sm:px-3">
-      <div ref={searchContainerRef} className="w-full max-w-[560px]">
+    <div className="flex-1 flex justify-center px-1 sm:px-4">
+      <div ref={searchContainerRef} className="w-full max-w-[640px]">
         <div className="relative w-full">
           <label htmlFor="global-search" className="relative block w-full" aria-label="Busca global">
             <Search
@@ -794,10 +794,13 @@ export function TopHeader({
   return (
     <header
       className={
-        `fixed top-0 left-0 right-0 h-16 border-b border-gray-200 bg-white pl-64 z-50 ${className ?? ""}`.trim()
+        `fixed top-0 left-0 right-0 h-16 border-b border-gray-200 bg-white z-50 ${className ?? ""}`.trim()
       }
     >
-      <div className="flex h-full w-full items-center gap-4 px-4 sm:gap-6 lg:px-6">
+        <div className="h-full w-full px-2 sm:px-4 lg:px-6 flex items-center gap-4 sm:gap-6">
+        <div className="flex items-center gap-2 min-w-fit text-[var(--deep-green)]">
+          <img  className="h-8 w-17" src="biblioo-logo.png" alt="Biblioo" />
+        </div>
 
         <TopHeaderSearchBar searchPlaceholder={searchPlaceholder} />
 

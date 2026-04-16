@@ -99,7 +99,7 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-white px-4 py-4 pb-12">
+      <div className="flex-1 overflow-y-auto bg-white px-4 py-4 pb-20">
         <div className="mx-auto flex h-full w-full max-w-[1180px] flex-col gap-2.5">
           {messages.map((message) => {
             if (message.isSystem) {
@@ -124,50 +124,53 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
                         : "rounded-tl-sm border border-border bg-white text-foreground"
                     }`}
                   >
-                    {message.isSpoiler && !revealedSpoilers.has(message.id) ? (
-                      <button
-                        type="button"
-                        onClick={() => revealSpoiler(message.id)}
-                        className={`inline-flex items-center gap-1.5 text-xs ${
-                          message.isMine ? "text-primary-foreground/75" : "text-muted-foreground"
+                    {message.isSpoiler ? (
+                      <p
+                        className={`mb-1 inline-flex items-center gap-1 text-[10px] font-medium ${
+                          message.isMine ? "text-primary-foreground/70" : "text-muted-foreground"
                         }`}
                       >
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        Spoiler - toque para revelar
-                      </button>
-                    ) : (
-                      <>
-                        {message.isSpoiler ? (
-                          <p
-                            className={`mb-1 inline-flex items-center gap-1 text-[10px] font-medium ${
-                              message.isMine ? "text-primary-foreground/70" : "text-muted-foreground"
+                        <AlertTriangle className="h-3 w-3" />
+                        Spoiler
+                      </p>
+                    ) : null}
+
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        {message.isSpoiler && !revealedSpoilers.has(message.id) ? (
+                          <button
+                            type="button"
+                            onClick={() => revealSpoiler(message.id)}
+                            className={`inline-flex items-center gap-1.5 text-left text-xs ${
+                              message.isMine ? "text-primary-foreground/75" : "text-muted-foreground"
                             }`}
                           >
-                            <AlertTriangle className="h-3 w-3" />
-                            Spoiler
-                          </p>
-                        ) : null}
-                        <p>{message.text}</p>
-                      </>
-                    )}
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Spoiler - toque para revelar
+                          </button>
+                        ) : (
+                          <p className="break-words">{message.text}</p>
+                        )}
+                      </div>
 
-                    <p
-                      className={`mt-1 text-right text-[10px] ${
-                        message.isMine ? "text-primary-foreground/70" : "text-muted-foreground"
-                      }`}
-                    >
-                      {message.time}
-                    </p>
+                      <p
+                        className={`shrink-0 text-[10px] leading-none ${
+                          message.isMine ? "text-primary-foreground/70" : "text-muted-foreground"
+                        }`}
+                      >
+                        {message.time}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
-          <div className="h-10" ref={bottomRef} />
+          <div className="h-16" ref={bottomRef} />
         </div>
       </div>
 
-      <div className="border-t border-border bg-cardar px-3 py-2">
+      <div className="border-t border-border bg-white px-3 py-2">
         {spoilerEnabled ? (
           <div className="mb-2 ml-1 flex items-center gap-1.5 text-[11px] text-amber-600">
             <AlertTriangle className="h-3 w-3" />

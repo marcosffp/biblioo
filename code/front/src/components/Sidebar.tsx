@@ -30,12 +30,9 @@ export function Sidebar({ items = defaultItems, className }: Readonly<SidebarPro
   return (
     <aside
       className={
-        `w-64 fixed left-0 top-0 h-screen border-r border-[#d5ddda] bg-[#edf3f1] p-5 overflow-y-auto z-[60] ${className ?? ""}`.trim()
+        `w-64 fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 p-5 overflow-y-auto z-40 ${className ?? ""}`.trim()
       }
     >
-      <div className="mb-6">
-        <img className="h-9 w-auto" src="biblioo-logo.png" alt="Biblioo" />
-      </div>
       <nav aria-label="Navegacao lateral" className="flex flex-col gap-2">
         {items.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
@@ -43,8 +40,8 @@ export function Sidebar({ items = defaultItems, className }: Readonly<SidebarPro
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition-colors ${
-                isActive ? "bg-[#dfecea] text-[#2f8a74]" : "text-[#556072] hover:bg-[#e6efed]"
+              className={`flex items-center gap-3 text-sm font-semibold p-3 rounded-lg transition-colors ${
+                isActive ? "bg-emerald-50 text-emerald-600" : "text-gray-600 hover:bg-gray-50"
               }`}
               aria-current={isActive ? "page" : undefined}
             >
