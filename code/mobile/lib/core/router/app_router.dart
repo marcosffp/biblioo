@@ -1,5 +1,6 @@
 import 'package:biblioo/core/shell/main_shell.dart';
-import 'package:biblioo/screens/_placeholders.dart' show CommunityListScreen, DnaScreen;
+import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
+import 'package:biblioo/screens/community/community_list_screen.dart';
 import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
 import 'package:biblioo/screens/auth/login_screen.dart';
 import 'package:biblioo/screens/auth/register_screen.dart';

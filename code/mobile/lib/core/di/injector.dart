@@ -20,6 +20,8 @@ import 'package:biblioo/features/collection/data/collection_local_datasource.dar
 import 'package:biblioo/features/collection/data/collection_remote_datasource.dart';
 import 'package:biblioo/features/collection/data/collection_repository.dart';
 import 'package:biblioo/features/user/bloc/user_bloc.dart';
+import 'package:biblioo/features/community/data/community_remote_datasource.dart';
+import 'package:biblioo/features/community/data/community_repository.dart';
 import 'package:biblioo/features/user/bloc/user_search_bloc.dart';
 import 'package:biblioo/features/user/data/user_local_datasource.dart';
 import 'package:biblioo/features/user/data/user_remote_datasource.dart';
@@ -74,6 +76,10 @@ class Injector {
   CollectionLocalDatasource get _collectionLocal => CollectionLocalDatasource(_prefs);
   CollectionRemoteDatasource get _collectionRemote => CollectionRemoteDatasource(_dio);
   CollectionRepository get collectionRepo => CollectionRepository(_collectionRemote, _collectionLocal);
+
+  // ── community ─────────────────────────────────────────
+  CommunityRemoteDatasource get _communityRemote => CommunityRemoteDatasource();
+  CommunityRepository get communityRepo => CommunityRepository(_communityRemote);
 
   // ── providers ─────────────────────────────────────────
   List<BlocProvider> get providers => [
