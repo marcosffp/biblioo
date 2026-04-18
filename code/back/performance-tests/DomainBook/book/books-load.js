@@ -16,8 +16,8 @@ const CONFIG = {
   ],
 
   load: {
-    searchVus:  40,
-    detailVus:  10,
+    searchVus:  80,
+    detailVus:  20,
     duration:   '2m',
   },
 

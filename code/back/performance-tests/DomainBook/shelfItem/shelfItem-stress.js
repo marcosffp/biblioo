@@ -11,7 +11,7 @@ const CONFIG = {
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300],  // VUs por estágio (rampa crescente)
+    stages:        [20, 50, 100, 200, 300, 400],  // VUs por estágio (rampa crescente)
   },
 
   thresholds: {

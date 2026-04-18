@@ -10,8 +10,8 @@ const CONFIG = {
   bookId: 1,  // ID de um livro existente no banco para usar nos testes
 
   load: {
-    crudVus:    40,
-    listingVus: 10,
+    crudVus:    60,
+    listingVus: 20,
     duration:   '2m',
   },
 

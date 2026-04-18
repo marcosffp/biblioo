@@ -8,8 +8,8 @@ const CONFIG = {
   prefix:       'loadcollection',
 
   load: {
-    crudVus:    40,
-    listingVus: 10,
+    crudVus:    60,
+    listingVus: 20,
     duration:   '2m',
   },
 

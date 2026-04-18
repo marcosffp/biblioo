@@ -6,8 +6,10 @@ import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.domain.port.in.CollectionUseCase;
 import com.biblioo.books.domain.port.in.ShelfUseCase;
+import com.biblioo.books.domain.service.CollectionStatsService;
 import com.biblioo.books.infrasestructure.dto.collection.AddShelfToCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionResponse;
+import com.biblioo.books.infrasestructure.dto.collection.CollectionStatsResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionSummaryResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CreateCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.ShelfPreview;
@@ -45,6 +47,7 @@ public class CollectionController {
   private final CollectionUseCase collectionUseCase;
   private final ShelfUseCase shelfUseCase;
   private final BookUseCase bookUseCase;
+  private final CollectionStatsService statsService;
   private final CollectionMapper mapper;
 
   @GetMapping
@@ -81,7 +84,7 @@ public class CollectionController {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(col, previews));
+    return ResponseEntity.ok(mapper.toResponse(col, previews, statsService.computeStats(col)));
   }
 
   @GetMapping("/user/{userId}")
@@ -116,7 +119,7 @@ public class CollectionController {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(col, previews));
+    return ResponseEntity.ok(mapper.toResponse(col, previews, statsService.computeStats(col)));
   }
 
   @PostMapping
@@ -140,7 +143,7 @@ public class CollectionController {
             .buildAndExpand(col.getId())
             .toUri();
 
-    return ResponseEntity.created(location).body(mapper.toResponse(col, previews));
+    return ResponseEntity.created(location).body(mapper.toResponse(col, previews, null));
   }
 
   @PutMapping("/{collectionId}")
@@ -160,7 +163,7 @@ public class CollectionController {
     Collection colWithShelves = collectionUseCase.getCollection(userId, col.getId());
     List<ShelfPreview> previews = buildShelfPreviews(colWithShelves.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(colWithShelves, previews));
+    return ResponseEntity.ok(mapper.toResponse(colWithShelves, previews, null));
   }
 
   @PatchMapping("/{collectionId}/shelves")
@@ -173,12 +176,10 @@ public class CollectionController {
       @Valid @RequestBody AddShelfToCollectionRequest request) {
 
     Long userId = currentUserId(principal);
-    collectionUseCase.addShelfToCollection(userId, collectionId, request.shelfId());
-
-    Collection updated = collectionUseCase.getCollection(userId, collectionId);
+    Collection updated = collectionUseCase.addShelfToCollection(userId, collectionId, request.shelfId());
     List<ShelfPreview> previews = buildShelfPreviews(updated.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(updated, previews));
+    return ResponseEntity.ok(mapper.toResponse(updated, previews, null));
   }
 
   @DeleteMapping("/{collectionId}/shelves/{shelfId}")
@@ -191,12 +192,10 @@ public class CollectionController {
       @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId) {
 
     Long userId = currentUserId(principal);
-    collectionUseCase.removeShelfFromCollection(userId, collectionId, shelfId);
-
-    Collection updated = collectionUseCase.getCollection(userId, collectionId);
+    Collection updated = collectionUseCase.removeShelfFromCollection(userId, collectionId, shelfId);
     List<ShelfPreview> previews = buildShelfPreviews(updated.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(updated, previews));
+    return ResponseEntity.ok(mapper.toResponse(updated, previews, null));
   }
 
   @DeleteMapping("/{collectionId}")

@@ -76,6 +76,9 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
       """)
   int softDelete(@Param("id") Long id);
 
+  @Query("SELECT si FROM ShelfItem si WHERE si.shelfId IN :shelfIds")
+  List<ShelfItem> findAllByShelfIdIn(@Param("shelfIds") List<Long> shelfIds);
+
   @Query("SELECT COUNT(si) FROM ShelfItem si WHERE si.bookId = :bookId")
   long countByBookId(@Param("bookId") Long bookId);
 }
