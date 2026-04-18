@@ -1,8 +1,12 @@
+import 'dart:convert';
+
+import 'package:biblioo/features/user/domain/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthLocalDatasource {
-  static const _keyAccess  = 'auth_access_token';
+  static const _keyAccess = 'auth_access_token';
   static const _keyRefresh = 'auth_refresh_token';
+  static const _keyUser = 'auth_session_user';
 
   final SharedPreferences _prefs;
   const AuthLocalDatasource(this._prefs);
@@ -15,11 +19,48 @@ class AuthLocalDatasource {
     await _prefs.setString(_keyRefresh, refreshToken);
   }
 
-  String? getAccessToken()  => _prefs.getString(_keyAccess);
+  String? getAccessToken() => _prefs.getString(_keyAccess);
   String? getRefreshToken() => _prefs.getString(_keyRefresh);
+
+  Future<void> saveSessionUser(User user) async {
+    await _prefs.setString(
+      _keyUser,
+      jsonEncode({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'bio': user.bio,
+        'avatarUrl': user.avatarUrl,
+        'bannerUrl': user.bannerUrl,
+        'isPrivate': user.isPrivate,
+        'restricted': user.restricted,
+        'isFollowing': user.isFollowing,
+        'createdAt': user.createdAt,
+      }),
+    );
+  }
+
+  User? getSessionUser() {
+    final raw = _prefs.getString(_keyUser);
+    if (raw == null) return null;
+    final json = jsonDecode(raw) as Map<String, dynamic>;
+    return User(
+      id: (json['id'] as num).toInt(),
+      username: json['username'] as String,
+      email: json['email'] as String?,
+      bio: json['bio'] as String?,
+      avatarUrl: json['avatarUrl'] as String?,
+      bannerUrl: json['bannerUrl'] as String?,
+      isPrivate: json['isPrivate'] as bool? ?? false,
+      restricted: json['restricted'] as bool? ?? false,
+      isFollowing: json['isFollowing'] as bool? ?? false,
+      createdAt: json['createdAt'] as String?,
+    );
+  }
 
   Future<void> clearTokens() async {
     await _prefs.remove(_keyAccess);
     await _prefs.remove(_keyRefresh);
+    await _prefs.remove(_keyUser);
   }
 }
