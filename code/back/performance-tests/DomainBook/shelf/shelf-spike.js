@@ -3,7 +3,7 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 50,
+  userPoolSize: 400,
   password:     'senha12345',
   prefix:       'spikeshelf',
 
@@ -56,6 +56,7 @@ export function setup() {
 }
 
 export const options = {
+  setupTimeout: '300s', // aumentado para suportar criação de muitos usuários
   stages: [
     { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },  // base normal
     { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },  // spike brusco

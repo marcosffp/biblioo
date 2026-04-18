@@ -99,24 +99,15 @@ public class BookService implements BookUseCase {
                   return new ArrayList<>();
                 });
 
-    var futureDb =
-        CompletableFuture.supplyAsync(() -> bookQueryHelper.searchByTerm(query), bookEnrichExecutor)
-            .exceptionally(
-                e -> {
-                  log.warn(
-                      "DB falhou durante searchByTerm. query='{}'. Causa: {}",
-                      query,
-                      e.getMessage());
-                  return new ArrayList<>();
-                });
-
-    CompletableFuture.allOf(futureLocal, futureDb).join();
-
-    var local = futureLocal.getNow(List.of());
-    var db = futureDb.getNow(List.of());
-
+    List<Book> local = futureLocal.join();
     if (!local.isEmpty()) return local;
-    if (!db.isEmpty()) return db;
+
+    try {
+      List<Book> db = bookQueryHelper.searchByTerm(query);
+      if (!db.isEmpty()) return db;
+    } catch (Exception e) {
+      log.warn("DB falhou durante searchByTerm. query='{}'. Causa: {}", query, e.getMessage());
+    }
 
     try {
       return enrichService.enrichSync(query);
@@ -128,7 +119,7 @@ public class BookService implements BookUseCase {
 
   @Override
   @Transactional(readOnly = true)
-  @Cacheable(value = "book-detail", key = "#id", sync = true)
+  @Cacheable(value = "book-detail", key = "#id")
   public Book getById(Long id) {
     return repository.findById(id).orElseThrow(() -> new BookNotFoundException(id));
   }

@@ -3,7 +3,7 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 50,
+  userPoolSize: 100,
   password:     'senha12345',
   prefix:       'loadcollection',
 

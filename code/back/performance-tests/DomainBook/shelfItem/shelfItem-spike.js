@@ -3,7 +3,7 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 200,  // deve ser >= peakVus para evitar que VUs compartilhem usuário/estante
+  userPoolSize: 400,  // deve ser >= peakVus para evitar que VUs compartilhem usuário/estante
   password:     'senha12345',
   prefix:       'spikeshelfitem',
 
@@ -68,7 +68,7 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '90s',  // setup cria 200 usuários; timeout padrão de 60s pode não ser suficiente
+  setupTimeout: '300s',  // setup cria muitos usuários; timeout aumentado para rodar localmente
   stages: [
     { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },  // base normal
     { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },  // spike brusco

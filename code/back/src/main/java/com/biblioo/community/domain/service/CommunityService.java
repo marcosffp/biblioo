@@ -10,6 +10,7 @@ import com.biblioo.community.domain.port.out.CommunityUserLookupPort;
 import com.biblioo.community.infrastructure.persistence.CommunityInviteRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityJoinRequestRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
+import com.biblioo.community.infrastructure.persistence.CommunityMembershipCache;
 import com.biblioo.community.infrastructure.persistence.CommunityPostRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityRepository;
 import java.time.LocalDateTime;
@@ -26,6 +27,7 @@ public class CommunityService implements CommunityUseCase {
 
   private final CommunityRepository communityRepository;
   private final CommunityMemberRepository memberRepository;
+  private final CommunityMembershipCache membershipCache;
   private final CommunityInviteRepository inviteRepository;
   private final CommunityJoinRequestRepository joinRequestRepository;
   private final CommunityPostRepository postRepository;
@@ -166,6 +168,7 @@ public class CommunityService implements CommunityUseCase {
 
     memberRepository.removeMember(communityId, userId);
     communityRepository.decrementMemberCount(communityId);
+    membershipCache.evict(communityId, userId);
   }
 
   @Override
@@ -232,6 +235,7 @@ public class CommunityService implements CommunityUseCase {
 
     memberRepository.removeMember(communityId, targetUserId);
     communityRepository.decrementMemberCount(communityId);
+    membershipCache.evict(communityId, targetUserId);
   }
 
   @Override
@@ -536,6 +540,7 @@ public class CommunityService implements CommunityUseCase {
         CommunityMember.builder().communityId(communityId).userId(userId).role(role).build();
     memberRepository.save(member);
     communityRepository.incrementMemberCount(communityId);
+    membershipCache.evict(communityId, userId);
   }
 
   Community getActiveCommunity(Long communityId) {

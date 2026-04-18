@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,6 +18,7 @@ public class RabbitMQEventPublisher implements EventPublisherPort {
   private final RabbitTemplate rabbitTemplate;
   private final ObjectMapper objectMapper;
 
+  @Async
   @Override
   public void publish(OutboxEvent event) {
     try {

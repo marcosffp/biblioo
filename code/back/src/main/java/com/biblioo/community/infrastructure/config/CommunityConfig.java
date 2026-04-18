@@ -14,6 +14,7 @@ import com.biblioo.community.domain.service.CommunityService;
 import com.biblioo.community.infrastructure.persistence.CommunityInviteRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityJoinRequestRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
+import com.biblioo.community.infrastructure.persistence.CommunityMembershipCache;
 import com.biblioo.community.infrastructure.persistence.CommunityMessageRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityPostRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityRepository;
@@ -32,6 +33,7 @@ class CommunityConfig {
   CommunityUseCase communityUseCase(
       CommunityRepository communityRepository,
       CommunityMemberRepository memberRepository,
+      CommunityMembershipCache membershipCache,
       CommunityInviteRepository inviteRepository,
       CommunityJoinRequestRepository joinRequestRepository,
       CommunityPostRepository postRepository,
@@ -41,6 +43,7 @@ class CommunityConfig {
     return new CommunityService(
         communityRepository,
         memberRepository,
+        membershipCache,
         inviteRepository,
         joinRequestRepository,
         postRepository,
@@ -54,6 +57,7 @@ class CommunityConfig {
       CommunityMessageRepository messageRepository,
       MessageReactionRepository reactionRepository,
       CommunityMemberRepository memberRepository,
+      CommunityMembershipCache membershipCache,
       MessageBroadcastPort broadcastPort,
       MessageCachePort cachePort,
       FeedImagePort feedImagePort) {
@@ -61,6 +65,7 @@ class CommunityConfig {
         messageRepository,
         reactionRepository,
         memberRepository,
+        membershipCache,
         broadcastPort,
         cachePort,
         feedImagePort);

@@ -176,7 +176,8 @@ public class CollectionController {
       @Valid @RequestBody AddShelfToCollectionRequest request) {
 
     Long userId = currentUserId(principal);
-    Collection updated = collectionUseCase.addShelfToCollection(userId, collectionId, request.shelfId());
+    collectionUseCase.addShelfToCollection(userId, collectionId, request.shelfId());
+    Collection updated = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(updated.getShelves(), userId);
 
     return ResponseEntity.ok(mapper.toResponse(updated, previews, null));
@@ -192,7 +193,8 @@ public class CollectionController {
       @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId) {
 
     Long userId = currentUserId(principal);
-    Collection updated = collectionUseCase.removeShelfFromCollection(userId, collectionId, shelfId);
+    collectionUseCase.removeShelfFromCollection(userId, collectionId, shelfId);
+    Collection updated = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(updated.getShelves(), userId);
 
     return ResponseEntity.ok(mapper.toResponse(updated, previews, null));

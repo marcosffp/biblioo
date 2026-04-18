@@ -11,6 +11,7 @@ import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.domain.port.out.MessageCachePort;
 import com.biblioo.community.infrastructure.dto.MessageMediaUploadResponse;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
+import com.biblioo.community.infrastructure.persistence.CommunityMembershipCache;
 import com.biblioo.community.infrastructure.persistence.CommunityMessageRepository;
 import com.biblioo.community.infrastructure.persistence.MessageReactionRepository;
 import com.biblioo.feed.domain.port.out.FeedImagePort;
@@ -41,6 +42,7 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   private final CommunityMessageRepository messageRepository;
   private final MessageReactionRepository reactionRepository;
   private final CommunityMemberRepository memberRepository;
+  private final CommunityMembershipCache membershipCache;
   private final MessageBroadcastPort broadcastPort;
   private final MessageCachePort cachePort;
   private final FeedImagePort feedImagePort;
@@ -51,7 +53,7 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   public MessageMediaUploadResponse uploadMessageMedia(
       Long communityId, Long userId, List<byte[]> images, byte[] gif) {
 
-    if (!memberRepository.isMember(communityId, userId)) {
+    if (!membershipCache.isMember(communityId, userId)) {
       throw new CommunityAccessDeniedException("Apenas membros podem enviar mídia.");
     }
 
@@ -93,7 +95,7 @@ public class CommunityMessageService implements CommunityMessageUseCase {
       boolean hasSpoiler,
       String clientMessageId) {
 
-    boolean member = memberRepository.isMember(communityId, authorId);
+    boolean member = membershipCache.isMember(communityId, authorId);
     log.debug(
         "isMember check — communityId={}, authorId={}, result={}", communityId, authorId, member);
     if (!member) {
@@ -215,7 +217,7 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   public void toggleReaction(Long messageId, Long userId, ReactionType type) {
     CommunityMessage message = requireActiveMessage(messageId);
 
-    if (!memberRepository.isMember(message.getCommunityId(), userId)) {
+    if (!membershipCache.isMember(message.getCommunityId(), userId)) {
       throw new CommunityAccessDeniedException("Apenas membros podem reagir a mensagens.");
     }
 

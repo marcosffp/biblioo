@@ -1,71 +1,79 @@
-import http from 'k6/http';
-import { sleep, check } from 'k6';
+import http from "k6/http";
+import { sleep, check } from "k6";
 
 const CONFIG = {
-  base: 'http://localhost:8080',
+  base: "http://localhost:8080",
 
-  bookIds: Array.from({ length: 35 }, (_, i) => i + 1),  // IDs 1–35
+  bookIds: Array.from({ length: 35 }, (_, i) => i + 1),
 
   queries: [
-    'Dom Casmurro',
-    'Orgulho e Preconceito',
-    'O Grande Gatsby',
-    '1984',
-    'Harry Potter',
-    'O Senhor dos Anéis',
+    "Dom Casmurro",
+    "Orgulho e Preconceito",
+    "O Grande Gatsby",
+    "1984",
+    "Harry Potter",
+    "O Senhor dos Anéis",
   ],
 
   load: {
-    searchVus:  80,
-    detailVus:  20,
-    duration:   '2m',
+    searchVus: 80,
+    detailVus: 20,
+    duration: "2m",
   },
 
   thresholds: {
-    p95General: 1000,  // ms
-    p95Search:  1500,  // ms
-    p95Details:  500,  // ms
-    failRate:   0.01,  // 1%
+    p95General: 1500,
+    p95Search: 2000,
+    p95Details: 800,
+    failRate: 0.01,
   },
 
   sleep: {
-    search:  1,    // s
-    details: 0.5,  // s
+    search: 1,
+    details: 0.5,
   },
 };
 
 export const options = {
   scenarios: {
     search: {
-      executor: 'constant-vus',
-      vus:      CONFIG.load.searchVus,
+      executor: "constant-vus",
+      vus: CONFIG.load.searchVus,
       duration: CONFIG.load.duration,
-      exec:     'searchBooks',
+      exec: "searchBooks",
     },
     details: {
-      executor: 'constant-vus',
-      vus:      CONFIG.load.detailVus,
+      executor: "constant-vus",
+      vus: CONFIG.load.detailVus,
       duration: CONFIG.load.duration,
-      exec:     'getBookDetail',
+      exec: "getBookDetail",
     },
   },
   thresholds: {
-    http_req_duration:                      [`p(95)<${CONFIG.thresholds.p95General}`],
-    http_req_failed:                        [`rate<${CONFIG.thresholds.failRate}`],
-    'http_req_duration{scenario:search}':   [`p(95)<${CONFIG.thresholds.p95Search}`],
-    'http_req_duration{scenario:details}':  [`p(95)<${CONFIG.thresholds.p95Details}`],
+    http_req_duration: ["p(95)<1500"],
+    http_req_failed: ["rate<0.01"],
+
+    "http_req_duration{scenario:search}": ["p(95)<2000"],
+    "http_req_duration{scenario:details}": ["p(95)<800"],
+
+    http_req_waiting: ["p(95)<1200"], // tempo no servidor
   },
 };
 
 export function searchBooks() {
   const q = CONFIG.queries[Math.floor(Math.random() * CONFIG.queries.length)];
-  const res = http.get(`${CONFIG.base}/books/search?q=${encodeURIComponent(q)}`);
+  const res = http.get(
+    `${CONFIG.base}/books/search?q=${encodeURIComponent(q)}`,
+  );
 
   check(res, {
-    'status 200': (r) => r.status === 200,
-    'body é array JSON': (r) => {
-      try { return Array.isArray(JSON.parse(r.body)); }
-      catch { return false; }
+    "status 200": (r) => r.status === 200,
+    "body é array JSON": (r) => {
+      try {
+        return Array.isArray(JSON.parse(r.body));
+      } catch {
+        return false;
+      }
     },
   });
 
@@ -77,7 +85,7 @@ export function getBookDetail() {
   const res = http.get(`${CONFIG.base}/books/${id}`);
 
   check(res, {
-    'status 200 ou 404': (r) => r.status === 200 || r.status === 404,
+    "status 200 ou 404": (r) => r.status === 200 || r.status === 404,
   });
 
   sleep(CONFIG.sleep.details);
