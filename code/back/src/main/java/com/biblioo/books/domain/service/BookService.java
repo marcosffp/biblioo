@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -26,6 +26,7 @@ public class BookService implements BookUseCase {
   private final OpenSearchBookAdapter search;
   private final BookEnrichService enrichService;
   private final BookQueryHelper bookQueryHelper;
+
   @Qualifier("bookEnrichExecutor")
   private final Executor bookEnrichExecutor;
 
@@ -36,7 +37,8 @@ public class BookService implements BookUseCase {
   @Cacheable(
       value = "book-search",
       key = "#query.strip().toLowerCase()",
-      sync = true)
+      sync = true,
+      unless = "#result.isEmpty()")
   public List<Book> search(String query) {
     var futureLocal =
         CompletableFuture.supplyAsync(() -> search.search(query), bookEnrichExecutor)
@@ -83,7 +85,6 @@ public class BookService implements BookUseCase {
       return new ArrayList<>();
     }
   }
-
 
   @Override
   @Transactional(readOnly = true)

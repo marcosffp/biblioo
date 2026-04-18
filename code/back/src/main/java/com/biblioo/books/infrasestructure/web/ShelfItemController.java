@@ -85,8 +85,7 @@ public class ShelfItemController {
   @GetMapping("/user/{userId}")
   @Operation(
       summary = "Lista itens da estante de um usuário",
-      description =
-          "Retorna todos os livros de uma determinada estante de um usuário específico.")
+      description = "Retorna todos os livros de uma determinada estante de um usuário específico.")
   public ResponseEntity<List<ShelfItemSummaryResponse>> listUserItems(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
       @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId) {
@@ -108,8 +107,7 @@ public class ShelfItemController {
   @GetMapping("/user/{userId}/{itemId}")
   @Operation(
       summary = "Detalhes do item da estante de um usuário",
-      description =
-          "Retorna os detalhes completos do livro na estante de um usuário específico.")
+      description = "Retorna os detalhes completos do livro na estante de um usuário específico.")
   public ResponseEntity<ShelfItemResponse> getUserItem(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
       @Parameter(description = "ID da estante", example = "1") @PathVariable Long shelfId,

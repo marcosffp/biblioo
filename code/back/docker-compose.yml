@@ -87,11 +87,14 @@ services:
       RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: >-
         -rabbit vm_memory_high_watermark ${RABBITMQ_VM_MEMORY_HIGH_WATERMARK}
         -rabbit disk_free_limit ${RABBITMQ_DISK_FREE_LIMIT}
+      RABBITMQ_ENABLED_PLUGINS_FILE: /etc/rabbitmq/enabled_plugins
     ports:
       - "${RABBITMQ_BIND_HOST}:${RABBITMQ_PORT}:5672"
       - "${RABBITMQ_BIND_HOST}:${RABBITMQ_MANAGEMENT_PORT}:15672"
+      - "${RABBITMQ_BIND_HOST}:${RABBITMQ_STOMP_PORT:-61613}:61613"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./config/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
     networks:
       - biblioo-net
     mem_limit: ${RABBITMQ_MEM_LIMIT}

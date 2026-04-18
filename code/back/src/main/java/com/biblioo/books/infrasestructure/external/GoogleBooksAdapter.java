@@ -45,10 +45,7 @@ public class GoogleBooksAdapter {
   // Ambas disparam ao mesmo tempo; o merge é feito só se fase 1 retornar < 3.
   // -------------------------------------------------------------------------
 
-  @Cacheable(
-      value = "google-books",
-      key = "#query.strip().toLowerCase()",
-      sync = true)
+  @Cacheable(value = "google-books", key = "#query.strip().toLowerCase()", sync = true)
   public List<Book> search(String query) {
     log.debug("Chamando Google Books API. query='{}'", query);
 

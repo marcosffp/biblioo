@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Biblioo — Chat Test</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background: #0f0f0f; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
+
+    #login-screen {
+      max-width: 380px; margin: auto; padding: 32px;
+      background: #1a1a1a; border-radius: 12px; border: 1px solid #333;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    #login-screen h2 { color: #fff; margin-bottom: 4px; }
+    #login-screen small { color: #888; font-size: 12px; }
+
+    input, select {
+      padding: 10px 12px; background: #252525; border: 1px solid #444;
+      border-radius: 8px; color: #e0e0e0; font-size: 14px; width: 100%;
+    }
+    input:focus, select:focus { outline: none; border-color: #6c63ff; }
+
+    button {
+      padding: 10px 16px; border: none; border-radius: 8px;
+      cursor: pointer; font-size: 14px; font-weight: 600; transition: opacity .15s;
+    }
+    button:hover { opacity: .85; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: #6c63ff; color: #fff; }
+    .btn-danger  { background: #e05555; color: #fff; }
+    .btn-ghost   { background: #2a2a2a; color: #ccc; border: 1px solid #444; }
+    .btn-react   { background: transparent; border: 1px solid #555; color: #ccc; padding: 4px 8px; font-size: 13px; border-radius: 6px; }
+    .btn-react:hover { background: #3a2a2a; border-color: #e05555; color: #e05555; }
+    .btn-attach  { background: #2a2a2a; border: 1px solid #444; color: #aaa; padding: 5px 10px; font-size: 13px; border-radius: 6px; cursor: pointer; }
+    .btn-attach:hover { border-color: #6c63ff; color: #9f98ff; }
+
+    #chat-screen { display: none; flex-direction: column; height: 100vh; }
+
+    #topbar {
+      padding: 12px 16px; background: #1a1a1a; border-bottom: 1px solid #333;
+      display: flex; align-items: center; gap: 12px;
+    }
+    #topbar .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #fff;
+    }
+    #topbar .info { flex: 1; }
+    #topbar .info strong { display: block; font-size: 14px; }
+    #topbar .info small { font-size: 12px; color: #888; }
+    #status-dot { width:10px;height:10px;border-radius:50%;background:#555;display:inline-block;margin-right:6px; }
+    #status-dot.online { background: #4caf50; }
+
+    #messages {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+
+    .msg {
+      max-width: 70%; padding: 10px 14px; border-radius: 12px;
+      font-size: 14px; line-height: 1.5; position: relative;
+    }
+    .msg.mine   { align-self: flex-end;  background: #4a3fbf; color: #fff; border-bottom-right-radius: 4px; }
+    .msg.theirs { align-self: flex-start; background: #252525; color: #e0e0e0; border-bottom-left-radius: 4px; }
+    .msg.deleted { opacity: .45; font-style: italic; }
+    .msg .meta   { font-size: 11px; opacity: .6; margin-bottom: 3px; }
+    .msg .edited { font-size: 11px; opacity: .5; margin-top: 2px; }
+    .msg .spoiler-wrap { cursor: pointer; }
+    .msg .spoiler-blur { filter: blur(6px); user-select: none; transition: filter .2s; }
+    .msg .spoiler-blur.revealed { filter: none; }
+    .msg .reactions-row { margin-top: 6px; display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+    .msg .reply-ref {
+      background: rgba(255,255,255,.08); border-left: 3px solid #6c63ff;
+      padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 6px; opacity: .8;
+    }
+    .tag {
+      display: inline-block; background: rgba(108,99,255,.25); color: #9f98ff;
+      border-radius: 4px; padding: 1px 6px; font-size: 11px; margin-top: 4px;
+    }
+    .pending { opacity: .5; }
+
+    /* Mídia nas mensagens */
+    .msg-media { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .msg-media img {
+      max-width: 200px; max-height: 180px; border-radius: 8px; object-fit: cover;
+      cursor: pointer; border: 1px solid rgba(255,255,255,.1);
+      transition: opacity .15s;
+    }
+    .msg-media img:hover { opacity: .85; }
+    .msg-gif { display: block; max-width: 220px; border-radius: 8px; margin-top: 6px; border: 1px solid rgba(255,255,255,.1); }
+
+    /* Área de input */
+    #input-area { padding: 12px 16px; background: #1a1a1a; border-top: 1px solid #333; }
+    #reply-banner {
+      display: none; background: #252525; border-left: 3px solid #6c63ff;
+      padding: 6px 10px; margin-bottom: 8px; border-radius: 4px;
+      font-size: 12px; color: #aaa; align-items: center; gap: 8px;
+    }
+    #reply-banner span { flex: 1; }
+
+    #media-preview { display: none; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: flex-start; }
+    .preview-item { position: relative; }
+    .preview-item img { height: 64px; width: auto; max-width: 100px; border-radius: 6px; object-fit: cover; border: 1px solid #555; }
+    .preview-item .rm {
+      position: absolute; top: -6px; right: -6px; background: #e05555; color: #fff;
+      border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 11px;
+      cursor: pointer; padding: 0; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #upload-status { font-size: 11px; color: #888; margin-bottom: 6px; display: none; }
+
+    .options-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; flex-wrap: wrap; }
+    .options-row label { font-size: 12px; color: #888; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+    .input-row { display: flex; gap: 8px; align-items: flex-end; }
+    #msg-input {
+      flex: 1; resize: none; min-height: 42px; max-height: 120px;
+      padding: 10px 12px; background: #252525; border: 1px solid #444;
+      border-radius: 8px; color: #e0e0e0; font-size: 14px; font-family: inherit;
+    }
+    #msg-input:focus { outline: none; border-color: #6c63ff; }
+    #file-images, #file-gif { display: none; }
+
+    #log-area {
+      max-height: 120px; overflow-y: auto; background: #0a0a0a;
+      border-top: 1px solid #222; padding: 8px 16px;
+      font-family: monospace; font-size: 11px; color: #666;
+    }
+    #log-area .info  { color: #4caf50; }
+    #log-area .warn  { color: #ff9800; }
+    #log-area .error { color: #f44336; }
+
+    #empty-state { text-align: center; color: #555; margin: auto; font-size: 14px; }
+
+    /* Lightbox */
+    #lightbox {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88);
+      z-index: 999; align-items: center; justify-content: center; cursor: zoom-out;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+<div id="lightbox" onclick="this.classList.remove('open')">
+  <img id="lightbox-img" src="" alt="" />
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <h2>🔌 Biblioo Chat Test</h2>
+  <small>Abra este arquivo em duas abas com usuários diferentes</small>
+  <input id="api-url" value="http://localhost:8080" placeholder="API URL" />
+  <input id="email"    type="email"    placeholder="E-mail"   />
+  <input id="password" type="password" placeholder="Senha"    />
+  <input id="community-id" type="number" placeholder="Community ID" value="1" />
+  <button class="btn-primary" onclick="login()">Entrar e Conectar</button>
+  <div id="login-error" style="color:#f44;font-size:13px;display:none"></div>
+</div>
+
+<!-- CHAT -->
+<div id="chat-screen">
+  <div id="topbar">
+    <div class="avatar" id="user-avatar"></div>
+    <div class="info">
+      <strong id="user-label"></strong>
+      <small><span id="status-dot"></span><span id="conn-status">Conectando…</span></small>
+    </div>
+    <span style="font-size:12px;color:#888">Comunidade #<span id="community-label"></span></span>
+    <button class="btn-ghost" style="margin-left:8px" onclick="logout()">Sair</button>
+  </div>
+
+  <div id="messages">
+    <div id="empty-state">Sem mensagens ainda.<br>Seja o primeiro a escrever!</div>
+  </div>
+
+  <div id="input-area">
+    <div id="reply-banner">
+      <span id="reply-text"></span>
+      <button class="btn-ghost" style="padding:2px 8px;font-size:12px" onclick="clearReply()">✕</button>
+    </div>
+
+    <div id="media-preview"></div>
+    <div id="upload-status"></div>
+
+    <div class="options-row">
+      <label><input type="checkbox" id="opt-spoiler" /> Spoiler</label>
+      <input id="tag-input" placeholder="tag (opcional)" style="width:130px;padding:5px 8px;font-size:12px" />
+    </div>
+
+    <input type="file" id="file-images" accept="image/jpeg,image/png,image/webp" multiple onchange="onImagesSelected(event)" />
+    <input type="file" id="file-gif"    accept="image/gif"                        onchange="onGifSelected(event)" />
+
+    <div class="input-row">
+      <button class="btn-attach" onclick="document.getElementById('file-images').click()" title="Imagens (até 5, JPEG/PNG/WebP)" style="white-space:nowrap;flex-shrink:0">🖼️</button>
+      <button class="btn-attach" onclick="document.getElementById('file-gif').click()" title="GIF (máx 10 MB)" style="white-space:nowrap;flex-shrink:0">GIF</button>
+      <textarea id="msg-input" placeholder="Digite uma mensagem… (Enter envia, Shift+Enter quebra linha)"
+        onkeydown="handleKey(event)"></textarea>
+      <button class="btn-primary" id="send-btn" onclick="sendMessage()" style="flex-shrink:0">Enviar</button>
+    </div>
+  </div>
+
+  <div id="log-area"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+<script>
+// ── Estado ─────────────────────────────────────────────────────────────────
+let token = null, userId = null, username = null, communityId = null;
+let apiUrl = 'http://localhost:8080';
+let stompClient = null, replyTo = null;
+let messagesMap = {}, pendingMap = {};
+
+// mídia
+let pendingImages = [], pendingGif = null;
+let uploadedImages = [], uploadedGifUrl = null;
+
+const COLORS = ['#6c63ff','#e05555','#3fb584','#f09030','#3f9be0','#b53fe0'];
+function colorFor(uid) { return COLORS[Number(uid) % COLORS.length]; }
+
+// ── Login ──────────────────────────────────────────────────────────────────
+async function login() {
+  apiUrl = document.getElementById('api-url').value.replace(/\/$/, '');
+  const email = document.getElementById('email').value;
+  const pass  = document.getElementById('password').value;
+  communityId = parseInt(document.getElementById('community-id').value);
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const res = await fetch(`${apiUrl}/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    if (!res.ok) throw new Error('Login falhou — verifique e-mail e senha');
+    const data = await res.json();
+    token    = data.accessToken || data.access_token || data.token;
+    userId   = data.userId || data.id || parseJwtSub(token);
+    username = data.username || email.split('@')[0];
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; return; }
+  showChat(); loadHistory(); connectWS();
+}
+
+function parseJwtSub(jwt) {
+  try { return JSON.parse(atob(jwt.split('.')[1])).sub; } catch { return '?'; }
+}
+
+function logout() {
+  if (stompClient) stompClient.deactivate();
+  token = null; userId = null; stompClient = null;
+  messagesMap = {}; pendingMap = {}; replyTo = null;
+  clearMediaState();
+  document.getElementById('messages').innerHTML =
+    '<div id="empty-state">Sem mensagens ainda.<br>Seja o primeiro a escrever!</div>';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('chat-screen').style.display = 'none';
+  document.getElementById('log-area').innerHTML = '';
+}
+
+function showChat() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('chat-screen').style.display = 'flex';
+  const av = document.getElementById('user-avatar');
+  av.textContent = username.charAt(0).toUpperCase();
+  av.style.background = colorFor(userId);
+  document.getElementById('user-label').textContent = username + ' (id=' + userId + ')';
+  document.getElementById('community-label').textContent = communityId;
+}
+
+// ── Histórico ──────────────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const res = await fetch(`${apiUrl}/communities/${communityId}/messages`,
+      { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) return;
+    const msgs = await res.json();
+    msgs.reverse().forEach(m => renderMessage(m));
+    scrollBottom();
+    log('info', `Histórico carregado (${msgs.length} mensagens)`);
+  } catch (e) { log('warn', 'Histórico indisponível: ' + e.message); }
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────
+function connectWS() {
+  setStatus('Conectando…', false);
+  stompClient = new StompJs.Client({
+    webSocketFactory: () => new SockJS(`${apiUrl}/ws/community`),
+    connectHeaders: { Authorization: 'Bearer ' + token },
+    reconnectDelay: 2000,
+    onConnect: () => {
+      setStatus('Online', true);
+      log('info', '✅ WebSocket conectado');
+      stompClient.subscribe(`/topic/community.${communityId}`, frame => {
+        const ev = JSON.parse(frame.body);
+        log('info', '📨 ' + ev.eventType + ': id=' + ev.data?.id);
+        handleEvent(ev);
+      });
+      stompClient.subscribe(`/topic/community.${communityId}.edits`, frame => {
+        const ev = JSON.parse(frame.body);
+        log('warn', '✏️  ' + ev.eventType + ': id=' + ev.data?.id);
+        handleEvent(ev);
+      });
+      stompClient.subscribe(`/topic/community.${communityId}.reactions`, frame => {
+        const ev = JSON.parse(frame.body);
+        log('info', '❤️  REACTION: id=' + ev.data?.id + ' hearts=' + ev.data?.heartCount);
+        handleEvent(ev);
+      });
+      stompClient.subscribe('/user/queue/errors', frame => {
+        const ev = JSON.parse(frame.body);
+        log('error', '❌ ERRO: ' + ev.data?.content);
+        alert('Erro do servidor: ' + ev.data?.content);
+      });
+    },
+    onDisconnect: () => { setStatus('Desconectado', false); log('warn', '🔌 Desconectado'); },
+    onStompError: frame => { log('error', '💀 STOMP: ' + frame.headers.message); }
+  });
+  stompClient.activate();
+}
+
+function setStatus(text, online) {
+  document.getElementById('conn-status').textContent = text;
+  const dot = document.getElementById('status-dot');
+  dot.className = online ? 'online' : '';
+  dot.style.cssText = `width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;background:${online?'#4caf50':'#555'}`;
+}
+
+// ── Event handler ──────────────────────────────────────────────────────────
+function handleEvent(ev) {
+  const data = ev.data;
+  switch (ev.eventType) {
+    case 'MESSAGE_CREATED': {
+      let confirmed = null;
+      if (data.clientMessageId && pendingMap[data.clientMessageId]) {
+        confirmed = pendingMap[data.clientMessageId];
+        delete pendingMap[data.clientMessageId];
+      }
+      if (!confirmed && String(data.authorId) === String(userId)) {
+        const key = Object.keys(pendingMap).find(k =>
+          pendingMap[k].querySelector('.body')?.textContent === (data.content || '')
+        );
+        if (key) { confirmed = pendingMap[key]; delete pendingMap[key]; }
+      }
+      if (confirmed) {
+        confirmed.classList.remove('pending');
+        confirmed.dataset.id = data.id;
+        const metaEl = confirmed.querySelector('.meta');
+        if (metaEl) metaEl.innerHTML =
+          `<span style="color:${colorFor(data.authorId)};font-weight:600">você</span>` +
+          ` • ${new Date(data.createdAt).toLocaleTimeString()}`;
+        messagesMap[data.id] = { element: confirmed, data };
+      } else {
+        renderMessage(data);
+        scrollBottom();
+      }
+      hideEmptyState();
+      break;
+    }
+    case 'MESSAGE_UPDATED':
+      if (messagesMap[data.id]) {
+        messagesMap[data.id].data = data;
+        updateMessageEl(messagesMap[data.id].element, data);
+      }
+      break;
+    case 'MESSAGE_DELETED':
+      if (messagesMap[data.id]) {
+        const entry = messagesMap[data.id];
+        entry.element.classList.add('deleted');
+        const body = entry.element.querySelector('.body');
+        if (body) body.textContent = '[mensagem removida]';
+        entry.element.querySelector('.actions')?.remove();
+      }
+      break;
+    case 'REACTION_UPDATED':
+      if (messagesMap[data.id]) {
+        const rc = messagesMap[data.id].element.querySelector('.heart-count');
+        if (rc) rc.textContent = '❤️ ' + data.heartCount;
+      }
+      break;
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderMessage(data) {
+  const isMine = String(data.authorId) === String(userId);
+  const el = document.createElement('div');
+  el.className = 'msg ' + (isMine ? 'mine' : 'theirs') + (data.deleted ? ' deleted' : '');
+  el.dataset.id = data.id;
+
+  let html = '';
+
+  if (data.parentMessageId && messagesMap[data.parentMessageId]) {
+    const p = messagesMap[data.parentMessageId].data;
+    html += `<div class="reply-ref">↩ ${esc(p.content?.substring(0,60))}${p.content?.length>60?'…':''}</div>`;
+  }
+
+  html += `<div class="meta"><span style="color:${colorFor(data.authorId)};font-weight:600">` +
+    (isMine ? 'você' : 'user ' + data.authorId) + `</span>` +
+    ` • ${data.createdAt ? new Date(data.createdAt).toLocaleTimeString() : 'agora'}</div>`;
+
+  if (data.deleted) {
+    html += `<div class="body" style="opacity:.5;font-style:italic">[mensagem removida]</div>`;
+  } else if (data.content) {
+    if (data.hasSpoiler) {
+      html += `<div class="spoiler-wrap" onclick="this.querySelector('.spoiler-blur').classList.toggle('revealed')">` +
+        `<span style="font-size:11px;opacity:.6">⚠️ Spoiler — clique para revelar</span>` +
+        `<div class="body spoiler-blur">${esc(data.content)}</div></div>`;
+    } else {
+      html += `<div class="body">${esc(data.content)}</div>`;
+    }
+  } else {
+    html += `<div class="body" style="display:none"></div>`;
+  }
+
+  // Imagens
+  if (data.images && data.images.length > 0) {
+    html += `<div class="msg-media">`;
+    data.images.forEach(url => {
+      html += `<img src="${esc(url)}" alt="imagem" loading="lazy" onclick="openLightbox('${esc(url)}')" />`;
+    });
+    html += `</div>`;
+  }
+
+  // GIF
+  if (data.gifUrl) {
+    html += `<img class="msg-gif" src="${esc(data.gifUrl)}" alt="gif" />`;
+  }
+
+  if (data.tags?.length > 0) {
+    html += data.tags.map(t => `<span class="tag">#${esc(t)}</span>`).join(' ');
+  }
+
+  if (data.editedAt) html += `<div class="edited">(editado)</div>`;
+
+  html += `<div class="reactions-row"><button class="btn-react" onclick="reactTo(${data.id})">❤️ <span class="heart-count">${data.heartCount||0}</span></button></div>`;
+
+  if (!data.deleted) {
+    html += `<div class="actions" style="margin-top:6px;display:flex;gap:6px">`;
+    html += `<button class="btn-ghost" style="padding:3px 8px;font-size:11px" onclick="setReply(${data.id},'${esc((data.content||'').substring(0,40))}')">↩ Reply</button>`;
+    if (isMine) {
+      html += `<button class="btn-ghost" style="padding:3px 8px;font-size:11px" onclick="editPrompt(${data.id})">✏️ Editar</button>`;
+      html += `<button class="btn-danger" style="padding:3px 8px;font-size:11px" onclick="deleteMsg(${data.id})">🗑️</button>`;
+    }
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+  document.getElementById('messages').appendChild(el);
+  messagesMap[data.id] = { element: el, data };
+  hideEmptyState();
+  return el;
+}
+
+function updateMessageEl(el, data) {
+  const body = el.querySelector('.body');
+  if (body) { body.style.display = ''; body.textContent = data.content || ''; }
+  el.querySelector('.edited')?.remove();
+  el.insertAdjacentHTML('beforeend', '<div class="edited">(editado)</div>');
+}
+
+function hideEmptyState() { document.getElementById('empty-state')?.remove(); }
+function scrollBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
+function esc(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function openLightbox(url) { document.getElementById('lightbox-img').src = url; document.getElementById('lightbox').classList.add('open'); }
+
+// ── Seleção de mídia ───────────────────────────────────────────────────────
+function onImagesSelected(e) {
+  const files = Array.from(e.target.files);
+  if (pendingImages.length + files.length > 5) { alert('Máximo de 5 imagens.'); return; }
+  pendingImages.push(...files);
+  // Reseta URLs de upload anterior para forçar novo upload
+  uploadedImages = []; uploadedGifUrl = null;
+  renderMediaPreview();
+  e.target.value = '';
+}
+
+function onGifSelected(e) {
+  pendingGif = e.target.files[0] || null;
+  // Reseta URLs de upload anterior para forçar novo upload
+  uploadedImages = []; uploadedGifUrl = null;
+  renderMediaPreview();
+  e.target.value = '';
+}
+
+function renderMediaPreview() {
+  const wrap = document.getElementById('media-preview');
+  wrap.innerHTML = '';
+  const hasMedia = pendingImages.length > 0 || pendingGif;
+  wrap.style.display = hasMedia ? 'flex' : 'none';
+
+  pendingImages.forEach((file, i) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    const rm = document.createElement('button');
+    rm.className = 'rm'; rm.textContent = '×';
+    rm.onclick = () => { pendingImages.splice(i, 1); uploadedImages = []; renderMediaPreview(); };
+    item.append(img, rm); wrap.appendChild(item);
+  });
+
+  if (pendingGif) {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(pendingGif);
+    const rm = document.createElement('button');
+    rm.className = 'rm'; rm.textContent = '×';
+    rm.onclick = () => { pendingGif = null; uploadedGifUrl = null; renderMediaPreview(); };
+    item.append(img, rm); wrap.appendChild(item);
+  }
+}
+
+function clearMediaState() {
+  pendingImages = []; pendingGif = null;
+  uploadedImages = []; uploadedGifUrl = null;
+  const wrap = document.getElementById('media-preview');
+  wrap.innerHTML = ''; wrap.style.display = 'none';
+  const st = document.getElementById('upload-status');
+  st.textContent = ''; st.style.display = 'none';
+}
+
+// ── Upload REST ────────────────────────────────────────────────────────────
+async function uploadMediaIfNeeded() {
+  if (pendingImages.length === 0 && !pendingGif) return true;
+  // Se já fizemos upload desta seleção, reutiliza as URLs
+  if (uploadedImages.length > 0 || uploadedGifUrl) return true;
+
+  const statusEl = document.getElementById('upload-status');
+  const sendBtn  = document.getElementById('send-btn');
+  statusEl.textContent = '⏳ Enviando mídia…'; statusEl.style.display = 'block';
+  sendBtn.disabled = true;
+
+  try {
+    const form = new FormData();
+    pendingImages.forEach(f => form.append('images', f));
+    if (pendingGif) form.append('gif', pendingGif);
+
+    const res = await fetch(`${apiUrl}/communities/${communityId}/messages/media`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+      body: form
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    uploadedImages  = data.images  || [];
+    uploadedGifUrl  = data.gifUrl  || null;
+
+    const summary = [
+      uploadedImages.length > 0 ? `${uploadedImages.length} imagem(ns)` : '',
+      uploadedGifUrl ? 'GIF' : ''
+    ].filter(Boolean).join(' + ');
+
+    statusEl.textContent = `✅ Mídia enviada: ${summary}`;
+    log('info', `Upload OK → images=${JSON.stringify(uploadedImages)}, gifUrl=${uploadedGifUrl}`);
+    return true;
+  } catch (e) {
+    statusEl.textContent = '❌ ' + e.message;
+    log('error', 'Upload falhou: ' + e.message);
+    return false;
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+// ── Enviar mensagem ────────────────────────────────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const content = input.value.trim();
+  const hasMedia = pendingImages.length > 0 || pendingGif;
+
+  if (!content && !hasMedia) return;
+  if (!stompClient?.connected) { log('error', 'WebSocket não conectado'); return; }
+
+  // 1. Upload REST da mídia (se houver e ainda não tiver sido feito)
+  if (hasMedia) {
+    const ok = await uploadMediaIfNeeded();
+    if (!ok) return;
+  }
+
+  const clientMessageId = crypto.randomUUID();
+  const hasSpoiler = document.getElementById('opt-spoiler').checked;
+  const tagVal = document.getElementById('tag-input').value.trim();
+  const tags = tagVal ? [tagVal] : [];
+
+  // Optimistic render
+  const fakeMsg = {
+    id: null, clientMessageId, communityId, authorId: userId,
+    content: content || null,
+    images: [...uploadedImages],
+    gifUrl: uploadedGifUrl,
+    parentMessageId: replyTo?.id || null,
+    tags, hasSpoiler, heartCount: 0, deleted: false,
+    createdAt: new Date().toISOString(), editedAt: null
+  };
+  const el = renderMessage(fakeMsg);
+  if (el) { el.classList.add('pending'); pendingMap[clientMessageId] = el; }
+  scrollBottom();
+
+  // 2. Envia via STOMP com as URLs do Cloudinary
+  const payload = {
+    content: content || null,
+    images: uploadedImages,          // List<String> de URLs
+    gifUrl: uploadedGifUrl || null,  // String URL ou null
+    parentMessageId: replyTo?.id || null,
+    tags,
+    hasSpoiler,
+    clientMessageId
+  };
+
+  log('info', `STOMP → images=${payload.images.length}, gifUrl=${payload.gifUrl}`);
+
+  stompClient.publish({
+    destination: `/app/community/${communityId}/send`,
+    body: JSON.stringify(payload)
+  });
+
+  input.value = '';
+  document.getElementById('opt-spoiler').checked = false;
+  document.getElementById('tag-input').value = '';
+  clearReply();
+  clearMediaState();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+// ── Reply ──────────────────────────────────────────────────────────────────
+function setReply(id, preview) {
+  replyTo = { id, content: preview };
+  document.getElementById('reply-text').textContent = '↩ Respondendo: ' + preview + '…';
+  document.getElementById('reply-banner').style.display = 'flex';
+  document.getElementById('msg-input').focus();
+}
+function clearReply() {
+  replyTo = null;
+  document.getElementById('reply-banner').style.display = 'none';
+}
+
+// ── Reação ─────────────────────────────────────────────────────────────────
+function reactTo(messageId) {
+  if (!stompClient?.connected) return;
+  stompClient.publish({
+    destination: `/app/community/${communityId}/messages/${messageId}/react`,
+    body: JSON.stringify({ reactionType: 'HEART' })
+  });
+}
+
+// ── Editar ─────────────────────────────────────────────────────────────────
+function editPrompt(messageId) {
+  const current = messagesMap[messageId]?.data?.content || '';
+  const newContent = prompt('Editar mensagem:', current);
+  if (!newContent || newContent === current) return;
+  stompClient.publish({
+    destination: `/app/community/${communityId}/messages/${messageId}/edit`,
+    body: JSON.stringify({ content: newContent })
+  });
+}
+
+// ── Deletar ────────────────────────────────────────────────────────────────
+function deleteMsg(messageId) {
+  if (!confirm('Remover mensagem?')) return;
+  stompClient.publish({
+    destination: `/app/community/${communityId}/messages/${messageId}/delete`,
+    body: '{}'
+  });
+}
+
+// ── Log ────────────────────────────────────────────────────────────────────
+function log(type, msg) {
+  const el = document.getElementById('log-area');
+  const line = document.createElement('div');
+  line.className = type;
+  line.textContent = new Date().toLocaleTimeString() + '  ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+</script>
+</body>
+</html>

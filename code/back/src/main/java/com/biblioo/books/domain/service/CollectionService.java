@@ -29,11 +29,12 @@ public class CollectionService implements CollectionUseCase {
   @Cacheable(value = "collection-list", key = "#userId", unless = "#result.isEmpty()")
   public List<Collection> listCollections(Long userId) {
     List<Collection> collections = collectionRepository.findAllByUserIdOrderByUpdatedAtDesc(userId);
-    collections.forEach(c -> {
-      if (c.getShelves() != null) {
-        c.setShelves(new ArrayList<>(c.getShelves()));
-      }
-    });
+    collections.forEach(
+        c -> {
+          if (c.getShelves() != null) {
+            c.setShelves(new ArrayList<>(c.getShelves()));
+          }
+        });
     return collections;
   }
 

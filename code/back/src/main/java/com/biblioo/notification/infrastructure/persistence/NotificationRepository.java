@@ -13,12 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 public interface NotificationRepository extends JpaRepository<Notification, String> {
 
   @Query(
-      "SELECT n FROM Notification n WHERE n.recipientId = :userId"
-          + " ORDER BY n.createdAt DESC")
+      "SELECT n FROM Notification n WHERE n.recipientId = :userId" + " ORDER BY n.createdAt DESC")
   List<Notification> findByRecipientId(@Param("userId") Long userId, PageRequest pageable);
 
-  @Query(
-      "SELECT COUNT(n) FROM Notification n WHERE n.recipientId = :userId AND n.readAt IS NULL")
+  @Query("SELECT COUNT(n) FROM Notification n WHERE n.recipientId = :userId AND n.readAt IS NULL")
   long countUnreadByRecipientId(@Param("userId") Long userId);
 
   @Modifying

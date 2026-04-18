@@ -28,7 +28,7 @@ class UserConfig {
       PasswordEncoder passwordEncoder,
       JwtService jwtService,
       TokenCleanupAdapter tokenCleanup,
-      @Value("${jwt.refresh-token-expiration-days:7}") int refreshTokenExpirationDays) {
+      @Value("${jwt.refresh-token-expiration-days}") int refreshTokenExpirationDays) {
     return new AuthServiceImpl(
         userRepo, tokenRepo, passwordEncoder, jwtService, tokenCleanup, refreshTokenExpirationDays);
   }

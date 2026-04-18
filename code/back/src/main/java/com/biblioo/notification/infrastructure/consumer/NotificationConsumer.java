@@ -28,7 +28,9 @@ public class NotificationConsumer {
 
     try {
       log.info(
-          "[Notification-Consumer] Processando event_id={} type={}", eventId, message.getEventType());
+          "[Notification-Consumer] Processando event_id={} type={}",
+          eventId,
+          message.getEventType());
 
       JsonNode payload = message.getPayload();
 
@@ -39,7 +41,9 @@ public class NotificationConsumer {
                 payload.get("recipientId").asLong(),
                 payload.get("actorId").asLong(),
                 payload.get("actorUsername").asText(),
-                payload.hasNonNull("actorAvatarUrl") ? payload.get("actorAvatarUrl").asText() : null,
+                payload.hasNonNull("actorAvatarUrl")
+                    ? payload.get("actorAvatarUrl").asText()
+                    : null,
                 null);
 
         case RabbitMQConfig.EVENT_USER_FOLLOWED ->
@@ -48,8 +52,54 @@ public class NotificationConsumer {
                 payload.get("recipientId").asLong(),
                 payload.get("actorId").asLong(),
                 payload.get("actorUsername").asText(),
-                payload.hasNonNull("actorAvatarUrl") ? payload.get("actorAvatarUrl").asText() : null,
+                payload.hasNonNull("actorAvatarUrl")
+                    ? payload.get("actorAvatarUrl").asText()
+                    : null,
                 null);
+
+        case RabbitMQConfig.EVENT_COMMUNITY_INVITE ->
+            notificationService.createAndDeliver(
+                NotificationType.COMMUNITY_INVITE,
+                payload.get("recipientId").asLong(),
+                payload.get("inviterId").asLong(),
+                payload.hasNonNull("inviterUsername")
+                    ? payload.get("inviterUsername").asText()
+                    : null,
+                payload.hasNonNull("inviterAvatarUrl")
+                    ? payload.get("inviterAvatarUrl").asText()
+                    : null,
+                payload.get("communityId").asLong());
+
+        case RabbitMQConfig.EVENT_COMMUNITY_JOIN_REQUEST -> {
+          long requesterId = payload.get("requesterId").asLong();
+          long communityId = payload.get("communityId").asLong();
+          String requesterUsername =
+              payload.hasNonNull("requesterUsername")
+                  ? payload.get("requesterUsername").asText()
+                  : null;
+          String requesterAvatarUrl =
+              payload.hasNonNull("requesterAvatarUrl")
+                  ? payload.get("requesterAvatarUrl").asText()
+                  : null;
+          for (JsonNode recipientNode : payload.get("recipientIds")) {
+            notificationService.createAndDeliver(
+                NotificationType.COMMUNITY_JOIN_REQUEST,
+                recipientNode.asLong(),
+                requesterId,
+                requesterUsername,
+                requesterAvatarUrl,
+                communityId);
+          }
+        }
+
+        case RabbitMQConfig.EVENT_COMMUNITY_JOIN_APPROVED ->
+            notificationService.createAndDeliver(
+                NotificationType.COMMUNITY_JOIN_APPROVED,
+                payload.get("recipientId").asLong(),
+                null,
+                null,
+                null,
+                payload.get("communityId").asLong());
 
         default ->
             log.warn(

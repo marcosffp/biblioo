@@ -34,10 +34,10 @@ public class Notification {
   @Column(nullable = false, length = 30)
   private NotificationType type;
 
-  @Column(name = "actor_id", nullable = false)
+  @Column(name = "actor_id")
   private Long actorId;
 
-  @Column(name = "actor_username", nullable = false, length = 30)
+  @Column(name = "actor_username", length = 30)
   private String actorUsername;
 
   @Column(name = "actor_avatar_url", length = 1000)
