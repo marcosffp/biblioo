@@ -10,6 +10,7 @@ import 'package:biblioo/screens/profile/profile_screen.dart';
 import 'package:biblioo/screens/profile/settings_screen.dart';
 import 'package:biblioo/screens/recommendation/dice_screen.dart';
 import 'package:biblioo/screens/recommendation/recommendation_screen.dart';
+import 'package:biblioo/screens/book/book_screen.dart';
 import 'package:biblioo/screens/search/book_search_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +32,23 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/search',
       builder: (context, state) => const BookSearchScreen(),
+    ),
+
+    // ── LIVRO (fora do shell, exibido em tela própria) ───
+    GoRoute(
+      path: '/book/:id',
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        child: BookScreen(bookId: int.parse(state.pathParameters['id']!)),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+      ),
     ),
 
     // ── PERFIL PUBLICO (fora do shell, exibido como janela elevada) ─────

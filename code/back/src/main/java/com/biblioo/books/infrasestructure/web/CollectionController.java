@@ -9,7 +9,7 @@ import com.biblioo.books.domain.port.in.ShelfUseCase;
 import com.biblioo.books.domain.service.CollectionStatsService;
 import com.biblioo.books.infrasestructure.dto.collection.AddShelfToCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionResponse;
-import com.biblioo.books.infrasestructure.dto.collection.CollectionStatsResponse;
+import com.biblioo.books.infrasestructure.dto.collection.CollectionStatisticsResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionSummaryResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CreateCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.ShelfPreview;

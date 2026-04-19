@@ -7,6 +7,8 @@ class Book {
   final String? coverUrl;
   final int? pageCount;
   final double? averageRating;
+  final String? description;
+  final int? readerCount;
 
   const Book({
     required this.id,
@@ -15,6 +17,8 @@ class Book {
     this.coverUrl,
     this.pageCount,
     this.averageRating,
+    this.description,
+    this.readerCount,
   });
 
   /// Concatena autores para exibição em UI.
