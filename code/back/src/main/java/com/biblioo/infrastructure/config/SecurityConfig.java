@@ -33,29 +33,49 @@ public class SecurityConfig {
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
-            auth -> auth.requestMatchers("/auth/**")
-                .permitAll()
-                .requestMatchers(HttpMethod.GET, "/users")
-                .permitAll()
-                .requestMatchers(HttpMethod.GET, "/books/**")
-                .permitAll()
-                .requestMatchers(
-                    "/auth/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    "/swagger-ui/index.html",
-                    "/v3/api-docs",
-                    "/v3/api-docs/**")
-                .permitAll()
-                // /me deve ser autenticado — declarado ANTES do wildcard abaixo
-                .requestMatchers(HttpMethod.GET, "/users/me")
-                .authenticated()
-                // Perfis públicos acessíveis sem login; controller trata restrição de privados
-                .requestMatchers(
-                    HttpMethod.GET, "/users/*", "/users/*/followers", "/users/*/following")
-                .permitAll()
-                .anyRequest()
-                .authenticated())
+            auth ->
+                auth
+                    // WebSocket handshake — autenticação ocorre no STOMP CONNECT via
+                    // JwtChannelInterceptor
+                    .requestMatchers("/ws/**")
+                    .permitAll()
+                    .requestMatchers("/auth/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/users")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/books/**")
+                    .permitAll()
+                    // Communities: endpoints autenticados ANTES dos wildcards
+                    .requestMatchers(
+                        HttpMethod.GET, "/communities/mine", "/communities/invites/pending")
+                    .authenticated()
+                    // Communities: endpoints públicos
+                    .requestMatchers(
+                        HttpMethod.GET,
+                        "/communities",
+                        "/communities/*",
+                        "/communities/book/*",
+                        "/communities/*/members",
+                        "/communities/*/posts",
+                        "/communities/*/posts/*")
+                    .permitAll()
+                    .requestMatchers(
+                        "/auth/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/swagger-ui/index.html",
+                        "/v3/api-docs",
+                        "/v3/api-docs/**")
+                    .permitAll()
+                    // /me deve ser autenticado — declarado ANTES do wildcard abaixo
+                    .requestMatchers(HttpMethod.GET, "/users/me")
+                    .authenticated()
+                    // Perfis públicos acessíveis sem login; controller trata restrição de privados
+                    .requestMatchers(
+                        HttpMethod.GET, "/users/*", "/users/*/followers", "/users/*/following")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
         .userDetailsService(userDetailsService)
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .build();

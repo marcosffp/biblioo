@@ -3,13 +3,13 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 50,
+  userPoolSize: 450,
   password:     'senha12345',
   prefix:       'stresscollection',
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300],  // VUs por estágio (rampa crescente)
+    stages:        [20, 50, 100, 200, 300, 400],  // VUs por estágio (rampa crescente)
   },
 
   thresholds: {

@@ -9,7 +9,6 @@ import com.biblioo.books.infrasestructure.search.OpenSearchBookAdapter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.springframework.dao.DataIntegrityViolationException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -19,6 +18,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +32,7 @@ public class BookEnrichService {
   private final CategoryRepository categoryRepository;
   private final OpenSearchBookAdapter search;
   private final GoogleBooksAdapter external;
+
   @Qualifier("bookEnrichExecutor")
   private final Executor bookEnrichExecutor;
 
@@ -67,16 +68,19 @@ public class BookEnrichService {
       var saved = repository.saveAll(newBooks);
       // After saveAll, Hibernate replaces the authors List with a PersistentBag.
       // Convert to plain ArrayList so Redis can deserialize without a Hibernate session.
-      saved.forEach(b -> {
-        if (b.getAuthors() != null) {
-          b.setAuthors(new ArrayList<>(b.getAuthors()));
-        }
-      });
+      saved.forEach(
+          b -> {
+            if (b.getAuthors() != null) {
+              b.setAuthors(new ArrayList<>(b.getAuthors()));
+            }
+          });
       CompletableFuture.runAsync(() -> search.indexAll(saved), bookEnrichExecutor);
       return saved;
     } catch (DataIntegrityViolationException e) {
-      // Inserção concorrente: outra thread salvou os mesmos ISBNs entre o filterExisting e o saveAll.
-      // Com sync=true no @Cacheable isso raramente ocorre, mas mantemos como defesa de profundidade.
+      // Inserção concorrente: outra thread salvou os mesmos ISBNs entre o filterExisting e o
+      // saveAll.
+      // Com sync=true no @Cacheable isso raramente ocorre, mas mantemos como defesa de
+      // profundidade.
       log.debug(
           "Inserção concorrente detectada. Livros já foram salvos por outra thread. Causa: {}",
           e.getMessage());

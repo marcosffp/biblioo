@@ -3,7 +3,7 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 300,  // deve ser >= ao número máximo de VUs para evitar que VUs compartilhem usuário/estante
+  userPoolSize: 400,  // deve ser >= ao número máximo de VUs para evitar que VUs compartilhem usuário/estante
   password:     'senha12345',
   prefix:       'stressshelfitem',
 
@@ -11,7 +11,7 @@ const CONFIG = {
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300],  // VUs por estágio (rampa crescente)
+    stages:        [20, 50, 100, 200, 300, 400],  // VUs por estágio (rampa crescente)
   },
 
   thresholds: {
@@ -63,7 +63,7 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '120s',  // setup cria 300 usuários; timeout padrão de 60s pode não ser suficiente
+  setupTimeout: '300s',  // setup cria 300 usuários; timeout aumentado para suportar a carga local
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
     { duration: CONFIG.stress.stageDuration, target: 0 },  // rampa de descida

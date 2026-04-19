@@ -3,8 +3,8 @@ package com.biblioo.infrastructure.web;
 import com.biblioo.books.domain.exception.BookNotFoundException;
 import com.biblioo.books.domain.exception.ShelfBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
-import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
+import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
@@ -27,6 +27,21 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  // ── Community ─────────────────────────────────────────────────────────────
+  @ExceptionHandler(com.biblioo.community.domain.exception.CommunityBusinessException.class)
+  ResponseEntity<ErrorResponse> handleCommunityBusiness(
+      com.biblioo.community.domain.exception.CommunityBusinessException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.CommunityAccessDeniedException.class)
+  ResponseEntity<ErrorResponse> handleCommunityAccessDenied(
+      com.biblioo.community.domain.exception.CommunityAccessDeniedException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+  }
 
   // ── Feed / Reviews ────────────────────────────────────────────────────────
   @ExceptionHandler(com.biblioo.feed.domain.exception.ReviewBusinessException.class)
@@ -169,7 +184,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(org.springframework.dao.InvalidDataAccessApiUsageException.class)
   ResponseEntity<ErrorResponse> handleInvalidDataAccess(
       org.springframework.dao.InvalidDataAccessApiUsageException ex, HttpServletRequest request) {
-    return buildError(HttpStatus.BAD_REQUEST, "Parâmetros de busca ou ordenação inválidos.", request);
+    return buildError(
+        HttpStatus.BAD_REQUEST, "Parâmetros de busca ou ordenação inválidos.", request);
   }
 
   @ExceptionHandler(Exception.class)

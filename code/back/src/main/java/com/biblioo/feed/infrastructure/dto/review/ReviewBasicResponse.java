@@ -7,5 +7,4 @@ public record ReviewBasicResponse(
     Integer rating,
     Boolean hasSpoiler,
     Integer commentCount,
-    Integer likeCount
-) {}
+    Integer likeCount) {}

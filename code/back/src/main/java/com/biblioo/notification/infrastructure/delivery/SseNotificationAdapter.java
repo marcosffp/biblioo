@@ -50,7 +50,8 @@ public class SseNotificationAdapter implements NotificationDeliveryPort {
         "type", notification.getType().name(),
         "actorId", notification.getActorId(),
         "actorUsername", notification.getActorUsername(),
-        "actorAvatarUrl", notification.getActorAvatarUrl() != null ? notification.getActorAvatarUrl() : "",
+        "actorAvatarUrl",
+            notification.getActorAvatarUrl() != null ? notification.getActorAvatarUrl() : "",
         "entityId", notification.getEntityId() != null ? notification.getEntityId() : "",
         "createdAt", notification.getCreatedAt().toString());
   }

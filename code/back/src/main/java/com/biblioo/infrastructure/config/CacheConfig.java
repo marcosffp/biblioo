@@ -50,6 +50,8 @@ public class CacheConfig implements CachingConfigurer {
         .withCacheConfiguration("google-books", base.entryTtl(Duration.ofMinutes(10)))
         // user
         .withCacheConfiguration("user-profile", base.entryTtl(Duration.ofMinutes(5)))
+        // community
+        .withCacheConfiguration("community-membership", base.entryTtl(Duration.ofMinutes(2)))
         .build();
   }
 

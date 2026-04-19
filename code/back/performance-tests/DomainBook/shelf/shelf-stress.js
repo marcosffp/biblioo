@@ -3,13 +3,13 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 50,
+  userPoolSize: 500,
   password:     'senha12345',
   prefix:       'stressshelf',
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300],  // VUs por estágio (rampa crescente)
+    stages:        [20, 50, 100, 200, 300, 400],  // VUs por estágio (rampa crescente)
   },
 
   thresholds: {
@@ -51,6 +51,7 @@ export function setup() {
 }
 
 export const options = {
+  setupTimeout: '300s', // setup cria 500 usuários, aumentado para suportar máquina local
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
     { duration: CONFIG.stress.stageDuration, target: 0 },  // rampa de descida

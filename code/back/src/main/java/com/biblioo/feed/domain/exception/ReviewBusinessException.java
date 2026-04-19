@@ -5,4 +5,3 @@ public class ReviewBusinessException extends RuntimeException {
     super(message);
   }
 }
-

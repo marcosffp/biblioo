@@ -19,10 +19,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 @EnableScheduling
 public class OpenSearchConfig {
 
-  @Value("${opensearch.host:localhost}")
+  @Value("${opensearch.host}")
   private String host;
 
-  @Value("${opensearch.port:9200}")
+  @Value("${opensearch.port}")
   private int port;
 
   private PoolingNHttpClientConnectionManager connectionManager;

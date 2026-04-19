@@ -182,7 +182,8 @@ public class ReviewController {
   @GetMapping("/user/{userId}")
   @Operation(
       summary = "Lista avaliações de um usuário de forma completa",
-      description = "Retorna as avaliações recentes de um usuário específico, com todos os detalhes.")
+      description =
+          "Retorna as avaliações recentes de um usuário específico, com todos os detalhes.")
   public ResponseEntity<Page<ReviewResponse>> getUserReviews(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
       @PageableDefault(size = 10) Pageable pageable) {
@@ -194,7 +195,8 @@ public class ReviewController {
   @GetMapping("/user/{userId}/basic")
   @Operation(
       summary = "Lista avaliações de um usuário de forma resumida",
-      description = "Retorna as informações básicas das avaliações recentes de um usuário específico.")
+      description =
+          "Retorna as informações básicas das avaliações recentes de um usuário específico.")
   public ResponseEntity<Page<ReviewBasicResponse>> getUserReviewsBasic(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
       @PageableDefault(size = 10) Pageable pageable) {

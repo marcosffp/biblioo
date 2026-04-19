@@ -23,13 +23,13 @@ public class BecauseYouReadService implements RecommendationUseCase {
   private final BecauseYouReadFallbackService fallbackService;
   private final RecommendationResultRepository resultRepository;
 
-  @Value("${recommendation.t1.candidate-limit:20}")
+  @Value("${recommendation.t1.candidate-limit}")
   private int candidateLimit;
 
-  @Value("${recommendation.t1.score-jitter-pct:0.03}")
+  @Value("${recommendation.t1.score-jitter-pct}")
   private double jitterPct;
 
-  @Value("${recommendation.t1.max-same-category-ratio:0.60}")
+  @Value("${recommendation.t1.max-same-category-ratio}")
   private double maxSameCategoryRatio;
 
   public void compute(Long userId, Long bookId, Long shelfItemId, String finishedAt) {

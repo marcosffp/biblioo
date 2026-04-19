@@ -1,17 +1,17 @@
 package com.biblioo.feed.domain.service;
 
 import com.biblioo.feed.domain.exception.ReviewBusinessException;
-import com.biblioo.feed.domain.model.Review;
-import com.biblioo.feed.domain.port.in.ReviewUseCase;
 import com.biblioo.feed.domain.model.Like;
 import com.biblioo.feed.domain.model.LikeType;
+import com.biblioo.feed.domain.model.Review;
+import com.biblioo.feed.domain.port.in.ReviewUseCase;
 import com.biblioo.feed.domain.port.out.BookPort;
 import com.biblioo.feed.domain.port.out.FeedEventPublisherPort;
 import com.biblioo.feed.domain.port.out.FeedImagePort;
-import com.biblioo.feed.infrastructure.persistence.LikeRepository;
 import com.biblioo.feed.domain.port.out.ShelfInteractionPort;
 import com.biblioo.feed.domain.port.out.UserPort;
 import com.biblioo.feed.infrastructure.persistence.CommentRepository;
+import com.biblioo.feed.infrastructure.persistence.LikeRepository;
 import com.biblioo.feed.infrastructure.persistence.LikeSaveHelper;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
 import java.util.ArrayList;
@@ -132,8 +132,7 @@ public class ReviewService implements ReviewUseCase {
     review.setImages(currentImages);
     var savedReview = reviewRepository.save(review);
 
-    feedEventPublisherPort.publishBookReviewStatsUpdated(
-        review.getBookId(), oldRating, rating);
+    feedEventPublisherPort.publishBookReviewStatsUpdated(review.getBookId(), oldRating, rating);
 
     return savedReview;
   }
@@ -187,7 +186,7 @@ public class ReviewService implements ReviewUseCase {
       return false;
     }
 
-var like = Like.builder().contentId(reviewId).userId(userId).type(LikeType.LIKE).build();
+    var like = Like.builder().contentId(reviewId).userId(userId).type(LikeType.LIKE).build();
     boolean inserted = likeSaveHelper.tryInsert(like);
     if (inserted) {
       reviewRepository.incrementLikeCount(reviewId);

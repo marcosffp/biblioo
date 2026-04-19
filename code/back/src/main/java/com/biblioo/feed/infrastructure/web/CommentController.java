@@ -57,14 +57,15 @@ public class CommentController {
   public ResponseEntity<CommentResponse> createComment(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId,
-      @Parameter(description = "Texto do comentário (até 2000 caracteres)", example = "Ótima review!")
+      @Parameter(
+              description = "Texto do comentário (até 2000 caracteres)",
+              example = "Ótima review!")
           @RequestParam(required = false)
           String text,
       @Parameter(description = "Imagens a anexar ao comentário (máx 5)")
           @RequestPart(required = false)
           List<MultipartFile> images,
-      @Parameter(description = "GIF animado a anexar ao comentário")
-          @RequestPart(required = false)
+      @Parameter(description = "GIF animado a anexar ao comentário") @RequestPart(required = false)
           MultipartFile gif) {
 
     Long userId = Long.parseLong(principal.getUsername());
@@ -84,8 +85,7 @@ public class CommentController {
   public ResponseEntity<CommentResponse> updateComment(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do comentário", example = "1") @PathVariable Long commentId,
-      @Parameter(description = "Novo texto do comentário (até 2000 caracteres)")
-          @RequestParam
+      @Parameter(description = "Novo texto do comentário (até 2000 caracteres)") @RequestParam
           String text,
       @Parameter(description = "URLs de imagens a remover do comentário")
           @RequestParam(required = false)
@@ -93,8 +93,7 @@ public class CommentController {
       @Parameter(description = "Novas imagens a adicionar (máx 5 no total)")
           @RequestPart(required = false)
           List<MultipartFile> images,
-      @Parameter(description = "Novo GIF (substitui o atual)")
-          @RequestPart(required = false)
+      @Parameter(description = "Novo GIF (substitui o atual)") @RequestPart(required = false)
           MultipartFile gif) {
 
     Long userId = Long.parseLong(principal.getUsername());
@@ -140,7 +139,6 @@ public class CommentController {
 
     return ResponseEntity.ok(commentMapper.toResponse(commentUseCase.getCommentById(commentId)));
   }
-
 
   private String sanitize(String html) {
     if (html == null) return null;

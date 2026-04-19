@@ -5,4 +5,3 @@ public class CommentBusinessException extends RuntimeException {
     super(message);
   }
 }
-

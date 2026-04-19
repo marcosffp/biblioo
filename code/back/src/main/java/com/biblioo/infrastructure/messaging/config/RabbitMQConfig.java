@@ -42,6 +42,26 @@ public class RabbitMQConfig {
   public static final String EVENT_USER_FOLLOW_REQUESTED = "USER_FOLLOW_REQUESTED";
   public static final String EVENT_USER_FOLLOWED = "USER_FOLLOWED";
 
+  // Community events
+  public static final String NOTIFICATION_COMMUNITY_INVITE_ROUTING_KEY =
+      "notification.community.invite";
+  public static final String NOTIFICATION_COMMUNITY_JOIN_REQUEST_ROUTING_KEY =
+      "notification.community.join-request";
+  public static final String NOTIFICATION_COMMUNITY_JOIN_APPROVED_ROUTING_KEY =
+      "notification.community.join-approved";
+
+  public static final String EVENT_COMMUNITY_INVITE = "COMMUNITY_INVITE";
+  public static final String EVENT_COMMUNITY_JOIN_REQUEST = "COMMUNITY_JOIN_REQUEST";
+  public static final String EVENT_COMMUNITY_JOIN_APPROVED = "COMMUNITY_JOIN_APPROVED";
+
+  // ── Community Messages (future FCM offline delivery) ─────────────────────────
+  public static final String COMMUNITY_MESSAGE_QUEUE = "biblioo.community.message";
+  public static final String COMMUNITY_MESSAGE_DLQ = "biblioo.community.message.dlq";
+  public static final String COMMUNITY_MESSAGE_ROUTING_PATTERN = "community.message.#";
+  public static final String COMMUNITY_MESSAGE_ROUTING_KEY = "community.message.created";
+  public static final String COMMUNITY_MESSAGE_DLQ_ROUTING_KEY = "community.message.dead";
+  public static final String EVENT_COMMUNITY_MESSAGE_CREATED = "COMMUNITY_MESSAGE_CREATED";
+
   // ── Recommendation T1 — BECAUSE_YOU_READ ────────────────────────────────────
   public static final String REC_QUEUE = "rec.shelf.completed";
   public static final String REC_DLQ = "rec.shelf.completed.dlq";
@@ -104,9 +124,7 @@ public class RabbitMQConfig {
 
   @Bean
   Binding notificationDlqBinding(Queue notificationDlq, DirectExchange dlxExchange) {
-    return BindingBuilder.bind(notificationDlq)
-        .to(dlxExchange)
-        .with(NOTIFICATION_DLQ_ROUTING_KEY);
+    return BindingBuilder.bind(notificationDlq).to(dlxExchange).with(NOTIFICATION_DLQ_ROUTING_KEY);
   }
 
   @Bean

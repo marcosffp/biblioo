@@ -39,7 +39,6 @@ public class BookController {
         bookUseCase.search(q.trim()).stream().map(bookMapper::toResponse).toList());
   }
 
-
   @GetMapping("/{id}")
   @Operation(
       summary = "Detalhes do livro",

@@ -5,7 +5,6 @@ import com.biblioo.notification.domain.port.out.NotificationDeliveryPort;
 import com.biblioo.notification.infrastructure.persistence.DeviceTokenRepository;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification.Builder;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,9 +33,7 @@ public class FcmNotificationAdapter implements NotificationDeliveryPort {
           Message.builder()
               .setToken(token)
               .setNotification(
-                  com.google.firebase.messaging.Notification.builder()
-                      .setTitle(title)
-                      .build())
+                  com.google.firebase.messaging.Notification.builder().setTitle(title).build())
               .putData("notificationId", notification.getId())
               .putData("type", notification.getType().name())
               .putData("actorId", notification.getActorId().toString())
@@ -46,9 +43,7 @@ public class FcmNotificationAdapter implements NotificationDeliveryPort {
                   notification.getActorAvatarUrl() != null ? notification.getActorAvatarUrl() : "")
               .putData(
                   "entityId",
-                  notification.getEntityId() != null
-                      ? notification.getEntityId().toString()
-                      : "")
+                  notification.getEntityId() != null ? notification.getEntityId().toString() : "")
               .build();
 
       FirebaseMessaging.getInstance().send(message);
@@ -64,14 +59,13 @@ public class FcmNotificationAdapter implements NotificationDeliveryPort {
 
   private String buildTitle(Notification notification) {
     return switch (notification.getType()) {
-      case USER_FOLLOW_REQUESTED ->
-          notification.getActorUsername() + " quer te seguir";
-      case USER_FOLLOWED ->
-          notification.getActorUsername() + " começou a te seguir";
-      case COMMENT_REPLIED ->
-          notification.getActorUsername() + " respondeu seu comentário";
-      case REVIEW_LIKED ->
-          notification.getActorUsername() + " curtiu sua resenha";
+      case USER_FOLLOW_REQUESTED -> notification.getActorUsername() + " quer te seguir";
+      case USER_FOLLOWED -> notification.getActorUsername() + " começou a te seguir";
+      case COMMENT_REPLIED -> notification.getActorUsername() + " respondeu seu comentário";
+      case REVIEW_LIKED -> notification.getActorUsername() + " curtiu sua resenha";
+      case COMMUNITY_INVITE -> "Você foi convidado para uma comunidade";
+      case COMMUNITY_JOIN_REQUEST -> "Nova solicitação de entrada na sua comunidade";
+      case COMMUNITY_JOIN_APPROVED -> "Sua solicitação foi aprovada!";
     };
   }
 }

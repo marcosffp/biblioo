@@ -2,7 +2,6 @@ package com.biblioo.feed.domain.port.in;
 
 import com.biblioo.feed.domain.model.Review;
 import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

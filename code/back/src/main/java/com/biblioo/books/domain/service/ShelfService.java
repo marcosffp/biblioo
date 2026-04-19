@@ -56,39 +56,40 @@ public class ShelfService implements ShelfUseCase {
     return shelfRepository.save(shelf);
   }
 
-@Override
-@Transactional
-@Caching(
-    evict = {@CacheEvict(value = "shelf-list", key = "#userId")},
-    put = {@CachePut(value = "shelf", key = "#shelfId")})
-public Shelf updateShelf(Long userId, Long shelfId, String name, String description) {
-  Shelf shelf = shelfRepository
-      .findByIdAndUserId(shelfId, userId)
-      .orElseThrow(() -> new ShelfBusinessException("Estante não encontrada"));
+  @Override
+  @Transactional
+  @Caching(
+      evict = {@CacheEvict(value = "shelf-list", key = "#userId")},
+      put = {@CachePut(value = "shelf", key = "#shelfId")})
+  public Shelf updateShelf(Long userId, Long shelfId, String name, String description) {
+    Shelf shelf =
+        shelfRepository
+            .findByIdAndUserId(shelfId, userId)
+            .orElseThrow(() -> new ShelfBusinessException("Estante não encontrada"));
 
-  validateName(name);
-  String trimmedName = name.trim();
+    validateName(name);
+    String trimmedName = name.trim();
 
-  boolean isNameUnchanged = shelf.getName().equals(trimmedName);
-  boolean isDescriptionUnchanged =
-      (description == null || description.equals(shelf.getDescription()));
+    boolean isNameUnchanged = shelf.getName().equals(trimmedName);
+    boolean isDescriptionUnchanged =
+        (description == null || description.equals(shelf.getDescription()));
 
-  if (isNameUnchanged && isDescriptionUnchanged) {
-    return shelf;
+    if (isNameUnchanged && isDescriptionUnchanged) {
+      return shelf;
+    }
+
+    if (!isNameUnchanged
+        && shelfRepository.existsByUserIdAndNameAndIdNot(userId, trimmedName, shelfId)) {
+      throw new ShelfBusinessException("Já existe uma estante com este nome.");
+    }
+
+    shelf.setName(trimmedName);
+    if (description != null) {
+      shelf.setDescription(description.isBlank() ? null : description.trim());
+    }
+
+    return shelfRepository.save(shelf);
   }
-
-  if (!isNameUnchanged &&
-      shelfRepository.existsByUserIdAndNameAndIdNot(userId, trimmedName, shelfId)) {
-    throw new ShelfBusinessException("Já existe uma estante com este nome.");
-  }
-
-  shelf.setName(trimmedName);
-  if (description != null) {
-    shelf.setDescription(description.isBlank() ? null : description.trim());
-  }
-
-  return shelfRepository.save(shelf);
-}
 
   @Override
   @Transactional

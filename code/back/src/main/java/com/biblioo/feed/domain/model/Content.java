@@ -14,7 +14,15 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Data
 @NoArgsConstructor
 @SuperBuilder
-@MappedSuperclass
+@Entity
+@Inheritance(strategy = InheritanceType.JOINED)
+@Table(
+    name = "content",
+    indexes = {
+      @Index(name = "idx_content_user_id", columnList = "user_id"),
+      @Index(name = "idx_content_created_at", columnList = "created_at"),
+      @Index(name = "idx_content_is_deleted", columnList = "is_deleted")
+    })
 public abstract class Content {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

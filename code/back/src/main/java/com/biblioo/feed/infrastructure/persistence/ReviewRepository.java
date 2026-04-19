@@ -48,9 +48,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
       "UPDATE Review r SET r.commentCount = r.commentCount - 1 WHERE r.id = :reviewId AND r.commentCount > 0")
   void decrementCommentCount(@Param("reviewId") Long reviewId);
 
-@Query(
-    "SELECT AVG(r.rating) FROM Review r WHERE r.bookId = :bookId AND r.rating IS NOT NULL AND r.isDeleted = false")
-Double calculateAverageRating(@Param("bookId") Long bookId);
+  @Query(
+      "SELECT AVG(r.rating) FROM Review r WHERE r.bookId = :bookId AND r.rating IS NOT NULL AND r.isDeleted = false")
+  Double calculateAverageRating(@Param("bookId") Long bookId);
 
   @Query(
       "SELECT COUNT(r) FROM Review r WHERE r.bookId = :bookId AND r.rating IS NOT NULL AND r.isDeleted = false")

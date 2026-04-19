@@ -16,8 +16,8 @@ const CONFIG = {
   ],
 
   spike: {
-    baseVus:    20,
-    peakVus:    200,
+    baseVus: 50,
+    peakVus: 300,
     rampUpBase: '10s',
     rampToPeak: '5s',
     holdPeak:   '20s',
