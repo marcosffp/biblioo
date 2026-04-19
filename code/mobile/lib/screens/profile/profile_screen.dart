@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'widgets/profile_dna_section.dart';
 import 'widgets/profile_details_section.dart';
 import 'widgets/profile_header.dart';
+import 'widgets/profile_privacy_notice.dart';
 import 'widgets/profile_stats_card.dart';
 
 enum ProfileTarget { me, user }
@@ -69,6 +70,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         authState.session.user.username == user.username;
   }
 
+  bool _canSeePrivateSections(User user, bool isOwner) {
+    return isOwner || !user.restricted;
+  }
+
   void _shareProfile() {
     ScaffoldMessenger.of(
       context,
@@ -105,6 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         final user = (state as UserLoaded).user;
         final isOwner = _isOwner(user);
+        final canSeePrivateSections = _canSeePrivateSections(user, isOwner);
 
         return Scaffold(
           body: CustomScrollView(
@@ -144,13 +150,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 8),
                       ProfileDetailsSection(user: user, isOwner: isOwner),
-                      const SizedBox(height: 20),
-                      const ProfileStatsCard(),
-                      const SizedBox(height: 20),
-                      if (isOwner || !user.restricted)
+                      if (canSeePrivateSections) ...[
+                        const SizedBox(height: 20),
+                        const ProfileStatsCard(),
+                        const SizedBox(height: 20),
                         ProfileDnaSection(
                           onSeeMore: () => context.push('/profile/dna'),
                         ),
+                      ] else ...[
+                        const SizedBox(height: 20),
+                        const ProfilePrivacyNotice(),
+                      ],
                       const SizedBox(height: 80),
                     ],
                   ),

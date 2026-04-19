@@ -17,6 +17,15 @@ class AuthRepository {
 
   const AuthRepository(this._remote, this._local);
 
+  bool _isConnectivityError(Object error) {
+    return error is DioException &&
+        (error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.receiveTimeout ||
+            error.type == DioExceptionType.sendTimeout ||
+            error.type == DioExceptionType.connectionError ||
+            error.type == DioExceptionType.unknown);
+  }
+
   AuthFailure _mapDioError(DioException e) {
     final status = e.response?.statusCode;
     final data = e.response?.data;
@@ -63,18 +72,45 @@ class AuthRepository {
     final refresh = _local.getRefreshToken();
     if (access == null || refresh == null) return null;
 
+    final cachedUser = _local.getSessionUser();
+
     try {
       final result = await _remote.refresh(refresh);
       await _local.saveTokens(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
+      await _local.saveSessionUser(result.user.toEntity());
       return AuthSession(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
         user: result.user.toEntity(),
       );
-    } catch (_) {
+    } on DioException catch (e) {
+      // Token realmente invalido/expirado: encerra sessao.
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        await _local.clearTokens();
+        return null;
+      }
+
+      // Rede indisponivel/instavel: entra com sessao local se existir.
+      if (cachedUser != null && _isConnectivityError(e)) {
+        return AuthSession(
+          accessToken: access,
+          refreshToken: refresh,
+          user: cachedUser,
+        );
+      }
+
+      // Para erros nao-autenticacao, preserva sessao local quando possivel.
+      if (cachedUser != null) {
+        return AuthSession(
+          accessToken: access,
+          refreshToken: refresh,
+          user: cachedUser,
+        );
+      }
+
       await _local.clearTokens();
       return null;
     }
@@ -90,6 +126,7 @@ class AuthRepository {
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
+      await _local.saveSessionUser(result.user.toEntity());
       return AuthSession(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
@@ -115,6 +152,7 @@ class AuthRepository {
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
+      await _local.saveSessionUser(result.user.toEntity());
       return AuthSession(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,

@@ -14,6 +14,7 @@ class CollectionBloc extends Bloc<CollectionEvent, CollectionState> {
     on<CollectionDeleteRequested>(_onDelete);
     on<CollectionAddShelfRequested>(_onAddShelf);
     on<CollectionRemoveShelfRequested>(_onRemoveShelf);
+    on<CollectionStatisticsRequested>(_onStatistics);
   }
 
   Future<void> _onLoad(
@@ -105,6 +106,20 @@ class CollectionBloc extends Bloc<CollectionEvent, CollectionState> {
     } catch (e, st) {
       debugPrint('[CollectionBloc] ${event.runtimeType}: $e\n$st');
       emit(CollectionError('Erro ao remover estante.'));
+    }
+  }
+
+  Future<void> _onStatistics(
+    CollectionStatisticsRequested event,
+    Emitter<CollectionState> emit,
+  ) async {
+    emit(CollectionStatisticsLoading());
+    try {
+      final stats = await _repository.getCollectionStatistics(event.collectionId);
+      emit(CollectionStatisticsLoaded(stats));
+    } catch (e, st) {
+      debugPrint('[CollectionBloc] ${event.runtimeType}: $e\n$st');
+      emit(CollectionStatisticsError('Não foi possível carregar as estatísticas.'));
     }
   }
 }
