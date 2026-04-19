@@ -45,6 +45,7 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/books/**")
                     .permitAll()
+                    .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
                     // Communities: endpoints autenticados ANTES dos wildcards
                     .requestMatchers(
                         HttpMethod.GET, "/communities/mine", "/communities/invites/pending")
