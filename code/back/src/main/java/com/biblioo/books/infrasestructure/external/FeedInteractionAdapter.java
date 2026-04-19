@@ -9,6 +9,7 @@ import com.biblioo.books.domain.port.in.ShelfUseCase;
 import com.biblioo.books.infrasestructure.persistence.BookRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfItemRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfRepository;
+import com.biblioo.community.domain.port.out.CommunityBookLookupPort;
 import com.biblioo.feed.domain.port.out.BookPort;
 import com.biblioo.feed.domain.port.out.ShelfInteractionPort;
 import java.util.List;
@@ -18,7 +19,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class FeedInteractionAdapter implements BookPort, ShelfInteractionPort {
+public class FeedInteractionAdapter implements BookPort, ShelfInteractionPort, CommunityBookLookupPort {
 
   private final BookUseCase bookUseCase;
   private final BookRepository bookRepository;
