@@ -47,57 +47,49 @@ class ProfileDetailsSection extends StatelessWidget {
             ),
           ],
         ),
-        if (!isOwner && user.restricted) ...[
-          const SizedBox(height: 10),
-          Text(
-            'Esse perfil é privado. Siga para ver mais detalhes.',
-            style: theme.textTheme.bodyMedium,
-          ),
-        ] else ...[
-          if (user.bio != null) ...[
-            const SizedBox(height: 8),
-            Text(user.bio!, style: theme.textTheme.bodyMedium),
-          ],
-          if (user.email != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.mail_outline,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    user.email!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (user.createdAt != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Desde ${_formatCreatedAt(user.createdAt!)}',
+        if (user.bio != null) ...[
+          const SizedBox(height: 8),
+          Text(user.bio!, style: theme.textTheme.bodyMedium),
+        ],
+        if (user.email != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.mail_outline,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  user.email!,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
+        ],
+        if (user.createdAt != null) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Desde ${_formatCreatedAt(user.createdAt!)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ],
       ],
     );
