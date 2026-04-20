@@ -242,7 +242,7 @@ export function ShelfBookDetailsPanel({
           <BackHeader
             onBack={onClose}
             ariaLabel="Voltar para estante"
-            title="Detalhes do livro"
+            backLabel="Voltar para estante"
             className="items-center"
             titleClassName="text-sm font-semibold text-[var(--text-secondary)]"
           />

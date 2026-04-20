@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components";
 import { getAccessToken } from "@/services/auth";
 import {
@@ -146,10 +147,11 @@ export default function EditarPerfilPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/profile"
-              className="inline-flex items-center justify-center rounded-md px-2 py-2 text-gray-700 hover:bg-gray-100"
-              aria-label="Voltar"
+              className="inline-flex items-center gap-2 rounded-md px-1 py-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
+              aria-label="Voltar para perfil"
             >
-              <span aria-hidden className="text-lg">� �</span>
+              <ArrowLeft size={18} />
+              <span>Voltar para perfil</span>
             </Link>
             <h1 className="text-lg font-semibold text-gray-900">Editar perfil</h1>
           </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Book, Rss, Sparkles, Users, User } from "lucide-react";
+  import { Book, CirclePlus, Compass, Rss, User, Users } from "lucide-react";
 import React from "react";
 
 export interface SidebarItem {
@@ -19,8 +19,8 @@ export interface SidebarProps {
 const defaultItems: SidebarItem[] = [
   { label: "Feed", href: "/feed", icon: <Rss size={18} /> },
   { label: "Estante", href: "/bookcase", icon: <Book size={18} /> },
-  { label: "Para Você", href: "/for-you", icon: <Sparkles size={18} /> },
   { label: "Comunidades", href: "/community", icon: <Users size={18} /> },
+  { label: "Explorar", href: "/for-you", icon: <Compass size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
 
