@@ -1,106 +1,50 @@
 "use client";
 
 import React from "react";
-import { MessageCircle, Plus, Users } from "lucide-react";
+import { MessageCircle, Users } from "lucide-react";
 import {
   AppShell,
   ChipToggle,
   CommunityCard,
   PageHeader,
   SectionHeader,
-  SecondaryButton,
 } from "@/components";
 import { CommunityChatView } from "@/components/community/CommunityChatView";
 import { CommunityCreateModal } from "@/components/community/CommunityCreateModal";
-import type { Community, CommunityBookOption, CommunityVisibility } from "@/hooks/useCommunity";
+import {
+  useCommunity,
+  type CommunityBookOption,
+  type CommunityVisibility,
+} from "@/hooks/useCommunity";
 
-const initialCommunities: Community[] = [
-  {
-    id: "c1",
-    name: "Clube do Livro: 1984",
-    bookId: 1,
-    bookTitle: "1984 - George Orwell",
-    visibility: "PUBLIC",
-    members: 156,
-    discussions: 342,
-    isMember: true,
-    ownerId: "u1",
-    description: "Leitura conjunta de classicos distopicos com encontros semanais.",
-    createdAtLabel: "marco de 2025",
-  },
-  {
-    id: "c2",
-    name: "Fas de Clarice",
-    bookId: 2,
-    bookTitle: "A Hora da Estrela",
-    visibility: "PUBLIC",
-    members: 89,
-    discussions: 127,
-    isMember: true,
-    ownerId: "u2",
-    description: "Espaco para discutir Clarice com sensibilidade e sem pressa.",
-    createdAtLabel: "abril de 2025",
-  },
-  {
-    id: "c3",
-    name: "Leitores de Fantasia",
-    bookId: 3,
-    bookTitle: "O Nome do Vento",
-    visibility: "PRIVATE",
-    members: 234,
-    discussions: 891,
-    isMember: true,
-    ownerId: "u3",
-    description: "Grupo fechado para leitores de fantasia epica.",
-    createdAtLabel: "julho de 2025",
-  },
-  {
-    id: "c4",
-    name: "Debates Distopicos",
-    bookId: 4,
-    bookTitle: "Admiravel Mundo Novo",
-    visibility: "PUBLIC",
-    members: 72,
-    discussions: 95,
-    isMember: false,
-    ownerId: "u4",
-    description: "Debates mensais sobre distopias classicas e modernas.",
-    createdAtLabel: "janeiro de 2026",
-  },
-];
-
-const initialBookOptions: CommunityBookOption[] = initialCommunities.map((community) => {
-  const [title, ...authorParts] = community.bookTitle.split(" - ");
-  return {
-    id: community.bookId,
-    title,
-    author: authorParts.join(" - ") || "Autor desconhecido",
-  };
-});
+type FormSubmitEvent = Parameters<NonNullable<React.ComponentProps<"form">["onSubmit"]>>[0];
 
 function normalizeCommunityName(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
-}
-
-function buildCommunityId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-
-  return `community-${Date.now()}`;
+  return value.replaceAll(/\s+/g, " ").trim();
 }
 
 export default function ComunidadesPage() {
+  const {
+    communities,
+    isLoadingCommunities,
+    communitiesError,
+    isSubmittingCreate,
+    createNewCommunity,
+    searchBookOptions,
+  } = useCommunity();
+
   const [tab, setTab] = React.useState<"minhas" | "descobrir">("minhas");
-  const [communities, setCommunities] = React.useState<Community[]>(initialCommunities);
   const [selectedCommunityId, setSelectedCommunityId] = React.useState<string | null>(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
   const [communityName, setCommunityName] = React.useState("");
   const [communityDescription, setCommunityDescription] = React.useState("");
   const [visibility, setVisibility] = React.useState<CommunityVisibility>("PUBLIC");
+  const [bookSearchTerm, setBookSearchTerm] = React.useState("");
   const [selectedBookId, setSelectedBookId] = React.useState("");
-  const [bookOptions] = React.useState<CommunityBookOption[]>(initialBookOptions);
+  const [bookOptions, setBookOptions] = React.useState<CommunityBookOption[]>([]);
+  const [isSearchingBooks, setIsSearchingBooks] = React.useState(false);
+  const [bookSearchError, setBookSearchError] = React.useState("");
   const [submitError, setSubmitError] = React.useState("");
 
   const normalizedCommunityName = normalizeCommunityName(communityName);
@@ -121,7 +65,10 @@ export default function ComunidadesPage() {
     setCommunityName("");
     setCommunityDescription("");
     setVisibility("PUBLIC");
+    setBookSearchTerm("");
     setSelectedBookId("");
+    setBookOptions([]);
+    setBookSearchError("");
     setSubmitError("");
   }, []);
 
@@ -134,7 +81,56 @@ export default function ComunidadesPage() {
     setIsCreateModalOpen(false);
   }, []);
 
-  const handleSubmitCreateCommunity = (event: React.FormEvent<HTMLFormElement>) => {
+  React.useEffect(() => {
+    if (!isCreateModalOpen) {
+      return;
+    }
+
+    const normalizedSearch = bookSearchTerm.trim();
+
+    if (normalizedSearch.length < 2) {
+      setBookOptions([]);
+      setBookSearchError("");
+      setIsSearchingBooks(false);
+      return;
+    }
+
+    let isCancelled = false;
+    const timeoutId = globalThis.setTimeout(async () => {
+      setIsSearchingBooks(true);
+      setBookSearchError("");
+
+      try {
+        const options = await searchBookOptions(normalizedSearch);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setBookOptions(options);
+
+        if (options.length === 0) {
+          setBookSearchError("Nenhum livro encontrado para esta busca.");
+        }
+      } catch {
+        if (!isCancelled) {
+          setBookOptions([]);
+          setBookSearchError("Nao foi possivel buscar livros no momento.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsSearchingBooks(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      isCancelled = true;
+      globalThis.clearTimeout(timeoutId);
+    };
+  }, [bookSearchTerm, isCreateModalOpen, searchBookOptions]);
+
+  const handleSubmitCreateCommunity = (event: FormSubmitEvent) => {
     event.preventDefault();
     setSubmitError("");
 
@@ -146,7 +142,7 @@ export default function ComunidadesPage() {
     const selectedBook = bookOptions.find((book) => String(book.id) === selectedBookId);
 
     if (!selectedBook) {
-      setSubmitError("Selecione um livro existente do catalogo para criar a comunidade.");
+      setSubmitError("Selecione um livro da busca para criar a comunidade.");
       return;
     }
 
@@ -159,23 +155,27 @@ export default function ComunidadesPage() {
       return;
     }
 
-    const newCommunity: Community = {
-      id: buildCommunityId(),
-      name: normalizedCommunityName,
-      bookId: selectedBook.id,
-      bookTitle: `${selectedBook.title} - ${selectedBook.author}`,
-      visibility,
-      members: 1,
-      discussions: 0,
-      isMember: true,
-      ownerId: "u1",
-      description: communityDescription.trim() || "Comunidade criada para discutir a leitura atual em grupo.",
-      createdAtLabel: "abril de 2026",
-    };
+    void (async () => {
+      try {
+        await createNewCommunity({
+          name: normalizedCommunityName,
+          description: communityDescription.trim(),
+          visibility,
+          bookId: selectedBook.id,
+          selectedBook,
+        });
 
-    setCommunities((current) => [newCommunity, ...current]);
-    setTab("minhas");
-    closeCreateModal();
+        setTab("minhas");
+        closeCreateModal();
+      } catch (error) {
+        if (error instanceof Error && error.message) {
+          setSubmitError(error.message);
+          return;
+        }
+
+        setSubmitError("Nao foi possivel criar a comunidade.");
+      }
+    })();
   };
 
   if (selectedCommunity) {
@@ -183,10 +183,8 @@ export default function ComunidadesPage() {
       <CommunityChatView
         community={selectedCommunity}
         onBack={() => setSelectedCommunityId(null)}
-        onUpdateCommunity={(nextCommunity) => {
-          setCommunities((current) =>
-            current.map((item) => (item.id === nextCommunity.id ? { ...item, ...nextCommunity } : item)),
-          );
+        onUpdateCommunity={() => {
+          // A atualizacao detalhada de comunidade sera sincronizada com backend nas proximas etapas.
         }}
       />
     );
@@ -230,6 +228,26 @@ export default function ComunidadesPage() {
 
       <SectionHeader title={tab === "minhas" ? "Minhas comunidades" : "Comunidades para descobrir"} />
       <div className="grid gap-3">
+        {isLoadingCommunities ? (
+          <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+            Carregando comunidades...
+          </p>
+        ) : null}
+
+        {!isLoadingCommunities && communitiesError ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {communitiesError}
+          </p>
+        ) : null}
+
+        {!isLoadingCommunities && !communitiesError && filteredCommunities.length === 0 ? (
+          <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+            {tab === "minhas"
+              ? "Voce ainda nao participa de comunidades."
+              : "Nenhuma comunidade encontrada no momento."}
+          </p>
+        ) : null}
+
         {filteredCommunities.map((community) => (
           <CommunityCard
             key={community.id}
@@ -256,9 +274,14 @@ export default function ComunidadesPage() {
         onChangeSelectedBookId={setSelectedBookId}
         visibility={visibility}
         onToggleVisibility={() => setVisibility((current) => (current === "PRIVATE" ? "PUBLIC" : "PRIVATE"))}
+        bookSearchTerm={bookSearchTerm}
+        onChangeBookSearchTerm={setBookSearchTerm}
+        isSearchingBooks={isSearchingBooks}
         bookOptions={bookOptions}
+        bookSearchError={bookSearchError}
         submitError={submitError}
-        canSubmit={normalizedCommunityName.length >= 3 && Boolean(selectedBookId)}
+        isSubmitting={isSubmittingCreate}
+        canSubmit={normalizedCommunityName.length >= 3 && Boolean(selectedBookId) && !isSearchingBooks}
       />
     </AppShell>
   );

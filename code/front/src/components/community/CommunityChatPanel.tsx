@@ -6,46 +6,57 @@ import type { Community, CommunityChatMessage } from "../../hooks/useCommunity";
 
 export interface CommunityChatPanelProps {
   community: Community;
-  messagesSeed: CommunityChatMessage[];
+  messages: CommunityChatMessage[];
+  isLoadingMessages: boolean;
+  isSendingMessage: boolean;
+  isConnected: boolean;
+  messageError?: string;
+  onSendMessage: (input: { content: string; hasSpoiler: boolean }) => Promise<void>;
   onBack: () => void;
   onOpenInfo: () => void;
 }
 
-export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo }: Readonly<CommunityChatPanelProps>) {
-  const [messages, setMessages] = React.useState<CommunityChatMessage[]>(messagesSeed);
+export function CommunityChatPanel({
+  community,
+  messages,
+  isLoadingMessages,
+  isSendingMessage,
+  isConnected,
+  messageError,
+  onSendMessage,
+  onBack,
+  onOpenInfo,
+}: Readonly<CommunityChatPanelProps>) {
   const [newMessage, setNewMessage] = React.useState("");
   const [spoilerEnabled, setSpoilerEnabled] = React.useState(false);
+  const [localSendError, setLocalSendError] = React.useState("");
   const [revealedSpoilers, setRevealedSpoilers] = React.useState<Set<string>>(new Set());
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
-
-  React.useEffect(() => {
-    setMessages(messagesSeed);
-  }, [messagesSeed, community.id]);
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = newMessage.trim();
     if (!text) {
       return;
     }
 
-    const now = new Date();
-    const message: CommunityChatMessage = {
-      id: `m-${now.getTime()}`,
-      userId: "me",
-      userName: "Voce",
-      text,
-      time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-      isMine: true,
-      isSpoiler: spoilerEnabled,
-    };
+    setLocalSendError("");
 
-    setMessages((current) => [...current, message]);
-    setNewMessage("");
-    setSpoilerEnabled(false);
+    try {
+      await onSendMessage({ content: text, hasSpoiler: spoilerEnabled });
+      setNewMessage("");
+      setSpoilerEnabled(false);
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setLocalSendError(error.message);
+        return;
+      }
+
+      setLocalSendError("Nao foi possivel enviar a mensagem.");
+    }
   };
 
   const revealSpoiler = (messageId: string) => {
@@ -55,7 +66,7 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      handleSend();
+      void handleSend();
     }
   };
 
@@ -101,6 +112,18 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
 
       <div className="flex-1 overflow-y-auto bg-white px-4 py-4 pb-20">
         <div className="mx-auto flex h-full w-full max-w-[1180px] flex-col gap-2.5">
+          {isLoadingMessages ? (
+            <p className="rounded-md border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+              Carregando mensagens...
+            </p>
+          ) : null}
+
+          {!isLoadingMessages && messageError ? (
+            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {messageError}
+            </p>
+          ) : null}
+
           {messages.map((message) => {
             if (message.isSystem) {
               return (
@@ -113,9 +136,9 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
             return (
               <div key={message.id} className={`flex ${message.isMine ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[56%] ${message.isMine ? "items-end" : "items-start"}`}>
-                  {!message.isMine ? (
+                  {message.isMine ? null : (
                     <p className="mb-0.5 ml-1 text-[11px] font-medium text-primary">{message.userName}</p>
-                  ) : null}
+                  )}
 
                   <div
                     className={`rounded-2xl px-4 py-1.5 text-[13px] leading-relaxed ${
@@ -171,12 +194,18 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
       </div>
 
       <div className="border-t border-border bg-white px-3 py-2">
+        {isConnected ? null : (
+          <p className="mb-2 ml-1 text-[11px] text-amber-700">Conectando ao chat em tempo real...</p>
+        )}
+
         {spoilerEnabled ? (
           <div className="mb-2 ml-1 flex items-center gap-1.5 text-[11px] text-amber-600">
             <AlertTriangle className="h-3 w-3" />
             Mensagem será marcada como spoiler!
           </div>
         ) : null}
+
+        {localSendError ? <p className="mb-2 ml-1 text-[11px] text-red-700">{localSendError}</p> : null}
 
         <div className="flex items-end gap-2">
           <label
@@ -203,8 +232,10 @@ export function CommunityChatPanel({ community, messagesSeed, onBack, onOpenInfo
 
           <button
             type="button"
-            onClick={handleSend}
-            disabled={!newMessage.trim()}
+            onClick={() => {
+              void handleSend();
+            }}
+            disabled={!newMessage.trim() || isSendingMessage}
             className="rounded-full bg-primary text-white p-2.5 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Enviar mensagem"
           >
