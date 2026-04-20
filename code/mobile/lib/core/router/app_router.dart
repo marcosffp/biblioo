@@ -1,6 +1,7 @@
 import 'package:biblioo/core/shell/main_shell.dart';
 import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
 import 'package:biblioo/screens/community/community_list_screen.dart';
+import 'package:biblioo/screens/community/community_detail_screen.dart';
 import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
 import 'package:biblioo/screens/auth/login_screen.dart';
 import 'package:biblioo/screens/auth/register_screen.dart';
@@ -143,15 +144,16 @@ final appRouter = GoRouter(
             GoRoute(
               path: '/community',
               builder: (context, state) => const CommunityListScreen(),
-              // Rota de detalhe desativada por ora.
-              // routes: [
-              //   GoRoute(
-              //     path: ':communityId',
-              //     builder: (context, state) => CommunityDetailScreen(
-              //       communityId: state.pathParameters['communityId']!,
-              //     ),
-              //   ),
-              // ],
+              routes: [
+                GoRoute(
+                  path: ':communityId',
+                  builder: (context, state) => CommunityDetailScreen(
+                    communityId: int.parse(
+                      state.pathParameters['communityId']!,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

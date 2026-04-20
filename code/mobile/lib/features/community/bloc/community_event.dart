@@ -2,10 +2,14 @@ import 'package:biblioo/features/community/domain/community.dart';
 
 abstract class CommunityEvent {}
 
-class CommunityLoadRequested extends CommunityEvent {}
+class CommunityLoadRequested extends CommunityEvent {
+  final String? query;
+  CommunityLoadRequested({this.query});
+}
 
 class CommunityCreateRequested extends CommunityEvent {
   final String name;
+  final String? description;
   final int bookId;
   final String bookTitle;
   final String bookAuthor;
@@ -14,6 +18,7 @@ class CommunityCreateRequested extends CommunityEvent {
 
   CommunityCreateRequested({
     required this.name,
+    this.description,
     required this.bookId,
     required this.bookTitle,
     required this.bookAuthor,
@@ -30,4 +35,9 @@ class CommunityJoinRequested extends CommunityEvent {
 class CommunityJoinByInviteRequested extends CommunityEvent {
   final String inviteCode;
   CommunityJoinByInviteRequested(this.inviteCode);
+}
+
+class CommunityLeaveRequested extends CommunityEvent {
+  final int communityId;
+  CommunityLeaveRequested(this.communityId);
 }

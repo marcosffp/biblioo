@@ -12,6 +12,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     on<CommunityCreateRequested>(_onCreate);
     on<CommunityJoinRequested>(_onJoin);
     on<CommunityJoinByInviteRequested>(_onJoinByInvite);
+    on<CommunityLeaveRequested>(_onLeave);
   }
 
   Future<void> _onLoad(
@@ -20,8 +21,15 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
   ) async {
     emit(CommunityLoading());
     try {
-      final (:mine, :suggestions) = await _repository.getCommunities();
-      emit(CommunityLoaded(mine: mine, suggestions: suggestions));
+      final result = await _repository.getCommunities(query: event.query);
+      emit(
+        CommunityLoaded(
+          mine: result.mine,
+          suggestions: result.suggestions,
+          fromCache: result.fromCache,
+          lastSyncedAt: result.lastSyncedAt,
+        ),
+      );
     } catch (e, st) {
       debugPrint('[CommunityBloc] ${event.runtimeType}: $e\n$st');
       emit(CommunityError('Erro ao carregar comunidades.'));
@@ -36,6 +44,7 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     try {
       await _repository.createCommunity(
         name: event.name,
+        description: event.description,
         bookId: event.bookId,
         visibility: event.visibility,
         bookTitle: event.bookTitle,
@@ -77,6 +86,21 @@ class CommunityBloc extends Bloc<CommunityEvent, CommunityState> {
     } catch (e, st) {
       debugPrint('[CommunityBloc] ${event.runtimeType}: $e\n$st');
       emit(CommunityError('Código de convite inválido.'));
+    }
+  }
+
+  Future<void> _onLeave(
+    CommunityLeaveRequested event,
+    Emitter<CommunityState> emit,
+  ) async {
+    emit(CommunityMutating());
+    try {
+      await _repository.leaveCommunity(event.communityId);
+      emit(CommunityMutationSuccess('Você saiu da comunidade.'));
+      add(CommunityLoadRequested());
+    } catch (e, st) {
+      debugPrint('[CommunityBloc] ${event.runtimeType}: $e\n$st');
+      emit(CommunityError('Erro ao sair da comunidade.'));
     }
   }
 }

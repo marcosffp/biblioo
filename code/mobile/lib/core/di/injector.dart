@@ -20,6 +20,7 @@ import 'package:biblioo/features/collection/data/collection_local_datasource.dar
 import 'package:biblioo/features/collection/data/collection_remote_datasource.dart';
 import 'package:biblioo/features/collection/data/collection_repository.dart';
 import 'package:biblioo/features/user/bloc/user_bloc.dart';
+import 'package:biblioo/features/community/data/community_local_datasource.dart';
 import 'package:biblioo/features/community/data/community_remote_datasource.dart';
 import 'package:biblioo/features/community/data/community_repository.dart';
 import 'package:biblioo/features/user/bloc/user_search_bloc.dart';
@@ -53,19 +54,19 @@ class Injector {
   }
 
   // ── auth ──────────────────────────────────────────────
-  AuthLocalDatasource  get _authLocal  => AuthLocalDatasource(_prefs);
+  AuthLocalDatasource get authLocal => AuthLocalDatasource(_prefs);
   AuthRemoteDatasource get _authRemote => AuthRemoteDatasource(_dio);
-  AuthRepository       get authRepo    => AuthRepository(_authRemote, _authLocal);
+  AuthRepository get authRepo => AuthRepository(_authRemote, authLocal);
 
   // ── user ──────────────────────────────────────────────
-  UserLocalDatasource  get _userLocal  => UserLocalDatasource(_prefs);
+  UserLocalDatasource get _userLocal => UserLocalDatasource(_prefs);
   UserRemoteDatasource get _userRemote => UserRemoteDatasource(_dio);
-  UserRepository       get userRepo    => UserRepository(_userRemote, _userLocal);
+  UserRepository get userRepo => UserRepository(_userRemote, _userLocal);
 
   // ── book ──────────────────────────────────────────────
-  BookLocalDatasource  get _bookLocal  => BookLocalDatasource(_prefs);
+  BookLocalDatasource get _bookLocal => BookLocalDatasource(_prefs);
   BookRemoteDatasource get _bookRemote => BookRemoteDatasource(_dio);
-  BookRepository       get bookRepo    => BookRepository(_bookRemote, _bookLocal);
+  BookRepository get bookRepo => BookRepository(_bookRemote, _bookLocal);
 
   // ── shelf ─────────────────────────────────────────────
   ShelfLocalDatasource get _shelfLocal => ShelfLocalDatasource(_prefs);
@@ -73,13 +74,20 @@ class Injector {
   ShelfRepository get shelfRepo => ShelfRepository(_shelfRemote, _shelfLocal);
 
   // ── collection ────────────────────────────────────────
-  CollectionLocalDatasource get _collectionLocal => CollectionLocalDatasource(_prefs);
-  CollectionRemoteDatasource get _collectionRemote => CollectionRemoteDatasource(_dio);
-  CollectionRepository get collectionRepo => CollectionRepository(_collectionRemote, _collectionLocal);
+  CollectionLocalDatasource get _collectionLocal =>
+      CollectionLocalDatasource(_prefs);
+  CollectionRemoteDatasource get _collectionRemote =>
+      CollectionRemoteDatasource(_dio);
+  CollectionRepository get collectionRepo =>
+      CollectionRepository(_collectionRemote, _collectionLocal);
 
   // ── community ─────────────────────────────────────────
-  CommunityRemoteDatasource get _communityRemote => CommunityRemoteDatasource();
-  CommunityRepository get communityRepo => CommunityRepository(_communityRemote);
+  CommunityLocalDatasource get _communityLocal =>
+      CommunityLocalDatasource(_prefs);
+  CommunityRemoteDatasource get _communityRemote =>
+      CommunityRemoteDatasource(_dio);
+  CommunityRepository get communityRepo =>
+      CommunityRepository(_communityRemote, _communityLocal);
 
   // ── providers ─────────────────────────────────────────
   List<BlocProvider> get providers => [

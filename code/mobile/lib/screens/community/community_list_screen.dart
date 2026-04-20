@@ -7,6 +7,7 @@ import 'package:biblioo/screens/community/widgets/create_community_sheet.dart';
 import 'package:biblioo/screens/community/widgets/invite_code_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class CommunityListScreen extends StatelessWidget {
   const CommunityListScreen({super.key});
@@ -105,7 +106,13 @@ class _CommunityListView extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: TextField(
-                    readOnly: true,
+                    onChanged: (value) {
+                      context.read<CommunityBloc>().add(
+                        CommunityLoadRequested(
+                          query: value.trim().isEmpty ? null : value.trim(),
+                        ),
+                      );
+                    },
                     decoration: const InputDecoration(
                       hintText: 'Buscar comunidades',
                       prefixIcon: Icon(Icons.search_rounded),
@@ -114,9 +121,7 @@ class _CommunityListView extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                Expanded(
-                  child: _buildBody(context, state),
-                ),
+                Expanded(child: _buildBody(context, state)),
               ],
             ),
           ),
@@ -131,7 +136,12 @@ class _CommunityListView extends StatelessWidget {
     }
 
     if (state is CommunityLoaded) {
-      return _CommunityList(mine: state.mine, suggestions: state.suggestions);
+      return _CommunityList(
+        mine: state.mine,
+        suggestions: state.suggestions,
+        fromCache: state.isFromCache,
+        lastSyncedAt: state.lastSyncedAt,
+      );
     }
 
     if (state is CommunityMutating) {
@@ -145,8 +155,15 @@ class _CommunityListView extends StatelessWidget {
 class _CommunityList extends StatelessWidget {
   final List<Community> mine;
   final List<Community> suggestions;
+  final bool fromCache;
+  final DateTime? lastSyncedAt;
 
-  const _CommunityList({required this.mine, required this.suggestions});
+  const _CommunityList({
+    required this.mine,
+    required this.suggestions,
+    required this.fromCache,
+    this.lastSyncedAt,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +172,37 @@ class _CommunityList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
+        if (fromCache)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Card(
+              elevation: 0,
+              color: theme.colorScheme.secondaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.wifi_off_rounded,
+                      size: 18,
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        lastSyncedAt != null
+                            ? 'Exibindo cache local. Última sincronização: ${lastSyncedAt!.hour.toString().padLeft(2, '0')}:${lastSyncedAt!.minute.toString().padLeft(2, '0')}'
+                            : 'Exibindo cache local até a conexão voltar.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         if (mine.isNotEmpty) ...[
           _SectionHeader(title: 'Minhas Comunidades'),
           ...mine.map((c) => _MyCommunityCard(community: c)),
@@ -190,9 +238,9 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -215,8 +263,10 @@ class _MyCommunityCard extends StatelessWidget {
           side: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
         child: ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
           leading: const _CommunityAvatar(),
           title: Row(
             children: [
@@ -245,7 +295,9 @@ class _MyCommunityCard extends StatelessWidget {
             children: [
               const SizedBox(height: 2),
               Text(
-                '${community.bookTitle} - ${community.bookAuthor}',
+                community.bookAuthor.isEmpty
+                    ? community.bookTitle
+                    : '${community.bookTitle} - ${community.bookAuthor}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -255,9 +307,11 @@ class _MyCommunityCard extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Icon(Icons.group_rounded,
-                      size: 14,
-                      color: theme.colorScheme.onSurfaceVariant),
+                  Icon(
+                    Icons.group_rounded,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '${community.memberCount}  •  ${_timeAgo(community.createdAt)}',
@@ -269,8 +323,23 @@ class _MyCommunityCard extends StatelessWidget {
               ),
             ],
           ),
-          trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () {},
+          trailing: PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'leave') {
+                context.read<CommunityBloc>().add(
+                  CommunityLeaveRequested(community.id),
+                );
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(
+                value: 'leave',
+                child: Text('Sair da comunidade'),
+              ),
+            ],
+            icon: const Icon(Icons.more_horiz_rounded),
+          ),
+          onTap: () => context.push('/community/${community.id}'),
         ),
       ),
     );
@@ -294,8 +363,10 @@ class _SuggestionCard extends StatelessWidget {
           side: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
         child: ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 8,
+          ),
           leading: const _CommunityAvatar(),
           title: Row(
             children: [
@@ -328,9 +399,9 @@ class _SuggestionCard extends StatelessWidget {
           trailing: community.isPublic
               ? FilledButton(
                   onPressed: () {
-                    context
-                        .read<CommunityBloc>()
-                        .add(CommunityJoinRequested(community.id));
+                    context.read<CommunityBloc>().add(
+                      CommunityJoinRequested(community.id),
+                    );
                   },
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(72, 36),
@@ -339,8 +410,10 @@ class _SuggestionCard extends StatelessWidget {
                   child: const Text('Entrar'),
                 )
               : Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(20),
@@ -363,6 +436,7 @@ class _SuggestionCard extends StatelessWidget {
                     ],
                   ),
                 ),
+          onTap: () => context.push('/community/${community.id}'),
         ),
       ),
     );
@@ -375,8 +449,7 @@ class _CommunityAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
-      backgroundColor:
-          Theme.of(context).colorScheme.primaryContainer,
+      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
       child: Icon(
         Icons.group_rounded,
         color: Theme.of(context).colorScheme.primary,
@@ -403,15 +476,8 @@ class _CircularActionButton extends StatelessWidget {
     return Container(
       width: 44,
       height: 44,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: icon,
-        tooltip: tooltip,
-        onPressed: onPressed,
-      ),
+      decoration: BoxDecoration(color: backgroundColor, shape: BoxShape.circle),
+      child: IconButton(icon: icon, tooltip: tooltip, onPressed: onPressed),
     );
   }
 }

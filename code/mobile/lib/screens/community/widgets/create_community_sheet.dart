@@ -37,6 +37,7 @@ class CreateCommunitySheet extends StatefulWidget {
 class _CreateCommunitySheetState extends State<CreateCommunitySheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _bookSearchController = TextEditingController();
 
   Book? _selectedBook;
@@ -45,6 +46,7 @@ class _CreateCommunitySheetState extends State<CreateCommunitySheet> {
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
     _bookSearchController.dispose();
     super.dispose();
   }
@@ -73,14 +75,19 @@ class _CreateCommunitySheetState extends State<CreateCommunitySheet> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    context.read<CommunityBloc>().add(CommunityCreateRequested(
-          name: _nameController.text.trim(),
-          bookId: _selectedBook!.id,
-          bookTitle: _selectedBook!.title,
-          bookAuthor: _selectedBook!.authorsText,
-          bookCoverUrl: _selectedBook!.coverUrl,
-          visibility: _visibility,
-        ));
+    context.read<CommunityBloc>().add(
+      CommunityCreateRequested(
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        bookId: _selectedBook!.id,
+        bookTitle: _selectedBook!.title,
+        bookAuthor: _selectedBook!.authorsText,
+        bookCoverUrl: _selectedBook!.coverUrl,
+        visibility: _visibility,
+      ),
+    );
     Navigator.pop(context);
   }
 
@@ -106,8 +113,9 @@ class _CreateCommunitySheetState extends State<CreateCommunitySheet> {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.3),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.3,
+                      ),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -139,6 +147,17 @@ class _CreateCommunitySheetState extends State<CreateCommunitySheet> {
                 ),
                 const SizedBox(height: 4),
 
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 2,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'Descrição (opcional)',
+                    hintText: 'Sobre o que sua comunidade conversa?',
+                  ),
+                ),
+                const SizedBox(height: 4),
+
                 Text(
                   'Livro *',
                   style: theme.textTheme.labelMedium?.copyWith(
@@ -148,10 +167,7 @@ class _CreateCommunitySheetState extends State<CreateCommunitySheet> {
                 const SizedBox(height: 8),
 
                 if (_selectedBook != null)
-                  _SelectedBookTile(
-                    book: _selectedBook!,
-                    onClear: _clearBook,
-                  )
+                  _SelectedBookTile(book: _selectedBook!, onClear: _clearBook)
                 else
                   _BookSearchSection(
                     controller: _bookSearchController,
@@ -187,9 +203,7 @@ class _CreateCommunitySheetState extends State<CreateCommunitySheet> {
                     setState(() => _visibility = selection.first);
                   },
                   style: ButtonStyle(
-                    minimumSize: WidgetStateProperty.all(
-                      const Size(0, 44),
-                    ),
+                    minimumSize: WidgetStateProperty.all(const Size(0, 44)),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -223,10 +237,7 @@ class _SelectedBookTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.inputDecorationTheme.fillColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.primary,
-          width: 1.5,
-        ),
+        border: Border.all(color: theme.colorScheme.primary, width: 1.5),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -302,10 +313,12 @@ class _BookSearchSection extends StatelessWidget {
               final results = state.books.take(5).toList();
               return Column(
                 children: results
-                    .map((book) => _BookResultTile(
-                          book: book,
-                          onTap: () => onSelect(book),
-                        ))
+                    .map(
+                      (book) => _BookResultTile(
+                        book: book,
+                        onTap: () => onSelect(book),
+                      ),
+                    )
                     .toList(),
               );
             }
