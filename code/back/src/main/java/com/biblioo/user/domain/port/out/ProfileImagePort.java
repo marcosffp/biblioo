@@ -1,5 +1,6 @@
 package com.biblioo.user.domain.port.out;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface ProfileImagePort {
@@ -9,4 +10,6 @@ public interface ProfileImagePort {
 
   /** Faz upload do banner de perfil e retorna a URL segura. Executado de forma assíncrona. */
   CompletableFuture<String> uploadBannerImage(byte[] imageBytes, String userId);
+
+  void deleteImages(List<String> imageUrls);
 }

@@ -204,9 +204,15 @@ public class CommunityMessageService implements CommunityMessageUseCase {
           "Apenas o autor ou moderadores podem remover mensagens.");
     }
 
+    List<String> urlsToDelete = new ArrayList<>(message.getImages());
+    if (message.getGifUrl() != null && !message.getGifUrl().isBlank())
+      urlsToDelete.add(message.getGifUrl());
+
     message.setDeleted(true);
     message.setContent("");
     messageRepository.save(message);
+
+    if (!urlsToDelete.isEmpty()) feedImagePort.deleteImages(urlsToDelete);
 
     cachePort.invalidate(message.getCommunityId());
     broadcastPort.broadcastDelete(message.getCommunityId(), messageId);

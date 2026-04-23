@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -18,25 +19,28 @@ public class CloudinaryStorageAdapter implements ProfileImagePort, FeedImagePort
 
   private final Cloudinary cloudinary;
 
+  @Value("${cloudinary.folder:biblioo}")
+  private String folder;
+
   @Async("userTaskExecutor")
   @Override
   public CompletableFuture<String> uploadProfileImage(byte[] imageBytes, String userId) {
     return CompletableFuture.completedFuture(
-        upload(imageBytes, "biblioo/users/" + userId + "/avatar"));
+        upload(imageBytes, folder + "/users/" + userId + "/avatar"));
   }
 
   @Async("userTaskExecutor")
   @Override
   public CompletableFuture<String> uploadBannerImage(byte[] imageBytes, String userId) {
     return CompletableFuture.completedFuture(
-        upload(imageBytes, "biblioo/users/" + userId + "/banner"));
+        upload(imageBytes, folder + "/users/" + userId + "/banner"));
   }
 
   @Async("userTaskExecutor")
   @Override
   public CompletableFuture<String> uploadImage(byte[] imageBytes, String entityId, String imageId) {
     return CompletableFuture.completedFuture(
-        upload(imageBytes, "biblioo/feed/" + entityId + "/" + imageId));
+        upload(imageBytes, folder + "/feed/" + entityId + "/" + imageId));
   }
 
   @Override

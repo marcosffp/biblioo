@@ -168,17 +168,24 @@ public class CommunityPostService implements CommunityPostUseCase {
       }
     }
 
-    if (post.getImages() != null && !post.getImages().isEmpty()) {
-      feedImagePort.deleteImages(post.getImages());
-    }
+    var urlsToDelete = new ArrayList<String>();
+    if (post.getImages() != null) urlsToDelete.addAll(post.getImages());
+    if (post.getGifUrl() != null && !post.getGifUrl().isEmpty())
+      urlsToDelete.add(post.getGifUrl());
 
     if (post.getCommentCount() != null && post.getCommentCount() > 0) {
+      commentRepository.findByParentIdAndIsDeletedFalse(postId).forEach(c -> {
+        if (c.getImages() != null) urlsToDelete.addAll(c.getImages());
+        if (c.getGifUrl() != null && !c.getGifUrl().isEmpty()) urlsToDelete.add(c.getGifUrl());
+      });
       postRepository.softDelete(postId);
       commentRepository.softDeleteAllByParentId(postId);
     } else {
       commentRepository.deleteAllByParentId(postId);
       postRepository.deleteById(postId);
     }
+
+    if (!urlsToDelete.isEmpty()) feedImagePort.deleteImages(urlsToDelete);
   }
 
   @Override
