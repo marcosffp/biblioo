@@ -46,7 +46,7 @@ public class CacheConfig implements CachingConfigurer {
         .withCacheConfiguration("book-detail", base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("google-books", base.entryTtl(Duration.ofMinutes(10)))
         // user
-        .withCacheConfiguration("user-profile", base.entryTtl(Duration.ofMinutes(5)))
+        .withCacheConfiguration("user-profile", base.entryTtl(Duration.ofMinutes(10)))
         // shelf
         .withCacheConfiguration("shelf-list", base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("shelf", base.entryTtl(Duration.ofHours(1)))
