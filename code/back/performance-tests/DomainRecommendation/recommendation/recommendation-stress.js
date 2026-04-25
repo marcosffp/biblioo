@@ -1,0 +1,97 @@
+import http from 'k6/http';
+import { sleep, check } from 'k6';
+
+const CONFIG = {
+  base:         'http://localhost:8080',
+  userPoolSize: 400,
+  password:     'senha12345',
+  prefix:       'stressrecommendation',
+
+  thresholds: {
+    p95General: 2000,
+    failRate:   0.1,
+  },
+
+  sleep: {
+    betweenOps:     0.2,
+    afterIteration: 0.5,
+  },
+};
+
+export function setup() {
+  const users = [];
+  const headers = { 'Content-Type': 'application/json' };
+
+  for (let i = 0; i < CONFIG.userPoolSize; i++) {
+    const ts = Date.now() + i;
+    const body = JSON.stringify({
+      username: `${CONFIG.prefix}_${ts}_${i}`,
+      email: `${CONFIG.prefix}_${ts}_${i}@test.com`,
+      password: CONFIG.password,
+      name: `User ${i}`,
+    });
+
+    http.post(`${CONFIG.base}/auth/register`, body, { headers });
+    const loginRes = http.post(
+      `${CONFIG.base}/auth/login`,
+      JSON.stringify({ email: `${CONFIG.prefix}_${ts}_${i}@test.com`, password: CONFIG.password }),
+      { headers }
+    );
+
+    const accessToken = JSON.parse(loginRes.body).token;
+    users.push({ accessToken });
+  }
+
+  return { users };
+}
+
+export const options = {
+  setupTimeout: '300s',
+  stages: [
+    { duration: '30s', target: 50 },
+    { duration: '30s', target: 100 },
+    { duration: '30s', target: 200 },
+    { duration: '30s', target: 300 },
+    { duration: '30s', target: 400 },
+    { duration: '1m',  target: 0 },
+  ],
+  thresholds: {
+    http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],
+    http_req_failed:   [`rate<${CONFIG.thresholds.failRate}`],
+  },
+};
+
+export default function (data) {
+  const token = data.users[__VU % data.users.length].accessToken;
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const byrRes = http.get(`${CONFIG.base}/recommendations/because-you-read`, { headers });
+  check(byrRes, {
+    'because you read 200': (r) => r.status === 200,
+    'has books array': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return Array.isArray(body.books);
+      } catch (e) {
+        return false;
+      }
+    },
+  });
+
+  sleep(CONFIG.sleep.betweenOps);
+
+  const fgnRes = http.get(`${CONFIG.base}/recommendations/favorite-genre-now`, { headers });
+  check(fgnRes, {
+    'favorite genre now 200': (r) => r.status === 200,
+    'has topGenres array': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return Array.isArray(body.topGenres);
+      } catch (e) {
+        return false;
+      }
+    },
+  });
+
+  sleep(CONFIG.sleep.afterIteration);
+}

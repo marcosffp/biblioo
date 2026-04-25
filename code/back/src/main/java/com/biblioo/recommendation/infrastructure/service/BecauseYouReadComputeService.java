@@ -9,13 +9,14 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class BecauseYouReadFallbackService {
+public class BecauseYouReadComputeService {
 
   @PersistenceContext private EntityManager entityManager;
 
+  /** Fallback SQL quando o Neo4j está indisponível ou retorna vazio. */
   @SuppressWarnings("unchecked")
   public List<BookScore> compute(Long userId, Long bookId) {
-    log.warn("[T1-Fallback] Executando fallback SQL para user={} book={}", userId, bookId);
+    log.warn("[BYR-Compute] Executando fallback SQL para user={} book={}", userId, bookId);
 
     List<Long> categoryIds =
         entityManager
@@ -29,7 +30,7 @@ public class BecauseYouReadFallbackService {
             .getResultList();
 
     if (categoryIds.isEmpty()) {
-      log.warn("[T1-Fallback] Nenhuma categoria encontrada para book={}", bookId);
+      log.warn("[BYR-Compute] Nenhuma categoria encontrada para book={}", bookId);
       return List.of();
     }
 
@@ -73,10 +74,7 @@ public class BecauseYouReadFallbackService {
             .getResultList();
 
     return rows.stream()
-        .map(
-            row ->
-                new BookScore(
-                    ((Number) row[0]).longValue(), ((Number) row[1]).doubleValue(), "sql_fallback"))
+        .map(row -> new BookScore(((Number) row[0]).longValue(), ((Number) row[1]).doubleValue(), "sql_fallback"))
         .toList();
   }
 }

@@ -70,11 +70,16 @@ public class RabbitMQConfig {
   public static final String COMMUNITY_BROADCAST_EXCHANGE = "biblioo.community.broadcast";
 
   // ── Recommendation T1 — BECAUSE_YOU_READ ────────────────────────────────────
-  public static final String REC_QUEUE = "rec.shelf.completed";
-  public static final String REC_DLQ = "rec.shelf.completed.dlq";
-  public static final String REC_DLQ_ROUTING_KEY = "rec.shelf.dead";
+  public static final String BYR_QUEUE = "rec.shelf.completed";
+  public static final String BYR_DLQ = "rec.shelf.completed.dlq";
+  public static final String BYR_DLQ_ROUTING_KEY = "rec.shelf.dead";
   public static final String SHELF_READING_COMPLETED_ROUTING_KEY = "shelf.reading.completed";
   public static final String EVENT_SHELF_READING_COMPLETED = "SHELF_READING_COMPLETED";
+
+  // ── Recommendation T2 — FAVORITE_GENRE_NOW ───────────────────────────────────
+  public static final String FGN_QUEUE = "rec.favorite-genre-now.triggered";
+  public static final String FGN_DLQ = "rec.favorite-genre-now.triggered.dlq";
+  public static final String FGN_DLQ_ROUTING_KEY = "rec.favorite-genre-now.dead";
 
   @Bean
   TopicExchange mainExchange() {
@@ -135,26 +140,50 @@ public class RabbitMQConfig {
   }
 
   @Bean
-  Queue recQueue() {
-    return QueueBuilder.durable(REC_QUEUE)
+  Queue byrQueue() {
+    return QueueBuilder.durable(BYR_QUEUE)
         .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
-        .withArgument("x-dead-letter-routing-key", REC_DLQ_ROUTING_KEY)
+        .withArgument("x-dead-letter-routing-key", BYR_DLQ_ROUTING_KEY)
         .build();
   }
 
   @Bean
-  Queue recDlq() {
-    return QueueBuilder.durable(REC_DLQ).build();
+  Queue byrDlq() {
+    return QueueBuilder.durable(BYR_DLQ).build();
   }
 
   @Bean
-  Binding recBinding(Queue recQueue, TopicExchange mainExchange) {
-    return BindingBuilder.bind(recQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  Binding byrBinding(Queue byrQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(byrQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
   }
 
   @Bean
-  Binding recDlqBinding(Queue recDlq, DirectExchange dlxExchange) {
-    return BindingBuilder.bind(recDlq).to(dlxExchange).with(REC_DLQ_ROUTING_KEY);
+  Binding byrDlqBinding(Queue byrDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(byrDlq).to(dlxExchange).with(BYR_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue fgnQueue() {
+    return QueueBuilder.durable(FGN_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", FGN_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue fgnDlq() {
+    return QueueBuilder.durable(FGN_DLQ).build();
+  }
+
+  @Bean
+  Binding fgnBinding(Queue fgnQueue, TopicExchange mainExchange) {
+    // Mesmo routing key do T1 — cada fila recebe uma cópia independente do evento
+    return BindingBuilder.bind(fgnQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding fgnDlqBinding(Queue fgnDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(fgnDlq).to(dlxExchange).with(FGN_DLQ_ROUTING_KEY);
   }
 
   @Bean

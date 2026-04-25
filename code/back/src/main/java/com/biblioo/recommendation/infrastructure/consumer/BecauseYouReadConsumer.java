@@ -1,5 +1,6 @@
 package com.biblioo.recommendation.infrastructure.consumer;
 
+import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
 import com.biblioo.infrastructure.messaging.model.EventMessage;
 import com.biblioo.recommendation.domain.exception.DuplicateEventException;
@@ -16,22 +17,28 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class RecommendationConsumer {
+public class BecauseYouReadConsumer {
+
+  private static final String TRAIL = "BECAUSE_YOU_READ";
+  private static final String LOG_PREFIX = "[BYR-Consumer]";
 
   private final BecauseYouReadService becauseYouReadService;
   private final EventLogRepository eventLogRepository;
   private final ObjectMapper objectMapper;
+  private final BookUseCase bookUseCase;
 
-  @RabbitListener(queues = RabbitMQConfig.REC_QUEUE, containerFactory = "recListenerFactory")
+  @RabbitListener(
+      queues = RabbitMQConfig.BYR_QUEUE,
+      containerFactory = "becauseYouReadListenerFactory")
   public void handle(EventMessage message) {
     String eventId = message.getEventId();
 
     MDC.put("event_id", eventId);
-    MDC.put("trail", "BECAUSE_YOU_READ");
+    MDC.put("trail", TRAIL);
 
     try {
       if (eventLogRepository.existsByEventId(eventId)) {
-        log.info("[T1-Consumer] Evento duplicado event_id={}, descartando", eventId);
+        log.info("{} Evento duplicado event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
@@ -40,26 +47,42 @@ public class RecommendationConsumer {
       Long userId = payload.get("userId").asLong();
       Long shelfItemId = payload.get("shelfItemId").asLong();
       String finishedAt = payload.get("finishedAt").asText();
+      String seedBookTitle = resolveSeedBookTitle(bookId);
 
-      log.info("[T1-Consumer] Processando event_id={} user={} book={}", eventId, userId, bookId);
+      log.info(
+          "{} Processando event_id={} user={} book='{}' (id={})",
+          LOG_PREFIX,
+          eventId,
+          userId,
+          seedBookTitle,
+          bookId);
 
       try {
         eventLogRepository.registerEvent(
             eventId, message.getEventType(), userId, objectMapper.writeValueAsString(payload));
       } catch (DuplicateEventException ex) {
-        log.info("[T1-Consumer] Race condition em event_id={}, descartando", eventId);
+        log.info("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
-      becauseYouReadService.compute(userId, bookId, shelfItemId, finishedAt);
+      becauseYouReadService.compute(userId, bookId, shelfItemId, finishedAt, seedBookTitle);
 
-      log.info("[T1-Consumer] Concluído event_id={} user={} book={}", eventId, userId, bookId);
+      log.info("{} Concluído event_id={} user={} book='{}'", LOG_PREFIX, eventId, userId, seedBookTitle);
 
     } catch (Exception ex) {
-      log.error("[T1-Consumer] Falha ao processar event_id={}: {}", eventId, ex.getMessage(), ex);
+      log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
       throw new RuntimeException(ex);
     } finally {
       MDC.clear();
+    }
+  }
+
+  private String resolveSeedBookTitle(Long bookId) {
+    try {
+      return bookUseCase.getById(bookId).getTitle();
+    } catch (Exception ex) {
+      log.warn("{} Não foi possível resolver título para bookId={}: {}", LOG_PREFIX, bookId, ex.getMessage());
+      return null;
     }
   }
 }
