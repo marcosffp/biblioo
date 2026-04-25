@@ -23,6 +23,9 @@ import 'package:biblioo/features/user/bloc/user_bloc.dart';
 import 'package:biblioo/features/community/data/community_local_datasource.dart';
 import 'package:biblioo/features/community/data/community_remote_datasource.dart';
 import 'package:biblioo/features/community/data/community_repository.dart';
+import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
+import 'package:biblioo/features/notification/data/notification_remote_datasource.dart';
+import 'package:biblioo/features/notification/data/notification_repository.dart';
 import 'package:biblioo/features/user/bloc/user_search_bloc.dart';
 import 'package:biblioo/features/user/data/user_local_datasource.dart';
 import 'package:biblioo/features/user/data/user_remote_datasource.dart';
@@ -89,6 +92,12 @@ class Injector {
   CommunityRepository get communityRepo =>
       CommunityRepository(_communityRemote, _communityLocal);
 
+  // ── notification ─────────────────────────────────────
+  NotificationRemoteDatasource get _notificationRemote =>
+      NotificationRemoteDatasource(_dio);
+  NotificationRepository get notificationRepo =>
+      NotificationRepository(_notificationRemote);
+
   // ── providers ─────────────────────────────────────────
   List<BlocProvider> get providers => [
     BlocProvider<ThemeModeCubit>(create: (_) => ThemeModeCubit(_prefs)),
@@ -100,5 +109,8 @@ class Injector {
     BlocProvider<BookBloc>(create: (_) => BookBloc(bookRepo)),
     BlocProvider<ShelfBloc>(create: (_) => ShelfBloc(shelfRepo)),
     BlocProvider<CollectionBloc>(create: (_) => CollectionBloc(collectionRepo)),
+    BlocProvider<NotificationBloc>(
+      create: (_) => NotificationBloc(notificationRepo),
+    ),
   ];
 }

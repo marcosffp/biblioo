@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
+import 'package:biblioo/features/notification/bloc/notification_event.dart';
+import 'package:biblioo/features/notification/bloc/notification_state.dart';
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
@@ -13,6 +17,7 @@ class FeedScreen extends StatelessWidget {
             floating: true,
             snap: true,
             title: const Text('Feed'),
+            actions: const [_NotificationBellButton()],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(56),
               child: _SearchBar(onTap: () => context.push('/search')),
@@ -45,6 +50,79 @@ class FeedScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => const _CreatePostSheet(),
+    );
+  }
+}
+
+class _NotificationBellButton extends StatefulWidget {
+  const _NotificationBellButton();
+
+  @override
+  State<_NotificationBellButton> createState() =>
+      _NotificationBellButtonState();
+}
+
+class _NotificationBellButtonState extends State<_NotificationBellButton> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<NotificationBloc>().add(NotificationLoadRequested(size: 1));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<NotificationBloc, NotificationState>(
+      builder: (context, state) {
+        final unreadCount = state is NotificationLoaded ? state.unreadCount : 0;
+
+        return IconButton(
+          tooltip: 'Notificacoes',
+          onPressed: () async {
+            await context.push('/notifications');
+            if (!mounted) return;
+            context.read<NotificationBloc>().add(
+              NotificationUnreadCountRequested(),
+            );
+          },
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.notifications_none),
+              if (unreadCount > 0)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.error,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onError,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

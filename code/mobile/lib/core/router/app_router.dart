@@ -6,6 +6,7 @@ import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
 import 'package:biblioo/screens/auth/login_screen.dart';
 import 'package:biblioo/screens/auth/register_screen.dart';
 import 'package:biblioo/screens/feed/feed_screen.dart';
+import 'package:biblioo/screens/notification/notification_screen.dart';
 import 'package:biblioo/screens/profile/edit_profile_screen.dart';
 import 'package:biblioo/screens/profile/profile_screen.dart';
 import 'package:biblioo/screens/profile/settings_screen.dart';
@@ -33,6 +34,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/search',
       builder: (context, state) => const BookSearchScreen(),
+    ),
+
+    // ── NOTIFICACOES (sem bottom nav) ───────────────────
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationScreen(),
     ),
 
     // ── LIVRO (fora do shell, exibido em tela própria) ───
