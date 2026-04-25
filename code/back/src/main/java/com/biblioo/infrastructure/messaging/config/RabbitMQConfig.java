@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.amqp.core.AnonymousQueue;
 
 @Configuration
 public class RabbitMQConfig {
@@ -61,6 +62,12 @@ public class RabbitMQConfig {
   public static final String COMMUNITY_MESSAGE_ROUTING_KEY = "community.message.created";
   public static final String COMMUNITY_MESSAGE_DLQ_ROUTING_KEY = "community.message.dead";
   public static final String EVENT_COMMUNITY_MESSAGE_CREATED = "COMMUNITY_MESSAGE_CREATED";
+
+  // ── Community WebSocket Broadcast (cross-instance via AMQP fanout) ───────────
+  // Cada instância cria um AnonymousQueue exclusivo e efêmero. O FanoutExchange
+  // entrega para todas as instâncias; cada uma filtra a própria mensagem pelo
+  // header x-instance-id e entrega as demais ao SimpleBroker local.
+  public static final String COMMUNITY_BROADCAST_EXCHANGE = "biblioo.community.broadcast";
 
   // ── Recommendation T1 — BECAUSE_YOU_READ ────────────────────────────────────
   public static final String REC_QUEUE = "rec.shelf.completed";
@@ -192,6 +199,34 @@ public class RabbitMQConfig {
     factory.setConnectionFactory(connectionFactory);
     factory.setMessageConverter(messageConverter);
     factory.setAdviceChain(bookStatsRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  // ── Community WebSocket Broadcast beans ─────────────────────────────────────
+
+  @Bean
+  FanoutExchange communityBroadcastExchange() {
+    return new FanoutExchange(COMMUNITY_BROADCAST_EXCHANGE, true, false);
+  }
+
+  @Bean
+  Queue communityBroadcastQueue() {
+    // Nome único por instância, auto-deletado quando a instância desconecta do RabbitMQ.
+    return new AnonymousQueue();
+  }
+
+  @Bean
+  Binding communityBroadcastBinding(
+      Queue communityBroadcastQueue, FanoutExchange communityBroadcastExchange) {
+    return BindingBuilder.bind(communityBroadcastQueue).to(communityBroadcastExchange);
+  }
+
+  @Bean
+  SimpleRabbitListenerContainerFactory communityBroadcastListenerFactory(
+      ConnectionFactory connectionFactory) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
     factory.setDefaultRequeueRejected(false);
     return factory;
   }

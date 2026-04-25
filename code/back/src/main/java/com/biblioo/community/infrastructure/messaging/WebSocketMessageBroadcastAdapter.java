@@ -2,26 +2,34 @@ package com.biblioo.community.infrastructure.messaging;
 
 import com.biblioo.community.domain.model.CommunityMessage;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
+import com.biblioo.community.infrastructure.dto.CommunityBroadcastEnvelope;
 import com.biblioo.community.infrastructure.dto.MessageEventPayload;
 import com.biblioo.community.infrastructure.dto.MessageResponse;
 import com.biblioo.community.infrastructure.dto.mapper.CommunityMessageMapper;
+import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
 
   private static final String TOPIC_PREFIX = "/topic/community.";
+  static final String HEADER_INSTANCE_ID = "x-instance-id";
 
   private final SimpMessagingTemplate messagingTemplate;
   private final CommunityMessageMapper mapper;
+  private final RabbitTemplate rabbitTemplate;
+  private final ApplicationInstanceId applicationInstanceId;
 
   @Override
   public void broadcastNewMessage(CommunityMessage message) {
@@ -91,11 +99,34 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
           new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-              messagingTemplate.convertAndSend(destination, event);
+              deliverLocally(destination, event);
+              publishToOtherInstances(destination, event);
             }
           });
     } else {
-      messagingTemplate.convertAndSend(destination, event);
+      deliverLocally(destination, event);
+      publishToOtherInstances(destination, event);
+    }
+  }
+
+  private void deliverLocally(String destination, MessageEventPayload event) {
+    messagingTemplate.convertAndSend(destination, event);
+  }
+
+  private void publishToOtherInstances(String destination, MessageEventPayload event) {
+    try {
+      CommunityBroadcastEnvelope envelope = new CommunityBroadcastEnvelope(destination, event);
+      rabbitTemplate.convertAndSend(
+          RabbitMQConfig.COMMUNITY_BROADCAST_EXCHANGE,
+          "",
+          envelope,
+          msg -> {
+            msg.getMessageProperties().setHeader(HEADER_INSTANCE_ID, applicationInstanceId.getValue());
+            return msg;
+          });
+    } catch (Exception e) {
+      log.warn("[WebSocket] Falha ao publicar broadcast cross-instance dest={}: {}",
+          destination, e.getMessage());
     }
   }
 }

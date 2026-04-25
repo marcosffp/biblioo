@@ -21,15 +21,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -46,39 +48,68 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   private final MessageBroadcastPort broadcastPort;
   private final MessageCachePort cachePort;
   private final FeedImagePort feedImagePort;
+  private final TransactionTemplate transactionTemplate;
+  private final ApplicationEventPublisher eventPublisher;
+
+  public record MessageSentEvent(CommunityMessage message) {}
+  public record MessageEditedEvent(CommunityMessage message) {}
+  public record MessageDeletedEvent(Long communityId, Long messageId) {}
+  public record MessageReactionEvent(Long communityId, Long messageId, int newCount) {}
+
+  @EventListener
+  public void handleMessageSent(MessageSentEvent event) {
+    cachePort.pushMessage(event.message().getCommunityId(), event.message());
+    broadcastPort.broadcastNewMessage(event.message());
+  }
+
+  @EventListener
+  public void handleMessageEdited(MessageEditedEvent event) {
+    cachePort.invalidate(event.message().getCommunityId());
+    broadcastPort.broadcastEdit(event.message());
+  }
+
+  @EventListener
+  public void handleMessageDeleted(MessageDeletedEvent event) {
+    cachePort.invalidate(event.communityId());
+    broadcastPort.broadcastDelete(event.communityId(), event.messageId());
+  }
+
+  @EventListener
+  public void handleMessageReaction(MessageReactionEvent event) {
+    broadcastPort.broadcastReaction(event.communityId(), event.messageId(), event.newCount());
+  }
 
   // ── Upload de mídia ───────────────────────────────────────────────────────
 
-  @Override
-  public MessageMediaUploadResponse uploadMessageMedia(
-      Long communityId, Long userId, List<byte[]> images, byte[] gif) {
+@Override
+public MessageMediaUploadResponse uploadMessageMedia(
+    Long communityId, Long userId, List<byte[]> images, byte[] gif) {
 
-    if (!membershipCache.isMember(communityId, userId)) {
-      throw new CommunityAccessDeniedException("Apenas membros podem enviar mídia.");
-    }
-
-    List<String> imageUrls = new ArrayList<>();
-    if (images != null && !images.isEmpty()) {
-      List<CompletableFuture<String>> futures =
-          images.stream()
-              .map(
-                  bytes ->
-                      feedImagePort.uploadImage(
-                          bytes, "community-" + communityId, UUID.randomUUID().toString()))
-              .toList();
-      futures.forEach(f -> imageUrls.add(f.join()));
-    }
-
-    String gifUrl = null;
-    if (gif != null && gif.length > 0) {
-      gifUrl =
-          feedImagePort
-              .uploadImage(gif, "community-" + communityId, UUID.randomUUID() + "_gif")
-              .join();
-    }
-
-    return new MessageMediaUploadResponse(imageUrls, gifUrl);
+  // 1. Verifica membership — abre conexão, fecha conexão, pronto
+  if (!membershipCache.isMember(communityId, userId)) {
+    throw new CommunityAccessDeniedException("Apenas membros podem enviar mídia.");
   }
+
+  // 2. Neste ponto, NENHUMA conexão está aberta.
+  // O .join() abaixo bloqueia a thread HTTP, mas sem sessão Hibernate ativa.
+  List<String> imageUrls = new ArrayList<>();
+  if (images != null && !images.isEmpty()) {
+    images.stream()
+        .map(bytes -> feedImagePort.uploadImage(
+            bytes, "community-" + communityId, UUID.randomUUID().toString()))
+        .toList()                          // dispara todos os uploads em paralelo
+        .forEach(f -> imageUrls.add(f.join())); // só então aguarda
+  }
+
+  String gifUrl = null;
+  if (gif != null && gif.length > 0) {
+    gifUrl = feedImagePort
+        .uploadImage(gif, "community-" + communityId, UUID.randomUUID() + "_gif")
+        .join();
+  }
+
+  return new MessageMediaUploadResponse(imageUrls, gifUrl);
+}
 
   // ── Send ─────────────────────────────────────────────────────────────────
 
@@ -95,144 +126,152 @@ public class CommunityMessageService implements CommunityMessageUseCase {
       boolean hasSpoiler,
       String clientMessageId) {
 
-    boolean member = membershipCache.isMember(communityId, authorId);
-    log.debug(
-        "isMember check — communityId={}, authorId={}, result={}", communityId, authorId, member);
-    if (!member) {
-      throw new CommunityAccessDeniedException("Apenas membros podem enviar mensagens.");
-    }
-
-    if (parentMessageId != null) {
-      CommunityMessage parent =
-          messageRepository
-              .findById(parentMessageId)
-              .orElseThrow(() -> new CommunityBusinessException("Mensagem pai não encontrada."));
-      if (!parent.getCommunityId().equals(communityId) || parent.isDeleted()) {
-        throw new CommunityBusinessException("Mensagem pai inválida.");
+    CommunityMessage savedMessage = transactionTemplate.execute(status -> {
+      boolean member = membershipCache.isMember(communityId, authorId);
+      log.debug(
+          "isMember check — communityId={}, authorId={}, result={}", communityId, authorId, member);
+      if (!member) {
+        throw new CommunityAccessDeniedException("Apenas membros podem enviar mensagens.");
       }
-    }
 
-    String safeContent = (content != null) ? Jsoup.clean(content.trim(), Safelist.none()) : "";
-    boolean hasMedia =
-        (images != null && !images.isEmpty()) || (gifUrl != null && !gifUrl.isBlank());
-    if (safeContent.isBlank() && !hasMedia) {
-      throw new CommunityBusinessException(
-          "A mensagem deve ter texto ou pelo menos uma imagem/GIF.");
-    }
+      if (parentMessageId != null) {
+        CommunityMessage parent =
+            messageRepository
+                .findById(parentMessageId)
+                .orElseThrow(() -> new CommunityBusinessException("Mensagem pai não encontrada."));
+        if (!parent.getCommunityId().equals(communityId) || parent.isDeleted()) {
+          throw new CommunityBusinessException("Mensagem pai inválida.");
+        }
+      }
 
-    Set<String> safeTags =
-        tags == null
-            ? new HashSet<>()
-            : tags.stream()
-                .filter(t -> t != null && !t.isBlank())
-                .map(t -> Jsoup.clean(t.trim(), Safelist.none()))
-                .filter(t -> !t.isBlank() && t.length() <= 50)
-                .limit(MAX_TAGS)
-                .collect(Collectors.toSet());
+      String safeContent = (content != null) ? Jsoup.clean(content.trim(), Safelist.none()) : "";
+      boolean hasMedia =
+          (images != null && !images.isEmpty()) || (gifUrl != null && !gifUrl.isBlank());
+      if (safeContent.isBlank() && !hasMedia) {
+        throw new CommunityBusinessException(
+            "A mensagem deve ter texto ou pelo menos uma imagem/GIF.");
+      }
 
-    CommunityMessage message =
-        CommunityMessage.builder()
-            .communityId(communityId)
-            .authorId(authorId)
-            .content(safeContent.isBlank() ? null : safeContent)
-            .parentMessageId(parentMessageId)
-            .tags(safeTags)
-            .images(images != null ? new ArrayList<>(images) : new ArrayList<>())
-            .gifUrl(gifUrl)
-            .hasSpoiler(hasSpoiler)
-            .clientMessageId(clientMessageId)
-            .build();
+      Set<String> safeTags =
+          tags == null
+              ? new HashSet<>()
+              : tags.stream()
+                  .filter(t -> t != null && !t.isBlank())
+                  .map(t -> Jsoup.clean(t.trim(), Safelist.none()))
+                  .filter(t -> !t.isBlank() && t.length() <= 50)
+                  .limit(MAX_TAGS)
+                  .collect(Collectors.toSet());
 
-    message = messageRepository.save(message);
+      CommunityMessage message =
+          CommunityMessage.builder()
+              .communityId(communityId)
+              .authorId(authorId)
+              .content(safeContent.isBlank() ? null : safeContent)
+              .parentMessageId(parentMessageId)
+              .tags(safeTags)
+              .images(images != null ? new ArrayList<>(images) : new ArrayList<>())
+              .gifUrl(gifUrl)
+              .hasSpoiler(hasSpoiler)
+              .clientMessageId(clientMessageId)
+              .build();
 
-    cachePort.pushMessage(communityId, message);
-    broadcastPort.broadcastNewMessage(message);
+      return messageRepository.save(message);
+    });
 
-    return message;
+    eventPublisher.publishEvent(new MessageSentEvent(savedMessage));
+
+    return savedMessage;
   }
 
   @Override
-  @Transactional
   public void editMessage(Long messageId, Long actorId, String newContent) {
-    CommunityMessage message = requireActiveMessage(messageId);
+    CommunityMessage savedMessage = transactionTemplate.execute(status -> {
+      CommunityMessage message = requireActiveMessage(messageId);
 
-    if (!message.getAuthorId().equals(actorId)) {
-      throw new CommunityAccessDeniedException("Apenas o autor pode editar a mensagem.");
-    }
+      if (!message.getAuthorId().equals(actorId)) {
+        throw new CommunityAccessDeniedException("Apenas o autor pode editar a mensagem.");
+      }
 
-    LocalDateTime editDeadline = message.getCreatedAt().plusHours(EDIT_WINDOW_HOURS);
-    if (LocalDateTime.now().isAfter(editDeadline)) {
-      throw new CommunityBusinessException(
-          "Janela de edição expirada. Mensagens só podem ser editadas em até "
-              + EDIT_WINDOW_HOURS
-              + " horas.");
-    }
+      LocalDateTime editDeadline = message.getCreatedAt().plusHours(EDIT_WINDOW_HOURS);
+      if (LocalDateTime.now().isAfter(editDeadline)) {
+        throw new CommunityBusinessException(
+            "Janela de edição expirada. Mensagens só podem ser editadas em até "
+                + EDIT_WINDOW_HOURS
+                + " horas.");
+      }
 
-    String safeContent = Jsoup.clean(newContent.trim(), Safelist.none());
-    if (safeContent.isBlank()) {
-      throw new CommunityBusinessException("Conteúdo da mensagem não pode ser vazio.");
-    }
+      String safeContent = Jsoup.clean(newContent.trim(), Safelist.none());
+      if (safeContent.isBlank()) {
+        throw new CommunityBusinessException("Conteúdo da mensagem não pode ser vazio.");
+      }
 
-    message.setContent(safeContent);
-    message.setEditedAt(LocalDateTime.now());
+      message.setContent(safeContent);
+      message.setEditedAt(LocalDateTime.now());
 
-    try {
-      messageRepository.save(message);
-    } catch (ObjectOptimisticLockingFailureException e) {
-      throw new CommunityBusinessException(
-          "Conflito de edição: a mensagem foi modificada por outra sessão. Recarregue e tente novamente.");
-    }
+      try {
+        return messageRepository.save(message);
+      } catch (ObjectOptimisticLockingFailureException e) {
+        throw new CommunityBusinessException(
+            "Conflito de edição: a mensagem foi modificada por outra sessão. Recarregue e tente novamente.");
+      }
+    });
 
-    cachePort.invalidate(message.getCommunityId());
-    broadcastPort.broadcastEdit(message);
+    eventPublisher.publishEvent(new MessageEditedEvent(savedMessage));
   }
 
   @Override
-  @Transactional
   public void deleteMessage(Long messageId, Long actorId) {
-    CommunityMessage message = requireActiveMessage(messageId);
+    CommunityMessage deletedMessage = transactionTemplate.execute(status -> {
+      CommunityMessage message = requireActiveMessage(messageId);
 
-    boolean isAuthor = message.getAuthorId().equals(actorId);
-    boolean isModOrOwner =
-        memberRepository
-            .findRole(message.getCommunityId(), actorId)
-            .map(role -> role == CommunityRole.OWNER || role == CommunityRole.MODERATOR)
-            .orElse(false);
+      boolean isAuthor = message.getAuthorId().equals(actorId);
+      boolean isModOrOwner =
+          memberRepository
+              .findRole(message.getCommunityId(), actorId)
+              .map(role -> role == CommunityRole.OWNER || role == CommunityRole.MODERATOR)
+              .orElse(false);
 
-    if (!isAuthor && !isModOrOwner) {
-      throw new CommunityAccessDeniedException(
-          "Apenas o autor ou moderadores podem remover mensagens.");
-    }
+      if (!isAuthor && !isModOrOwner) {
+        throw new CommunityAccessDeniedException(
+            "Apenas o autor ou moderadores podem remover mensagens.");
+      }
 
-    message.setDeleted(true);
-    message.setContent("");
-    messageRepository.save(message);
+      message.setDeleted(true);
+      message.setContent("");
+      return messageRepository.save(message);
+    });
 
-    cachePort.invalidate(message.getCommunityId());
-    broadcastPort.broadcastDelete(message.getCommunityId(), messageId);
+    eventPublisher.publishEvent(
+        new MessageDeletedEvent(deletedMessage.getCommunityId(), deletedMessage.getId()));
   }
 
   @Override
-  @Transactional
   public void toggleReaction(Long messageId, Long userId, ReactionType type) {
-    CommunityMessage message = requireActiveMessage(messageId);
+    ReactionStatus result = transactionTemplate.execute(status -> {
+      CommunityMessage message = requireActiveMessage(messageId);
 
-    if (!membershipCache.isMember(message.getCommunityId(), userId)) {
-      throw new CommunityAccessDeniedException("Apenas membros podem reagir a mensagens.");
-    }
+      if (!membershipCache.isMember(message.getCommunityId(), userId)) {
+        throw new CommunityAccessDeniedException("Apenas membros podem reagir a mensagens.");
+      }
 
-    try {
-      reactionRepository.save(
-          MessageReaction.builder().messageId(messageId).userId(userId).reactionType(type).build());
-      messageRepository.incrementHeartCount(messageId);
-    } catch (DataIntegrityViolationException e) {
-      reactionRepository.deleteByMessageIdAndUserIdAndReactionType(messageId, userId, type);
-      messageRepository.decrementHeartCount(messageId);
-    }
+      try {
+        reactionRepository.save(
+            MessageReaction.builder().messageId(messageId).userId(userId).reactionType(type).build());
+        messageRepository.incrementHeartCount(messageId);
+      } catch (DataIntegrityViolationException e) {
+        reactionRepository.deleteByMessageIdAndUserIdAndReactionType(messageId, userId, type);
+        messageRepository.decrementHeartCount(messageId);
+      }
 
-    int newCount = messageRepository.findHeartCountById(messageId);
-    broadcastPort.broadcastReaction(message.getCommunityId(), messageId, newCount);
+      int newCount = messageRepository.findHeartCountById(messageId);
+      return new ReactionStatus(message.getCommunityId(), messageId, newCount);
+    });
+
+    eventPublisher.publishEvent(
+        new MessageReactionEvent(result.communityId(), result.messageId(), result.newCount()));
   }
+
+  private record ReactionStatus(Long communityId, Long messageId, int newCount) {}
 
   @Override
   @Transactional(readOnly = true)
@@ -261,6 +300,7 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   public List<CommunityMessage> getMessagesAfter(Long communityId, Long afterId) {
     return messageRepository.findByCommunityIdAfterId(communityId, afterId);
   }
+
 
   private CommunityMessage requireActiveMessage(Long messageId) {
     CommunityMessage message =

@@ -60,7 +60,9 @@ class CommunityConfig {
       CommunityMembershipCache membershipCache,
       MessageBroadcastPort broadcastPort,
       MessageCachePort cachePort,
-      FeedImagePort feedImagePort) {
+      FeedImagePort feedImagePort,
+      org.springframework.transaction.support.TransactionTemplate transactionTemplate,
+      org.springframework.context.ApplicationEventPublisher eventPublisher) {
     return new CommunityMessageService(
         messageRepository,
         reactionRepository,
@@ -68,7 +70,9 @@ class CommunityConfig {
         membershipCache,
         broadcastPort,
         cachePort,
-        feedImagePort);
+        feedImagePort,
+        transactionTemplate,
+        eventPublisher);
   }
 
   @Bean
