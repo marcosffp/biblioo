@@ -151,17 +151,24 @@ public class ReviewService implements ReviewUseCase {
 
     var oldRating = review.getRating();
 
-    if (review.getImages() != null && !review.getImages().isEmpty()) {
-      deleteImagesAsync(review.getImages());
-    }
+    var urlsToDelete = new ArrayList<String>();
+    if (review.getImages() != null) urlsToDelete.addAll(review.getImages());
+    if (review.getGifUrl() != null && !review.getGifUrl().isEmpty())
+      urlsToDelete.add(review.getGifUrl());
 
     if (review.getCommentCount() != null && review.getCommentCount() > 0) {
+      commentRepository.findByParentIdAndIsDeletedFalse(reviewId).forEach(c -> {
+        if (c.getImages() != null) urlsToDelete.addAll(c.getImages());
+        if (c.getGifUrl() != null && !c.getGifUrl().isEmpty()) urlsToDelete.add(c.getGifUrl());
+      });
       reviewRepository.softDeleteReview(reviewId, userId);
       commentRepository.softDeleteAllByParentId(reviewId);
     } else {
       commentRepository.deleteAllByParentId(reviewId);
       reviewRepository.deleteById(reviewId);
     }
+
+    if (!urlsToDelete.isEmpty()) deleteImagesAsync(urlsToDelete);
 
     feedEventPublisherPort.publishBookReviewStatsUpdated(review.getBookId(), oldRating, null);
   }

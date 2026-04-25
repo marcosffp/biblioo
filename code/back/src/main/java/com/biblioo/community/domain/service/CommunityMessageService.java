@@ -241,8 +241,14 @@ public MessageMediaUploadResponse uploadMessageMedia(
       return messageRepository.save(message);
     });
 
-    eventPublisher.publishEvent(
-        new MessageDeletedEvent(deletedMessage.getCommunityId(), deletedMessage.getId()));
+    List<String> urlsToDelete = new ArrayList<>(deletedMessage.getImages());
+    if (deletedMessage.getGifUrl() != null && !deletedMessage.getGifUrl().isBlank())
+      urlsToDelete.add(deletedMessage.getGifUrl());
+
+    if (!urlsToDelete.isEmpty()) feedImagePort.deleteImages(urlsToDelete);
+
+    cachePort.invalidate(deletedMessage.getCommunityId());
+    broadcastPort.broadcastDelete(deletedMessage.getCommunityId(), messageId);
   }
 
   @Override
