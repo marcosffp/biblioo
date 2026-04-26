@@ -25,31 +25,36 @@ public class CacheConfig implements CachingConfigurer {
 
   @Bean
   RedisCacheManager cacheManager(RedisConnectionFactory factory) {
-    var typeValidator =
-        BasicPolymorphicTypeValidator.builder().allowIfBaseType(Object.class).build();
+    var typeValidator = BasicPolymorphicTypeValidator.builder().allowIfBaseType(Object.class).build();
 
-    var serializer =
-        GenericJacksonJsonRedisSerializer.builder()
-            .enableDefaultTyping(typeValidator)
-            .typePropertyName("@class")
-            .build();
+    var serializer = GenericJacksonJsonRedisSerializer.builder()
+        .enableDefaultTyping(typeValidator)
+        .typePropertyName("@class")
+        .build();
 
     var valuePair = RedisSerializationContext.SerializationPair.fromSerializer(serializer);
 
-    var base =
-        RedisCacheConfiguration.defaultCacheConfig()
-            .prefixCacheNameWith("biblioo:")
-            .disableCachingNullValues()
-            .serializeValuesWith(valuePair);
+    var base = RedisCacheConfiguration.defaultCacheConfig()
+        .prefixCacheNameWith("biblioo:")
+        .disableCachingNullValues()
+        .serializeValuesWith(valuePair);
 
     return RedisCacheManager.builder(factory)
         .cacheDefaults(base)
         // books
         .withCacheConfiguration("book-search", base.entryTtl(Duration.ofMinutes(5)))
-        .withCacheConfiguration("book-suggest", base.entryTtl(Duration.ofMinutes(10)))
+        .withCacheConfiguration("book-detail", base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("google-books", base.entryTtl(Duration.ofMinutes(10)))
         // user
-        .withCacheConfiguration("user-profile", base.entryTtl(Duration.ofMinutes(5)))
+        .withCacheConfiguration("user-profile", base.entryTtl(Duration.ofMinutes(10)))
+        // shelf
+        .withCacheConfiguration("shelf-list", base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("shelf", base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("shelf-items-list", base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("shelf-item", base.entryTtl(Duration.ofHours(1)))
+        // collection
+        .withCacheConfiguration("collection-list", base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("collection-detail", base.entryTtl(Duration.ofHours(1)))
         // community
         .withCacheConfiguration("community-membership", base.entryTtl(Duration.ofMinutes(2)))
         .build();

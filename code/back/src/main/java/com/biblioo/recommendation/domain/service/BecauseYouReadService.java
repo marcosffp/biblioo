@@ -1,10 +1,10 @@
 package com.biblioo.recommendation.domain.service;
 
+import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
 import com.biblioo.recommendation.domain.model.BookScore;
-import com.biblioo.recommendation.domain.port.in.RecommendationUseCase;
 import com.biblioo.recommendation.infrastructure.graph.Neo4jGraphService;
 import com.biblioo.recommendation.infrastructure.persistence.RecommendationResultRepository;
-import com.biblioo.recommendation.infrastructure.service.BecauseYouReadFallbackService;
+import com.biblioo.recommendation.infrastructure.service.BecauseYouReadComputeService;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
@@ -17,10 +17,10 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class BecauseYouReadService implements RecommendationUseCase {
+public class BecauseYouReadService {
 
   private final Neo4jGraphService neo4jGraphService;
-  private final BecauseYouReadFallbackService fallbackService;
+  private final BecauseYouReadComputeService computeService;
   private final RecommendationResultRepository resultRepository;
 
   @Value("${recommendation.t1.candidate-limit}")
@@ -32,19 +32,20 @@ public class BecauseYouReadService implements RecommendationUseCase {
   @Value("${recommendation.t1.max-same-category-ratio}")
   private double maxSameCategoryRatio;
 
-  public void compute(Long userId, Long bookId, Long shelfItemId, String finishedAt) {
+  public void compute(
+      Long userId, Long bookId, Long shelfItemId, String finishedAt, String seedBookTitle) {
     try {
       neo4jGraphService.mergeReadRelationship(userId, bookId, finishedAt, shelfItemId);
     } catch (Exception ex) {
       log.warn(
-          "[T1] Falha ao atualizar grafo user={} book={}: {}", userId, bookId, ex.getMessage());
+          "[BYR] Falha ao atualizar grafo user={} book={}: {}", userId, bookId, ex.getMessage());
     }
 
     List<BookScore> candidates = computeWithFallback(userId, bookId);
 
     if (candidates.isEmpty()) {
       log.info(
-          "[T1] Nenhum candidato encontrado para user={} book={}, mantendo resultado anterior",
+          "[BYR] Nenhum candidato para user={} book={}, mantendo resultado anterior",
           userId,
           bookId);
       return;
@@ -52,19 +53,18 @@ public class BecauseYouReadService implements RecommendationUseCase {
 
     List<BookScore> processed = postProcess(candidates);
 
-    resultRepository.upsert(userId, "BECAUSE_YOU_READ", processed);
+    resultRepository.upsertByr(userId, processed, seedBookTitle);
 
     log.info(
-        "[T1] {} recomendações persistidas para user={} book={} source={}",
+        "[BYR] {} recomendações persistidas para user={} seedBook='{}' source={}",
         processed.size(),
         userId,
-        bookId,
+        seedBookTitle,
         processed.isEmpty() ? "none" : processed.get(0).getSource());
   }
 
-  @Override
-  public List<BookScore> getBecauseYouRead(Long userId) {
-    return resultRepository.findByUserId(userId, "BECAUSE_YOU_READ");
+  public BecauseYouReadResult get(Long userId) {
+    return resultRepository.findBecauseYouReadResult(userId);
   }
 
   private List<BookScore> computeWithFallback(Long userId, Long bookId) {
@@ -74,15 +74,15 @@ public class BecauseYouReadService implements RecommendationUseCase {
         return graphResults;
       }
       log.info(
-          "[T1] Grafo retornou vazio para user={} book={}, tentando fallback SQL", userId, bookId);
-      return fallbackService.compute(userId, bookId);
+          "[BYR] Grafo retornou vazio para user={} book={}, tentando fallback SQL", userId, bookId);
+      return computeService.compute(userId, bookId);
     } catch (Exception ex) {
       log.warn(
-          "[T1] Neo4j indisponível para user={} book={}, ativando fallback SQL. Causa: {}",
+          "[BYR] Neo4j indisponível para user={} book={}, ativando fallback SQL. Causa: {}",
           userId,
           bookId,
           ex.getMessage());
-      return fallbackService.compute(userId, bookId);
+      return computeService.compute(userId, bookId);
     }
   }
 

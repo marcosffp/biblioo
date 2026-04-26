@@ -11,7 +11,6 @@ import com.biblioo.community.infrastructure.persistence.CommunityInviteRepositor
 import com.biblioo.community.infrastructure.persistence.CommunityJoinRequestRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMembershipCache;
-import com.biblioo.community.infrastructure.persistence.CommunityPostRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityRepository;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,7 +29,6 @@ public class CommunityService implements CommunityUseCase {
   private final CommunityMembershipCache membershipCache;
   private final CommunityInviteRepository inviteRepository;
   private final CommunityJoinRequestRepository joinRequestRepository;
-  private final CommunityPostRepository postRepository;
   private final CommunityUserLookupPort userLookup;
   private final CommunityBookLookupPort bookLookup;
   private final CommunityEventPublisherPort eventPublisher;
@@ -91,7 +89,6 @@ public class CommunityService implements CommunityUseCase {
     getActiveCommunity(communityId);
     requireRole(communityId, userId, CommunityRole.OWNER, "Apenas o proprietário pode excluir.");
 
-    postRepository.softDeleteAllByCommunityId(communityId);
     memberRepository.deleteAllByCommunityId(communityId);
     inviteRepository.deleteAllByCommunityId(communityId);
     joinRequestRepository.deleteAllByCommunityId(communityId);

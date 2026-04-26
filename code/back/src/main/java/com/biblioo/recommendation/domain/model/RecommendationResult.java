@@ -32,4 +32,7 @@ public class RecommendationResult {
 
   @Column(name = "computed_at", nullable = false)
   private LocalDateTime computedAt;
+
+  @Column(name = "metadata", columnDefinition = "JSON")
+  private String metadata;
 }

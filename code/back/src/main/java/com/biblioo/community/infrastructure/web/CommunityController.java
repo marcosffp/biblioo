@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.springdoc.core.annotations.ParameterObject;
+import java.util.List;
+import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -140,19 +142,20 @@ public class CommunityController {
       @AuthenticationPrincipal UserDetails principal,
       @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
     Long userId = principal != null ? currentUserId(principal) : null;
-    Page<CommunityMemberResponse> page =
-        communityUseCase
-            .getMembers(userId, id, pageable)
-            .map(
-                member -> {
-                  CommunityUserSummary user = userLookup.getById(member.getUserId());
-                  return new CommunityMemberResponse(
-                      member.getUserId(),
-                      user != null ? user.username() : null,
-                      user != null ? user.avatarUrl() : null,
-                      member.getRole(),
-                      member.getJoinedAt());
-                });
+    Page<CommunityMember> members = communityUseCase.getMembers(userId, id, pageable);
+
+    List<Long> userIds = members.stream().map(CommunityMember::getUserId).toList();
+    Map<Long, CommunityUserSummary> usersById = userLookup.getByIds(userIds);
+
+    Page<CommunityMemberResponse> page = members.map(member -> {
+      CommunityUserSummary user = usersById.get(member.getUserId());
+      return new CommunityMemberResponse(
+          member.getUserId(),
+          user != null ? user.username() : null,
+          user != null ? user.avatarUrl() : null,
+          member.getRole(),
+          member.getJoinedAt());
+    });
     return ResponseEntity.ok(page);
   }
 

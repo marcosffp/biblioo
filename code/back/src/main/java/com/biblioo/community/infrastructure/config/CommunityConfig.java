@@ -1,7 +1,6 @@
 package com.biblioo.community.infrastructure.config;
 
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
-import com.biblioo.community.domain.port.in.CommunityPostUseCase;
 import com.biblioo.community.domain.port.in.CommunityUseCase;
 import com.biblioo.community.domain.port.out.CommunityBookLookupPort;
 import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
@@ -9,20 +8,15 @@ import com.biblioo.community.domain.port.out.CommunityUserLookupPort;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.domain.port.out.MessageCachePort;
 import com.biblioo.community.domain.service.CommunityMessageService;
-import com.biblioo.community.domain.service.CommunityPostService;
 import com.biblioo.community.domain.service.CommunityService;
 import com.biblioo.community.infrastructure.persistence.CommunityInviteRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityJoinRequestRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMembershipCache;
 import com.biblioo.community.infrastructure.persistence.CommunityMessageRepository;
-import com.biblioo.community.infrastructure.persistence.CommunityPostRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityRepository;
 import com.biblioo.community.infrastructure.persistence.MessageReactionRepository;
 import com.biblioo.feed.domain.port.out.FeedImagePort;
-import com.biblioo.feed.infrastructure.persistence.CommentRepository;
-import com.biblioo.feed.infrastructure.persistence.LikeRepository;
-import com.biblioo.feed.infrastructure.persistence.LikeSaveHelper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -36,7 +30,6 @@ class CommunityConfig {
       CommunityMembershipCache membershipCache,
       CommunityInviteRepository inviteRepository,
       CommunityJoinRequestRepository joinRequestRepository,
-      CommunityPostRepository postRepository,
       CommunityUserLookupPort userLookup,
       CommunityBookLookupPort bookLookup,
       CommunityEventPublisherPort eventPublisher) {
@@ -46,7 +39,6 @@ class CommunityConfig {
         membershipCache,
         inviteRepository,
         joinRequestRepository,
-        postRepository,
         userLookup,
         bookLookup,
         eventPublisher);
@@ -60,7 +52,9 @@ class CommunityConfig {
       CommunityMembershipCache membershipCache,
       MessageBroadcastPort broadcastPort,
       MessageCachePort cachePort,
-      FeedImagePort feedImagePort) {
+      FeedImagePort feedImagePort,
+      org.springframework.transaction.support.TransactionTemplate transactionTemplate,
+      org.springframework.context.ApplicationEventPublisher eventPublisher) {
     return new CommunityMessageService(
         messageRepository,
         reactionRepository,
@@ -68,25 +62,9 @@ class CommunityConfig {
         membershipCache,
         broadcastPort,
         cachePort,
-        feedImagePort);
+        feedImagePort,
+        transactionTemplate,
+        eventPublisher);
   }
 
-  @Bean
-  CommunityPostUseCase communityPostUseCase(
-      CommunityPostRepository postRepository,
-      CommunityRepository communityRepository,
-      CommunityMemberRepository memberRepository,
-      LikeRepository likeRepository,
-      LikeSaveHelper likeSaveHelper,
-      CommentRepository commentRepository,
-      FeedImagePort feedImagePort) {
-    return new CommunityPostService(
-        postRepository,
-        communityRepository,
-        memberRepository,
-        likeRepository,
-        likeSaveHelper,
-        commentRepository,
-        feedImagePort);
-  }
 }

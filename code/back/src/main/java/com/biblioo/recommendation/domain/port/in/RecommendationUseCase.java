@@ -1,9 +1,11 @@
 package com.biblioo.recommendation.domain.port.in;
 
-import com.biblioo.recommendation.domain.model.BookScore;
-import java.util.List;
+import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
+import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
 
 public interface RecommendationUseCase {
 
-  List<BookScore> getBecauseYouRead(Long userId);
+  BecauseYouReadResult getBecauseYouRead(Long userId);
+
+  FavoriteGenreNowResult getFavoriteGenreNow(Long userId);
 }

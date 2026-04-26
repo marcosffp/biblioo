@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class RecommendationListenerConfig {
 
   @Bean
-  Advice recRetryInterceptor() {
+  Advice becauseYouReadRetryInterceptor() {
     return RetryInterceptorBuilder.stateless()
         .maxRetries(3)
         .backOffOptions(2_000, 2.0, 10_000)
@@ -21,14 +21,36 @@ public class RecommendationListenerConfig {
 
   @SuppressWarnings("removal")
   @Bean
-  SimpleRabbitListenerContainerFactory recListenerFactory(
+  SimpleRabbitListenerContainerFactory becauseYouReadListenerFactory(
       ConnectionFactory connectionFactory,
       Jackson2JsonMessageConverter messageConverter,
-      Advice recRetryInterceptor) {
+      Advice becauseYouReadRetryInterceptor) {
     SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
     factory.setConnectionFactory(connectionFactory);
     factory.setMessageConverter(messageConverter);
-    factory.setAdviceChain(recRetryInterceptor);
+    factory.setAdviceChain(becauseYouReadRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  @Bean
+  Advice favoriteGenreNowRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory favoriteGenreNowListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice favoriteGenreNowRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(favoriteGenreNowRetryInterceptor);
     factory.setDefaultRequeueRejected(false);
     return factory;
   }

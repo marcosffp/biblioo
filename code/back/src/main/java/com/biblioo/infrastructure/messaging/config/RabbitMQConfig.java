@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.amqp.core.AnonymousQueue;
 
 @Configuration
 public class RabbitMQConfig {
@@ -62,12 +63,23 @@ public class RabbitMQConfig {
   public static final String COMMUNITY_MESSAGE_DLQ_ROUTING_KEY = "community.message.dead";
   public static final String EVENT_COMMUNITY_MESSAGE_CREATED = "COMMUNITY_MESSAGE_CREATED";
 
+  // ── Community WebSocket Broadcast (cross-instance via AMQP fanout) ───────────
+  // Cada instância cria um AnonymousQueue exclusivo e efêmero. O FanoutExchange
+  // entrega para todas as instâncias; cada uma filtra a própria mensagem pelo
+  // header x-instance-id e entrega as demais ao SimpleBroker local.
+  public static final String COMMUNITY_BROADCAST_EXCHANGE = "biblioo.community.broadcast";
+
   // ── Recommendation T1 — BECAUSE_YOU_READ ────────────────────────────────────
-  public static final String REC_QUEUE = "rec.shelf.completed";
-  public static final String REC_DLQ = "rec.shelf.completed.dlq";
-  public static final String REC_DLQ_ROUTING_KEY = "rec.shelf.dead";
+  public static final String BYR_QUEUE = "rec.shelf.completed";
+  public static final String BYR_DLQ = "rec.shelf.completed.dlq";
+  public static final String BYR_DLQ_ROUTING_KEY = "rec.shelf.dead";
   public static final String SHELF_READING_COMPLETED_ROUTING_KEY = "shelf.reading.completed";
   public static final String EVENT_SHELF_READING_COMPLETED = "SHELF_READING_COMPLETED";
+
+  // ── Recommendation T2 — FAVORITE_GENRE_NOW ───────────────────────────────────
+  public static final String FGN_QUEUE = "rec.favorite-genre-now.triggered";
+  public static final String FGN_DLQ = "rec.favorite-genre-now.triggered.dlq";
+  public static final String FGN_DLQ_ROUTING_KEY = "rec.favorite-genre-now.dead";
 
   @Bean
   TopicExchange mainExchange() {
@@ -128,26 +140,50 @@ public class RabbitMQConfig {
   }
 
   @Bean
-  Queue recQueue() {
-    return QueueBuilder.durable(REC_QUEUE)
+  Queue byrQueue() {
+    return QueueBuilder.durable(BYR_QUEUE)
         .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
-        .withArgument("x-dead-letter-routing-key", REC_DLQ_ROUTING_KEY)
+        .withArgument("x-dead-letter-routing-key", BYR_DLQ_ROUTING_KEY)
         .build();
   }
 
   @Bean
-  Queue recDlq() {
-    return QueueBuilder.durable(REC_DLQ).build();
+  Queue byrDlq() {
+    return QueueBuilder.durable(BYR_DLQ).build();
   }
 
   @Bean
-  Binding recBinding(Queue recQueue, TopicExchange mainExchange) {
-    return BindingBuilder.bind(recQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  Binding byrBinding(Queue byrQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(byrQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
   }
 
   @Bean
-  Binding recDlqBinding(Queue recDlq, DirectExchange dlxExchange) {
-    return BindingBuilder.bind(recDlq).to(dlxExchange).with(REC_DLQ_ROUTING_KEY);
+  Binding byrDlqBinding(Queue byrDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(byrDlq).to(dlxExchange).with(BYR_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue fgnQueue() {
+    return QueueBuilder.durable(FGN_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", FGN_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue fgnDlq() {
+    return QueueBuilder.durable(FGN_DLQ).build();
+  }
+
+  @Bean
+  Binding fgnBinding(Queue fgnQueue, TopicExchange mainExchange) {
+    // Mesmo routing key do T1 — cada fila recebe uma cópia independente do evento
+    return BindingBuilder.bind(fgnQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding fgnDlqBinding(Queue fgnDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(fgnDlq).to(dlxExchange).with(FGN_DLQ_ROUTING_KEY);
   }
 
   @Bean
@@ -192,6 +228,34 @@ public class RabbitMQConfig {
     factory.setConnectionFactory(connectionFactory);
     factory.setMessageConverter(messageConverter);
     factory.setAdviceChain(bookStatsRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  // ── Community WebSocket Broadcast beans ─────────────────────────────────────
+
+  @Bean
+  FanoutExchange communityBroadcastExchange() {
+    return new FanoutExchange(COMMUNITY_BROADCAST_EXCHANGE, true, false);
+  }
+
+  @Bean
+  Queue communityBroadcastQueue() {
+    // Nome único por instância, auto-deletado quando a instância desconecta do RabbitMQ.
+    return new AnonymousQueue();
+  }
+
+  @Bean
+  Binding communityBroadcastBinding(
+      Queue communityBroadcastQueue, FanoutExchange communityBroadcastExchange) {
+    return BindingBuilder.bind(communityBroadcastQueue).to(communityBroadcastExchange);
+  }
+
+  @Bean
+  SimpleRabbitListenerContainerFactory communityBroadcastListenerFactory(
+      ConnectionFactory connectionFactory) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
     factory.setDefaultRequeueRejected(false);
     return factory;
   }

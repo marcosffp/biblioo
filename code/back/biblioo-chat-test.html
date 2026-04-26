@@ -446,7 +446,7 @@ function renderMessage(data) {
   }
 
   el.innerHTML = html;
-  document.getElementById('messages').appendChild(el);
+  insertSorted(document.getElementById('messages'), el, data.id);
   messagesMap[data.id] = { element: el, data };
   hideEmptyState();
   return el;
@@ -462,6 +462,16 @@ function updateMessageEl(el, data) {
 function hideEmptyState() { document.getElementById('empty-state')?.remove(); }
 function scrollBottom() { const m = document.getElementById('messages'); m.scrollTop = m.scrollHeight; }
 function esc(s) { if (!s) return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Insere a mensagem na posição correta por data.id crescente.
+// Mensagens sem id (pending) são sempre colocadas no final.
+function insertSorted(container, el, msgId) {
+  if (!msgId) { container.appendChild(el); return; }
+  const id = parseInt(msgId, 10);
+  const siblings = Array.from(container.querySelectorAll('.msg[data-id]'));
+  const after = siblings.find(s => parseInt(s.dataset.id, 10) > id);
+  after ? container.insertBefore(el, after) : container.appendChild(el);
+}
 function openLightbox(url) { document.getElementById('lightbox-img').src = url; document.getElementById('lightbox').classList.add('open'); }
 
 // ── Seleção de mídia ───────────────────────────────────────────────────────

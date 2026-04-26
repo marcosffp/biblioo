@@ -347,7 +347,7 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
                   executeSearchNavigation(searchScope, normalizedQuery);
                 }
               }}
-              className="w-full h-10 rounded-xl border border-emerald-200 bg-emerald-50/40 pl-11 pr-10 text-sm text-[var(--deep-green)] placeholder:text-[hsl(var(--muted-foreground))] transition-all duration-200 focus:border-emerald-300 focus:bg-white"
+              className="h-10 w-full rounded-full border border-gray-300 bg-white pl-11 pr-10 text-sm text-slate-700 placeholder:text-slate-500 transition-all duration-200 focus:border-gray-400 focus:bg-white"
             />
             {query ? (
               <button
@@ -360,7 +360,7 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
                   setIsDropdownOpen(true);
                   searchInputRef.current?.focus();
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--deep-green)] hover:bg-emerald-100"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-500 hover:bg-slate-100"
                 aria-label="Limpar busca"
               >
                 <X size={14} />
@@ -794,10 +794,10 @@ export function TopHeader({
   return (
     <header
       className={
-        `fixed top-0 left-0 right-0 h-16 bg-white border-b border-emerald-100 z-50 ${className ?? ""}`.trim()
+        `fixed top-0 left-0 right-0 h-16 border-b border-gray-200 bg-white z-50 ${className ?? ""}`.trim()
       }
     >
-      <div className="h-full w-full px-2 sm:px-4 lg:px-6 flex items-center gap-4 sm:gap-6">
+        <div className="h-full w-full px-2 sm:px-4 lg:px-6 flex items-center gap-4 sm:gap-6">
         <div className="flex items-center gap-2 min-w-fit text-[var(--deep-green)]">
           <img  className="h-8 w-17" src="biblioo-logo.png" alt="Biblioo" />
         </div>

@@ -1,6 +1,7 @@
 package com.biblioo.feed.infrastructure.persistence;
 
 import com.biblioo.feed.domain.model.Comment;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
       "UPDATE Comment c SET c.isDeleted = true"
           + " WHERE c.id = :commentId AND c.userId = :userId AND c.isDeleted = false")
   int softDeleteComment(@Param("commentId") Long commentId, @Param("userId") Long userId);
+
+  List<Comment> findByParentIdAndIsDeletedFalse(Long parentId);
 
   @Modifying
   @Query(

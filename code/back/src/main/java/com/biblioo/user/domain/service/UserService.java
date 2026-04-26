@@ -178,11 +178,18 @@ public class UserService implements UserUseCase {
 
   @Override
   public void deleteAccount(Long userId) {
-    userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+
+    var imageUrls = new java.util.ArrayList<String>();
+    if (user.getAvatarUrl() != null) imageUrls.add(user.getAvatarUrl());
+    if (user.getBannerUrl() != null) imageUrls.add(user.getBannerUrl());
+
     tokenRepo.deleteAllByUserId(userId);
     followRepo.deleteAllByUserId(userId);
     userRepo.deleteById(userId);
     searchPort.deleteFromIndex(userId);
+
+    if (!imageUrls.isEmpty()) profileImagePort.deleteImages(imageUrls);
   }
 
   @Override
