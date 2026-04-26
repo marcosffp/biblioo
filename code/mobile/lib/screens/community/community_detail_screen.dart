@@ -6,8 +6,6 @@ import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/features/community/domain/community_member.dart';
 import 'package:biblioo/features/community/domain/community_message.dart';
-import 'package:biblioo/features/community/domain/community_post.dart';
-import 'package:biblioo/features/community/domain/community_post_draft.dart';
 import 'package:biblioo/features/user/domain/user.dart';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -15,7 +13,6 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'widgets/community_chat_tab.dart';
 import 'widgets/community_detail_shared.dart';
 import 'widgets/community_detail_tab_bar.dart';
-import 'widgets/community_feed_tab.dart';
 import 'widgets/community_overview_tab.dart';
 
 class CommunityDetailScreen extends StatefulWidget {
@@ -44,11 +41,6 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   bool _headerLoading = true;
   String? _headerError;
 
-  List<CommunityPost> _posts = const [];
-  bool _postsLoading = false;
-  bool _postsLoaded = false;
-  String? _postsError;
-
   List<CommunityMessage> _messages = const [];
   bool _messagesLoading = false;
   bool _messagesLoaded = false;
@@ -66,7 +58,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this)
+    _tabController = TabController(length: 2, vsync: this)
       ..addListener(_onTabChanged);
     _loadHeader();
   }
@@ -118,39 +110,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
-    if (_tabController.index == 1 && !_postsLoaded) {
-      _loadPosts();
-    }
-    if (_tabController.index == 2 && !_messagesLoaded) {
+    if (_tabController.index == 1 && !_messagesLoaded) {
       _loadMessages();
     }
-    if (_tabController.index == 2 &&
+    if (_tabController.index == 1 &&
         !_chatSocketConnected &&
         !_chatSocketConnecting) {
       _connectChatSocket();
-    }
-  }
-
-  Future<void> _loadPosts() async {
-    setState(() {
-      _postsLoading = true;
-      _postsError = null;
-    });
-
-    try {
-      final posts = await _repo.getCommunityPosts(widget.communityId);
-      if (!mounted) return;
-      setState(() {
-        _posts = posts;
-        _postsLoaded = true;
-        _postsLoading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _postsError = 'Nao foi possivel carregar o feed.';
-        _postsLoading = false;
-      });
     }
   }
 
@@ -195,9 +161,6 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     _lastRefreshAt = now;
     await _loadHeader(forceRefresh: true);
     if (_tabController.index == 1) {
-      await _loadPosts();
-    }
-    if (_tabController.index == 2) {
       await _loadMessages();
     }
   }
@@ -339,13 +302,6 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                         : _joinCommunity,
                     onRefresh: _refresh,
                   ),
-                  CommunityFeedTab(
-                    loading: _postsLoading && !_postsLoaded,
-                    error: _postsError,
-                    posts: _posts,
-                    onCreatePost: _createPost,
-                    onRetry: _loadPosts,
-                  ),
                   CommunityChatTab(
                     loading: _messagesLoading && !_messagesLoaded,
                     error: _messagesError,
@@ -384,18 +340,6 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   Future<void> _leaveCommunity() async {
     await _repo.leaveCommunity(widget.communityId);
     await _refresh(bypassCooldown: true);
-  }
-
-  Future<void> _createPost(CommunityPostDraft draft) async {
-    try {
-      await _repo.createCommunityPost(widget.communityId, draft: draft);
-      await _loadPosts();
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nao foi possivel criar o post.')),
-      );
-    }
   }
 
   Future<void> _sendMessage() async {

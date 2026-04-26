@@ -1,8 +1,6 @@
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/features/community/domain/community_member.dart';
 import 'package:biblioo/features/community/domain/community_message.dart';
-import 'package:biblioo/features/community/domain/community_post.dart';
-import 'package:biblioo/features/community/domain/community_post_draft.dart';
 import 'community_local_datasource.dart';
 import 'models/community_model.dart';
 import 'community_remote_datasource.dart';
@@ -135,28 +133,6 @@ class CommunityRepository {
 
   Future<void> joinCommunityByInvite(String code) async {
     await _remote.joinCommunityByInvite(code);
-  }
-
-  Future<List<CommunityPost>> getCommunityPosts(int communityId) async {
-    try {
-      final remote = await _remote.getCommunityPosts(communityId);
-      await _local.savePosts(communityId, remote);
-      return remote.map((p) => p.toEntity()).toList();
-    } catch (_) {
-      final local = _local.getCachedPosts(communityId);
-      return local.map((p) => p.toEntity()).toList();
-    }
-  }
-
-  Future<CommunityPost> createCommunityPost(
-    int communityId, {
-    required CommunityPostDraft draft,
-  }) async {
-    final remote = await _remote.createCommunityPost(communityId, draft: draft);
-    final cached = _local.getCachedPosts(communityId);
-    cached.insert(0, remote);
-    await _local.savePosts(communityId, cached);
-    return remote.toEntity();
   }
 
   Future<List<CommunityMessage>> getCommunityMessages(int communityId) async {

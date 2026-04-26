@@ -12,7 +12,6 @@ class CommunityDetailTabBar extends StatelessWidget
       controller: controller,
       tabs: const [
         Tab(text: 'Visão geral'),
-        Tab(text: 'Feed'),
         Tab(text: 'Chat'),
       ],
     );

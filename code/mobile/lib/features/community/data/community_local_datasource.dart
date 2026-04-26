@@ -3,14 +3,12 @@ import 'dart:convert';
 import 'package:biblioo/features/community/data/models/community_member_model.dart';
 import 'package:biblioo/features/community/data/models/community_message_model.dart';
 import 'package:biblioo/features/community/data/models/community_model.dart';
-import 'package:biblioo/features/community/data/models/community_post_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CommunityLocalDatasource {
   static const _mineKey = 'community_cache_mine';
   static const _suggestionsKey = 'community_cache_suggestions';
   static const _updatedAtKey = 'community_cache_updated_at';
-  static const _postsPrefix = 'community_posts_cache_';
   static const _messagesPrefix = 'community_messages_cache_';
   static const _membersPrefix = 'community_members_cache_';
 
@@ -80,27 +78,6 @@ class CommunityLocalDatasource {
     await _prefs.remove(_mineKey);
     await _prefs.remove(_suggestionsKey);
     await _prefs.remove(_updatedAtKey);
-  }
-
-  List<CommunityPostModel> getCachedPosts(int communityId) {
-    final raw = _prefs.getString('$_postsPrefix$communityId');
-    if (raw == null || raw.isEmpty) return [];
-    final list = jsonDecode(raw) as List<dynamic>;
-    return list
-        .map(
-          (item) => CommunityPostModel.fromJson(item as Map<String, dynamic>),
-        )
-        .toList();
-  }
-
-  Future<void> savePosts(
-    int communityId,
-    List<CommunityPostModel> posts,
-  ) async {
-    await _prefs.setString(
-      '$_postsPrefix$communityId',
-      jsonEncode(posts.map((p) => p.toJson()).toList()),
-    );
   }
 
   List<CommunityModel> _decodeList(String? raw) {
