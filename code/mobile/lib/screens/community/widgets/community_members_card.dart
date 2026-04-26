@@ -11,7 +11,7 @@ class CommunityMembersCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 0,
+      elevation: 1,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

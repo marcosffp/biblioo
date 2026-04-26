@@ -93,7 +93,7 @@ class CommunityOverviewTab extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Card(
-          elevation: 0,
+          elevation: 1,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

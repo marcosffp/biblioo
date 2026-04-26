@@ -73,11 +73,12 @@ class CommunityChatTab extends StatelessWidget {
                     ],
                   )
                 : ListView.separated(
-                  reverse: true,
+                    reverse: true,
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                     itemCount: messages.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10), // ← corrigido
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: 10), // ← corrigido
                     itemBuilder: (context, index) {
                       final message = messages[index];
                       final isMine =
@@ -139,7 +140,7 @@ class _StatusCard extends StatelessWidget {
     }
 
     return Card(
-      elevation: 0,
+      elevation: 1,
       child: ListTile(
         leading: Icon(Icons.wifi_tethering_rounded, color: color),
         title: Text(title),
@@ -167,7 +168,7 @@ class _ComposerCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 0,
+      elevation: 1,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
         child: Row(
@@ -242,8 +243,9 @@ class _ChatBubble extends StatelessWidget {
     );
 
     return Row(
-      mainAxisAlignment:
-          isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: isMine
+          ? MainAxisAlignment.end
+          : MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         if (!isMine) ...[
@@ -272,10 +274,9 @@ class _ChatBubble extends StatelessWidget {
                   message.deleted
                       ? '(mensagem removida)'
                       : (message.content.isEmpty
-                          ? '(sem texto)'
-                          : message.content),
-                  style:
-                      theme.textTheme.bodyMedium?.copyWith(color: textColor),
+                            ? '(sem texto)'
+                            : message.content),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -285,8 +286,7 @@ class _ChatBubble extends StatelessWidget {
                       communityRelativeTimeLabel(message.createdAt),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isMine
-                            ? theme.colorScheme.onPrimary
-                                .withValues(alpha: 0.8)
+                            ? theme.colorScheme.onPrimary.withValues(alpha: 0.8)
                             : theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
@@ -297,8 +297,7 @@ class _ChatBubble extends StatelessWidget {
                           : Icons.favorite_border_rounded,
                       size: 14,
                       color: isMine
-                          ? theme.colorScheme.onPrimary
-                              .withValues(alpha: 0.75)
+                          ? theme.colorScheme.onPrimary.withValues(alpha: 0.75)
                           : theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
@@ -306,8 +305,7 @@ class _ChatBubble extends StatelessWidget {
                       '${message.images.length}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isMine
-                            ? theme.colorScheme.onPrimary
-                                .withValues(alpha: 0.8)
+                            ? theme.colorScheme.onPrimary.withValues(alpha: 0.8)
                             : theme.colorScheme.onSurfaceVariant,
                       ),
                     ),

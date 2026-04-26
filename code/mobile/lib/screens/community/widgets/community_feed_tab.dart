@@ -114,7 +114,7 @@ class _CommunityFeedTabState extends State<CommunityFeedTab> {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
       children: [
         Card(
-          elevation: 0,
+          elevation: 1,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -257,7 +257,7 @@ class _CommunityFeedTabState extends State<CommunityFeedTab> {
             (post) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Card(
-                elevation: 0,
+                elevation: 1,
                 child: Padding(
                   padding: const EdgeInsets.all(14),
                   child: Column(
