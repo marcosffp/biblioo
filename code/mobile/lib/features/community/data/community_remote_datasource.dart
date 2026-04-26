@@ -95,6 +95,56 @@ class CommunityRemoteDatasource {
         .toList();
   }
 
+  Future<List<CommunityMessageModel>> syncCommunityMessages(
+    int communityId, {
+    required int after,
+  }) async {
+    final response = await _dio.get(
+      '/communities/$communityId/messages/sync',
+      queryParameters: {'after': after},
+    );
+
+    final data = response.data;
+    if (data is! List<dynamic>) return [];
+
+    return data
+        .map(
+          (e) => CommunityMessageModel.fromApiJson(e as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  Future<(List<String>, String?)> uploadMessageMedia(
+    int communityId, {
+    List<String> imagePaths = const [],
+    String? gifPath,
+  }) async {
+    final imageFiles = await Future.wait(
+      imagePaths.map((path) => MultipartFile.fromFile(path)),
+    );
+
+    final formData = FormData.fromMap({
+      if (imageFiles.isNotEmpty) 'images': imageFiles,
+      if (gifPath != null && gifPath.isNotEmpty)
+        'gif': await MultipartFile.fromFile(gifPath),
+    });
+
+    final response = await _dio.post(
+      '/communities/$communityId/messages/media',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+
+    final data = response.data;
+    if (data is! Map<String, dynamic>) return (<String>[], null);
+
+    final images = ((data['images'] as List<dynamic>?) ?? const [])
+        .map((e) => e.toString())
+        .toList();
+    final gifUrl = data['gifUrl'] as String?;
+    return (images, gifUrl);
+  }
+
   Future<List<CommunityMemberModel>> getCommunityMembers(
     int communityId, {
     int page = 0,

@@ -146,6 +146,42 @@ class CommunityRepository {
     }
   }
 
+  Future<List<CommunityMessage>> syncCommunityMessages(
+    int communityId, {
+    required int after,
+  }) async {
+    final remote = await _remote.syncCommunityMessages(
+      communityId,
+      after: after,
+    );
+    final current = _local.getCachedMessages(communityId);
+    final merged = [...current];
+
+    for (final incoming in remote) {
+      final idx = merged.indexWhere((m) => m.id == incoming.id);
+      if (idx == -1) {
+        merged.insert(0, incoming);
+      } else {
+        merged[idx] = incoming;
+      }
+    }
+
+    await _local.saveMessages(communityId, merged);
+    return merged.map((m) => m.toEntity()).toList();
+  }
+
+  Future<(List<String>, String?)> uploadCommunityMessageMedia(
+    int communityId, {
+    List<String> imagePaths = const [],
+    String? gifPath,
+  }) {
+    return _remote.uploadMessageMedia(
+      communityId,
+      imagePaths: imagePaths,
+      gifPath: gifPath,
+    );
+  }
+
   Future<void> sendCommunityMessage(
     int communityId, {
     required String content,

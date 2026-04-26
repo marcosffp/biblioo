@@ -30,4 +30,38 @@ class CommunityMessage {
     required this.createdAt,
     this.editedAt,
   });
+
+  CommunityMessage copyWith({
+    int? id,
+    String? clientMessageId,
+    int? communityId,
+    int? authorId,
+    String? content,
+    int? parentMessageId,
+    List<String>? tags,
+    List<String>? images,
+    String? gifUrl,
+    bool? hasSpoiler,
+    int? heartCount,
+    bool? deleted,
+    DateTime? createdAt,
+    DateTime? editedAt,
+  }) {
+    return CommunityMessage(
+      id: id ?? this.id,
+      clientMessageId: clientMessageId ?? this.clientMessageId,
+      communityId: communityId ?? this.communityId,
+      authorId: authorId ?? this.authorId,
+      content: content ?? this.content,
+      parentMessageId: parentMessageId ?? this.parentMessageId,
+      tags: tags ?? this.tags,
+      images: images ?? this.images,
+      gifUrl: gifUrl ?? this.gifUrl,
+      hasSpoiler: hasSpoiler ?? this.hasSpoiler,
+      heartCount: heartCount ?? this.heartCount,
+      deleted: deleted ?? this.deleted,
+      createdAt: createdAt ?? this.createdAt,
+      editedAt: editedAt ?? this.editedAt,
+    );
+  }
 }

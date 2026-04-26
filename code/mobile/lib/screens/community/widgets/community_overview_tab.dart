@@ -11,7 +11,6 @@ class CommunityOverviewTab extends StatelessWidget {
   final Book? book;
   final List<CommunityMember> members;
   final Future<void> Function() onJoinOrLeave;
-  final Future<void> Function() onRefresh;
 
   const CommunityOverviewTab({
     super.key,
@@ -19,7 +18,6 @@ class CommunityOverviewTab extends StatelessWidget {
     required this.book,
     required this.members,
     required this.onJoinOrLeave,
-    required this.onRefresh,
   });
 
   @override
@@ -148,28 +146,15 @@ class CommunityOverviewTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: onJoinOrLeave,
-                icon: Icon(
-                  community.isMember
-                      ? Icons.logout_rounded
-                      : Icons.login_rounded,
-                ),
-                label: Text(community.isMember ? 'Sair' : 'Entrar'),
-              ),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: onJoinOrLeave,
+            icon: Icon(
+              community.isMember ? Icons.logout_rounded : Icons.login_rounded,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: onRefresh,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Atualizar'),
-              ),
-            ),
-          ],
+            label: Text(community.isMember ? 'Sair' : 'Entrar'),
+          ),
         ),
         const SizedBox(height: 16),
         CommunityMembersCard(members: members),
