@@ -29,9 +29,9 @@ class MainShell extends StatelessWidget {
             label: 'Para Você',
           ),
           NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Estante',
+            icon: Icon(Icons.local_library_outlined),
+            selectedIcon: Icon(Icons.local_library),
+            label: 'Bibliooteca',
           ),
           NavigationDestination(
             icon: Icon(Icons.group_outlined),

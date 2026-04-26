@@ -2,7 +2,7 @@ import 'package:biblioo/core/shell/main_shell.dart';
 import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
 import 'package:biblioo/screens/community/community_list_screen.dart';
 import 'package:biblioo/screens/community/community_detail_screen.dart';
-import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
+import 'package:biblioo/screens/shelf/biblioteca_screen.dart';
 import 'package:biblioo/screens/auth/login_screen.dart';
 import 'package:biblioo/screens/auth/register_screen.dart';
 import 'package:biblioo/screens/feed/feed_screen.dart';
@@ -122,7 +122,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/shelf',
-              builder: (context, state) => const ShelfListScreen(),
+              builder: (context, state) => const BibliotecaScreen(),
               // Rotas detalhadas da estante desativadas por ora.
               // routes: [
               //   GoRoute(
