@@ -54,7 +54,9 @@ class CommunityConfig {
       MessageCachePort cachePort,
       FeedImagePort feedImagePort,
       org.springframework.transaction.support.TransactionTemplate transactionTemplate,
-      org.springframework.context.ApplicationEventPublisher eventPublisher) {
+      org.springframework.context.ApplicationEventPublisher eventPublisher,
+      CommunityRepository communityRepository,
+      CommunityEventPublisherPort communityEventPublisher) {
     return new CommunityMessageService(
         messageRepository,
         reactionRepository,
@@ -64,7 +66,9 @@ class CommunityConfig {
         cachePort,
         feedImagePort,
         transactionTemplate,
-        eventPublisher);
+        eventPublisher,
+        communityRepository,
+        communityEventPublisher);
   }
 
 }

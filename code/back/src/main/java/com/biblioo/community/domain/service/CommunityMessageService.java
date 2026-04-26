@@ -10,9 +10,11 @@ import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.domain.port.out.MessageCachePort;
 import com.biblioo.community.infrastructure.dto.MessageMediaUploadResponse;
+import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMembershipCache;
 import com.biblioo.community.infrastructure.persistence.CommunityMessageRepository;
+import com.biblioo.community.infrastructure.persistence.CommunityRepository;
 import com.biblioo.community.infrastructure.persistence.MessageReactionRepository;
 import com.biblioo.feed.domain.port.out.FeedImagePort;
 import java.time.LocalDateTime;
@@ -50,6 +52,8 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   private final FeedImagePort feedImagePort;
   private final TransactionTemplate transactionTemplate;
   private final ApplicationEventPublisher eventPublisher;
+  private final CommunityRepository communityRepository;
+  private final CommunityEventPublisherPort communityEventPublisher;
 
   public record MessageSentEvent(CommunityMessage message) {}
   public record MessageEditedEvent(CommunityMessage message) {}
@@ -179,6 +183,11 @@ public MessageMediaUploadResponse uploadMessageMedia(
     });
 
     eventPublisher.publishEvent(new MessageSentEvent(savedMessage));
+
+    communityRepository
+        .findActiveById(communityId)
+        .ifPresent(
+            c -> communityEventPublisher.publishMessagePostedForTrending(authorId, c.getBookId()));
 
     return savedMessage;
   }

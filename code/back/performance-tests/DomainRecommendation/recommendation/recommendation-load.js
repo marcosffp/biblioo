@@ -97,5 +97,20 @@ export function queryRecommendation(data) {
     },
   });
 
+  sleep(CONFIG.sleep.betweenSteps);
+
+  const ticRes = http.get(`${CONFIG.base}/recommendations/trending-in-communities`, { headers });
+  check(ticRes, {
+    'trending in communities 200': (r) => r.status === 200,
+    'has books array': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return Array.isArray(body.books);
+      } catch (e) {
+        return false;
+      }
+    },
+  });
+
   sleep(CONFIG.sleep.afterIteration);
 }

@@ -81,6 +81,20 @@ public class RabbitMQConfig {
   public static final String FGN_DLQ = "rec.favorite-genre-now.triggered.dlq";
   public static final String FGN_DLQ_ROUTING_KEY = "rec.favorite-genre-now.dead";
 
+  // ── Recommendation T3 — TRENDING_IN_COMMUNITIES ──────────────────────────────
+  public static final String TIC_MESSAGE_QUEUE = "rec.trending-in-communities.message";
+  public static final String TIC_MESSAGE_DLQ = "rec.trending-in-communities.message.dlq";
+  public static final String TIC_MESSAGE_DLQ_ROUTING_KEY = "rec.trending-in-communities.message.dead";
+  public static final String TIC_MESSAGE_ROUTING_KEY = "community.trending.message";
+
+  public static final String TIC_JOIN_QUEUE = "rec.trending-in-communities.join";
+  public static final String TIC_JOIN_DLQ = "rec.trending-in-communities.join.dlq";
+  public static final String TIC_JOIN_DLQ_ROUTING_KEY = "rec.trending-in-communities.join.dead";
+  public static final String TIC_JOIN_ROUTING_KEY = "community.trending.join";
+
+  public static final String EVENT_COMMUNITY_MESSAGE_FOR_TRENDING = "COMMUNITY_MESSAGE_FOR_TRENDING";
+  public static final String EVENT_COMMUNITY_JOIN_FOR_TRENDING = "COMMUNITY_JOIN_FOR_TRENDING";
+
   @Bean
   TopicExchange mainExchange() {
     return ExchangeBuilder.topicExchange(MAIN_EXCHANGE).durable(true).build();
@@ -230,6 +244,54 @@ public class RabbitMQConfig {
     factory.setAdviceChain(bookStatsRetryInterceptor);
     factory.setDefaultRequeueRejected(false);
     return factory;
+  }
+
+  // ── Recommendation T3 — TRENDING_IN_COMMUNITIES beans ───────────────────────
+
+  @Bean
+  Queue ticMessageQueue() {
+    return QueueBuilder.durable(TIC_MESSAGE_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", TIC_MESSAGE_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue ticMessageDlq() {
+    return QueueBuilder.durable(TIC_MESSAGE_DLQ).build();
+  }
+
+  @Bean
+  Binding ticMessageBinding(Queue ticMessageQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(ticMessageQueue).to(mainExchange).with(TIC_MESSAGE_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding ticMessageDlqBinding(Queue ticMessageDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(ticMessageDlq).to(dlxExchange).with(TIC_MESSAGE_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue ticJoinQueue() {
+    return QueueBuilder.durable(TIC_JOIN_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", TIC_JOIN_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue ticJoinDlq() {
+    return QueueBuilder.durable(TIC_JOIN_DLQ).build();
+  }
+
+  @Bean
+  Binding ticJoinBinding(Queue ticJoinQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(ticJoinQueue).to(mainExchange).with(TIC_JOIN_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding ticJoinDlqBinding(Queue ticJoinDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(ticJoinDlq).to(dlxExchange).with(TIC_JOIN_DLQ_ROUTING_KEY);
   }
 
   // ── Community WebSocket Broadcast beans ─────────────────────────────────────

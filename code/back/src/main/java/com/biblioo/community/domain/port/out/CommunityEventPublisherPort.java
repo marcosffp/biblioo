@@ -20,4 +20,8 @@ public interface CommunityEventPublisherPort {
       List<Long> recipientIds);
 
   void publishJoinRequestApproved(Long communityId, String communityName, Long userId);
+
+  void publishMemberJoinedForTrending(Long userId, Long bookId);
+
+  void publishMessagePostedForTrending(Long userId, Long bookId);
 }

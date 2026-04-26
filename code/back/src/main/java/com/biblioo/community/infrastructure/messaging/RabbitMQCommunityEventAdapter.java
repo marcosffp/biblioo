@@ -77,4 +77,32 @@ public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPor
         RabbitMQConfig.NOTIFICATION_COMMUNITY_JOIN_APPROVED_ROUTING_KEY,
         payload);
   }
+
+  @Override
+  public void publishMemberJoinedForTrending(Long userId, Long bookId) {
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("userId", userId);
+    payload.put("bookId", bookId);
+
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_COMMUNITY_JOIN_FOR_TRENDING,
+        "COMMUNITY",
+        bookId.toString(),
+        RabbitMQConfig.TIC_JOIN_ROUTING_KEY,
+        payload);
+  }
+
+  @Override
+  public void publishMessagePostedForTrending(Long userId, Long bookId) {
+    Map<String, Object> payload = new HashMap<>();
+    payload.put("userId", userId);
+    payload.put("bookId", bookId);
+
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_COMMUNITY_MESSAGE_FOR_TRENDING,
+        "COMMUNITY",
+        bookId.toString(),
+        RabbitMQConfig.TIC_MESSAGE_ROUTING_KEY,
+        payload);
+  }
 }

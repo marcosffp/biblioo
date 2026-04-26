@@ -145,6 +145,7 @@ public class CommunityService implements CommunityUseCase {
     }
 
     addMember(communityId, userId, CommunityRole.MEMBER);
+    eventPublisher.publishMemberJoinedForTrending(userId, community.getBookId());
   }
 
   @Override
@@ -345,7 +346,7 @@ public class CommunityService implements CommunityUseCase {
       throw new CommunityBusinessException("Este convite já foi processado.");
     }
 
-    getActiveCommunity(invite.getCommunityId());
+    Community community = getActiveCommunity(invite.getCommunityId());
 
     if (memberRepository.isMember(invite.getCommunityId(), userId)) {
       throw new CommunityBusinessException("Você já é membro desta comunidade.");
@@ -355,6 +356,7 @@ public class CommunityService implements CommunityUseCase {
     inviteRepository.save(invite);
 
     addMember(invite.getCommunityId(), userId, CommunityRole.MEMBER);
+    eventPublisher.publishMemberJoinedForTrending(userId, community.getBookId());
   }
 
   @Override
@@ -452,6 +454,7 @@ public class CommunityService implements CommunityUseCase {
 
     eventPublisher.publishJoinRequestApproved(
         request.getCommunityId(), community.getName(), request.getUserId());
+    eventPublisher.publishMemberJoinedForTrending(request.getUserId(), community.getBookId());
   }
 
   @Override
@@ -528,6 +531,7 @@ public class CommunityService implements CommunityUseCase {
     }
 
     addMember(community.getId(), userId, CommunityRole.MEMBER);
+    eventPublisher.publishMemberJoinedForTrending(userId, community.getBookId());
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

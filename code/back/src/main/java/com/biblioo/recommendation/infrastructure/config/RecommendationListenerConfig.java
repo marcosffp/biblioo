@@ -54,4 +54,26 @@ public class RecommendationListenerConfig {
     factory.setDefaultRequeueRejected(false);
     return factory;
   }
+
+  @Bean
+  Advice trendingInCommunitiesRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory trendingInCommunitiesListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice trendingInCommunitiesRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(trendingInCommunitiesRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
 }

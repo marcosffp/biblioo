@@ -5,10 +5,12 @@ import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
 import com.biblioo.recommendation.domain.model.BookScore;
 import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
+import com.biblioo.recommendation.domain.model.TrendingInCommunitiesResult;
 import com.biblioo.recommendation.domain.port.in.RecommendationUseCase;
 import com.biblioo.recommendation.infrastructure.dto.BecauseYouReadResponse;
 import com.biblioo.recommendation.infrastructure.dto.FavoriteGenreNowResponse;
 import com.biblioo.recommendation.infrastructure.dto.RecommendationResponse;
+import com.biblioo.recommendation.infrastructure.dto.TrendingInCommunitiesResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
@@ -31,7 +33,7 @@ public class RecommendationController {
 
   @GetMapping("/because-you-read")
   @Operation(
-      summary = "Because You Read",
+      summary = "Porque Você Leu",
       description =
           "Retorna livros recomendados com base em co-leitura (BECAUSE_YOU_READ). "
               + "O campo seedBookTitle indica o título do livro que o usuário acabou de ler "
@@ -68,6 +70,26 @@ public class RecommendationController {
 
     return ResponseEntity.ok(
         FavoriteGenreNowResponse.builder().topGenres(result.getTopGenres()).books(books).build());
+  }
+
+  @GetMapping("/trending-in-communities")
+  @Operation(
+      summary = "Em Alta nas Comunidades",
+      description =
+          "Retorna os livros que estão gerando mais engajamento nas comunidades agora, usando "
+              + "Exponential Decay Scoring. Comentários valem 2× mais que entradas. "
+              + "Score decai 10%/hora. Livros abaixo do limiar são completados por novidades "
+              + "dos últimos 60 dias ordenadas por avaliação.")
+  public ResponseEntity<TrendingInCommunitiesResponse> getTrendingInCommunities(
+      @AuthenticationPrincipal UserDetails principal) {
+
+    Long userId = Long.parseLong(principal.getUsername());
+    TrendingInCommunitiesResult result = recommendationUseCase.getTrendingInCommunities(userId);
+
+    return ResponseEntity.ok(
+        TrendingInCommunitiesResponse.builder()
+            .books(toRecommendationResponses(result.getBooks()))
+            .build());
   }
 
   private List<RecommendationResponse> toRecommendationResponses(List<BookScore> scores) {
