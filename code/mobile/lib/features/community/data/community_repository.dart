@@ -1,4 +1,5 @@
 import 'package:biblioo/features/community/domain/community.dart';
+import 'package:biblioo/features/community/domain/community_invite.dart';
 import 'package:biblioo/features/community/domain/community_member.dart';
 import 'package:biblioo/features/community/domain/community_message.dart';
 import 'community_local_datasource.dart';
@@ -133,6 +134,30 @@ class CommunityRepository {
 
   Future<void> joinCommunityByInvite(String code) async {
     await _remote.joinCommunityByInvite(code);
+  }
+
+  Future<String> generateInviteCode(int communityId) {
+    return _remote.generateInviteCode(communityId);
+  }
+
+  Future<void> inviteUserToCommunity(int communityId, int inviteeId) {
+    return _remote.inviteUser(communityId, inviteeId);
+  }
+
+  Future<List<CommunityInvite>> getPendingInvites({
+    int page = 0,
+    int size = 10,
+  }) async {
+    final invites = await _remote.getPendingInvites(page: page, size: size);
+    return invites.map((item) => item.toEntity()).toList();
+  }
+
+  Future<void> acceptInvite(int inviteId) {
+    return _remote.acceptInvite(inviteId);
+  }
+
+  Future<void> declineInvite(int inviteId) {
+    return _remote.declineInvite(inviteId);
   }
 
   Future<List<CommunityMessage>> getCommunityMessages(int communityId) async {

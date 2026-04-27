@@ -10,6 +10,7 @@ import 'package:biblioo/features/community/domain/community_message.dart';
 import 'package:biblioo/features/user/domain/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -51,6 +52,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   final TextEditingController _messageController = TextEditingController();
   bool _sendingMessage = false;
   bool _uploadingMedia = false;
+  bool _inviteActionBusy = false;
   bool _hasSpoilerComposer = false;
   List<XFile> _pendingImages = const [];
   CommunityMessage? _replyingTo;
@@ -391,6 +393,22 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       if (message.id == id) return message;
     }
     return null;
+  }
+
+  String _resolveAuthorName(int authorId) {
+    if (_currentUser?.id == authorId) {
+      final current = _currentUser?.username ?? '';
+      if (current.trim().isNotEmpty) return current;
+    }
+
+    for (final member in _members) {
+      if (member.userId == authorId) {
+        final username = member.username ?? '';
+        if (username.trim().isNotEmpty) return username;
+      }
+    }
+
+    return 'Usuario #$authorId';
   }
 
   int? _latestMessageId() {
@@ -765,6 +783,171 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     await _leaveCommunity();
   }
 
+  Future<void> _generateInviteCode() async {
+    if (_community?.isMember != true) {
+      _showSnack('Somente membros podem gerar código de convite.');
+      return;
+    }
+
+    setState(() {
+      _inviteActionBusy = true;
+    });
+
+    try {
+      final inviteCode = await _repo.generateInviteCode(widget.communityId);
+      if (!mounted) return;
+
+      if (inviteCode.isEmpty) {
+        _showSnack('Não foi possível gerar o código de convite.');
+        return;
+      }
+
+      final copied = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (sheetContext) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Código de convite',
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                SelectableText(
+                  inviteCode,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(sheetContext).textTheme.headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Envie este código para quem você deseja convidar.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: inviteCode));
+                    if (!sheetContext.mounted) return;
+                    Navigator.of(sheetContext).pop(true);
+                  },
+                  icon: const Icon(Icons.copy_rounded),
+                  label: const Text('Copiar código'),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (copied == true) {
+        _showSnack('Código copiado. Agora é só enviar para a pessoa.');
+      }
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ?? 'Não foi possível gerar o código.',
+      );
+    } catch (_) {
+      _showSnack('Não foi possível gerar o código de convite.');
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _inviteActionBusy = false;
+      });
+    }
+  }
+
+  Future<void> _sendInviteToUser() async {
+    if (_community?.isMember != true) {
+      _showSnack('Somente membros podem enviar convites.');
+      return;
+    }
+
+    final controller = TextEditingController();
+    final inviteeId = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Enviar convite'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'ID do usuário',
+              hintText: 'Ex.: 42',
+            ),
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final parsed = int.tryParse(controller.text.trim());
+                if (parsed == null || parsed <= 0) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('Informe um ID válido.')),
+                  );
+                  return;
+                }
+                Navigator.of(dialogContext).pop(parsed);
+              },
+              child: const Text('Enviar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    if (inviteeId == null) return;
+
+    setState(() {
+      _inviteActionBusy = true;
+    });
+
+    try {
+      await _repo.inviteUserToCommunity(widget.communityId, inviteeId);
+      _showSnack('Convite enviado com sucesso. A pessoa será notificada.');
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ?? 'Não foi possível enviar convite.',
+      );
+    } catch (_) {
+      _showSnack('Não foi possível enviar convite.');
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _inviteActionBusy = false;
+      });
+    }
+  }
+
+  String? _extractBackendMessage(DioException error) {
+    final responseData = error.response?.data;
+    if (responseData is Map<String, dynamic>) {
+      final backendMessage = responseData['message'];
+      if (backendMessage is String && backendMessage.trim().isNotEmpty) {
+        return backendMessage;
+      }
+    }
+    return null;
+  }
+
   void _showSnack(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -780,6 +963,58 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       appBar: AppBar(
         title: const Text('Comunidade'),
         actions: [
+          if (_community?.isMember ?? false)
+            IconButton(
+              onPressed: _inviteActionBusy
+                  ? null
+                  : () async {
+                      final action = await showModalBottomSheet<String>(
+                        context: context,
+                        useSafeArea: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20),
+                          ),
+                        ),
+                        builder: (sheetContext) {
+                          return SafeArea(
+                            child: Wrap(
+                              children: [
+                                ListTile(
+                                  leading: const Icon(Icons.qr_code_rounded),
+                                  title: const Text('Gerar código de convite'),
+                                  onTap: () => Navigator.of(
+                                    sheetContext,
+                                  ).pop('generate-code'),
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.send_rounded),
+                                  title: const Text(
+                                    'Enviar convite por notificação',
+                                  ),
+                                  subtitle: const Text(
+                                    'Informe o ID do usuário',
+                                  ),
+                                  onTap: () => Navigator.of(
+                                    sheetContext,
+                                  ).pop('send-invite'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+
+                      if (action == 'generate-code') {
+                        await _generateInviteCode();
+                      }
+                      if (action == 'send-invite') {
+                        await _sendInviteToUser();
+                      }
+                    },
+              icon: const Icon(Icons.group_add_rounded),
+              tooltip: 'Convites',
+            ),
           if ((_community?.isMember ?? false) && !_isCurrentUserOwner)
             IconButton(
               onPressed: _confirmAndLeaveCommunity,
@@ -866,6 +1101,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   onDeleteMessage: _deleteMessage,
                   onToggleHeart: _toggleHeart,
                   findMessageById: _findMessageById,
+                  resolveAuthorName: _resolveAuthorName,
                 ),
               ],
             ),

@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:biblioo/features/community/domain/community_message.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'community_detail_shared.dart';
 
@@ -37,6 +40,7 @@ class CommunityChatTab extends StatelessWidget {
   final Future<void> Function(CommunityMessage message) onDeleteMessage;
   final Future<void> Function(CommunityMessage message) onToggleHeart;
   final CommunityMessage? Function(int messageId) findMessageById;
+  final String Function(int authorId) resolveAuthorName;
 
   const CommunityChatTab({
     super.key,
@@ -67,6 +71,7 @@ class CommunityChatTab extends StatelessWidget {
     required this.onDeleteMessage,
     required this.onToggleHeart,
     required this.findMessageById,
+    required this.resolveAuthorName,
   });
 
   bool _shouldGroup(CommunityMessage a, CommunityMessage b) {
@@ -142,6 +147,8 @@ class CommunityChatTab extends StatelessWidget {
                         isMine: isMine,
                         isGroupedWithNewer: isGroupedWithNewer,
                         isGroupedWithOlder: isGroupedWithOlder,
+                        authorName: resolveAuthorName(message.authorId),
+                        resolveAuthorName: resolveAuthorName,
                         currentUserInitials: currentUserInitials,
                         parentMessage: message.parentMessageId == null
                             ? null
@@ -475,6 +482,8 @@ class _ChatBubble extends StatefulWidget {
   final bool isMine;
   final bool isGroupedWithNewer;
   final bool isGroupedWithOlder;
+  final String authorName;
+  final String Function(int authorId) resolveAuthorName;
   final String currentUserInitials;
   final Future<void> Function(CommunityMessage message) onReplyMessage;
   final Future<void> Function(CommunityMessage message) onEditMessage;
@@ -487,6 +496,8 @@ class _ChatBubble extends StatefulWidget {
     required this.isMine,
     required this.isGroupedWithNewer,
     required this.isGroupedWithOlder,
+    required this.authorName,
+    required this.resolveAuthorName,
     required this.currentUserInitials,
     required this.onReplyMessage,
     required this.onEditMessage,
@@ -501,6 +512,7 @@ class _ChatBubble extends StatefulWidget {
 class _ChatBubbleState extends State<_ChatBubble> {
   bool _spoilerRevealed = false;
   double _dragDx = 0;
+  final Dio _viewerDio = Dio();
 
   static const double _maxSwipeDistance = 96;
   static const double _replyTriggerDistance = 56;
@@ -635,6 +647,10 @@ class _ChatBubbleState extends State<_ChatBubble> {
                               _ReplyPreview(
                                 isMine: widget.isMine,
                                 textColor: textColor,
+                                authorColor: theme.colorScheme.tertiary,
+                                authorName: widget.resolveAuthorName(
+                                  widget.parentMessage!.authorId,
+                                ),
                                 parentMessage: widget.parentMessage!,
                               ),
                             if (widget.parentMessage != null)
@@ -677,8 +693,12 @@ class _ChatBubbleState extends State<_ChatBubble> {
                                         const SizedBox(width: 6),
                                         Text(
                                           'Spoiler - toque para revelar',
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(color: textColor),
+                                          style: theme.textTheme.bodyLarge
+                                              ?.copyWith(
+                                                color: textColor,
+                                                fontWeight: FontWeight.w500,
+                                                height: 1.4,
+                                              ),
                                         ),
                                       ],
                                     ),
@@ -700,6 +720,10 @@ class _ChatBubbleState extends State<_ChatBubble> {
                                 _MessageImageGrid(
                                   imageUrls: widget.message.images,
                                   bubbleTextColor: textColor,
+                                  isCensored: showSpoilerMask,
+                                  onRevealCensored: () =>
+                                      setState(() => _spoilerRevealed = true),
+                                  onTapImage: _openImageViewer,
                                 ),
                               ],
                               if (widget.message.tags.isNotEmpty) ...[
@@ -788,6 +812,17 @@ class _ChatBubbleState extends State<_ChatBubble> {
                                                 .onSurfaceVariant,
                                           ),
                                     ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      widget.authorName,
+                                      style: theme.textTheme.labelMedium
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -812,6 +847,123 @@ class _ChatBubbleState extends State<_ChatBubble> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _openImageViewer(String imageUrl) async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.92),
+      builder: (dialogContext) {
+        var downloading = false;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> handleDownload() async {
+              if (downloading) return;
+              setDialogState(() => downloading = true);
+
+              try {
+                final directory = await getApplicationDocumentsDirectory();
+                final fileName =
+                    'community_${DateTime.now().millisecondsSinceEpoch}.jpg';
+                final filePath = '${directory.path}/$fileName';
+                await _viewerDio.download(imageUrl, filePath);
+
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Imagem salva em: $filePath')),
+                );
+              } catch (_) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Nao foi possivel baixar a imagem.'),
+                  ),
+                );
+              } finally {
+                setDialogState(() => downloading = false);
+              }
+            }
+
+            return Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Stack(
+                children: [
+                  Positioned.fill(
+                    child: InteractiveViewer(
+                      minScale: 0.8,
+                      maxScale: 4.0,
+                      child: Center(
+                        child: Image.network(imageUrl, fit: BoxFit.contain),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 40,
+                    left: 12,
+                    child: IconButton.filledTonal(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                      tooltip: 'Sair de foco',
+                    ),
+                  ),
+                  Positioned(
+                    right: 12,
+                    bottom: 28,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: downloading ? null : handleDownload,
+                        borderRadius: BorderRadius.circular(999),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (downloading)
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              else
+                                const Icon(
+                                  Icons.download_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Baixar',
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -869,11 +1021,15 @@ class _ChatBubbleState extends State<_ChatBubble> {
 class _ReplyPreview extends StatelessWidget {
   final bool isMine;
   final Color textColor;
+  final Color authorColor;
+  final String authorName;
   final CommunityMessage parentMessage;
 
   const _ReplyPreview({
     required this.isMine,
     required this.textColor,
+    required this.authorColor,
+    required this.authorName,
     required this.parentMessage,
   });
 
@@ -888,15 +1044,34 @@ class _ReplyPreview extends StatelessWidget {
         color: Colors.black.withValues(alpha: isMine ? 0.18 : 0.05),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Text(
-        parentMessage.deleted
-            ? '(mensagem removida)'
-            : (parentMessage.content.isEmpty
-                  ? '(sem texto)'
-                  : parentMessage.content),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall?.copyWith(color: textColor),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            authorName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: authorColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            parentMessage.deleted
+                ? '(mensagem removida)'
+                : (parentMessage.content.isEmpty
+                      ? '(sem texto)'
+                      : parentMessage.content),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w500,
+              height: 1.3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -905,67 +1080,136 @@ class _ReplyPreview extends StatelessWidget {
 class _MessageImageGrid extends StatelessWidget {
   final List<String> imageUrls;
   final Color bubbleTextColor;
+  final bool isCensored;
+  final VoidCallback onRevealCensored;
+  final void Function(String imageUrl) onTapImage;
 
   const _MessageImageGrid({
     required this.imageUrls,
     required this.bubbleTextColor,
+    required this.isCensored,
+    required this.onRevealCensored,
+    required this.onTapImage,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Widget imageContent;
+
     if (imageUrls.length == 1) {
-      return ClipRRect(
+      imageContent = ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          imageUrls.first,
-          width: double.infinity,
-          height: 190,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _ImageFallback(color: bubbleTextColor),
+        child: InkWell(
+          onTap: isCensored ? null : () => onTapImage(imageUrls.first),
+          child: Image.network(
+            imageUrls.first,
+            width: double.infinity,
+            height: 190,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                _ImageFallback(color: bubbleTextColor),
+          ),
         ),
+      );
+    } else {
+      final limited = imageUrls.take(4).toList();
+      imageContent = GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: limited.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 6,
+          childAspectRatio: 1,
+        ),
+        itemBuilder: (context, index) {
+          final url = limited[index];
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              onTap: isCensored ? null : () => onTapImage(url),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    url,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        _ImageFallback(color: bubbleTextColor),
+                  ),
+                  if (index == 3 && imageUrls.length > 4)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.42),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '+${imageUrls.length - 4}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
       );
     }
 
-    final limited = imageUrls.take(4).toList();
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: limited.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 6,
-        crossAxisSpacing: 6,
-        childAspectRatio: 1,
-      ),
-      itemBuilder: (context, index) {
-        final url = limited[index];
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    _ImageFallback(color: bubbleTextColor),
-              ),
-              if (index == 3 && imageUrls.length > 4)
-                Container(
-                  color: Colors.black.withValues(alpha: 0.42),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '+${imageUrls.length - 4}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+    if (!isCensored) {
+      return imageContent;
+    }
+
+    return Stack(
+      children: [
+        IgnorePointer(
+          child: ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: imageContent,
+          ),
+        ),
+        Positioned.fill(
+          child: Material(
+            color: Colors.black.withValues(alpha: 0.34),
+            child: InkWell(
+              onTap: onRevealCensored,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.42),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.visibility_off_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Imagem com spoiler',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
+              ),
+            ),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }

@@ -150,7 +150,9 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/community',
-              builder: (context, state) => const CommunityListScreen(),
+              builder: (context, state) => CommunityListScreen(
+                focusInvites: state.uri.queryParameters['focus'] == 'invites',
+              ),
               routes: [
                 GoRoute(
                   path: ':communityId',

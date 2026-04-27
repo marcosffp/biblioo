@@ -136,6 +136,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
         context.push('/user/${Uri.encodeComponent(item.actorUsername)}');
         return;
       case NotificationType.communityInvite:
+        context.go('/community?focus=invites');
+        return;
       case NotificationType.communityJoinRequest:
       case NotificationType.communityJoinApproved:
         if (item.entityId != null) {

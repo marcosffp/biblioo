@@ -15,10 +15,8 @@ class InviteCodeSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => BlocProvider.value(
-        value: bloc,
-        child: const InviteCodeSheet._(),
-      ),
+      builder: (_) =>
+          BlocProvider.value(value: bloc, child: const InviteCodeSheet._()),
     );
   }
 
@@ -38,9 +36,9 @@ class _InviteCodeSheetState extends State<InviteCodeSheet> {
 
   void _submit() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    context
-        .read<CommunityBloc>()
-        .add(CommunityJoinByInviteRequested(_codeController.text.trim()));
+    context.read<CommunityBloc>().add(
+      CommunityJoinByInviteRequested(_codeController.text.trim()),
+    );
     Navigator.of(context).pop();
   }
 
@@ -93,8 +91,9 @@ class _InviteCodeSheetState extends State<InviteCodeSheet> {
                     hintText: 'Ex.: ABC123',
                     prefixIcon: Icon(Icons.link_rounded),
                   ),
-                  textCapitalization: TextCapitalization.characters,
-                  maxLength: 20,
+                  textCapitalization: TextCapitalization.none,
+                  autocorrect: false,
+                  maxLength: 64,
                   validator: (v) {
                     if (v == null || v.trim().length < 6) {
                       return 'O código deve ter pelo menos 6 caracteres.';
@@ -103,10 +102,7 @@ class _InviteCodeSheetState extends State<InviteCodeSheet> {
                   },
                 ),
                 const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _submit,
-                  child: const Text('Entrar'),
-                ),
+                FilledButton(onPressed: _submit, child: const Text('Entrar')),
               ],
             ),
           ),
