@@ -246,7 +246,7 @@ public MessageMediaUploadResponse uploadMessageMedia(
       }
 
       message.setDeleted(true);
-      message.setContent("");
+      message.setContent("[comentário removido]");
       return messageRepository.save(message);
     });
 

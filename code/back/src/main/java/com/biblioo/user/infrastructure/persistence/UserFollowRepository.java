@@ -69,6 +69,35 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, UserFoll
   @Query("DELETE FROM UserFollow f WHERE f.followerId = :userId OR f.followedId = :userId")
   void deleteAllByUserId(@Param("userId") Long userId);
 
+  @Query(
+      "SELECT COUNT(f) FROM UserFollow f"
+          + " WHERE f.followedId = :userId"
+          + " AND f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED")
+  long countAcceptedFollowers(@Param("userId") Long userId);
+
+  /** Retorna IDs de seguidores aceitos de followedId com followerId > afterFollowerId (cursor batch). */
+  @Query(
+      "SELECT f.followerId FROM UserFollow f"
+          + " WHERE f.followedId = :followedId"
+          + " AND f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED"
+          + " AND f.followerId > :afterFollowerId"
+          + " ORDER BY f.followerId ASC")
+  List<Long> findFollowerIdsBatch(
+      @Param("followedId") Long followedId,
+      @Param("afterFollowerId") Long afterFollowerId,
+      org.springframework.data.domain.Pageable pageable);
+
+  /** Retorna IDs de usuários seguidos por userId cujo total de seguidores aceitos >= threshold. */
+  @Query(
+      "SELECT f1.followedId FROM UserFollow f1"
+          + " WHERE f1.followerId = :userId"
+          + " AND f1.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED"
+          + " AND (SELECT COUNT(f2) FROM UserFollow f2"
+          + "      WHERE f2.followedId = f1.followedId"
+          + "      AND f2.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED) >= :threshold")
+  List<Long> findFollowingIdsAboveThreshold(
+      @Param("userId") Long userId, @Param("threshold") long threshold);
+
   default void follow(Long followerId, Long followedId, FollowStatus status) {
     save(new UserFollow(followerId, followedId, status));
   }

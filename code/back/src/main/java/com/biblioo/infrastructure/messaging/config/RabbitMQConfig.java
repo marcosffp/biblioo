@@ -246,6 +246,20 @@ public class RabbitMQConfig {
     return factory;
   }
 
+  // ── Feed Fan-out ─────────────────────────────────────────────────────────────
+  public static final String FEED_FANOUT_QUEUE = "biblioo.feed.fanout";
+  public static final String FEED_FANOUT_DLQ = "biblioo.feed.fanout.dlq";
+  public static final String FEED_FANOUT_ROUTING_KEY = "feed.fanout.review";
+  public static final String FEED_FANOUT_ROUTING_PATTERN = "feed.fanout.#";
+  public static final String FEED_FANOUT_DLQ_ROUTING_KEY = "feed.fanout.dead";
+  public static final String EVENT_REVIEW_PUBLISHED = "REVIEW_PUBLISHED";
+  public static final String EVENT_POST_PUBLISHED = "POST_PUBLISHED";
+  public static final String FEED_POST_ROUTING_KEY = "feed.fanout.post";
+
+  public static final String FEED_BACKFILL_QUEUE = "biblioo.feed.follow.backfill";
+  public static final String FEED_BACKFILL_DLQ = "biblioo.feed.follow.backfill.dlq";
+  public static final String FEED_BACKFILL_DLQ_ROUTING_KEY = "feed.backfill.dead";
+
   // ── Recommendation T3 — TRENDING_IN_COMMUNITIES beans ───────────────────────
 
   @Bean
@@ -292,6 +306,55 @@ public class RabbitMQConfig {
   @Bean
   Binding ticJoinDlqBinding(Queue ticJoinDlq, DirectExchange dlxExchange) {
     return BindingBuilder.bind(ticJoinDlq).to(dlxExchange).with(TIC_JOIN_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue feedFanoutQueue() {
+    return QueueBuilder.durable(FEED_FANOUT_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", FEED_FANOUT_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue feedFanoutDlq() {
+    return QueueBuilder.durable(FEED_FANOUT_DLQ).build();
+  }
+
+  @Bean
+  Binding feedFanoutBinding(Queue feedFanoutQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(feedFanoutQueue).to(mainExchange).with(FEED_FANOUT_ROUTING_PATTERN);
+  }
+
+  @Bean
+  Binding feedFanoutDlqBinding(Queue feedFanoutDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(feedFanoutDlq).to(dlxExchange).with(FEED_FANOUT_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue feedBackfillQueue() {
+    return QueueBuilder.durable(FEED_BACKFILL_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", FEED_BACKFILL_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue feedBackfillDlq() {
+    return QueueBuilder.durable(FEED_BACKFILL_DLQ).build();
+  }
+
+  @Bean
+  Binding feedBackfillBinding(Queue feedBackfillQueue, TopicExchange mainExchange) {
+    // Recebe cópia independente do mesmo evento de follow aceito que a fila de notificações
+    return BindingBuilder.bind(feedBackfillQueue)
+        .to(mainExchange)
+        .with(NOTIFICATION_FOLLOWED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding feedBackfillDlqBinding(Queue feedBackfillDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(feedBackfillDlq).to(dlxExchange).with(FEED_BACKFILL_DLQ_ROUTING_KEY);
   }
 
   // ── Community WebSocket Broadcast beans ─────────────────────────────────────

@@ -8,6 +8,7 @@ import com.biblioo.feed.domain.port.in.ReviewUseCase;
 import com.biblioo.feed.domain.port.out.BookPort;
 import com.biblioo.feed.domain.port.out.FeedEventPublisherPort;
 import com.biblioo.feed.domain.port.out.FeedImagePort;
+import com.biblioo.feed.domain.port.out.ReviewFanoutPublisherPort;
 import com.biblioo.feed.domain.port.out.ShelfInteractionPort;
 import com.biblioo.feed.domain.port.out.UserPort;
 import com.biblioo.feed.infrastructure.persistence.CommentRepository;
@@ -37,6 +38,7 @@ public class ReviewService implements ReviewUseCase {
   private final ShelfInteractionPort shelfInteractionPort;
   private final FeedImagePort feedImagePort;
   private final FeedEventPublisherPort feedEventPublisherPort;
+  private final ReviewFanoutPublisherPort reviewFanoutPublisherPort;
 
   @Override
   @Transactional
@@ -80,6 +82,10 @@ public class ReviewService implements ReviewUseCase {
     }
 
     feedEventPublisherPort.publishBookReviewStatsUpdated(bookId, null, rating);
+
+    long createdAtEpochMilli =
+        savedReview.getCreatedAt().toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+    reviewFanoutPublisherPort.publishReviewCreated(savedReview.getId(), userId, createdAtEpochMilli);
 
     return savedReview;
   }
