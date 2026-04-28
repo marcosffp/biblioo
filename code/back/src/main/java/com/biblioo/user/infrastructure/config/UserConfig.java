@@ -2,12 +2,14 @@ package com.biblioo.user.infrastructure.config;
 
 import com.biblioo.user.domain.port.in.AuthUseCase;
 import com.biblioo.user.domain.port.in.UserUseCase;
+import com.biblioo.user.domain.port.out.GoogleAuthPort;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
 import com.biblioo.user.domain.port.out.UserNotificationEventPort;
 import com.biblioo.user.domain.port.out.UserSearchPort;
 import com.biblioo.user.domain.service.UserService;
 import com.biblioo.user.infrastructure.async.TokenCleanupAdapter;
 import com.biblioo.user.infrastructure.auth.AuthServiceImpl;
+import com.biblioo.user.infrastructure.auth.GoogleUserFactory;
 import com.biblioo.user.infrastructure.cache.CachedUserService;
 import com.biblioo.user.infrastructure.persistence.RefreshTokenRepository;
 import com.biblioo.user.infrastructure.persistence.UserFollowRepository;
@@ -28,9 +30,18 @@ class UserConfig {
       PasswordEncoder passwordEncoder,
       JwtService jwtService,
       TokenCleanupAdapter tokenCleanup,
-      @Value("${jwt.refresh-token-expiration-days}") int refreshTokenExpirationDays) {
+      @Value("${jwt.refresh-token-expiration-days}") int refreshTokenExpirationDays,
+      GoogleAuthPort googleAuthPort,
+      GoogleUserFactory googleUserFactory) {
     return new AuthServiceImpl(
-        userRepo, tokenRepo, passwordEncoder, jwtService, tokenCleanup, refreshTokenExpirationDays);
+        userRepo,
+        tokenRepo,
+        passwordEncoder,
+        jwtService,
+        tokenCleanup,
+        refreshTokenExpirationDays,
+        googleAuthPort,
+        googleUserFactory);
   }
 
   @Bean

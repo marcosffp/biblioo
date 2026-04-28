@@ -11,4 +11,6 @@ public interface AuthUseCase {
   AuthResult refresh(String refreshToken);
 
   void logout(String refreshToken);
+
+  AuthResult loginWithGoogle(String idToken);
 }

@@ -5,6 +5,7 @@ import com.biblioo.books.domain.exception.ShelfBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
 import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
+import com.biblioo.user.domain.exception.GoogleAuthException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
@@ -85,6 +86,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(InvalidTokenException.class)
   ResponseEntity<ErrorResponse> handleInvalidToken(
       InvalidTokenException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(GoogleAuthException.class)
+  ResponseEntity<ErrorResponse> handleGoogleAuth(
+      GoogleAuthException ex, HttpServletRequest request) {
     return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
   }
 

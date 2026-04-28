@@ -70,7 +70,11 @@ public class UserController {
       @AuthenticationPrincipal UserDetails principal) {
     User user =
         userUseCase.updateProfile(
-            currentUserId(principal), request.bio(), request.avatarUrl(), request.bannerUrl());
+            currentUserId(principal),
+            request.username(),
+            request.bio(),
+            request.avatarUrl(),
+            request.bannerUrl());
     return ResponseEntity.ok(UserMapper.toResponse(user));
   }
 

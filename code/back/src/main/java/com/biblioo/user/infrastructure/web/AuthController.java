@@ -3,6 +3,7 @@ package com.biblioo.user.infrastructure.web;
 import com.biblioo.user.domain.model.AuthResult;
 import com.biblioo.user.domain.port.in.AuthUseCase;
 import com.biblioo.user.infrastructure.dto.AuthResponse;
+import com.biblioo.user.infrastructure.dto.GoogleAuthRequest;
 import com.biblioo.user.infrastructure.dto.LoginRequest;
 import com.biblioo.user.infrastructure.dto.RefreshTokenRequest;
 import com.biblioo.user.infrastructure.dto.RegisterRequest;
@@ -46,6 +47,13 @@ public class AuthController {
   public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
     authUseCase.logout(request.refreshToken());
     return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/google")
+  public ResponseEntity<AuthResponse> loginWithGoogle(
+      @Valid @RequestBody GoogleAuthRequest request) {
+    AuthResult result = authUseCase.loginWithGoogle(request.idToken());
+    return ResponseEntity.ok(toAuthResponse(result));
   }
 
   private AuthResponse toAuthResponse(AuthResult result) {

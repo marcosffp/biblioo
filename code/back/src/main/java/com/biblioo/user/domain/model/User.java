@@ -35,8 +35,11 @@ public class User implements Serializable {
   private String email;
 
   @JsonProperty(access = Access.WRITE_ONLY)
-  @Column(name = "password_hash", nullable = false)
+  @Column(name = "password_hash")
   private String passwordHash;
+
+  @Column(name = "google_id", unique = true, length = 255)
+  private String googleId;
 
   @Column(length = 500)
   private String bio;

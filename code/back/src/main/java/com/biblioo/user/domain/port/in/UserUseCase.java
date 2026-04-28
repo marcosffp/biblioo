@@ -19,7 +19,7 @@ public interface UserUseCase {
    */
   ProfileAccess getProfile(Long viewerId, String username);
 
-  User updateProfile(Long userId, String bio, String avatarUrl, String bannerUrl);
+  User updateProfile(Long userId, String username, String bio, String avatarUrl, String bannerUrl);
 
   User updateVisibility(Long userId, boolean isPrivate);
 

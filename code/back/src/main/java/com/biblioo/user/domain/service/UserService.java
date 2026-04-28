@@ -3,6 +3,7 @@ package com.biblioo.user.domain.service;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
+import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
 import com.biblioo.user.domain.model.FollowStatus;
 import com.biblioo.user.domain.model.ProfileAccess;
 import com.biblioo.user.domain.model.User;
@@ -68,8 +69,13 @@ public class UserService implements UserUseCase {
   }
 
   @Override
-  public User updateProfile(Long userId, String bio, String avatarUrl, String bannerUrl) {
+  public User updateProfile(
+      Long userId, String username, String bio, String avatarUrl, String bannerUrl) {
     User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    if (username != null && !username.equals(user.getUsername())) {
+      if (userRepo.existsByUsername(username)) throw new UsernameAlreadyExistsException(username);
+      user.setUsername(username);
+    }
     if (bio != null) user.setBio(bio);
     if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
     if (bannerUrl != null) user.setBannerUrl(bannerUrl);

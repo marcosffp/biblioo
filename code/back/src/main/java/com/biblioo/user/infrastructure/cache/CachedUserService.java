@@ -35,8 +35,9 @@ public class CachedUserService implements UserUseCase {
 
   @Override
   @CachePut(value = "user-profile", key = "#userId")
-  public User updateProfile(Long userId, String bio, String avatarUrl, String bannerUrl) {
-    return delegate.updateProfile(userId, bio, avatarUrl, bannerUrl);
+  public User updateProfile(
+      Long userId, String username, String bio, String avatarUrl, String bannerUrl) {
+    return delegate.updateProfile(userId, username, bio, avatarUrl, bannerUrl);
   }
 
   @Override
