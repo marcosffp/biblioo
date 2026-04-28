@@ -13,4 +13,5 @@ public record ReviewResponse(
     Boolean hasSpoiler,
     Integer rating,
     Integer commentCount,
-    Integer likeCount) {}
+    Integer likeCount,
+    Boolean isPublished) {}

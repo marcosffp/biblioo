@@ -7,7 +7,15 @@ import org.springframework.data.domain.Pageable;
 
 public interface ReviewUseCase {
   Review createReview(
-      Long userId, Long bookId, Integer rating, String text, List<byte[]> newImages, byte[] gif);
+      Long userId,
+      Long bookId,
+      Integer rating,
+      String text,
+      List<byte[]> newImages,
+      byte[] gif,
+      boolean publish);
+
+  void publishReview(Long userId, Long reviewId);
 
   Review updateReview(
       Long userId,

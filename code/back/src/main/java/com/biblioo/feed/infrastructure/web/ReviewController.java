@@ -53,7 +53,8 @@ public class ReviewController {
   @Operation(
       summary = "Cria uma avaliação",
       description =
-          "Cria uma nova avaliação de um livro, permitindo envio de texto, nota (1-5), até 5 imagens e 1 GIF.")
+          "Cria uma nova avaliação de um livro, permitindo envio de texto, nota (1-5), até 5 imagens e 1 GIF."
+              + " O parâmetro 'publish' controla se a review será publicada imediatamente no feed dos seguidores.")
   public ResponseEntity<ReviewResponse> createReview(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do livro avaliado", example = "1") @RequestParam("bookId")
@@ -65,6 +66,11 @@ public class ReviewController {
               example = "Um livro fantástico!")
           @RequestParam(value = "text", required = false)
           String text,
+      @Parameter(
+              description =
+                  "Se true, publica a review imediatamente no feed dos seguidores. Se false, salva como rascunho.")
+          @RequestParam(value = "publish", defaultValue = "false")
+          boolean publish,
       @Parameter(description = "Arquivos de imagens para anexar à avaliação (máx 5)")
           @RequestPart(value = "images", required = false)
           List<MultipartFile> images,
@@ -90,9 +96,23 @@ public class ReviewController {
     byte[] gifBytes = parseGif(gif);
 
     Review result =
-        reviewUseCase.createReview(userId, bookId, rating, safeText, newImages, gifBytes);
+        reviewUseCase.createReview(userId, bookId, rating, safeText, newImages, gifBytes, publish);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(reviewMapper.toResponse(result));
+  }
+
+  @PostMapping("/{reviewId}/publish")
+  @Operation(
+      summary = "Publica uma avaliação no feed",
+      description =
+          "Publica uma avaliação previamente salva como rascunho, tornando-a visível no feed dos seguidores.")
+  public ResponseEntity<Void> publishReview(
+      @AuthenticationPrincipal UserDetails principal,
+      @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
+
+    Long userId = Long.parseLong(principal.getUsername());
+    reviewUseCase.publishReview(userId, reviewId);
+    return ResponseEntity.noContent().build();
   }
 
   @PutMapping(value = "/{reviewId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

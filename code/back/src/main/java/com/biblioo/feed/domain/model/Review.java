@@ -1,6 +1,7 @@
 package com.biblioo.feed.domain.model;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -25,4 +26,8 @@ public class Review extends FeedContent {
 
   @Column(nullable = false)
   private Integer rating;
+
+  @Column(name = "is_published", nullable = false)
+  @Builder.Default
+  private Boolean isPublished = false;
 }

@@ -43,7 +43,13 @@ public class ReviewService implements ReviewUseCase {
   @Override
   @Transactional
   public Review createReview(
-      Long userId, Long bookId, Integer rating, String text, List<byte[]> newImages, byte[] gif) {
+      Long userId,
+      Long bookId,
+      Integer rating,
+      String text,
+      List<byte[]> newImages,
+      byte[] gif,
+      boolean publish) {
     if (!userPort.existsById(userId)) {
       throw new ReviewBusinessException("Usuário não encontrado.");
     }
@@ -59,7 +65,14 @@ public class ReviewService implements ReviewUseCase {
 
     shelfInteractionPort.ensureBookReadStatusIsCompleted(userId, bookId);
 
-    var review = Review.builder().userId(userId).bookId(bookId).rating(rating).text(text).build();
+    var review =
+        Review.builder()
+            .userId(userId)
+            .bookId(bookId)
+            .rating(rating)
+            .text(text)
+            .isPublished(publish)
+            .build();
 
     var savedReview = reviewRepository.save(review);
 
@@ -83,11 +96,38 @@ public class ReviewService implements ReviewUseCase {
 
     feedEventPublisherPort.publishBookReviewStatsUpdated(bookId, null, rating);
 
-    long createdAtEpochMilli =
-        savedReview.getCreatedAt().toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
-    reviewFanoutPublisherPort.publishReviewCreated(savedReview.getId(), userId, createdAtEpochMilli);
+    if (publish) {
+      long createdAtEpochMilli =
+          savedReview.getCreatedAt().toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+      reviewFanoutPublisherPort.publishReviewCreated(
+          savedReview.getId(), userId, createdAtEpochMilli);
+    }
 
     return savedReview;
+  }
+
+  @Override
+  @Transactional
+  public void publishReview(Long userId, Long reviewId) {
+    var review =
+        reviewRepository
+            .findByIdAndIsDeletedFalse(reviewId)
+            .orElseThrow(() -> new ReviewBusinessException("Review não encontrada."));
+
+    if (!review.getUserId().equals(userId)) {
+      throw new ReviewBusinessException("O usuário não tem permissão para publicar esta review.");
+    }
+
+    if (Boolean.TRUE.equals(review.getIsPublished())) {
+      throw new ReviewBusinessException("Esta review já foi publicada.");
+    }
+
+    review.setIsPublished(true);
+    reviewRepository.save(review);
+
+    long createdAtEpochMilli =
+        review.getCreatedAt().toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+    reviewFanoutPublisherPort.publishReviewCreated(review.getId(), userId, createdAtEpochMilli);
   }
 
   @Override
