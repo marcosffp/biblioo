@@ -74,6 +74,11 @@ public class CommunityMessageController {
     messageUseCase.toggleReaction(messageId, userId(principal), request.reactionType());
   }
 
+  @MessageMapping("/community/{communityId}/typing")
+  public void typing(@DestinationVariable Long communityId, Principal principal) {
+    messageUseCase.notifyTyping(communityId, userId(principal));
+  }
+
   @MessageExceptionHandler({CommunityBusinessException.class, CommunityAccessDeniedException.class})
   @SendToUser("/queue/errors")
   public MessageEventPayload handleDomainError(Exception ex) {

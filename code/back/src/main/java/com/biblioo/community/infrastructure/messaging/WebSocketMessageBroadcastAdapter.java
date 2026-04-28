@@ -5,6 +5,7 @@ import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.infrastructure.dto.CommunityBroadcastEnvelope;
 import com.biblioo.community.infrastructure.dto.MessageEventPayload;
 import com.biblioo.community.infrastructure.dto.MessageResponse;
+import com.biblioo.community.infrastructure.dto.TypingEventPayload;
 import com.biblioo.community.infrastructure.dto.mapper.CommunityMessageMapper;
 import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
 import java.time.LocalDateTime;
@@ -91,6 +92,14 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
     scheduleOrSend(TOPIC_PREFIX + communityId + ".reactions", event);
   }
 
+  @Override
+  public void broadcastTyping(Long communityId, Long userId, String avatarUrl) {
+    String destination = TOPIC_PREFIX + communityId + ".typing";
+    TypingEventPayload payload = new TypingEventPayload(userId, avatarUrl);
+    messagingTemplate.convertAndSend(destination, payload);
+    publishTypingToOtherInstances(destination, payload);
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private void scheduleOrSend(String destination, MessageEventPayload event) {
@@ -126,6 +135,24 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
           });
     } catch (Exception e) {
       log.warn("[WebSocket] Falha ao publicar broadcast cross-instance dest={}: {}",
+          destination, e.getMessage());
+    }
+  }
+
+  private void publishTypingToOtherInstances(String destination, TypingEventPayload payload) {
+    try {
+      rabbitTemplate.convertAndSend(
+          RabbitMQConfig.COMMUNITY_BROADCAST_EXCHANGE,
+          "",
+          payload,
+          msg -> {
+            msg.getMessageProperties().setHeader(HEADER_INSTANCE_ID, applicationInstanceId.getValue());
+            msg.getMessageProperties().setHeader("x-envelope-type", "typing");
+            msg.getMessageProperties().setHeader("x-destination", destination);
+            return msg;
+          });
+    } catch (Exception e) {
+      log.warn("[WebSocket] Falha ao publicar typing cross-instance dest={}: {}",
           destination, e.getMessage());
     }
   }

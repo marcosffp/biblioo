@@ -33,4 +33,6 @@ public interface CommunityMessageUseCase {
   List<CommunityMessage> getMessagesBefore(Long communityId, Long beforeId, int limit);
 
   List<CommunityMessage> getMessagesAfter(Long communityId, Long afterId);
+
+  void notifyTyping(Long communityId, Long userId);
 }

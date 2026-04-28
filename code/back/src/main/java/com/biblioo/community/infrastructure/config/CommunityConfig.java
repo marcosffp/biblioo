@@ -7,6 +7,7 @@ import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
 import com.biblioo.community.domain.port.out.CommunityUserLookupPort;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.domain.port.out.MessageCachePort;
+import com.biblioo.community.domain.port.out.TypingUserPort;
 import com.biblioo.community.domain.service.CommunityMessageService;
 import com.biblioo.community.domain.service.CommunityService;
 import com.biblioo.community.infrastructure.persistence.CommunityInviteRepository;
@@ -56,7 +57,8 @@ class CommunityConfig {
       org.springframework.transaction.support.TransactionTemplate transactionTemplate,
       org.springframework.context.ApplicationEventPublisher eventPublisher,
       CommunityRepository communityRepository,
-      CommunityEventPublisherPort communityEventPublisher) {
+      CommunityEventPublisherPort communityEventPublisher,
+      TypingUserPort typingUserPort) {
     return new CommunityMessageService(
         messageRepository,
         reactionRepository,
@@ -68,7 +70,8 @@ class CommunityConfig {
         transactionTemplate,
         eventPublisher,
         communityRepository,
-        communityEventPublisher);
+        communityEventPublisher,
+        typingUserPort);
   }
 
 }

@@ -1,6 +1,7 @@
 package com.biblioo.community.infrastructure.messaging;
 
 import com.biblioo.community.infrastructure.dto.CommunityBroadcastEnvelope;
+import com.biblioo.community.infrastructure.dto.TypingEventPayload;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +38,21 @@ public class CommunityBroadcastConsumer {
       return;
     }
 
+    String envelopeType =
+        (String) amqpMessage.getMessageProperties().getHeader("x-envelope-type");
+
     try {
-      CommunityBroadcastEnvelope envelope =
-          objectMapper.readValue(amqpMessage.getBody(), CommunityBroadcastEnvelope.class);
-      messagingTemplate.convertAndSend(envelope.destination(), envelope.payload());
+      if ("typing".equals(envelopeType)) {
+        String destination =
+            (String) amqpMessage.getMessageProperties().getHeader("x-destination");
+        TypingEventPayload payload =
+            objectMapper.readValue(amqpMessage.getBody(), TypingEventPayload.class);
+        messagingTemplate.convertAndSend(destination, payload);
+      } else {
+        CommunityBroadcastEnvelope envelope =
+            objectMapper.readValue(amqpMessage.getBody(), CommunityBroadcastEnvelope.class);
+        messagingTemplate.convertAndSend(envelope.destination(), envelope.payload());
+      }
     } catch (Exception e) {
       log.warn(
           "[CommunityBroadcast] Falha ao processar broadcast de outra instância: {}",

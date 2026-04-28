@@ -11,4 +11,6 @@ public interface MessageBroadcastPort {
   void broadcastDelete(Long communityId, Long messageId);
 
   void broadcastReaction(Long communityId, Long messageId, int newHeartCount);
+
+  void broadcastTyping(Long communityId, Long userId, String avatarUrl);
 }

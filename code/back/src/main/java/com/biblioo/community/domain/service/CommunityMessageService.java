@@ -11,6 +11,7 @@ import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.domain.port.out.MessageCachePort;
 import com.biblioo.community.infrastructure.dto.MessageMediaUploadResponse;
 import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
+import com.biblioo.community.domain.port.out.TypingUserPort;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMembershipCache;
 import com.biblioo.community.infrastructure.persistence.CommunityMessageRepository;
@@ -23,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,9 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   private static final int EDIT_WINDOW_HOURS = 24;
   private static final int MAX_TAGS = 10;
   private static final int RECENT_MESSAGES_LIMIT = 100;
+  private static final long TYPING_THROTTLE_MS = 1_000;
+
+  private final ConcurrentHashMap<String, Long> typingThrottle = new ConcurrentHashMap<>();
 
   private final CommunityMessageRepository messageRepository;
   private final MessageReactionRepository reactionRepository;
@@ -54,6 +59,7 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   private final ApplicationEventPublisher eventPublisher;
   private final CommunityRepository communityRepository;
   private final CommunityEventPublisherPort communityEventPublisher;
+  private final TypingUserPort typingUserPort;
 
   public record MessageSentEvent(CommunityMessage message) {}
   public record MessageEditedEvent(CommunityMessage message) {}
@@ -316,6 +322,22 @@ public MessageMediaUploadResponse uploadMessageMedia(
     return messageRepository.findByCommunityIdAfterId(communityId, afterId);
   }
 
+
+  @Override
+  public void notifyTyping(Long communityId, Long userId) {
+    if (!membershipCache.isMember(communityId, userId)) {
+      throw new CommunityAccessDeniedException("Apenas membros podem enviar sinais de digitação.");
+    }
+    String key = communityId + ":" + userId;
+    long now = System.currentTimeMillis();
+    Long last = typingThrottle.get(key);
+    if (last != null && now - last < TYPING_THROTTLE_MS) {
+      return;
+    }
+    typingThrottle.put(key, now);
+    String avatarUrl = typingUserPort.getAvatarUrl(userId);
+    broadcastPort.broadcastTyping(communityId, userId, avatarUrl);
+  }
 
   private CommunityMessage requireActiveMessage(Long messageId) {
     CommunityMessage message =
