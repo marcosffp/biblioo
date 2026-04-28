@@ -81,6 +81,14 @@ public class RabbitMQConfig {
   public static final String FGN_DLQ = "rec.favorite-genre-now.triggered.dlq";
   public static final String FGN_DLQ_ROUTING_KEY = "rec.favorite-genre-now.dead";
 
+  // ── Recommendation T4 — CATALOG_SURPRISE (Thompson Sampling) ────────────────
+  // Fila única com dois bindings: shelf.reading.completed (α++) e shelf.reading.abandoned (β++)
+  public static final String CATALOG_SURPRISE_QUEUE = "trail.catalog-surprise.recompute.queue";
+  public static final String CATALOG_SURPRISE_DLQ = "trail.catalog-surprise.recompute.dlq";
+  public static final String CATALOG_SURPRISE_DLQ_ROUTING_KEY = "trail.catalog-surprise.dead";
+  public static final String SHELF_READING_ABANDONED_ROUTING_KEY = "shelf.reading.abandoned";
+  public static final String EVENT_SHELF_READING_ABANDONED = "SHELF_READING_ABANDONED";
+
   // ── Recommendation T3 — TRENDING_IN_COMMUNITIES ──────────────────────────────
   public static final String TIC_MESSAGE_QUEUE = "rec.trending-in-communities.message";
   public static final String TIC_MESSAGE_DLQ = "rec.trending-in-communities.message.dlq";
@@ -259,6 +267,44 @@ public class RabbitMQConfig {
   public static final String FEED_BACKFILL_QUEUE = "biblioo.feed.follow.backfill";
   public static final String FEED_BACKFILL_DLQ = "biblioo.feed.follow.backfill.dlq";
   public static final String FEED_BACKFILL_DLQ_ROUTING_KEY = "feed.backfill.dead";
+
+  // ── Recommendation T4 — CATALOG_SURPRISE beans ──────────────────────────────
+
+  @Bean
+  Queue catalogSurpriseQueue() {
+    return QueueBuilder.durable(CATALOG_SURPRISE_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", CATALOG_SURPRISE_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue catalogSurpriseDlq() {
+    return QueueBuilder.durable(CATALOG_SURPRISE_DLQ).build();
+  }
+
+  @Bean
+  Binding catalogSurpriseCompletedBinding(Queue catalogSurpriseQueue, TopicExchange mainExchange) {
+    // Recebe cópia independente do shelf.reading.completed → α++ no bandit
+    return BindingBuilder.bind(catalogSurpriseQueue)
+        .to(mainExchange)
+        .with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding catalogSurpriseAbandonedBinding(Queue catalogSurpriseQueue, TopicExchange mainExchange) {
+    // Recebe eventos de livro abandonado → β++ no bandit
+    return BindingBuilder.bind(catalogSurpriseQueue)
+        .to(mainExchange)
+        .with(SHELF_READING_ABANDONED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding catalogSurpriseDlqBinding(Queue catalogSurpriseDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(catalogSurpriseDlq)
+        .to(dlxExchange)
+        .with(CATALOG_SURPRISE_DLQ_ROUTING_KEY);
+  }
 
   // ── Recommendation T3 — TRENDING_IN_COMMUNITIES beans ───────────────────────
 

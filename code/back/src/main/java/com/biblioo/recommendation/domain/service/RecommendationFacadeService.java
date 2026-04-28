@@ -1,6 +1,7 @@
 package com.biblioo.recommendation.domain.service;
 
 import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
+import com.biblioo.recommendation.domain.model.CatalogSurpriseResult;
 import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
 import com.biblioo.recommendation.domain.model.TrendingInCommunitiesResult;
 import com.biblioo.recommendation.domain.port.in.RecommendationUseCase;
@@ -14,6 +15,7 @@ public class RecommendationFacadeService implements RecommendationUseCase {
   private final BecauseYouReadService becauseYouReadService;
   private final FavoriteGenreNowService favoriteGenreNowService;
   private final TrendingInCommunitiesService trendingInCommunitiesService;
+  private final CatalogSurpriseService catalogSurpriseService;
 
   @Override
   public BecauseYouReadResult getBecauseYouRead(Long userId) {
@@ -28,5 +30,10 @@ public class RecommendationFacadeService implements RecommendationUseCase {
   @Override
   public TrendingInCommunitiesResult getTrendingInCommunities(Long userId) {
     return trendingInCommunitiesService.get(userId);
+  }
+
+  @Override
+  public CatalogSurpriseResult getCatalogSurprise(Long userId) {
+    return catalogSurpriseService.getCatalogSurprise(userId);
   }
 }

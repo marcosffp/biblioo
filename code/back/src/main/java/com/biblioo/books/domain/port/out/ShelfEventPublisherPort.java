@@ -10,4 +10,6 @@ public interface ShelfEventPublisherPort {
 
   void publishReadingCompleted(
       Long userId, Long bookId, Long shelfItemId, Long shelfId, String finishedAt);
+
+  void publishReadingAbandoned(Long userId, Long bookId, Long shelfItemId, Long shelfId);
 }

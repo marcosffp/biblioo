@@ -56,4 +56,19 @@ public class RabbitMQShelfEventAdapter implements ShelfEventPublisherPort {
         RabbitMQConfig.SHELF_READING_COMPLETED_ROUTING_KEY,
         payload);
   }
+
+  @Override
+  public void publishReadingAbandoned(Long userId, Long bookId, Long shelfItemId, Long shelfId) {
+    Map<String, Object> payload =
+        Map.of(
+            "userId", userId,
+            "shelfId", shelfId,
+            "shelfItemId", shelfItemId);
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_SHELF_READING_ABANDONED,
+        "SHELF_ITEM",
+        bookId.toString(),
+        RabbitMQConfig.SHELF_READING_ABANDONED_ROUTING_KEY,
+        payload);
+  }
 }

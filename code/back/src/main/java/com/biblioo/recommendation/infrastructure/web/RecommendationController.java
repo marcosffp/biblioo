@@ -4,10 +4,12 @@ import com.biblioo.books.domain.model.Book;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
 import com.biblioo.recommendation.domain.model.BookScore;
+import com.biblioo.recommendation.domain.model.CatalogSurpriseResult;
 import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
 import com.biblioo.recommendation.domain.model.TrendingInCommunitiesResult;
 import com.biblioo.recommendation.domain.port.in.RecommendationUseCase;
 import com.biblioo.recommendation.infrastructure.dto.BecauseYouReadResponse;
+import com.biblioo.recommendation.infrastructure.dto.CatalogSurpriseResponse;
 import com.biblioo.recommendation.infrastructure.dto.FavoriteGenreNowResponse;
 import com.biblioo.recommendation.infrastructure.dto.RecommendationResponse;
 import com.biblioo.recommendation.infrastructure.dto.TrendingInCommunitiesResponse;
@@ -88,6 +90,27 @@ public class RecommendationController {
 
     return ResponseEntity.ok(
         TrendingInCommunitiesResponse.builder()
+            .books(toRecommendationResponses(result.getBooks()))
+            .build());
+  }
+
+  @GetMapping("/catalog-surprise")
+  @Operation(
+      summary = "Surpresa do Catálogo",
+      description =
+          "Recomenda livros de categorias que o usuário nunca ou raramente explorou, "
+              + "priorizando títulos bem avaliados globalmente. "
+              + "Usa Thompson Sampling (Multi-Armed Bandit) para equilibrar exploração e "
+              + "explotação: livros em categorias distantes do perfil do usuário recebem "
+              + "peso maior. Cold start tratado pelo prior Beta(1,1) — distribuição uniforme.")
+  public ResponseEntity<CatalogSurpriseResponse> getCatalogSurprise(
+      @AuthenticationPrincipal UserDetails principal) {
+
+    Long userId = Long.parseLong(principal.getUsername());
+    CatalogSurpriseResult result = recommendationUseCase.getCatalogSurprise(userId);
+
+    return ResponseEntity.ok(
+        CatalogSurpriseResponse.builder()
             .books(toRecommendationResponses(result.getBooks()))
             .build());
   }

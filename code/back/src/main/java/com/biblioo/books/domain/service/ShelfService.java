@@ -287,6 +287,11 @@ public class ShelfService implements ShelfUseCase {
           userId, saved.getBookId(), saved.getId(), shelfId, LocalDate.now().toString());
     }
 
+    if (newStatus == ReadingStatus.ABANDONED) {
+      shelfEventPublisherPort.publishReadingAbandoned(
+          userId, saved.getBookId(), saved.getId(), shelfId);
+    }
+
     return saved;
   }
 

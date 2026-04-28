@@ -1,6 +1,7 @@
 package com.biblioo.recommendation.domain.port.in;
 
 import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
+import com.biblioo.recommendation.domain.model.CatalogSurpriseResult;
 import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
 import com.biblioo.recommendation.domain.model.TrendingInCommunitiesResult;
 
@@ -11,4 +12,6 @@ public interface RecommendationUseCase {
   FavoriteGenreNowResult getFavoriteGenreNow(Long userId);
 
   TrendingInCommunitiesResult getTrendingInCommunities(Long userId);
+
+  CatalogSurpriseResult getCatalogSurprise(Long userId);
 }

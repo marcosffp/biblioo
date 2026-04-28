@@ -76,4 +76,26 @@ public class RecommendationListenerConfig {
     factory.setDefaultRequeueRejected(false);
     return factory;
   }
+
+  @Bean
+  Advice catalogSurpriseRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory catalogSurpriseListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice catalogSurpriseRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(catalogSurpriseRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
 }
