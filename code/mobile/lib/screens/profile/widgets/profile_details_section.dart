@@ -41,7 +41,7 @@ class ProfileDetailsSection extends StatelessWidget {
             ),
             Text(
               user.isPrivate ? ' Perfil Privado' : ' Perfil Publico',
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
@@ -64,7 +64,7 @@ class ProfileDetailsSection extends StatelessWidget {
               Expanded(
                 child: Text(
                   user.email!,
-                  style: theme.textTheme.bodySmall?.copyWith(
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -84,7 +84,7 @@ class ProfileDetailsSection extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 'Desde ${_formatCreatedAt(user.createdAt!)}',
-                style: theme.textTheme.bodySmall?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),

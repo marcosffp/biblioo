@@ -125,6 +125,7 @@ class AppTheme {
     useMaterial3: true,
     colorScheme: _darkScheme,
     scaffoldBackgroundColor: const Color(0xFF101813),
+    cardTheme: const CardThemeData(color: Color(0xFF1E2A22)),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: const Color(0xFF1E2A22),

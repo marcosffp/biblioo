@@ -13,11 +13,20 @@ class CommunityLoading extends CommunityState {}
 class CommunityLoaded extends CommunityState {
   final List<Community> mine;
   final List<Community> suggestions;
+  final bool? fromCache;
+  final DateTime? lastSyncedAt;
 
-  CommunityLoaded({required this.mine, required this.suggestions});
+  CommunityLoaded({
+    required this.mine,
+    required this.suggestions,
+    this.fromCache,
+    this.lastSyncedAt,
+  });
+
+  bool get isFromCache => fromCache ?? false;
 
   @override
-  List<Object?> get props => [mine, suggestions];
+  List<Object?> get props => [mine, suggestions, isFromCache, lastSyncedAt];
 }
 
 class CommunityMutating extends CommunityState {}

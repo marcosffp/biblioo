@@ -8,6 +8,7 @@ import 'package:biblioo/features/shelf/bloc/shelf_state.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_event.dart';
 import 'package:biblioo/screens/collection/widgets/collection_statistics_section.dart';
 import 'package:biblioo/screens/shelf/widgets/shelf_card.dart';
+import 'package:biblioo/screens/shelf/widgets/create_shelf_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
@@ -72,13 +73,25 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
             ),
         ],
       ),
-      body: BlocListener<CollectionBloc, CollectionState>(
-        listenWhen: (_, current) => current is CollectionMutationSuccess,
-        listener: (context, _) {
-          context
-              .read<CollectionBloc>()
-              .add(CollectionStatisticsRequested(widget.collection.id));
-        },
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<CollectionBloc, CollectionState>(
+            listenWhen: (_, current) => current is CollectionMutationSuccess,
+            listener: (context, _) {
+              context
+                  .read<CollectionBloc>()
+                  .add(CollectionStatisticsRequested(widget.collection.id));
+            },
+          ),
+          BlocListener<ShelfBloc, ShelfState>(
+            listenWhen: (_, current) => current is ShelfMutationSuccess,
+            listener: (context, _) {
+              context
+                  .read<CollectionBloc>()
+                  .add(CollectionStatisticsRequested(widget.collection.id));
+            },
+          ),
+        ],
         child: CustomScrollView(
           slivers: [
             // ── Seção de estatísticas ────────────────────────────────────────
@@ -290,15 +303,23 @@ class _ShelfRow extends StatelessWidget {
         ShelfCard(
           shelf: shelf,
           onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: context.read<ShelfBloc>(),
-                child: ShelfDetailScreenContent(shelf: shelf),
-              ),
-            ));
+            Navigator.of(context)
+                .push(MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<ShelfBloc>(),
+                    child: ShelfDetailScreenContent(shelf: shelf),
+                  ),
+                ))
+                .then((_) {
+              if (context.mounted) {
+                context
+                    .read<CollectionBloc>()
+                    .add(CollectionStatisticsRequested(collectionId));
+              }
+            });
           },
-          onEdit: () {},
-          onDelete: () {},
+          onEdit: () => _showEditSheet(context),
+          onDelete: () => _confirmRemove(context),
         ),
         Positioned(
           top: 8,
@@ -315,6 +336,55 @@ class _ShelfRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _showEditSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => BlocProvider.value(
+        value: context.read<ShelfBloc>(),
+        child: CreateShelfSheet(editingShelf: shelf),
+      ),
+    );
+  }
+
+  void _confirmRemove(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Remover da coleção?'),
+        content: Text(
+          'A estante "${shelf.name}" será removida desta coleção. Os livros não serão apagados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              context.read<CollectionBloc>().add(
+                    CollectionRemoveShelfRequested(
+                      collectionId: collectionId,
+                      shelfId: shelf.id,
+                    ),
+                  );
+              Navigator.pop(context);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
     );
   }
 }

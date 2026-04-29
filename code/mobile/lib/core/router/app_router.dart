@@ -1,15 +1,18 @@
 import 'package:biblioo/core/shell/main_shell.dart';
 import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
 import 'package:biblioo/screens/community/community_list_screen.dart';
-import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
+import 'package:biblioo/screens/community/community_detail_screen.dart';
+import 'package:biblioo/screens/shelf/biblioteca_screen.dart';
 import 'package:biblioo/screens/auth/login_screen.dart';
 import 'package:biblioo/screens/auth/register_screen.dart';
 import 'package:biblioo/screens/feed/feed_screen.dart';
+import 'package:biblioo/screens/notification/notification_screen.dart';
 import 'package:biblioo/screens/profile/edit_profile_screen.dart';
 import 'package:biblioo/screens/profile/profile_screen.dart';
 import 'package:biblioo/screens/profile/settings_screen.dart';
 import 'package:biblioo/screens/recommendation/dice_screen.dart';
 import 'package:biblioo/screens/recommendation/recommendation_screen.dart';
+import 'package:biblioo/screens/book/book_screen.dart';
 import 'package:biblioo/screens/search/book_search_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +34,29 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/search',
       builder: (context, state) => const BookSearchScreen(),
+    ),
+
+    // ── NOTIFICACOES (sem bottom nav) ───────────────────
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationScreen(),
+    ),
+
+    // ── LIVRO (fora do shell, exibido em tela própria) ───
+    GoRoute(
+      path: '/book/:id',
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        child: BookScreen(bookId: int.parse(state.pathParameters['id']!)),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+      ),
     ),
 
     // ── PERFIL PUBLICO (fora do shell, exibido como janela elevada) ─────
@@ -96,7 +122,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/shelf',
-              builder: (context, state) => const ShelfListScreen(),
+              builder: (context, state) => const BibliotecaScreen(),
               // Rotas detalhadas da estante desativadas por ora.
               // routes: [
               //   GoRoute(
@@ -124,16 +150,19 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/community',
-              builder: (context, state) => const CommunityListScreen(),
-              // Rota de detalhe desativada por ora.
-              // routes: [
-              //   GoRoute(
-              //     path: ':communityId',
-              //     builder: (context, state) => CommunityDetailScreen(
-              //       communityId: state.pathParameters['communityId']!,
-              //     ),
-              //   ),
-              // ],
+              builder: (context, state) => CommunityListScreen(
+                focusInvites: state.uri.queryParameters['focus'] == 'invites',
+              ),
+              routes: [
+                GoRoute(
+                  path: ':communityId',
+                  builder: (context, state) => CommunityDetailScreen(
+                    communityId: int.parse(
+                      state.pathParameters['communityId']!,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

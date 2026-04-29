@@ -28,17 +28,11 @@ class AuthRepository {
 
   AuthFailure _mapDioError(DioException e) {
     final status = e.response?.statusCode;
-    final data = e.response?.data;
-    final apiMessage = data is Map<String, dynamic>
-        ? (data['message'] as String?)
-        : null;
+    final apiMessage = _extractApiMessage(e.response?.data);
 
     if (status == 401) {
-      if (apiMessage == 'Invalid email or password') {
-        return const AuthFailure('E-mail ou senha invalidos.');
-      }
-      if (apiMessage == 'Refresh token is invalid or expired') {
-        return const AuthFailure('Sua sessao expirou. Faca login novamente.');
+      if (apiMessage != null && apiMessage.trim().isNotEmpty) {
+        return AuthFailure(apiMessage);
       }
       return const AuthFailure('Voce nao tem permissao para esta acao.');
     }
@@ -65,6 +59,22 @@ class AuthRepository {
     }
 
     return const AuthFailure('Nao foi possivel concluir a autenticacao.');
+  }
+
+  String? _extractApiMessage(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String) return message;
+
+      final detail = data['detail'];
+      if (detail is String) return detail;
+    }
+
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+
+    return null;
   }
 
   Future<AuthSession?> restoreSession() async {
