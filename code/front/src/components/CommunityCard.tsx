@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronRight, Globe, Lock, MessageSquare, Users } from "lucide-react";
+import { MessageCircle, Globe, Lock, Users } from "lucide-react";
 
 export interface CommunityCardProps {
   name: string;
@@ -7,10 +7,48 @@ export interface CommunityCardProps {
   bookTitle?: string;
   visibility?: "PUBLIC" | "PRIVATE";
   members?: number;
-  discussions?: number;
   coverUrl?: string;
   className?: string;
   onClick?: () => void;
+  actionLabel?: string;
+  onActionClick?: () => void;
+  actionDisabled?: boolean;
+  actionLoading?: boolean;
+}
+
+function splitBookTitle(bookTitle: string): { bookName: string; bookAuthor: string } {
+  const [bookName, ...rest] = bookTitle.split(" - ");
+  return { bookName: bookName ?? bookTitle, bookAuthor: rest.join(" - ") };
+}
+
+function getAvatarStyle(coverUrl: string | undefined, isPublic: boolean): React.CSSProperties {
+  if (coverUrl) {
+    return { backgroundImage: `url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" };
+  }
+  return { backgroundColor: isPublic ? "#d1fae5" : "#f1f5f9", color: isPublic ? "#059669" : "#64748b" };
+}
+
+interface ActionButtonProps {
+  label: string;
+  loading?: boolean;
+  disabled?: boolean;
+  ariaLabel?: string;
+  onClick: (e: React.MouseEvent) => void;
+}
+
+function ActionButton({ label, loading, disabled, ariaLabel, onClick }: Readonly<ActionButtonProps>) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || loading}
+      aria-label={ariaLabel}
+      className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-[0.85rem] font-medium text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <MessageCircle size={15} className="text-emerald-500" />
+      {loading ? "Processando..." : label}
+    </button>
+  );
 }
 
 export function CommunityCard({
@@ -19,78 +57,98 @@ export function CommunityCard({
   bookTitle,
   visibility = "PUBLIC",
   members,
-  discussions,
   coverUrl,
   className,
   onClick,
-}: CommunityCardProps) {
-  const VisibilityIcon = visibility === "PRIVATE" ? Lock : Globe;
-  const visibilityLabel = visibility === "PRIVATE" ? "Comunidade privada" : "Comunidade publica";
-  const subtitle = bookTitle ?? description;
+  actionLabel,
+  onActionClick,
+  actionDisabled,
+  actionLoading,
+}: Readonly<CommunityCardProps>) {
+  const isPublic = visibility === "PUBLIC";
+  const VisibilityIcon = isPublic ? Globe : Lock;
+  const visibilityLabel = isPublic ? "Pública" : "Privada";
+  const { bookName, bookAuthor } = splitBookTitle(bookTitle ?? "Leitura não informada");
+  const hasAction = !!(actionLabel && onActionClick);
+
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onActionClick?.();
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick?.();
+  };
+
+  let actionContent: React.ReactNode = null;
+  if (hasAction) {
+    actionContent = (
+      <ActionButton
+        label={actionLabel}
+        loading={actionLoading}
+        disabled={actionDisabled}
+        onClick={handleActionClick}
+      />
+    );
+  } else if (onClick) {
+    actionContent = (
+      <ActionButton
+        label="Ver comunidade"
+        ariaLabel={`Abrir comunidade ${name}`}
+        onClick={handleCardClick}
+      />
+    );
+  }
 
   return (
     <div
-      className={`rounded-2xl border border-emerald-200 bg-white px-4 py-5 shadow-sm sm:px-5 ${onClick ? "cursor-pointer transition-colors hover:bg-emerald-50/40" : ""} ${className ?? ""}`.trim()}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={
-        onClick
-          ? (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
+      className={`flex flex-col rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_4px_20px_rgba(0,0,0,0.09)] ${className ?? ""}`.trim()}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-bold"
+            style={getAvatarStyle(coverUrl, isPublic)}
+            aria-hidden
+          >
+            {coverUrl ? null : name.slice(0, 2).toUpperCase()}
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="line-clamp-1 text-[1.05rem] font-bold leading-tight text-slate-800">
+              {name}
+            </h3>
+            <div className="mt-1 flex items-center gap-1 text-[0.8rem] text-slate-500">
+              <Users size={13} />
+              <span>{typeof members === "number" ? `${members} membros` : "—"}</span>
+            </div>
+          </div>
+        </div>
+
         <div
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-100/80"
-          style={coverUrl ? { backgroundImage: `url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
-          aria-hidden
+          className={`mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${
+            isPublic ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
+          }`}
         >
-          {coverUrl ? null : <Users size={24} className="text-[var(--brand-700)]" />}
+          <VisibilityIcon size={11} />
+          {visibilityLabel}
         </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-lg font-semibold text-[var(--text-primary)]">{name}</h3>
-            <VisibilityIcon size={14} className="text-[var(--text-secondary)]" aria-label={visibilityLabel} />
-          </div>
-
-          {subtitle ? <p className="mt-1 truncate text-base text-[var(--text-secondary)]">{subtitle}</p> : null}
-
-          <div className="mt-2 flex items-center gap-4 text-sm text-[var(--text-secondary)]">
-            {typeof members === "number" ? (
-              <span className="inline-flex items-center gap-1">
-                <Users size={14} />
-                {members}
-              </span>
-            ) : null}
-
-            {typeof discussions === "number" ? (
-              <span className="inline-flex items-center gap-1">
-                <MessageSquare size={14} />
-                {discussions}
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onClick?.();
-          }}
-          className="rounded-full p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-soft)]"
-          aria-label={`Abrir comunidade ${name}`}
-        >
-          <ChevronRight size={20} />
-        </button>
       </div>
+
+      {description ? (
+        <p className="mt-3 line-clamp-2 text-[0.88rem] leading-relaxed text-slate-500">{description}</p>
+      ) : null}
+
+      <div className="mt-4 rounded-2xl bg-emerald-50/80 px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-600/80">Leitura atual</p>
+        <p className="mt-1 line-clamp-1 text-[0.9rem] font-semibold leading-snug text-slate-800">{bookName}</p>
+        {bookAuthor ? (
+          <p className="mt-0.5 line-clamp-1 text-[0.78rem] text-emerald-600">{bookAuthor}</p>
+        ) : null}
+      </div>
+
+      {actionContent}
     </div>
   );
 }

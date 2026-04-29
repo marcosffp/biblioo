@@ -10,12 +10,12 @@ export interface AppShellProps {
 
 export function AppShell({ children, className }: Readonly<AppShellProps>) {
   return (
-    <div className={`min-h-screen bg-[var(--bg-canvas)] ${className ?? ""}`.trim()}>
+    <div className={`min-h-screen bg-[#f7f9f8] ${className ?? ""}`.trim()}>
       <TopHeader />
       <Sidebar />
-      <main className="w-full pt-16 pl-64">
-        <div className="py-10 px-12">
-          <div className="w-full max-w-[1280px] mx-auto flex flex-col gap-8">
+      <main className="w-full pt-16 lg:pl-64">
+        <div className="px-4 py-8 sm:px-8 lg:px-12 lg:py-10">
+          <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8">
             {children}
           </div>
         </div>

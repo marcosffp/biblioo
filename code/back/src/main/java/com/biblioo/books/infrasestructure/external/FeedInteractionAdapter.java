@@ -17,6 +17,7 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+
 @Component
 @RequiredArgsConstructor
 public class FeedInteractionAdapter implements BookPort, ShelfInteractionPort, CommunityBookLookupPort {
@@ -35,6 +36,11 @@ public class FeedInteractionAdapter implements BookPort, ShelfInteractionPort, C
   @Override
   public boolean existsById(Long bookId) {
     return bookRepository.existsById(bookId);
+  }
+
+  @Override
+  public List<Book> getBooksByIds(List<Long> bookIds) {
+    return bookRepository.findAllById(bookIds);
   }
 
   @Override

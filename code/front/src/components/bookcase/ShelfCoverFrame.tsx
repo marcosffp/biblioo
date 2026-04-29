@@ -3,22 +3,25 @@ import { BookCoverPlaceholder } from "@/components";
 interface ShelfCoverFrameProps {
   covers: string[];
   shelfName: string;
+  size?: "md" | "lg";
 }
 
-export function ShelfCoverFrame({ covers, shelfName }: Readonly<ShelfCoverFrameProps>) {
+export function ShelfCoverFrame({ covers, shelfName, size = "md" }: Readonly<ShelfCoverFrameProps>) {
   const visibleCovers = covers.filter(Boolean).slice(0, 4);
+  const frameSizeClassName = size === "lg" ? "h-24 w-24" : "h-20 w-20";
+  const placeholderSize = size === "lg" ? 64 : 56;
 
   if (visibleCovers.length === 0) {
     return (
-      <div className="h-20 w-20 flex items-center justify-center rounded-[var(--radius-md)] bg-[var(--brand-100)]">
-        <BookCoverPlaceholder size={56} />
+      <div className={`${frameSizeClassName} flex items-center justify-center rounded-[var(--radius-md)] bg-[var(--brand-100)]`}>
+        <BookCoverPlaceholder size={placeholderSize} />
       </div>
     );
   }
 
   if (visibleCovers.length === 1) {
     return (
-      <div className="h-20 w-20 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)]">
+      <div className={`${frameSizeClassName} overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)]`}>
         <img
           src={visibleCovers[0]}
           alt={`Capa da estante ${shelfName}`}
@@ -30,7 +33,7 @@ export function ShelfCoverFrame({ covers, shelfName }: Readonly<ShelfCoverFrameP
 
   if (visibleCovers.length === 2) {
     return (
-      <div className="grid h-20 w-20 grid-cols-2 grid-rows-1 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1">
+      <div className={`grid ${frameSizeClassName} grid-cols-2 grid-rows-1 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1`}>
         {visibleCovers.map((coverUrl, index) => (
           <img
             key={`${coverUrl}-${index}`}
@@ -45,7 +48,7 @@ export function ShelfCoverFrame({ covers, shelfName }: Readonly<ShelfCoverFrameP
 
   if (visibleCovers.length === 3) {
     return (
-      <div className="grid h-20 w-20 grid-cols-2 grid-rows-2 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1">
+      <div className={`grid ${frameSizeClassName} grid-cols-2 grid-rows-2 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1`}>
         <img
           src={visibleCovers[0]}
           alt={`Capa 1 da estante ${shelfName}`}
@@ -66,7 +69,7 @@ export function ShelfCoverFrame({ covers, shelfName }: Readonly<ShelfCoverFrameP
   }
 
   return (
-    <div className="grid h-20 w-20 grid-cols-2 grid-rows-2 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1">
+    <div className={`grid ${frameSizeClassName} grid-cols-2 grid-rows-2 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1`}>
       {visibleCovers.map((coverUrl, index) => (
         <img
           key={`${coverUrl}-${index}`}

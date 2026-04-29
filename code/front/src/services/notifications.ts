@@ -6,15 +6,19 @@ export type NotificationType =
   | "USER_FOLLOW_REQUESTED"
   | "USER_FOLLOWED"
   | "COMMENT_REPLIED"
-  | "REVIEW_LIKED";
+  | "REVIEW_LIKED"
+  | "COMMUNITY_INVITE"
+  | "COMMUNITY_JOIN_REQUEST"
+  | "COMMUNITY_JOIN_APPROVED";
 
 export interface NotificationSummary {
   id: string;
   type: NotificationType;
-  actorId: number;
-  actorUsername: string;
+  actorId: number | null;
+  actorUsername: string | null;
   actorAvatarUrl: string | null;
   entityId: number | null;
+  communityId: number | null;
   read: boolean;
   createdAt: string;
 }
@@ -22,10 +26,11 @@ export interface NotificationSummary {
 type NotificationApiResponse = {
   id: string;
   type: NotificationType;
-  actorId: number;
-  actorUsername: string;
+  actorId?: number | null;
+  actorUsername?: string | null;
   actorAvatarUrl?: string | null;
   entityId?: number | string | null;
+  communityId?: number | string | null;
   read: boolean;
   createdAt: string;
 };
@@ -55,10 +60,11 @@ function mapNotification(item: NotificationApiResponse): NotificationSummary {
   return {
     id: item.id,
     type: item.type,
-    actorId: item.actorId,
-    actorUsername: item.actorUsername,
+    actorId: item.actorId ?? null,
+    actorUsername: item.actorUsername ?? null,
     actorAvatarUrl: item.actorAvatarUrl ?? null,
     entityId: normalizeEntityId(item.entityId),
+    communityId: normalizeEntityId(item.communityId),
     read: item.read,
     createdAt: item.createdAt,
   };

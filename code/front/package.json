@@ -16,6 +16,7 @@
     "@microsoft/fetch-event-source": "^2.0.1",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-slot": "^1.2.4",
+    "@react-oauth/google": "^0.13.5",
     "@stomp/stompjs": "^7.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

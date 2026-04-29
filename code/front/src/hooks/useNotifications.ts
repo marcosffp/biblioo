@@ -15,10 +15,11 @@ const SSE_EVENT_NAME = "notification";
 type RealtimeNotificationPayload = {
   id: string;
   type: NotificationType;
-  actorId: number;
-  actorUsername: string;
+  actorId?: number | null;
+  actorUsername?: string | null;
   actorAvatarUrl?: string | null;
   entityId?: number | string | null;
+  communityId?: number | string | null;
   createdAt: string;
 };
 
@@ -35,10 +36,11 @@ function fromRealtimePayload(payload: RealtimeNotificationPayload): Notification
   return {
     id: payload.id,
     type: payload.type,
-    actorId: payload.actorId,
-    actorUsername: payload.actorUsername,
+    actorId: payload.actorId ?? null,
+    actorUsername: payload.actorUsername ?? null,
     actorAvatarUrl: payload.actorAvatarUrl ?? null,
     entityId: normalizeEntityId(payload.entityId),
+    communityId: normalizeEntityId(payload.communityId),
     read: false,
     createdAt: payload.createdAt,
   };

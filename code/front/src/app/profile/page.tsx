@@ -23,6 +23,7 @@ import {
   BookcaseApiError,
   changeShelfItemStatus,
   createBookReview,
+  createFeedPost,
   getMyBookReview,
   getShelfItemById,
   updateBookReview,
@@ -44,7 +45,7 @@ import {
 const isOwner = true;
 const isPublic = true;
 
-const tabs = ["Estante", "Comunidades", "Resenhas"] as const;
+const tabs = ["Biblioteca", "Comunidades", "Resenhas"] as const;
 
 type DisplayShelfBook = Omit<ShelfBook, "shelfItemId"> & {
   shelfItemId: number;
@@ -98,8 +99,19 @@ function isDuplicateReviewError(message: string): boolean {
   return normalized.includes("ja fez uma review") || normalized.includes("já fez uma review");
 }
 
+function buildReviewFeedPostText(bookTitle: string, bookAuthor: string, rating: number, reviewComment: string): string {
+  const normalizedComment = reviewComment.trim();
+  const baseText = `Acabei de avaliar "${bookTitle}" de ${bookAuthor} com ${rating}/5 estrelas.`;
+
+  if (!normalizedComment) {
+    return baseText;
+  }
+
+  return `${baseText}\n\n${normalizedComment}`;
+}
+
 export default function PerfilPage() {
-  const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Estante");
+  const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Biblioteca");
   const [isPublicProfile, setIsPublicProfile] = React.useState(isPublic);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -125,6 +137,8 @@ export default function PerfilPage() {
   const [activeReviewId, setActiveReviewId] = React.useState<number | null>(null);
   const [reviewRatingDraft, setReviewRatingDraft] = React.useState(0);
   const [reviewCommentDraft, setReviewCommentDraft] = React.useState("");
+  const [reviewPublishToFeedDraft, setReviewPublishToFeedDraft] = React.useState(false);
+  const [reviewSuccessMessage, setReviewSuccessMessage] = React.useState("");
   const [reviewError, setReviewError] = React.useState("");
   const [isSavingReview, setIsSavingReview] = React.useState(false);
 
@@ -307,6 +321,8 @@ export default function PerfilPage() {
     setActiveReviewId(null);
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
+    setReviewPublishToFeedDraft(false);
+    setReviewSuccessMessage("");
     setIsShelfBookDetailsOpen(true);
 
     async function loadExistingReview() {
@@ -339,6 +355,8 @@ export default function PerfilPage() {
     setActiveReviewId(null);
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
+    setReviewPublishToFeedDraft(false);
+    setReviewSuccessMessage("");
     setReviewError("");
   };
 
@@ -553,13 +571,21 @@ export default function PerfilPage() {
   };
 
   const handleSetReviewRating = (value: number) => {
+    setReviewSuccessMessage("");
     setReviewError("");
     setReviewRatingDraft(value);
   };
 
   const handleSetReviewComment = (value: string) => {
+    setReviewSuccessMessage("");
     setReviewError("");
     setReviewCommentDraft(value);
+  };
+
+  const handleSetReviewPublishToFeed = (value: boolean) => {
+    setReviewSuccessMessage("");
+    setReviewError("");
+    setReviewPublishToFeedDraft(value);
   };
 
   const handleSaveBookReview = () => {
@@ -568,7 +594,9 @@ export default function PerfilPage() {
       return;
     }
 
-    const bookId = Number(selectedShelfBook.id);
+    const activeBook = selectedShelfBook;
+
+    const bookId = Number(activeBook.id);
     if (Number.isNaN(bookId)) {
       setReviewError("Não foi possível identificar o livro para avaliar.");
       return;
@@ -592,6 +620,7 @@ export default function PerfilPage() {
 
     async function saveBookReviewAction() {
       setIsSavingReview(true);
+      setReviewSuccessMessage("");
       setReviewError("");
 
       try {
@@ -602,6 +631,23 @@ export default function PerfilPage() {
         setActiveReviewId(savedReview.id);
         setReviewRatingDraft(savedReview.rating);
         setReviewCommentDraft(savedReview.text ?? "");
+
+        if (reviewPublishToFeedDraft) {
+          try {
+            await createFeedPost(
+              buildReviewFeedPostText(
+                activeBook.title,
+                activeBook.author || "Autor desconhecido",
+                reviewRatingDraft,
+                normalizedComment,
+              ),
+            );
+            setReviewPublishToFeedDraft(false);
+            setReviewSuccessMessage("Publicação no feed realizada com sucesso.");
+          } catch {
+            setReviewError("Sua avaliação foi salva, mas não foi possível publicar no feed.");
+          }
+        }
       } catch (error) {
         if (error instanceof BookcaseApiError && isDuplicateReviewError(error.message)) {
           try {
@@ -639,7 +685,7 @@ export default function PerfilPage() {
 
   const initial = (profileName[0] ?? "U").toUpperCase();
   const tabIcons = {
-    Estante: BookOpen,
+    Biblioteca: BookOpen,
     Comunidades: Users,
     Resenhas: MessageSquare,
   };
@@ -759,7 +805,7 @@ export default function PerfilPage() {
 
       <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
-      {activeTab === "Estante" ? (
+      {activeTab === "Biblioteca" ? (
         <section>
           {shelfBooks.length > 0 ? (
             <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4">
@@ -777,7 +823,7 @@ export default function PerfilPage() {
             </section>
           ) : (
             <EmptyState
-              title="Sua estante está vazia"
+              title="Sua biblioteca está vazia"
               description="Adicione livros para acompanhar progresso e metas no seu perfil."
               action={<Button className="!mt-0 !h-11 !w-auto rounded-2xl px-6 shadow-sm hover:shadow-md">Explorar livros</Button>}
             />
@@ -833,9 +879,12 @@ export default function PerfilPage() {
         reviewRating={reviewRatingDraft}
         reviewComment={reviewCommentDraft}
         reviewExists={typeof activeReviewId === "number"}
+        reviewPublishToFeed={reviewPublishToFeedDraft}
         onChangeReviewRating={handleSetReviewRating}
         onChangeReviewComment={handleSetReviewComment}
+        onChangeReviewPublishToFeed={handleSetReviewPublishToFeed}
         onSaveReview={handleSaveBookReview}
+        reviewSuccessMessage={reviewSuccessMessage}
         reviewError={reviewError}
         isSavingReview={isSavingReview}
         isLoadingReview={false}

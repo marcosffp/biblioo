@@ -10,7 +10,11 @@ import {
   addBookToShelf,
   addShelfToCollection,
   createBookReview,
+  deleteCollection,
+  getCollectionStatistics,
+  getCollectionById,
   type BackendReadingStatus,
+  type BackendCollectionStatisticsResponse,
   type BackendReviewResponse,
   BookcaseApiError,
   changeShelfItemStatus,
@@ -27,6 +31,7 @@ import {
   listShelves,
   removeBookFromShelf,
   searchBooks,
+  updateCollection,
   updateBookReview,
   updateShelf,
   updateShelfItemProgress,
@@ -196,6 +201,11 @@ export function useBookcasePage() {
   const [collections, setCollections] = useState<BackendCollectionSummaryResponse[]>([]);
   const [shelfBooks, setShelfBooks] = useState<ShelfBook[]>([]);
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
+  const [selectedCollectionStats, setSelectedCollectionStats] = useState<BackendCollectionStatisticsResponse | null>(
+    null,
+  );
+  const [isLoadingCollectionStats, setIsLoadingCollectionStats] = useState(false);
+  const [collectionStatsError, setCollectionStatsError] = useState("");
   const [selectedShelfName, setSelectedShelfName] = useState("");
   const [selectedShelfDescription, setSelectedShelfDescription] = useState("");
   const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null);
@@ -221,6 +231,7 @@ export function useBookcasePage() {
   const [activeReviewId, setActiveReviewId] = useState<number | null>(null);
   const [reviewRatingDraft, setReviewRatingDraft] = useState(0);
   const [reviewCommentDraft, setReviewCommentDraft] = useState("");
+  const [reviewSuccessMessage, setReviewSuccessMessage] = useState("");
   const [reviewError, setReviewError] = useState("");
   const [isSavingReview, setIsSavingReview] = useState(false);
 
@@ -369,6 +380,57 @@ export function useBookcasePage() {
 
     void loadBookcaseData();
   }, []);
+
+  useEffect(() => {
+    if (selectedCollectionId === null) {
+      setSelectedCollectionStats(null);
+      setCollectionStatsError("");
+      setIsLoadingCollectionStats(false);
+      return;
+    }
+
+    const activeCollectionId = selectedCollectionId;
+
+    let isCancelled = false;
+
+    async function loadCollectionStatistics() {
+      setIsLoadingCollectionStats(true);
+      setCollectionStatsError("");
+
+      try {
+        const stats = await getCollectionStatistics(activeCollectionId);
+        if (isCancelled) {
+          return;
+        }
+
+        setSelectedCollectionStats(stats);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setSelectedCollectionStats(null);
+
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setCollectionStatsError("Faça login para carregar as estatísticas da coleção.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setCollectionStatsError(error.message);
+        } else {
+          setCollectionStatsError("Não foi possível carregar as estatísticas da coleção.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingCollectionStats(false);
+        }
+      }
+    }
+
+    void loadCollectionStatistics();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedCollectionId]);
 
   useEffect(() => {
     async function loadAddBookSuggestions() {
@@ -576,10 +638,99 @@ export function useBookcasePage() {
     setIsManageCollectionShelvesModalOpen(true);
   };
 
+  const handleEditCollection = (collection: BackendCollectionSummaryResponse) => {
+    async function editCollectionAction() {
+      try {
+        const collectionDetails = await getCollectionById(collection.id);
+
+        const nextNameInput = window.prompt("Nome da coleção", collectionDetails.name ?? collection.name);
+        if (nextNameInput === null) {
+          return;
+        }
+
+        const normalizedName = nextNameInput.trim();
+        if (!normalizedName) {
+          window.alert("Informe um nome para a coleção.");
+          return;
+        }
+
+        if (normalizedName.length > 100) {
+          window.alert("O nome da coleção deve ter no máximo 100 caracteres.");
+          return;
+        }
+
+        const nextDescriptionInput = window.prompt(
+          "Descrição da coleção (opcional)",
+          collectionDetails.description ?? "",
+        );
+        if (nextDescriptionInput === null) {
+          return;
+        }
+
+        const normalizedDescription = nextDescriptionInput.trim();
+        if (normalizedDescription.length > 500) {
+          window.alert("A descrição da coleção deve ter no máximo 500 caracteres.");
+          return;
+        }
+
+        const updatedCollection = await updateCollection(collection.id, normalizedName, normalizedDescription);
+        const nextSummary = toCollectionSummary(updatedCollection);
+
+        setCollections((currentCollections) =>
+          currentCollections.map((currentCollection) =>
+            currentCollection.id === nextSummary.id ? nextSummary : currentCollection,
+          ),
+        );
+      } catch (error) {
+        if (error instanceof BookcaseApiError && error.message) {
+          window.alert(error.message);
+          return;
+        }
+
+        window.alert("Não foi possível editar a coleção.");
+      }
+    }
+
+    void editCollectionAction();
+  };
+
+  const handleDeleteCollection = (collection: BackendCollectionSummaryResponse) => {
+    const shouldDelete = window.confirm(`Deseja apagar a coleção \"${collection.name}\"?`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    async function deleteCollectionAction() {
+      try {
+        await deleteCollection(collection.id);
+
+        setCollections((currentCollections) =>
+          currentCollections.filter((currentCollection) => currentCollection.id !== collection.id),
+        );
+
+        if (selectedCollectionId === collection.id) {
+          setSelectedCollectionId(null);
+          setSelectedCollectionStats(null);
+          setCollectionStatsError("");
+        }
+      } catch (error) {
+        if (error instanceof BookcaseApiError && error.message) {
+          window.alert(error.message);
+          return;
+        }
+
+        window.alert("Não foi possível apagar a coleção.");
+      }
+    }
+
+    void deleteCollectionAction();
+  };
+
   const handleEnterCollection = (collection: BackendCollectionSummaryResponse) => {
     setSelectedCollectionId(collection.id);
     setRootViewMode("colecoes");
     setSearchTerm("");
+    setCollectionStatsError("");
   };
 
   const handleOpenAddShelfToSelectedCollection = () => {
@@ -623,6 +774,15 @@ export function useBookcasePage() {
           setCollections((currentCollections) =>
             currentCollections.map((collection) => (collection.id === nextSummary.id ? nextSummary : collection)),
           );
+
+          try {
+            const refreshedStats = await getCollectionStatistics(nextSummary.id);
+            setSelectedCollectionStats(refreshedStats);
+            setCollectionStatsError("");
+          } catch {
+            setSelectedCollectionStats(null);
+            setCollectionStatsError("Não foi possível atualizar as estatísticas da coleção.");
+          }
         }
 
         handleCloseManageCollectionShelvesModal();
@@ -669,6 +829,8 @@ export function useBookcasePage() {
   const handleBackToShelves = () => {
     if (!isInsideShelf) {
       setSelectedCollectionId(null);
+      setSelectedCollectionStats(null);
+      setCollectionStatsError("");
       setSearchTerm("");
       return;
     }
@@ -686,6 +848,7 @@ export function useBookcasePage() {
     setActiveReviewId(null);
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
+    setReviewSuccessMessage("");
     setReviewError("");
     setAddToShelfError("");
   };
@@ -697,6 +860,7 @@ export function useBookcasePage() {
     setActiveReviewId(null);
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
+    setReviewSuccessMessage("");
     setIsShelfBookDetailsOpen(true);
 
     async function loadExistingReview() {
@@ -729,6 +893,7 @@ export function useBookcasePage() {
     setActiveReviewId(null);
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
+    setReviewSuccessMessage("");
     setReviewError("");
   };
 
@@ -1000,11 +1165,13 @@ export function useBookcasePage() {
   };
 
   const handleSetReviewRating = (value: number) => {
+    setReviewSuccessMessage("");
     setReviewError("");
     setReviewRatingDraft(value);
   };
 
   const handleSetReviewComment = (value: string) => {
+    setReviewSuccessMessage("");
     setReviewError("");
     setReviewCommentDraft(value);
   };
@@ -1015,7 +1182,9 @@ export function useBookcasePage() {
       return;
     }
 
-    const bookId = Number(selectedShelfBook.id);
+    const activeBook = selectedShelfBook;
+
+    const bookId = Number(activeBook.id);
     if (Number.isNaN(bookId)) {
       setReviewError("Não foi possível identificar o livro para avaliar.");
       return;
@@ -1039,6 +1208,7 @@ export function useBookcasePage() {
 
     async function saveBookReviewAction() {
       setIsSavingReview(true);
+      setReviewSuccessMessage("");
       setReviewError("");
 
       try {
@@ -1049,6 +1219,7 @@ export function useBookcasePage() {
         setActiveReviewId(savedReview.id);
         setReviewRatingDraft(savedReview.rating);
         setReviewCommentDraft(mapReviewText(savedReview));
+        setReviewSuccessMessage("Avaliação publicada no feed dos seus seguidores!");
       } catch (error) {
         if (error instanceof BookcaseApiError && isDuplicateReviewError(error.message)) {
           try {
@@ -1506,6 +1677,9 @@ export function useBookcasePage() {
     editShelfError,
     editShelfName,
     createCollectionError,
+    collectionStatsError,
+    selectedCollectionStats,
+    isLoadingCollectionStats,
     createShelfError,
     emptyStateDescription,
     emptyStateTitle,
@@ -1549,6 +1723,7 @@ export function useBookcasePage() {
     progressError,
     reviewCommentDraft,
     reviewError,
+    reviewSuccessMessage,
     reviewRatingDraft,
     rootViewMode,
     searchInputAriaLabel,
@@ -1593,8 +1768,10 @@ export function useBookcasePage() {
     handleOpenCreateShelfModal,
     handleOpenDeleteShelfModal,
     handleOpenEditShelfModal,
+    handleEditCollection,
     handleOpenManageCollectionShelvesModal,
     handleOpenAddShelfToSelectedCollection,
+    handleDeleteCollection,
     handleOpenShelfBookDetails,
     handleOpenProgressModal,
     handleSelectShelfBookStatus,

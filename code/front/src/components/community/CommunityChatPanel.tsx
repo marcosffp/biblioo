@@ -1,8 +1,23 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, ArrowLeft, BookOpen, Info, Send } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  BookOpen,
+  CirclePlus,
+  Heart,
+  Image,
+  ImagePlus,
+  Info,
+  MoreHorizontal,
+  Send,
+  X,
+} from "lucide-react";
 import type { Community, CommunityChatMessage } from "../../hooks/useCommunity";
+import type { TypingUser } from "../../hooks/useCommunityMessages";
+import { ConfirmActionModal } from "./ConfirmActionModal";
+import { EditMessageModal } from "./EditMessageModal";
 
 export interface CommunityChatPanelProps {
   community: Community;
@@ -11,9 +26,14 @@ export interface CommunityChatPanelProps {
   isSendingMessage: boolean;
   isConnected: boolean;
   messageError?: string;
-  onSendMessage: (input: { content: string; hasSpoiler: boolean }) => Promise<void>;
+  onSendMessage: (input: { content: string; hasSpoiler: boolean; images?: File[]; gif?: File | null }) => Promise<void>;
+  onEditMessage: (input: { messageId: string; content: string }) => Promise<void>;
+  onDeleteMessage: (messageId: string) => Promise<void>;
+  onToggleHeartReaction: (messageId: string) => Promise<void>;
   onBack: () => void;
   onOpenInfo: () => void;
+  typingUsers: TypingUser[];
+  onTyping: () => void;
 }
 
 export function CommunityChatPanel({
@@ -24,31 +44,97 @@ export function CommunityChatPanel({
   isConnected,
   messageError,
   onSendMessage,
+  onEditMessage,
+  onDeleteMessage,
+  onToggleHeartReaction,
   onBack,
   onOpenInfo,
+  typingUsers,
+  onTyping,
 }: Readonly<CommunityChatPanelProps>) {
   const [newMessage, setNewMessage] = React.useState("");
   const [spoilerEnabled, setSpoilerEnabled] = React.useState(false);
   const [localSendError, setLocalSendError] = React.useState("");
   const [revealedSpoilers, setRevealedSpoilers] = React.useState<Set<string>>(new Set());
+  const [selectedImages, setSelectedImages] = React.useState<File[]>([]);
+  const [selectedGif, setSelectedGif] = React.useState<File | null>(null);
+  const [editingMessageId, setEditingMessageId] = React.useState<string | null>(null);
+  const [editingPreviewText, setEditingPreviewText] = React.useState("");
+  const [editingDraft, setEditingDraft] = React.useState("");
+  const [messageToDeleteId, setMessageToDeleteId] = React.useState<string | null>(null);
+  const [isPerformingAction, setIsPerformingAction] = React.useState(false);
+  const [isMoreOptionsOpen, setIsMoreOptionsOpen] = React.useState(false);
+  const [openedMessageMenuId, setOpenedMessageMenuId] = React.useState<string | null>(null);
+
+  const imageInputRef = React.useRef<HTMLInputElement | null>(null);
+  const gifInputRef = React.useRef<HTMLInputElement | null>(null);
+  const moreOptionsRef = React.useRef<HTMLDivElement | null>(null);
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  React.useEffect(() => {
+    if (!isMoreOptionsOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (moreOptionsRef.current && !moreOptionsRef.current.contains(target)) {
+        setIsMoreOptionsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMoreOptionsOpen]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest("[data-chat-message-menu='true']")) {
+        setOpenedMessageMenuId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleSend = async () => {
     const text = newMessage.trim();
-    if (!text) {
+    if (!text && selectedImages.length === 0 && !selectedGif) {
       return;
     }
 
     setLocalSendError("");
 
     try {
-      await onSendMessage({ content: text, hasSpoiler: spoilerEnabled });
+      await onSendMessage({
+        content: text,
+        hasSpoiler: spoilerEnabled,
+        images: selectedImages,
+        gif: selectedGif,
+      });
+      setIsMoreOptionsOpen(false);
       setNewMessage("");
       setSpoilerEnabled(false);
+      setSelectedImages([]);
+      setSelectedGif(null);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+      }
+      if (gifInputRef.current) {
+        gifInputRef.current.value = "";
+      }
     } catch (error) {
       if (error instanceof Error && error.message) {
         setLocalSendError(error.message);
@@ -63,6 +149,130 @@ export function CommunityChatPanel({
     setRevealedSpoilers((current) => new Set(current).add(messageId));
   };
 
+  const startEditing = (message: CommunityChatMessage) => {
+    setEditingMessageId(message.id);
+    setEditingPreviewText(message.text);
+    setEditingDraft(message.text);
+    setLocalSendError("");
+    setOpenedMessageMenuId(null);
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditingPreviewText("");
+    setEditingDraft("");
+  };
+
+  const saveEditing = async () => {
+    if (!editingMessageId) {
+      return;
+    }
+
+    const normalized = editingDraft.trim();
+    if (!normalized) {
+      setLocalSendError("A mensagem editada não pode ficar vazia.");
+      return;
+    }
+
+    setIsPerformingAction(true);
+    setLocalSendError("");
+
+    try {
+      await onEditMessage({ messageId: editingMessageId, content: normalized });
+      cancelEditing();
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setLocalSendError(error.message);
+      } else {
+        setLocalSendError("Nao foi possivel editar a mensagem.");
+      }
+    } finally {
+      setIsPerformingAction(false);
+    }
+  };
+
+  const confirmDeleteMessage = async () => {
+    if (!messageToDeleteId) {
+      return;
+    }
+
+    setIsPerformingAction(true);
+    setLocalSendError("");
+
+    try {
+      await onDeleteMessage(messageToDeleteId);
+      if (editingMessageId === messageToDeleteId) {
+        cancelEditing();
+      }
+      setMessageToDeleteId(null);
+      setOpenedMessageMenuId(null);
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setLocalSendError(error.message);
+      } else {
+        setLocalSendError("Nao foi possivel remover a mensagem.");
+      }
+    } finally {
+      setIsPerformingAction(false);
+    }
+  };
+
+  const toggleHeart = async (messageId: string) => {
+    setLocalSendError("");
+
+    try {
+      await onToggleHeartReaction(messageId);
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setLocalSendError(error.message);
+      } else {
+        setLocalSendError("Nao foi possivel reagir a mensagem.");
+      }
+    }
+  };
+
+  const onPickImages = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) {
+      return;
+    }
+
+    const valid = files.filter((file) => file.type.startsWith("image/") && file.type !== "image/gif");
+    if (!valid.length) {
+      setLocalSendError("Selecione imagens JPG, PNG ou WebP.");
+      return;
+    }
+
+    setSelectedImages((current) => [...current, ...valid].slice(0, 5));
+    setLocalSendError("");
+  };
+
+  const onPickGif = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    if (!file) {
+      return;
+    }
+
+    if (file.type !== "image/gif") {
+      setLocalSendError("O arquivo GIF deve ser do tipo image/gif.");
+      return;
+    }
+
+    setSelectedGif(file);
+    setLocalSendError("");
+  };
+
+  const removeSelectedImage = (indexToRemove: number) => {
+    setSelectedImages((current) => current.filter((_, index) => index !== indexToRemove));
+  };
+
+  const clearSelectedGif = () => {
+    setSelectedGif(null);
+    if (gifInputRef.current) {
+      gifInputRef.current.value = "";
+    }
+  };
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -71,8 +281,8 @@ export function CommunityChatPanel({
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-white">
-      <div className="flex items-center gap-3 border-b border-border bg-white px-4 py-3">
+    <div className="flex h-full flex-col bg-white">
+      <div className="flex items-center gap-3 border-b border-border/80 bg-[#fbfcfc] px-4 py-3">
         <button
           type="button"
           onClick={onBack}
@@ -110,7 +320,7 @@ export function CommunityChatPanel({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-white px-4 py-4 pb-20">
+      <div className="flex-1 overflow-y-auto bg-[#f8faf9] px-4 py-4 pb-20">
         <div className="mx-auto flex h-full w-full max-w-[1180px] flex-col gap-2.5">
           {isLoadingMessages ? (
             <p className="rounded-md border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
@@ -134,23 +344,81 @@ export function CommunityChatPanel({
             }
 
             return (
-              <div key={message.id} className={`flex ${message.isMine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[56%] ${message.isMine ? "items-end" : "items-start"}`}>
+              <div key={message.id} className={`group flex ${message.isMine ? "justify-end" : "justify-start"}`}>
+                <div className={`flex max-w-[66%] items-end gap-1.5 ${message.isMine ? "flex-row" : "flex-row-reverse"}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void toggleHeart(message.id);
+                    }}
+                    disabled={message.id.startsWith("temp-") || Boolean(message.isDeleted)}
+                    className={`inline-flex h-7 min-w-7 shrink-0 items-center justify-center gap-0.5 rounded-full border px-1.5 shadow-sm transition-all ${
+                      Boolean(message.hasHeartReaction) || (message.heartCount ?? 0) > 0
+                        ? "border-red-200 bg-red-50 text-red-600"
+                        : "border-border/70 bg-white text-muted-foreground hover:bg-slate-50"
+                    } ${Boolean(message.hasHeartReaction) || (message.heartCount ?? 0) > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} disabled:cursor-not-allowed disabled:opacity-60`}
+                    aria-label="Reagir com coração"
+                  >
+                    <Heart className="h-4 w-4" fill={message.hasHeartReaction ? "currentColor" : "none"} />
+                    {(message.heartCount ?? 0) > 0 ? (
+                      <span className="text-[9px] font-medium leading-none text-muted-foreground">{message.heartCount}</span>
+                    ) : null}
+                  </button>
+
+                  <div className={message.isMine ? "items-end" : "items-start"}>
                   {message.isMine ? null : (
-                    <p className="mb-0.5 ml-1 text-[11px] font-medium text-primary">{message.userName}</p>
+                    <p className="mb-0.5 ml-1 text-[10px] font-medium text-slate-600">{message.userName}</p>
                   )}
 
                   <div
-                    className={`rounded-2xl px-4 py-1.5 text-[13px] leading-relaxed ${
+                    className={`relative rounded-2xl px-3 py-2 text-[13px] leading-snug ${
                       message.isMine
-                        ? "rounded-tr-sm bg-primary text-primary-foreground"
-                        : "rounded-tl-sm border border-border bg-white text-foreground"
+                        ? "rounded-tr-md border border-[#d7e7ff] bg-[#eaf3ff] pr-9 text-slate-800"
+                        : "rounded-tl-md border border-border bg-white text-slate-800"
                     }`}
+                    data-chat-message-menu="true"
                   >
+                    {message.isMine && !message.id.startsWith("temp-") && !message.isDeleted ? (
+                      <div className="absolute right-1.5 top-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenedMessageMenuId((current) => (current === message.id ? null : message.id))
+                          }
+                          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          aria-label="Abrir ações da mensagem"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </button>
+
+                        {openedMessageMenuId === message.id ? (
+                          <div className="absolute right-0 top-7 z-10 min-w-[140px] rounded-xl border border-border bg-white p-1.5 text-foreground shadow-lg">
+                            <button
+                              type="button"
+                              onClick={() => startEditing(message)}
+                              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors hover:bg-muted"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMessageToDeleteId(message.id);
+                                setOpenedMessageMenuId(null);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-red-600 transition-colors hover:bg-red-50"
+                            >
+                              Apagar
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
                     {message.isSpoiler ? (
                       <p
                         className={`mb-1 inline-flex items-center gap-1 text-[10px] font-medium ${
-                          message.isMine ? "text-primary-foreground/70" : "text-muted-foreground"
+                          message.isMine ? "text-slate-500" : "text-muted-foreground"
                         }`}
                       >
                         <AlertTriangle className="h-3 w-3" />
@@ -158,32 +426,58 @@ export function CommunityChatPanel({
                       </p>
                     ) : null}
 
-                    <div className="flex items-end justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        {message.isSpoiler && !revealedSpoilers.has(message.id) ? (
+                    <div className="space-y-1">
+                      <div className="min-w-0">
+                        {message.isDeleted ? (
+                          <p className="italic">Mensagem removida</p>
+                        ) : message.isSpoiler && !revealedSpoilers.has(message.id) ? (
                           <button
                             type="button"
                             onClick={() => revealSpoiler(message.id)}
                             className={`inline-flex items-center gap-1.5 text-left text-xs ${
-                              message.isMine ? "text-primary-foreground/75" : "text-muted-foreground"
+                              message.isMine ? "text-slate-500" : "text-muted-foreground"
                             }`}
                           >
                             <AlertTriangle className="h-3.5 w-3.5" />
                             Spoiler - toque para revelar
                           </button>
                         ) : (
-                          <p className="break-words">{message.text}</p>
+                          <div className="space-y-1">
+                            <p className="break-words">{message.text}</p>
+
+                            {!message.isDeleted && message.images && message.images.length > 0 ? (
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {message.images.map((imageUrl) => (
+                                  <img
+                                    key={imageUrl}
+                                    src={imageUrl}
+                                    alt="Imagem anexada"
+                                    className="h-28 w-full rounded-lg object-cover"
+                                  />
+                                ))}
+                              </div>
+                            ) : null}
+
+                            {!message.isDeleted && message.gifUrl ? (
+                              <img src={message.gifUrl} alt="GIF anexado" className="max-h-44 w-full rounded-lg object-cover" />
+                            ) : null}
+                          </div>
                         )}
                       </div>
 
-                      <p
-                        className={`shrink-0 text-[10px] leading-none ${
-                          message.isMine ? "text-primary-foreground/70" : "text-muted-foreground"
-                        }`}
-                      >
-                        {message.time}
-                      </p>
+                      <div className="flex items-center justify-between gap-1.5">
+                        <p
+                          className={`shrink-0 text-[9.5px] leading-none ${
+                            "text-muted-foreground"
+                          }`}
+                        >
+                          {message.time}
+                          {message.isEdited ? " (editada)" : ""}
+                        </p>
+                      </div>
                     </div>
+
+                  </div>
                   </div>
                 </div>
               </div>
@@ -193,38 +487,155 @@ export function CommunityChatPanel({
         </div>
       </div>
 
-      <div className="border-t border-border bg-white px-3 py-2">
+      <div className="border-t border-border/80 bg-[#fbfcfc] px-3 py-2">
+        {typingUsers.length > 0 ? (
+          <div className="mb-1.5 flex items-center gap-2 px-1">
+            <div className="flex -space-x-1.5">
+              {typingUsers.slice(0, 3).map((u) =>
+                u.avatarUrl ? (
+                  <img
+                    key={u.userId}
+                    src={u.avatarUrl}
+                    alt={u.username}
+                    className="h-5 w-5 rounded-full border-2 border-white object-cover"
+                  />
+                ) : (
+                  <div
+                    key={u.userId}
+                    className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[8px] font-semibold text-slate-500"
+                  >
+                    {u.username.charAt(0).toUpperCase()}
+                  </div>
+                ),
+              )}
+            </div>
+            <p className="animate-pulse text-[11px] text-muted-foreground">
+              {typingUsers.length === 1
+                ? `${typingUsers[0].username} está digitando...`
+                : typingUsers.length === 2
+                  ? `${typingUsers[0].username} e ${typingUsers[1].username} estão digitando...`
+                  : "Várias pessoas estão digitando..."}
+            </p>
+          </div>
+        ) : null}
+
         {isConnected ? null : (
           <p className="mb-2 ml-1 text-[11px] text-amber-700">Conectando ao chat em tempo real...</p>
         )}
 
+        {localSendError ? <p className="mb-2 ml-1 text-[11px] text-red-700">{localSendError}</p> : null}
+
         {spoilerEnabled ? (
-          <div className="mb-2 ml-1 flex items-center gap-1.5 text-[11px] text-amber-600">
+          <div className="mb-2 ml-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
             <AlertTriangle className="h-3 w-3" />
-            Mensagem será marcada como spoiler!
+            Spoiler ativado
           </div>
         ) : null}
 
-        {localSendError ? <p className="mb-2 ml-1 text-[11px] text-red-700">{localSendError}</p> : null}
+        {selectedImages.length > 0 || selectedGif ? (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {selectedImages.map((file, index) => (
+              <span
+                key={`${file.name}-${index}`}
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground"
+              >
+                {file.name}
+                <button
+                  type="button"
+                  onClick={() => removeSelectedImage(index)}
+                  aria-label="Remover imagem selecionada"
+                  className="rounded-full p-0.5 hover:bg-black/10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
 
-        <div className="flex items-end gap-2">
-          <label
-            className="cursor-pointer p-2 text-muted-foreground transition-colors hover:text-foreground"
-            title="Marcar como spoiler"
+            {selectedGif ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] text-amber-700">
+                GIF: {selectedGif.name}
+                <button
+                  type="button"
+                  onClick={clearSelectedGif}
+                  aria-label="Remover GIF selecionado"
+                  className="rounded-full p-0.5 hover:bg-black/10"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="relative flex items-end gap-2" ref={moreOptionsRef}>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="hidden"
+            onChange={onPickImages}
+          />
+
+          <input ref={gifInputRef} type="file" accept="image/gif" className="hidden" onChange={onPickGif} />
+
+          <button
+            type="button"
+            onClick={() => setIsMoreOptionsOpen((current) => !current)}
+            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title="Mais opções"
+            aria-label="Abrir mais opções"
           >
-            <input
-              type="checkbox"
-              className="sr-only"
-              checked={spoilerEnabled}
-              onChange={(event) => setSpoilerEnabled(event.target.checked)}
+            <CirclePlus className="h-5 w-5" />
+          </button>
+
+          {isMoreOptionsOpen ? (
+            <div className="absolute bottom-12 left-0 z-10 w-52 rounded-2xl border border-border bg-white p-1.5 shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  imageInputRef.current?.click();
+                  setIsMoreOptionsOpen(false);
+                }}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              >
+                <Image className="h-4 w-4 text-sky-600" />
+                Fotos e vídeos
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  gifInputRef.current?.click();
+                  setIsMoreOptionsOpen(false);
+                }}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              >
+                <ImagePlus className="h-4 w-4 text-fuchsia-600" />
+                GIF
+              </button>
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setSpoilerEnabled((current) => !current)}
+            className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title={spoilerEnabled ? "Desativar spoiler" : "Marcar spoiler"}
+            aria-label="Alternar spoiler"
+          >
+            <AlertTriangle
+              className={`h-5 w-5 ${spoilerEnabled ? "text-amber-600" : ""
+                }`}
             />
-            <AlertTriangle className={`h-5 w-5 ${spoilerEnabled ? "text-amber-500" : ""}`} />
-          </label>
+          </button>
 
           <input
             type="text"
             value={newMessage}
-            onChange={(event) => setNewMessage(event.target.value)}
+            onChange={(event) => {
+              setNewMessage(event.target.value);
+              onTyping();
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Digite uma mensagem..."
             className="h-10 flex-1 rounded-full border border-border bg-white px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
@@ -235,7 +646,7 @@ export function CommunityChatPanel({
             onClick={() => {
               void handleSend();
             }}
-            disabled={!newMessage.trim() || isSendingMessage}
+            disabled={(!newMessage.trim() && selectedImages.length === 0 && !selectedGif) || isSendingMessage}
             className="rounded-full bg-primary text-white p-2.5 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Enviar mensagem"
           >
@@ -243,6 +654,35 @@ export function CommunityChatPanel({
           </button>
         </div>
       </div>
+
+      <ConfirmActionModal
+        isOpen={messageToDeleteId != null}
+        title="Apagar mensagem"
+        description="Essa mensagem será removida para todos na conversa. Deseja continuar?"
+        confirmLabel="Apagar"
+        cancelLabel="Cancelar"
+        isLoading={isPerformingAction}
+        onClose={() => {
+          if (!isPerformingAction) {
+            setMessageToDeleteId(null);
+          }
+        }}
+        onConfirm={() => {
+          void confirmDeleteMessage();
+        }}
+      />
+
+      <EditMessageModal
+        isOpen={editingMessageId != null}
+        previousMessage={editingPreviewText}
+        draft={editingDraft}
+        isSaving={isPerformingAction}
+        onDraftChange={setEditingDraft}
+        onClose={cancelEditing}
+        onSave={() => {
+          void saveEditing();
+        }}
+      />
     </div>
   );
 }

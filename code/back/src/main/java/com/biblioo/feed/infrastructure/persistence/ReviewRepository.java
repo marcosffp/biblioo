@@ -60,7 +60,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
   @Query(
       "SELECT r FROM Review r WHERE r.userId IN :authorIds AND r.isDeleted = false"
-          + " AND r.createdAt >= :since ORDER BY r.createdAt DESC")
+          + " AND r.isPublished = true AND r.createdAt >= :since ORDER BY r.createdAt DESC")
   List<Review> findRecentByAuthorIds(
       @Param("authorIds") List<Long> authorIds,
       @Param("since") LocalDateTime since,

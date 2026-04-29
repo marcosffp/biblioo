@@ -7,6 +7,16 @@ import { Bell, Search, X } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import { searchBooks, type BackendBookResponse } from "@/services/bookcase";
 import { clearAuthSession, getAuthSession } from "@/services/auth";
+import {
+  acceptCommunityInvite,
+  approveCommunityJoinRequest,
+  CommunityApiError,
+  declineCommunityInvite,
+  listCommunities,
+  listPendingCommunityJoinRequests,
+  listPendingCommunityInvites,
+  rejectCommunityJoinRequest,
+} from "@/services/community";
 import { type NotificationSummary } from "@/services/notifications";
 import {
   acceptFollowRequest,
@@ -37,21 +47,38 @@ const SEARCH_SCOPE_OPTIONS: Array<{ value: SearchScope; label: string }> = [
 const MIN_SEARCH_LENGTH = 2;
 const MAX_RESULTS_PER_TYPE = 5;
 
-function getNotificationText(notification: NotificationSummary): string {
+type NotificationActionFeedback = {
+  type: "success" | "error";
+  message: string;
+};
+
+function getNotificationText(notification: NotificationSummary, communityName?: string): string {
+  const actorName = notification.actorUsername ?? "Alguem";
+  const communityLabel = communityName ? ` ${communityName}` : " esta comunidade";
+
   switch (notification.type) {
     case "USER_FOLLOW_REQUESTED":
-      return `${notification.actorUsername} quer te seguir.`;
+      return `${actorName} quer te seguir.`;
     case "USER_FOLLOWED":
-      return `${notification.actorUsername} começou a te seguir.`;
+      return `${actorName} comecou a te seguir.`;
     case "COMMENT_REPLIED":
-      return `${notification.actorUsername} respondeu seu comentário.`;
+      return `${actorName} respondeu seu comentario.`;
     case "REVIEW_LIKED":
-      return `${notification.actorUsername} curtiu sua resenha.`;
+      return `${actorName} curtiu sua resenha.`;
+    case "COMMUNITY_INVITE":
+      return `Voce recebeu um convite para entrar na comunidade${communityLabel}.`;
+    case "COMMUNITY_JOIN_REQUEST":
+      return `Ha uma nova solicitacao de entrada na comunidade${communityLabel}.`;
+    case "COMMUNITY_JOIN_APPROVED":
+      return `Sua solicitacao para entrar na comunidade${communityLabel} foi aprovada.`;
   }
 }
 
 function getNotificationHref(notification: NotificationSummary): string {
-  if (notification.type === "USER_FOLLOW_REQUESTED" || notification.type === "USER_FOLLOWED") {
+  if (
+    (notification.type === "USER_FOLLOW_REQUESTED" || notification.type === "USER_FOLLOWED") &&
+    notification.actorUsername
+  ) {
     return `/profile/${encodeURIComponent(notification.actorUsername)}`;
   }
 
@@ -61,6 +88,35 @@ function getNotificationHref(notification: NotificationSummary): string {
 
   if (notification.type === "REVIEW_LIKED" && notification.entityId) {
     return `/feed?reviewId=${notification.entityId}`;
+  }
+
+  if (
+    notification.type === "COMMUNITY_INVITE" ||
+    notification.type === "COMMUNITY_JOIN_REQUEST" ||
+    notification.type === "COMMUNITY_JOIN_APPROVED"
+  ) {
+    if (notification.type === "COMMUNITY_INVITE") {
+      const params = new URLSearchParams();
+      params.set("openInviteModal", "1");
+
+      if (notification.communityId) {
+        params.set("communityId", String(notification.communityId));
+      }
+
+      if (notification.entityId) {
+        params.set("inviteId", String(notification.entityId));
+      }
+
+      params.set("notificationId", notification.id);
+
+      return `/community?${params.toString()}`;
+    }
+
+    if (notification.communityId) {
+      return `/community?communityId=${notification.communityId}`;
+    }
+
+    return "/community";
   }
 
   return "/feed";
@@ -263,8 +319,42 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
   );
 
   const executeSearchNavigation = React.useCallback(
-    (scope: SearchScope, term: string) => {
-      const href = resolveSearchHref(scope, term);
+    async (scope: SearchScope, term: string) => {
+      const normalizedTerm = term.trim();
+
+      if (!normalizedTerm) {
+        setSearchError("Digite algo para buscar.");
+        setIsDropdownOpen(true);
+        return;
+      }
+
+      if (scope === "user") {
+        const normalizedUsername = normalizeUsername(normalizedTerm);
+
+        try {
+          const users = await searchUsersByUsername(normalizedUsername, undefined, 0, MAX_RESULTS_PER_TYPE);
+          const exactMatch = users.find(
+            (user) => user.username.trim().toLowerCase() === normalizedUsername,
+          );
+
+          if (!exactMatch) {
+            setSearchError("Usuario nao encontrado.");
+            setSuggestions([]);
+            setIsDropdownOpen(true);
+            return;
+          }
+
+          router.push(`/profile/${encodeURIComponent(exactMatch.username.trim())}`);
+          setIsDropdownOpen(false);
+          return;
+        } catch {
+          setSearchError("Nao foi possivel buscar usuarios agora.");
+          setIsDropdownOpen(true);
+          return;
+        }
+      }
+
+      const href = resolveSearchHref(scope, normalizedTerm);
       router.push(href);
       setIsDropdownOpen(false);
     },
@@ -344,7 +434,7 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
-                  executeSearchNavigation(searchScope, normalizedQuery);
+                  void executeSearchNavigation(searchScope, normalizedQuery);
                 }
               }}
               className="h-10 w-full rounded-full border border-gray-300 bg-white pl-11 pr-10 text-sm text-slate-700 placeholder:text-slate-500 transition-all duration-200 focus:border-gray-400 focus:bg-white"
@@ -409,8 +499,13 @@ export function TopHeader({
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
   const [processingFollowRequestId, setProcessingFollowRequestId] = React.useState<string | null>(null);
+  const [processingCommunityInviteId, setProcessingCommunityInviteId] = React.useState<string | null>(null);
+  const [processingCommunityJoinRequestId, setProcessingCommunityJoinRequestId] = React.useState<string | null>(null);
   const [pendingFollowRequestUsernames, setPendingFollowRequestUsernames] = React.useState<Record<string, true> | null>(null);
   const [resolvedFollowRequestIds, setResolvedFollowRequestIds] = React.useState<Record<string, true>>({});
+  const [resolvedCommunityNotificationIds, setResolvedCommunityNotificationIds] = React.useState<Record<string, true>>({});
+  const [communityNamesById, setCommunityNamesById] = React.useState<Record<number, string>>({});
+  const [notificationActionFeedback, setNotificationActionFeedback] = React.useState<NotificationActionFeedback | null>(null);
   const notificationsContainerRef = React.useRef<HTMLDivElement | null>(null);
   const profileMenuContainerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -427,6 +522,10 @@ export function TopHeader({
 
     notifications.forEach((notification) => {
       if (notification.type !== "USER_FOLLOWED") {
+        return;
+      }
+
+      if (!notification.actorUsername) {
         return;
       }
 
@@ -462,11 +561,23 @@ export function TopHeader({
 
   const visibleNotifications = React.useMemo(() => {
     return notifications.filter((notification) => {
+      if (notification.read) {
+        return false;
+      }
+
+      if (resolvedCommunityNotificationIds[notification.id]) {
+        return false;
+      }
+
       if (notification.type !== "USER_FOLLOW_REQUESTED") {
         return true;
       }
 
       if (resolvedFollowRequestIds[notification.id]) {
+        return false;
+      }
+
+      if (!notification.actorUsername) {
         return false;
       }
 
@@ -487,7 +598,13 @@ export function TopHeader({
 
       return Boolean(pendingFollowRequestUsernames[actorKey]);
     });
-  }, [latestFollowedByActor, notifications, pendingFollowRequestUsernames, resolvedFollowRequestIds]);
+  }, [
+    latestFollowedByActor,
+    notifications,
+    pendingFollowRequestUsernames,
+    resolvedCommunityNotificationIds,
+    resolvedFollowRequestIds,
+  ]);
 
   const visibleUnreadCount = React.useMemo(() => {
     return visibleNotifications.reduce((total, notification) => {
@@ -611,16 +728,76 @@ export function TopHeader({
     void loadPendingFollowRequestUsernames();
   }, [isNotificationsOpen, loadPendingFollowRequestUsernames]);
 
+  React.useEffect(() => {
+    if (!isNotificationsOpen || !accessToken) {
+      return;
+    }
+
+    const targetCommunityIds = visibleNotifications
+      .filter(
+        (notification) =>
+          (notification.type === "COMMUNITY_INVITE" ||
+            notification.type === "COMMUNITY_JOIN_REQUEST" ||
+            notification.type === "COMMUNITY_JOIN_APPROVED") &&
+          Boolean(notification.communityId),
+      )
+      .map((notification) => notification.communityId)
+      .filter((communityId): communityId is number => Boolean(communityId));
+
+    const missingIds = Array.from(new Set(targetCommunityIds)).filter((communityId) => !communityNamesById[communityId]);
+    if (missingIds.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const [mine, discover, pendingInvites] = await Promise.all([
+          listCommunities({ mine: true, page: 0, size: 100, token: accessToken }),
+          listCommunities({ mine: false, page: 0, size: 100, token: accessToken }),
+          listPendingCommunityInvites(0, 100, accessToken),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const mergedNames: Record<number, string> = {};
+        [...mine, ...discover].forEach((community) => {
+          mergedNames[community.id] = community.name;
+        });
+
+        pendingInvites.forEach((invite) => {
+          if (!mergedNames[invite.communityId]) {
+            mergedNames[invite.communityId] = invite.communityName;
+          }
+        });
+
+        setCommunityNamesById((current) => ({ ...current, ...mergedNames }));
+      } catch {
+        // Keep notifications usable even if community name loading fails.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, communityNamesById, isNotificationsOpen, visibleNotifications]);
+
   const handleBellClick = React.useCallback(() => {
+    setNotificationActionFeedback(null);
     setIsNotificationsOpen((previous) => !previous);
   }, []);
 
   const handleNotificationClick = React.useCallback(
     async (notification: NotificationSummary) => {
-      try {
-        await markAsRead(notification.id);
-      } catch {
-        // Keep navigation even if mark-as-read fails.
+      if (notification.type !== "COMMUNITY_INVITE") {
+        try {
+          await markAsRead(notification.id);
+        } catch {
+          // Keep navigation even if mark-as-read fails.
+        }
       }
 
       setIsNotificationsOpen(false);
@@ -631,7 +808,7 @@ export function TopHeader({
 
   const handleAcceptFollowFromNotification = React.useCallback(
     async (notification: NotificationSummary) => {
-      if (!accessToken || processingFollowRequestId) {
+      if (!accessToken || processingFollowRequestId || !notification.actorUsername) {
         return;
       }
 
@@ -642,8 +819,13 @@ export function TopHeader({
           return current;
         }
 
+        const actorUsername = notification.actorUsername;
+        if (!actorUsername) {
+          return current;
+        }
+
         const nextState = { ...current };
-        delete nextState[notification.actorUsername.toLowerCase()];
+        delete nextState[actorUsername.toLowerCase()];
         return nextState;
       });
 
@@ -673,7 +855,7 @@ export function TopHeader({
 
   const handleRejectFollowFromNotification = React.useCallback(
     async (notification: NotificationSummary) => {
-      if (!accessToken || processingFollowRequestId) {
+      if (!accessToken || processingFollowRequestId || !notification.actorUsername) {
         return;
       }
 
@@ -684,8 +866,13 @@ export function TopHeader({
           return current;
         }
 
+        const actorUsername = notification.actorUsername;
+        if (!actorUsername) {
+          return current;
+        }
+
         const nextState = { ...current };
-        delete nextState[notification.actorUsername.toLowerCase()];
+        delete nextState[actorUsername.toLowerCase()];
         return nextState;
       });
 
@@ -705,6 +892,279 @@ export function TopHeader({
       }
     },
     [accessToken, dismissNotification, loadPendingFollowRequestUsernames, processingFollowRequestId],
+  );
+
+  const resolveCommunityInviteCandidates = React.useCallback(
+    async (notification: NotificationSummary): Promise<number[]> => {
+      if (!accessToken || notification.type !== "COMMUNITY_INVITE") {
+        return [];
+      }
+
+      try {
+        const pendingInvites = await listPendingCommunityInvites(0, 100, accessToken);
+        const candidates: number[] = [];
+
+        const byCommunityAndActor = pendingInvites.filter((invite) => {
+          const sameCommunity = notification.communityId ? invite.communityId === notification.communityId : true;
+          const sameActor = notification.actorId ? invite.inviterId === notification.actorId : true;
+          return sameCommunity && sameActor;
+        });
+
+        byCommunityAndActor.forEach((invite) => {
+          candidates.push(invite.id);
+        });
+
+        if (notification.communityId) {
+          pendingInvites
+            .filter((invite) => invite.communityId === notification.communityId)
+            .forEach((invite) => {
+              candidates.push(invite.id);
+            });
+        }
+
+        if (notification.actorId) {
+          pendingInvites
+            .filter((invite) => invite.inviterId === notification.actorId)
+            .forEach((invite) => {
+              candidates.push(invite.id);
+            });
+        }
+
+        if (notification.entityId) {
+          candidates.push(notification.entityId);
+        }
+
+        const uniqueCandidates = candidates.filter((id, index) => candidates.indexOf(id) === index);
+        return uniqueCandidates;
+      } catch {
+        return notification.entityId ? [notification.entityId] : [];
+      }
+    },
+    [accessToken],
+  );
+
+  const isRetryableCommunityInviteError = React.useCallback((error: unknown): boolean => {
+    return error instanceof CommunityApiError && error.status === 400;
+  }, []);
+
+  const processCommunityInviteCandidates = React.useCallback(
+    async (inviteCandidates: number[], action: "accept" | "decline", token: string): Promise<boolean> => {
+      for (const inviteCandidate of inviteCandidates) {
+        try {
+          if (action === "accept") {
+            await acceptCommunityInvite(inviteCandidate, token);
+          } else {
+            await declineCommunityInvite(inviteCandidate, token);
+          }
+
+          return true;
+        } catch (error) {
+          if (!isRetryableCommunityInviteError(error)) {
+            throw error;
+          }
+        }
+      }
+
+      return false;
+    },
+    [isRetryableCommunityInviteError],
+  );
+
+  const finalizeCommunityInviteNotification = React.useCallback(
+    async (notification: NotificationSummary, action: "accept" | "decline") => {
+      try {
+        await markAsRead(notification.id);
+      } catch {
+        // Keep workflow resilient even if mark-as-read fails.
+      }
+
+      dismissNotification(notification.id);
+      setResolvedCommunityNotificationIds((current) => ({ ...current, [notification.id]: true }));
+      await refresh();
+
+      if (action === "accept") {
+        setNotificationActionFeedback({ type: "success", message: "Convite aceito com sucesso." });
+        setIsNotificationsOpen(false);
+        if (notification.communityId) {
+          router.push(`/community?communityId=${notification.communityId}&open=1`);
+        } else {
+          router.push("/community");
+        }
+      } else {
+        setNotificationActionFeedback({ type: "success", message: "Convite recusado." });
+      }
+    },
+    [dismissNotification, markAsRead, refresh, router],
+  );
+
+  const runCommunityInviteAction = React.useCallback(
+    async (notification: NotificationSummary, action: "accept" | "decline") => {
+      if (!accessToken || processingCommunityInviteId || notification.type !== "COMMUNITY_INVITE") {
+        return;
+      }
+
+      if (!notification.entityId && !notification.communityId) {
+        return;
+      }
+
+      setProcessingCommunityInviteId(notification.id);
+
+      try {
+        const inviteCandidates = await resolveCommunityInviteCandidates(notification);
+        if (inviteCandidates.length === 0) {
+          setNotificationActionFeedback({
+            type: "error",
+            message: "Nao foi possivel localizar o convite pendente para esta notificacao.",
+          });
+          return;
+        }
+
+        const processed = await processCommunityInviteCandidates(inviteCandidates, action, accessToken);
+
+        if (!processed) {
+          setNotificationActionFeedback({
+            type: "error",
+            message: "Nao foi possivel processar o convite. Tente novamente.",
+          });
+          return;
+        }
+
+        await finalizeCommunityInviteNotification(notification, action);
+      } catch (error) {
+        const message =
+          error instanceof CommunityApiError && error.message
+            ? error.message
+            : "Nao foi possivel processar o convite agora.";
+        setNotificationActionFeedback({ type: "error", message });
+      } finally {
+        setProcessingCommunityInviteId(null);
+      }
+    },
+    [
+      accessToken,
+      dismissNotification,
+      finalizeCommunityInviteNotification,
+      processCommunityInviteCandidates,
+      processingCommunityInviteId,
+      resolveCommunityInviteCandidates,
+    ],
+  );
+
+  const handleAcceptCommunityInviteFromNotification = React.useCallback(
+    async (notification: NotificationSummary) => {
+      await runCommunityInviteAction(notification, "accept");
+    },
+    [runCommunityInviteAction],
+  );
+
+  const handleDeclineCommunityInviteFromNotification = React.useCallback(
+    async (notification: NotificationSummary) => {
+      await runCommunityInviteAction(notification, "decline");
+    },
+    [runCommunityInviteAction],
+  );
+
+  const resolveCommunityJoinRequestId = React.useCallback(
+    async (notification: NotificationSummary): Promise<number | null> => {
+      if (!accessToken || notification.type !== "COMMUNITY_JOIN_REQUEST") {
+        return null;
+      }
+
+      const communityId = notification.communityId ?? notification.entityId;
+      if (!communityId) {
+        return null;
+      }
+
+      try {
+        const pendingRequests = await listPendingCommunityJoinRequests(communityId, 0, 100, accessToken);
+        const byActor = notification.actorId
+          ? pendingRequests.find((request) => request.userId === notification.actorId)
+          : null;
+
+        if (byActor) {
+          return byActor.id;
+        }
+
+        const newest = pendingRequests[0];
+        return newest?.id ?? null;
+      } catch {
+        return null;
+      }
+    },
+    [accessToken],
+  );
+
+  const runCommunityJoinRequestAction = React.useCallback(
+    async (notification: NotificationSummary, action: "approve" | "reject") => {
+      if (!accessToken || processingCommunityJoinRequestId || notification.type !== "COMMUNITY_JOIN_REQUEST") {
+        return;
+      }
+
+      setProcessingCommunityJoinRequestId(notification.id);
+
+      try {
+        const requestId = await resolveCommunityJoinRequestId(notification);
+        if (!requestId) {
+          setNotificationActionFeedback({
+            type: "error",
+            message: "Nao foi possivel localizar a solicitacao pendente.",
+          });
+          return;
+        }
+
+        if (action === "approve") {
+          await approveCommunityJoinRequest(requestId, accessToken);
+        } else {
+          await rejectCommunityJoinRequest(requestId, accessToken);
+        }
+
+        try {
+          await markAsRead(notification.id);
+        } catch {
+          // Keep workflow resilient even if mark-as-read fails.
+        }
+
+        dismissNotification(notification.id);
+        setResolvedCommunityNotificationIds((current) => ({ ...current, [notification.id]: true }));
+        await refresh();
+        setNotificationActionFeedback({
+          type: "success",
+          message: action === "approve" ? "Solicitacao aprovada com sucesso." : "Solicitacao recusada.",
+        });
+      } catch (error) {
+        const message =
+          error instanceof CommunityApiError && error.message
+            ? error.message
+            : "Nao foi possivel processar a solicitacao agora.";
+        setNotificationActionFeedback({ type: "error", message });
+      } finally {
+        setProcessingCommunityJoinRequestId(null);
+      }
+    },
+    [
+      accessToken,
+      approveCommunityJoinRequest,
+      dismissNotification,
+      markAsRead,
+      processingCommunityJoinRequestId,
+      refresh,
+      rejectCommunityJoinRequest,
+      resolveCommunityJoinRequestId,
+    ],
+  );
+
+  const handleApproveCommunityJoinRequestFromNotification = React.useCallback(
+    async (notification: NotificationSummary) => {
+      await runCommunityJoinRequestAction(notification, "approve");
+    },
+    [runCommunityJoinRequestAction],
+  );
+
+  const handleRejectCommunityJoinRequestFromNotification = React.useCallback(
+    async (notification: NotificationSummary) => {
+      await runCommunityJoinRequestAction(notification, "reject");
+    },
+    [runCommunityJoinRequestAction],
   );
 
   const handleLogout = React.useCallback(() => {
@@ -731,6 +1191,13 @@ export function TopHeader({
         {visibleNotifications.map((notification) => {
           const isFollowRequest = notification.type === "USER_FOLLOW_REQUESTED";
           const isProcessingFollowRequest = processingFollowRequestId === notification.id;
+          const isCommunityInvite = notification.type === "COMMUNITY_INVITE";
+          const isProcessingCommunityInvite = processingCommunityInviteId === notification.id;
+          const isCommunityJoinRequest = notification.type === "COMMUNITY_JOIN_REQUEST";
+          const hasJoinRequestAction = isCommunityJoinRequest && Boolean(notification.communityId || notification.entityId);
+          const isProcessingCommunityJoinRequest = processingCommunityJoinRequestId === notification.id;
+          const inviteCommunityName = notification.communityId ? communityNamesById[notification.communityId] : undefined;
+          const inviteActorName = notification.actorUsername ?? "Alguem";
 
           return (
             <li key={notification.id} className={notification.read ? "opacity-75" : ""}>
@@ -744,23 +1211,49 @@ export function TopHeader({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={notification.actorAvatarUrl}
-                      alt={`Avatar de ${notification.actorUsername}`}
+                      alt={`Avatar de ${notification.actorUsername ?? "usuario"}`}
                       className="h-full w-full object-cover"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-emerald-700">
-                      {notification.actorUsername.slice(0, 1).toUpperCase()}
+                      {(notification.actorUsername ?? "U").slice(0, 1).toUpperCase()}
                     </div>
                   )}
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-sm text-[var(--deep-green)] break-words leading-5">
-                    {getNotificationText(notification)}
-                  </p>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    {formatNotificationDate(notification.createdAt)}
-                  </p>
+                  {isCommunityInvite ? (
+                    <div>
+                      <p className="text-sm text-[var(--deep-green)] break-words leading-5">
+                        <span className="font-semibold">{inviteActorName}</span> te convidou para a comunidade
+                      </p>
+
+                      <div className="mt-2 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-600">
+                          Comunidade
+                        </p>
+                        <p className="text-sm font-semibold text-[var(--deep-green)] break-words">
+                          {inviteCommunityName ?? "Comunidade"}
+                        </p>
+                      </div>
+
+                      <p className="text-xs text-[var(--text-secondary)] mt-2">
+                        {formatNotificationDate(notification.createdAt)}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-[var(--deep-green)] break-words leading-5">
+                        {getNotificationText(
+                          notification,
+                          notification.communityId ? communityNamesById[notification.communityId] : undefined,
+                        )}
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                        {formatNotificationDate(notification.createdAt)}
+                      </p>
+                    </>
+                  )}
                 </div>
               </button>
 
@@ -778,6 +1271,31 @@ export function TopHeader({
                     type="button"
                     onClick={() => void handleAcceptFollowFromNotification(notification)}
                     disabled={isProcessingFollowRequest}
+                    className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Aceitar
+                  </button>
+                </div>
+              ) : null}
+
+              {isCommunityInvite && isProcessingCommunityInvite ? (
+                <p className="px-4 pb-3 text-xs text-[var(--text-secondary)]">Processando convite...</p>
+              ) : null}
+
+              {hasJoinRequestAction ? (
+                <div className="px-4 pb-3 -mt-1.5 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleRejectCommunityJoinRequestFromNotification(notification)}
+                    disabled={isProcessingCommunityJoinRequest}
+                    className="inline-flex items-center justify-center rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Recusar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleApproveCommunityJoinRequestFromNotification(notification)}
+                    disabled={isProcessingCommunityJoinRequest}
                     className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Aceitar
@@ -830,6 +1348,18 @@ export function TopHeader({
                 <div className="flex items-center justify-between border-b border-emerald-100 px-4 py-3">
                   <h3 className="text-sm font-semibold text-[var(--deep-green)]">Notificações</h3>
                 </div>
+
+                {notificationActionFeedback ? (
+                  <p
+                    className={`px-4 py-2 text-xs ${
+                      notificationActionFeedback.type === "success"
+                        ? "border-b border-emerald-100 bg-emerald-50 text-emerald-800"
+                        : "border-b border-red-100 bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {notificationActionFeedback.message}
+                  </p>
+                ) : null}
 
                 <div className="max-h-80 overflow-y-auto">{notificationsContent}</div>
               </div>

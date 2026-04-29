@@ -38,7 +38,7 @@ import {
   type UserProfileResponse,
 } from "@/services/profile";
 
-const tabs = ["Estante", "Comunidades", "Resenhas"] as const;
+const tabs = ["Biblioteca", "Comunidades", "Resenhas"] as const;
 
 type DisplayShelfBook = Omit<ShelfBook, "shelfItemId"> & {
   shelfId: number;
@@ -102,7 +102,7 @@ export default function SeguidorProfilePage() {
   const params = useParams<{ username: string }>();
   const username = normalizeUsernameParam(params?.username ?? "");
 
-  const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Estante");
+  const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Biblioteca");
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [profile, setProfile] = React.useState<UserProfileResponse | null>(null);
@@ -424,7 +424,7 @@ export default function SeguidorProfilePage() {
 
   const readerStatusLabel = booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora";
   const tabIcons = {
-    Estante: BookOpen,
+    Biblioteca: BookOpen,
     Comunidades: Users,
     Resenhas: MessageSquare,
   };
@@ -538,7 +538,7 @@ export default function SeguidorProfilePage() {
 
             <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
-            {activeTab === "Estante" ? (
+            {activeTab === "Biblioteca" ? (
               <section className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                 {shelfBooks.length > 0 ? (
                   shelfBooks.map((book) => (
@@ -554,8 +554,8 @@ export default function SeguidorProfilePage() {
                   ))
                 ) : (
                   <EmptyState
-                    title="Estante vazia"
-                    description={isOwnProfile ? "Adicione livros para acompanhar progresso e metas no perfil." : "Este usuário ainda não adicionou livros visíveis na estante."}
+                    title="Biblioteca vazia"
+                    description={isOwnProfile ? "Adicione livros para acompanhar progresso e metas no perfil." : "Este usuário ainda não adicionou livros visíveis na biblioteca."}
                   />
                 )}
               </section>
@@ -606,9 +606,12 @@ export default function SeguidorProfilePage() {
         reviewRating={0}
         reviewComment=""
         reviewExists={false}
+        reviewPublishToFeed={false}
         onChangeReviewRating={Noop}
         onChangeReviewComment={Noop}
+        onChangeReviewPublishToFeed={Noop}
         onSaveReview={Noop}
+        reviewSuccessMessage=""
         reviewError=""
         isSavingReview={false}
         isLoadingReview={false}

@@ -320,6 +320,7 @@ public class CommunityService implements CommunityUseCase {
 
     CommunityUserSummary inviter = userLookup.getById(inviterId);
     eventPublisher.publishInviteSent(
+      invite.getId(),
         communityId,
         community.getName(),
         inviterId,

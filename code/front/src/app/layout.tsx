@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Merriweather, Source_Sans_3 } from "next/font/google";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import { AuthGuard } from "@/components/AuthGuard";
 import "./globals.css";
 
 const headingFont = Merriweather({
@@ -24,7 +26,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className={`${headingFont.variable} ${bodyFont.variable}`}>
-      <body>{children}</body>
+      <body>
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}>
+          <AuthGuard>{children}</AuthGuard>
+        </GoogleOAuthProvider>
+      </body>
     </html>
   );
 }

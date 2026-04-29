@@ -4,6 +4,7 @@ import java.util.List;
 
 public interface CommunityEventPublisherPort {
   void publishInviteSent(
+  Long inviteId,
       Long communityId,
       String communityName,
       Long inviterId,

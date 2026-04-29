@@ -24,6 +24,11 @@ export interface BackendMessageEventPayload {
   data: BackendCommunityMessage;
 }
 
+export interface MessageMediaUploadResponse {
+  images: string[];
+  gifUrl?: string | null;
+}
+
 interface BackendPageResponse<T> {
   content: T[];
 }
@@ -118,7 +123,7 @@ export async function syncCommunityMessagesAfter(
 export async function getCommunityMembers(communityId: number): Promise<BackendCommunityMember[]> {
   const query = new URLSearchParams();
   query.set("page", "0");
-  query.set("size", "50");
+  query.set("size", "200");
 
   const response = await fetch(`${API_BASE_URL}/communities/${communityId}/members?${query.toString()}`, {
     headers: buildAuthHeaders(),
@@ -134,4 +139,30 @@ export async function getCommunityMembers(communityId: number): Promise<BackendC
 
 export function getCommunityWebSocketEndpoint(): string {
   return `${API_BASE_URL}/ws/community`;
+}
+
+export async function uploadCommunityMessageMedia(
+  communityId: number,
+  params: {
+    images?: File[];
+    gif?: File | null;
+  },
+): Promise<MessageMediaUploadResponse> {
+  const body = new FormData();
+
+  params.images?.forEach((file) => {
+    body.append("images", file);
+  });
+
+  if (params.gif) {
+    body.append("gif", params.gif);
+  }
+
+  const response = await fetch(`${API_BASE_URL}/communities/${communityId}/messages/media`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    body,
+  });
+
+  return parseJsonResponse<MessageMediaUploadResponse>(response, "Falha ao fazer upload de mídia da mensagem.");
 }

@@ -47,6 +47,10 @@ public class Notification {
   @Column(name = "entity_id")
   private Long entityId;
 
+  /** Contexto adicional para notificacoes de comunidade. */
+  @Column(name = "community_id")
+  private Long communityId;
+
   @Column(name = "read_at")
   private LocalDateTime readAt;
 

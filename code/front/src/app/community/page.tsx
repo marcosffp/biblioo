@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { MessageCircle, Users } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft, BookOpen, MessageCircle, Plus, Send, Users, X } from "lucide-react";
 import {
   AppShell,
   ChipToggle,
@@ -12,6 +13,13 @@ import {
 import { CommunityChatView } from "@/components/community/CommunityChatView";
 import { CommunityCreateModal } from "@/components/community/CommunityCreateModal";
 import {
+  acceptCommunityInvite,
+  declineCommunityInvite,
+  listPendingCommunityInvites,
+  type PendingCommunityInviteResponse,
+} from "@/services/community";
+import {
+  type Community,
   useCommunity,
   type CommunityBookOption,
   type CommunityVisibility,
@@ -23,14 +31,119 @@ function normalizeCommunityName(value: string): string {
   return value.replaceAll(/\s+/g, " ").trim();
 }
 
+function formatMembersLabel(total: number): string {
+  return total.toLocaleString("pt-BR");
+}
+
+type InviteModalProps = {
+  isOpen: boolean;
+  invite: PendingCommunityInviteResponse | null;
+  community: Community | null;
+  isSubmitting: boolean;
+  actionError: string;
+  onClose: () => void;
+  onAccept: () => void;
+  onDecline: () => void;
+};
+
+function CommunityInviteModal({
+  isOpen,
+  invite,
+  community,
+  isSubmitting,
+  actionError,
+  onClose,
+  onAccept,
+  onDecline,
+}: Readonly<InviteModalProps>) {
+  if (!isOpen || !invite || !community) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-8">
+      <div className="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-emerald-100 bg-[#f0faf6] shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-full p-2 text-emerald-900/60 transition-colors hover:bg-emerald-100"
+          aria-label="Fechar convite"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="bg-gradient-to-b from-[#c5ebe0] via-[#d6f3ea] to-[#eef9f5] px-8 pb-6 pt-10">
+          <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-3xl bg-[#def5ec]">
+            <BookOpen className="h-10 w-10 text-emerald-500" />
+          </div>
+          <span className="inline-flex rounded-full bg-emerald-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+            Convite especial
+          </span>
+          <h2 className="mt-3 text-balance text-5xl font-semibold leading-[1.02] text-[var(--deep-green)]">
+            {community.name}
+          </h2>
+          <p className="mt-2 text-base text-emerald-900/75">
+            <strong>{invite.inviterUsername ?? "Um administrador"}</strong> te convidou para participar.
+          </p>
+          <p className="mt-5 text-[1.65rem] leading-relaxed text-emerald-900/70">{community.description ?? "Comunidade privada de leitura."}</p>
+        </div>
+
+        <div className="space-y-4 bg-[#f5fcf9] px-8 pb-8 pt-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-emerald-700/80">Membros</p>
+              <p className="mt-2 text-4xl font-semibold text-[var(--deep-green)]">{formatMembersLabel(community.members)}</p>
+            </div>
+            <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.11em] text-emerald-700/80">Leitura atual</p>
+              <p className="mt-2 text-xl font-semibold text-[var(--deep-green)]">{community.bookTitle.split(" - ")[0]}</p>
+              <p className="text-sm text-emerald-900/70">{community.bookTitle.split(" - ").slice(1).join(" - ") || "Autor desconhecido"}</p>
+            </div>
+          </div>
+
+          {actionError ? (
+            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{actionError}</p>
+          ) : null}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={isSubmitting}
+              className="rounded-2xl bg-emerald-500 px-5 py-3 text-lg font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSubmitting ? "Processando..." : "Aceitar convite"}
+            </button>
+            <button
+              type="button"
+              onClick={onDecline}
+              disabled={isSubmitting}
+              className="rounded-2xl border border-emerald-200 bg-white px-5 py-3 text-lg font-semibold text-emerald-900/70 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              Recusar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ComunidadesPage() {
+  const searchParams = useSearchParams();
   const {
     communities,
     isLoadingCommunities,
     communitiesError,
     isSubmittingCreate,
+    refreshCommunities,
     createNewCommunity,
     searchBookOptions,
+    joinPublicCommunity,
+    requestPrivateCommunityJoin,
+    joinPrivateCommunityByInviteCode,
+    inviteUser,
+    pendingJoinRequestIds,
   } = useCommunity();
 
   const [tab, setTab] = React.useState<"minhas" | "descobrir">("minhas");
@@ -46,6 +159,19 @@ export default function ComunidadesPage() {
   const [isSearchingBooks, setIsSearchingBooks] = React.useState(false);
   const [bookSearchError, setBookSearchError] = React.useState("");
   const [submitError, setSubmitError] = React.useState("");
+  const [communityActionError, setCommunityActionError] = React.useState("");
+  const [processingCommunityId, setProcessingCommunityId] = React.useState<string | null>(null);
+  const [discoverSearchTerm, setDiscoverSearchTerm] = React.useState("");
+  const [openedFromQuery, setOpenedFromQuery] = React.useState(false);
+  const [inviteCode, setInviteCode] = React.useState("");
+  const [inviteCodeError, setInviteCodeError] = React.useState("");
+  const [privateJoinFeedback, setPrivateJoinFeedback] = React.useState("");
+  const [processingPrivateCodeJoin, setProcessingPrivateCodeJoin] = React.useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = React.useState(false);
+  const [modalActionError, setModalActionError] = React.useState("");
+  const [isSubmittingInviteAction, setIsSubmittingInviteAction] = React.useState(false);
+  const [pendingInvite, setPendingInvite] = React.useState<PendingCommunityInviteResponse | null>(null);
+  const [consumedInviteToken, setConsumedInviteToken] = React.useState<string | null>(null);
 
   const normalizedCommunityName = normalizeCommunityName(communityName);
   const selectedCommunity = React.useMemo(
@@ -58,8 +184,22 @@ export default function ComunidadesPage() {
       return communities.filter((community) => community.isMember);
     }
 
-    return communities;
-  }, [communities, tab]);
+    const discoverableCommunities = communities.filter((community) => !community.isMember);
+
+    const normalizedSearch = discoverSearchTerm.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return discoverableCommunities;
+    }
+
+    return discoverableCommunities.filter((community) => {
+      return (
+        community.name.toLowerCase().includes(normalizedSearch) ||
+        (community.description ?? "").toLowerCase().includes(normalizedSearch) ||
+        community.bookTitle.toLowerCase().includes(normalizedSearch)
+      );
+    });
+  }, [communities, tab, discoverSearchTerm]);
 
   const resetCreateForm = React.useCallback(() => {
     setCommunityName("");
@@ -178,7 +318,332 @@ export default function ComunidadesPage() {
     })();
   };
 
-  if (selectedCommunity) {
+  const handleOpenCommunity = React.useCallback((communityId: string) => {
+    setCommunityActionError("");
+    setInviteCode("");
+    setInviteCodeError("");
+    setPrivateJoinFeedback("");
+    setSelectedCommunityId(communityId);
+  }, []);
+
+  const handleCommunityPrimaryAction = React.useCallback(
+    (communityId: string) => {
+      const community = communities.find((item) => item.id === communityId);
+
+      if (!community) {
+        return;
+      }
+
+      handleOpenCommunity(communityId);
+    },
+    [communities, handleOpenCommunity],
+  );
+
+  const getCommunityActionLabel = React.useCallback(
+    (communityId: string): string => {
+      const community = communities.find((item) => item.id === communityId);
+
+      if (!community) {
+        return "Abrir";
+      }
+
+      if (community.isMember) {
+        return "Abrir Chat";
+      }
+
+      return "Ver detalhes";
+    },
+    [communities],
+  );
+
+  const handleJoinPublicFromDetails = React.useCallback(async () => {
+    if (!selectedCommunity || selectedCommunity.isMember || selectedCommunity.visibility !== "PUBLIC") {
+      return;
+    }
+
+    setCommunityActionError("");
+    setProcessingCommunityId(selectedCommunity.id);
+
+    try {
+      await joinPublicCommunity(selectedCommunity.id);
+      setTab("minhas");
+      setSelectedCommunityId(selectedCommunity.id);
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setCommunityActionError(error.message);
+      } else {
+        setCommunityActionError("Nao foi possivel entrar na comunidade.");
+      }
+    } finally {
+      setProcessingCommunityId(null);
+    }
+  }, [joinPublicCommunity, selectedCommunity]);
+
+  React.useEffect(() => {
+    if (openedFromQuery) {
+      return;
+    }
+
+    const communityIdFromQuery = searchParams.get("communityId");
+    const shouldOpen = searchParams.get("open") === "1";
+    const shouldOpenInviteModal = searchParams.get("openInviteModal") === "1";
+
+    if (!communityIdFromQuery && !shouldOpenInviteModal) {
+      return;
+    }
+
+    if (!communityIdFromQuery && shouldOpenInviteModal) {
+      const inviteIdFromQuery = searchParams.get("inviteId");
+      const parsedInviteId = inviteIdFromQuery ? Number(inviteIdFromQuery) : null;
+
+      if (!parsedInviteId || !Number.isFinite(parsedInviteId)) {
+        return;
+      }
+
+      let cancelled = false;
+
+      void (async () => {
+        try {
+          const pendingInvites = await listPendingCommunityInvites(0, 100);
+
+          if (cancelled) {
+            return;
+          }
+
+          const invite = pendingInvites.find((item) => item.id === parsedInviteId);
+          if (!invite) {
+            return;
+          }
+
+          const targetCommunity = communities.find(
+            (community) => community.id === String(invite.communityId),
+          );
+
+          if (!targetCommunity) {
+            return;
+          }
+
+          setTab(targetCommunity.isMember ? "minhas" : "descobrir");
+          setSelectedCommunityId(targetCommunity.id);
+          if (!targetCommunity.isMember) {
+            setIsInviteModalOpen(true);
+          }
+          setOpenedFromQuery(true);
+        } catch {
+          // Mantem comportamento padrao quando nao for possivel resolver convite pela notificacao.
+        }
+      })();
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!communityIdFromQuery) {
+      return;
+    }
+
+    const targetCommunity = communities.find((community) => community.id === communityIdFromQuery);
+
+    if (!targetCommunity) {
+      return;
+    }
+
+    if (shouldOpen && targetCommunity.isMember) {
+      setTab("minhas");
+    } else {
+      setTab(targetCommunity.isMember ? "minhas" : "descobrir");
+    }
+
+    setSelectedCommunityId(targetCommunity.id);
+
+    if (shouldOpenInviteModal && !targetCommunity.isMember) {
+      setIsInviteModalOpen(true);
+    }
+
+    setOpenedFromQuery(true);
+  }, [communities, openedFromQuery, searchParams]);
+
+  React.useEffect(() => {
+    if (!isInviteModalOpen || !selectedCommunity || selectedCommunity.isMember) {
+      return;
+    }
+
+    let cancelled = false;
+    const inviteIdFromQuery = searchParams.get("inviteId");
+    const parsedInviteId = inviteIdFromQuery ? Number(inviteIdFromQuery) : null;
+
+    void (async () => {
+      try {
+        const pendingInvites = await listPendingCommunityInvites(0, 100);
+        if (cancelled) {
+          return;
+        }
+
+        const candidates = pendingInvites.filter((item) => item.communityId === Number(selectedCommunity.id));
+        if (candidates.length === 0) {
+          setPendingInvite(null);
+          setModalActionError("Nao ha convite pendente para esta comunidade.");
+          return;
+        }
+
+        if (parsedInviteId && Number.isFinite(parsedInviteId)) {
+          const byId = candidates.find((item) => item.id === parsedInviteId);
+          setPendingInvite(byId ?? candidates[0]);
+        } else {
+          setPendingInvite(candidates[0]);
+        }
+
+        setModalActionError("");
+      } catch {
+        if (!cancelled) {
+          setPendingInvite(null);
+          setModalActionError("Nao foi possivel carregar os detalhes do convite.");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isInviteModalOpen, searchParams, selectedCommunity]);
+
+  const handleRequestPrivateJoinFromDetails = React.useCallback(async () => {
+    if (!selectedCommunity || selectedCommunity.visibility !== "PRIVATE") {
+      return;
+    }
+
+    setCommunityActionError("");
+    setProcessingCommunityId(selectedCommunity.id);
+
+    try {
+      await requestPrivateCommunityJoin(selectedCommunity.id);
+      setPrivateJoinFeedback("Solicitacao enviada aos administradores da comunidade.");
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setCommunityActionError(error.message);
+      } else {
+        setCommunityActionError("Nao foi possivel solicitar entrada nesta comunidade.");
+      }
+    } finally {
+      setProcessingCommunityId(null);
+    }
+  }, [requestPrivateCommunityJoin, selectedCommunity]);
+
+  const handleJoinPrivateWithCode = React.useCallback(async () => {
+    if (!selectedCommunity || selectedCommunity.visibility !== "PRIVATE") {
+      return;
+    }
+
+    const normalizedCode = inviteCode.trim();
+    if (!normalizedCode) {
+      setInviteCodeError("Digite um codigo de convite valido.");
+      return;
+    }
+
+    setInviteCodeError("");
+    setPrivateJoinFeedback("");
+    setProcessingPrivateCodeJoin(true);
+
+    try {
+      await joinPrivateCommunityByInviteCode(selectedCommunity.id, normalizedCode);
+      await refreshCommunities();
+      setPrivateJoinFeedback("Entrada confirmada com codigo de convite.");
+      setTab("minhas");
+      setSelectedCommunityId(selectedCommunity.id);
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setInviteCodeError(error.message);
+      } else {
+        setInviteCodeError("Nao foi possivel usar o codigo de convite.");
+      }
+    } finally {
+      setProcessingPrivateCodeJoin(false);
+    }
+  }, [inviteCode, joinPrivateCommunityByInviteCode, refreshCommunities, selectedCommunity]);
+
+  const closeInviteModal = React.useCallback(() => {
+    setIsInviteModalOpen(false);
+    setPendingInvite(null);
+    setModalActionError("");
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedCommunity || selectedCommunity.isMember || selectedCommunity.visibility !== "PRIVATE") {
+      return;
+    }
+
+    const inviteTokenFromQuery = searchParams.get("inviteToken")?.trim();
+    if (!inviteTokenFromQuery || inviteTokenFromQuery === consumedInviteToken) {
+      return;
+    }
+
+    setConsumedInviteToken(inviteTokenFromQuery);
+    setInviteCode(inviteTokenFromQuery);
+
+    void (async () => {
+      setProcessingPrivateCodeJoin(true);
+      setInviteCodeError("");
+      setPrivateJoinFeedback("");
+
+      try {
+        await joinPrivateCommunityByInviteCode(selectedCommunity.id, inviteTokenFromQuery);
+        await refreshCommunities();
+        setTab("minhas");
+        setSelectedCommunityId(selectedCommunity.id);
+        setPrivateJoinFeedback("Entrada confirmada via link de convite.");
+      } catch (error) {
+        if (error instanceof Error && error.message) {
+          setInviteCodeError(error.message);
+        } else {
+          setInviteCodeError("Nao foi possivel usar o link de convite.");
+        }
+      } finally {
+        setProcessingPrivateCodeJoin(false);
+      }
+    })();
+  }, [
+    consumedInviteToken,
+    joinPrivateCommunityByInviteCode,
+    refreshCommunities,
+    searchParams,
+    selectedCommunity,
+  ]);
+
+  const handleInviteDecision = React.useCallback(
+    async (decision: "accept" | "decline") => {
+      if (!pendingInvite || !selectedCommunity) {
+        return;
+      }
+
+      setIsSubmittingInviteAction(true);
+      setModalActionError("");
+
+      try {
+        if (decision === "accept") {
+          await acceptCommunityInvite(pendingInvite.id);
+          await refreshCommunities();
+          setTab("minhas");
+          setSelectedCommunityId(selectedCommunity.id);
+        } else {
+          await declineCommunityInvite(pendingInvite.id);
+        }
+
+        closeInviteModal();
+      } catch (error) {
+        if (error instanceof Error && error.message) {
+          setModalActionError(error.message);
+        } else {
+          setModalActionError("Nao foi possivel processar o convite.");
+        }
+      } finally {
+        setIsSubmittingInviteAction(false);
+      }
+    },
+    [closeInviteModal, pendingInvite, refreshCommunities, selectedCommunity],
+  );
+
+  if (selectedCommunity?.isMember) {
     return (
       <CommunityChatView
         community={selectedCommunity}
@@ -186,15 +651,167 @@ export default function ComunidadesPage() {
         onUpdateCommunity={() => {
           // A atualizacao detalhada de comunidade sera sincronizada com backend nas proximas etapas.
         }}
+        onInviteUser={inviteUser}
       />
     );
   }
+
+  const nonMemberCommunityModal = selectedCommunity && !selectedCommunity.isMember ? (() => {
+    const [bookName, ...bookAuthorParts] = selectedCommunity.bookTitle.split(" - ");
+    const bookAuthor = bookAuthorParts.join(" - ") || "Autor desconhecido";
+    const hasPendingJoinRequest = pendingJoinRequestIds.has(selectedCommunity.id);
+
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-16 z-40 flex items-center justify-center overflow-y-auto bg-black/35 p-4 backdrop-blur-[1px] sm:p-6">
+        <button
+          type="button"
+          onClick={() => setSelectedCommunityId(null)}
+          className="absolute inset-0 h-full w-full cursor-default"
+          aria-label="Fechar detalhes da comunidade"
+        />
+
+        <div className="relative z-10 my-4 h-[74vh] max-h-[640px] w-full max-w-[900px] overflow-hidden rounded-3xl border border-emerald-100 bg-[#e8f4f1] p-3 shadow-2xl sm:p-3.5">
+          <div className="grid h-full min-h-0 gap-3.5 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <section className="h-full min-h-0 overflow-y-auto rounded-3xl bg-[#dce9e7] px-5 pb-6 pt-5 sm:px-6">
+            <button
+              type="button"
+              onClick={() => setSelectedCommunityId(null)}
+              className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800/80 transition-colors hover:text-emerald-900"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </button>
+
+            <div className="mt-5 overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-b from-[#b7e7d9] to-[#bfeadf]">
+              <div className="flex h-52 items-center justify-center">
+                <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/55">
+                  <BookOpen className="h-12 w-12 text-emerald-500" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-7 space-y-3">
+              <h1 className="text-balance text-3xl font-semibold leading-[1.08] text-[var(--deep-green)] sm:text-[2.2rem]">
+                {selectedCommunity.name}
+              </h1>
+              <p className="max-w-3xl text-[1rem] leading-relaxed text-emerald-900/70 sm:text-[1.1rem]">
+                {selectedCommunity.description ?? "Comunidade de leitura para debates e trocas literarias."}
+              </p>
+            </div>
+          </section>
+
+          <aside className="min-h-0 space-y-4">
+            <section className="h-full min-h-0 overflow-y-auto rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
+              <div className="flex items-start gap-3 rounded-2xl bg-[#e4f4ee] p-3.5">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d2ece3]">
+                  <BookOpen className="h-6 w-6 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.11em] text-emerald-700/80">Leitura atual</p>
+                  <p className="mt-2 break-words text-[1.95rem] font-semibold leading-tight text-[var(--deep-green)]">{bookName}</p>
+                  <p className="mt-1 break-words text-[0.9rem] leading-snug text-emerald-900/70">{bookAuthor}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-4 border-y border-emerald-100 py-4">
+                <div>
+                  <p className="text-3xl font-semibold text-emerald-500">{formatMembersLabel(selectedCommunity.members)}</p>
+                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.07em] text-emerald-900/55">Leitores ativos</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-semibold text-emerald-500">{selectedCommunity.discussions}</p>
+                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.07em] text-emerald-900/55">Discussoes</p>
+                </div>
+              </div>
+
+              {communityActionError ? (
+                <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{communityActionError}</p>
+              ) : null}
+
+              {selectedCommunity.visibility === "PUBLIC" ? (
+                <button
+                  type="button"
+                  onClick={() => void handleJoinPublicFromDetails()}
+                  disabled={processingCommunityId !== null}
+                  className="mt-4 w-full rounded-2xl bg-emerald-500 px-5 py-3 text-lg font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {processingCommunityId === selectedCommunity.id ? "Entrando..." : "Entrar na comunidade"}
+                </button>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <p className="text-sm font-semibold uppercase tracking-[0.09em] text-emerald-900/60">Codigo de convite</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={inviteCode}
+                      onChange={(event) => {
+                        setInviteCode(event.target.value);
+                        setInviteCodeError("");
+                      }}
+                      placeholder="Inserir codigo"
+                      className="h-12 w-full rounded-xl border border-emerald-100 bg-[#f4fbf8] px-3 text-sm text-emerald-950 outline-none focus:border-emerald-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleJoinPrivateWithCode()}
+                      disabled={processingPrivateCodeJoin}
+                      className="inline-flex h-12 min-w-[92px] items-center justify-center rounded-xl bg-emerald-500 px-4 text-base font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {processingPrivateCodeJoin ? "..." : "Entrar"}
+                    </button>
+                  </div>
+
+                  {inviteCodeError ? (
+                    <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{inviteCodeError}</p>
+                  ) : null}
+                  {privateJoinFeedback ? (
+                    <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{privateJoinFeedback}</p>
+                  ) : null}
+
+                  <div className="relative py-2 text-center text-xs uppercase tracking-[0.16em] text-emerald-900/50">
+                    <span className="absolute left-0 top-1/2 h-px w-[42%] -translate-y-1/2 bg-emerald-100" />
+                    ou
+                    <span className="absolute right-0 top-1/2 h-px w-[42%] -translate-y-1/2 bg-emerald-100" />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleRequestPrivateJoinFromDetails()}
+                    disabled={processingCommunityId !== null || hasPendingJoinRequest}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-white px-4 py-3 text-base font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <Send className="h-5 w-5" />
+                    {hasPendingJoinRequest ? "Solicitacao enviada" : "Solicitar entrada"}
+                  </button>
+
+                  <p className="text-xs text-emerald-900/55">A aprovacao e feita pelos administradores da comunidade.</p>
+                </div>
+              )}
+            </section>
+          </aside>
+        </div>
+        </div>
+      </div>
+    );
+  })() : null;
 
   return (
     <AppShell>
       <PageHeader
         title="Comunidades"
         subtitle="Encontre comunidades de leitura"
+        action={
+          tab === "minhas" ? (
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--brand-600)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-500)]"
+            >
+              <Plus className="h-4 w-4" />
+              Criar comunidade
+            </button>
+          ) : null
+        }
       />
 
       <div className="flex gap-2">
@@ -202,32 +819,26 @@ export default function ComunidadesPage() {
         <ChipToggle label="Descobrir" active={tab === "descobrir"} onClick={() => setTab("descobrir")} />
       </div>
 
-      <button
-        type="button"
-        onClick={openCreateModal}
-        className="mt-4 w-full rounded-lg border border-border bg-card p-5 text-left transition-shadow hover:shadow-sm"
-      >
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-            <Users className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div>
-            <strong className="block text-sm font-semibold text-foreground">Criar Comunidade</strong>
-            <p className="text-xs text-muted-foreground">Convide leitores para discutir sua leitura atual</p>
-          </div>
+      {tab === "descobrir" ? (
+        <div className="mt-3">
+          <input
+            type="text"
+            value={discoverSearchTerm}
+            onChange={(event) => setDiscoverSearchTerm(event.target.value)}
+            placeholder="Pesquisar comunidade por nome, descricao ou livro"
+            className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-black/5"
+          />
         </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] text-muted-foreground">Personalize nome, visibilidade e livro do grupo</p>
-          <span className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted/50">
-            <MessageCircle className="h-4 w-4" />
-            Criar agora
-          </span>
-        </div>
-      </button>
+      ) : null}
 
       <SectionHeader title={tab === "minhas" ? "Minhas comunidades" : "Comunidades para descobrir"} />
-      <div className="grid gap-3">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {communityActionError ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {communityActionError}
+          </p>
+        ) : null}
+
         {isLoadingCommunities ? (
           <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
             Carregando comunidades...
@@ -256,8 +867,11 @@ export default function ComunidadesPage() {
             bookTitle={community.bookTitle}
             visibility={community.visibility}
             members={community.members}
-            discussions={community.discussions}
-            onClick={() => setSelectedCommunityId(community.id)}
+            onClick={community.isMember ? () => handleOpenCommunity(community.id) : undefined}
+            actionLabel={getCommunityActionLabel(community.id)}
+            onActionClick={() => void handleCommunityPrimaryAction(community.id)}
+            actionDisabled={processingCommunityId !== null}
+            actionLoading={processingCommunityId === community.id}
           />
         ))}
       </div>
@@ -282,6 +896,19 @@ export default function ComunidadesPage() {
         submitError={submitError}
         isSubmitting={isSubmittingCreate}
         canSubmit={normalizedCommunityName.length >= 3 && Boolean(selectedBookId) && !isSearchingBooks}
+      />
+
+      {nonMemberCommunityModal}
+
+      <CommunityInviteModal
+        isOpen={isInviteModalOpen}
+        invite={pendingInvite}
+        community={selectedCommunity}
+        isSubmitting={isSubmittingInviteAction}
+        actionError={modalActionError}
+        onClose={closeInviteModal}
+        onAccept={() => void handleInviteDecision("accept")}
+        onDecline={() => void handleInviteDecision("decline")}
       />
     </AppShell>
   );

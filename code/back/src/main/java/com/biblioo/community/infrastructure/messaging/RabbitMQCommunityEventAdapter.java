@@ -13,10 +13,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPort {
 
+  private static final String AGGREGATE_TYPE = "COMMUNITY";
+  private static final String PAYLOAD_COMMUNITY_ID = "communityId";
+  private static final String PAYLOAD_COMMUNITY_NAME = "communityName";
+
   private final OutboxEventService outboxEventService;
 
   @Override
   public void publishInviteSent(
+      Long inviteId,
       Long communityId,
       String communityName,
       Long inviterId,
@@ -25,15 +30,16 @@ public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPor
       Long inviteeId) {
     Map<String, Object> payload = new HashMap<>();
     payload.put("recipientId", inviteeId);
-    payload.put("communityId", communityId);
-    payload.put("communityName", communityName);
+    payload.put("inviteId", inviteId);
+    payload.put(PAYLOAD_COMMUNITY_ID, communityId);
+    payload.put(PAYLOAD_COMMUNITY_NAME, communityName);
     payload.put("inviterId", inviterId);
     payload.put("inviterUsername", inviterUsername);
     payload.put("inviterAvatarUrl", inviterAvatarUrl);
 
     outboxEventService.saveAndSchedulePublish(
         RabbitMQConfig.EVENT_COMMUNITY_INVITE,
-        "COMMUNITY",
+      AGGREGATE_TYPE,
         communityId.toString(),
         RabbitMQConfig.NOTIFICATION_COMMUNITY_INVITE_ROUTING_KEY,
         payload);
@@ -48,8 +54,8 @@ public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPor
       String requesterAvatarUrl,
       List<Long> recipientIds) {
     Map<String, Object> payload = new HashMap<>();
-    payload.put("communityId", communityId);
-    payload.put("communityName", communityName);
+    payload.put(PAYLOAD_COMMUNITY_ID, communityId);
+    payload.put(PAYLOAD_COMMUNITY_NAME, communityName);
     payload.put("requesterId", requesterId);
     payload.put("requesterUsername", requesterUsername);
     payload.put("requesterAvatarUrl", requesterAvatarUrl);
@@ -57,7 +63,7 @@ public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPor
 
     outboxEventService.saveAndSchedulePublish(
         RabbitMQConfig.EVENT_COMMUNITY_JOIN_REQUEST,
-        "COMMUNITY",
+      AGGREGATE_TYPE,
         communityId.toString(),
         RabbitMQConfig.NOTIFICATION_COMMUNITY_JOIN_REQUEST_ROUTING_KEY,
         payload);
@@ -67,12 +73,12 @@ public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPor
   public void publishJoinRequestApproved(Long communityId, String communityName, Long userId) {
     Map<String, Object> payload = new HashMap<>();
     payload.put("recipientId", userId);
-    payload.put("communityId", communityId);
-    payload.put("communityName", communityName);
+    payload.put(PAYLOAD_COMMUNITY_ID, communityId);
+    payload.put(PAYLOAD_COMMUNITY_NAME, communityName);
 
     outboxEventService.saveAndSchedulePublish(
         RabbitMQConfig.EVENT_COMMUNITY_JOIN_APPROVED,
-        "COMMUNITY",
+      AGGREGATE_TYPE,
         communityId.toString(),
         RabbitMQConfig.NOTIFICATION_COMMUNITY_JOIN_APPROVED_ROUTING_KEY,
         payload);

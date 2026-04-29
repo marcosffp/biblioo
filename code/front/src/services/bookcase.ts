@@ -86,6 +86,18 @@ export interface BackendCollectionResponse {
   shelfPreviews: BackendCollectionShelfPreview[];
 }
 
+export interface BackendCollectionStatisticsResponse {
+  collectionId: number;
+  totalBooks: number;
+  booksCompleted: number;
+  booksReading: number;
+  booksRereading: number;
+  booksWantToRead: number;
+  booksAbandoned: number;
+  totalPages: number;
+  pagesRead: number;
+}
+
 export interface BackendReviewResponse {
   id: number;
   userId: number;
@@ -98,6 +110,20 @@ export interface BackendReviewResponse {
   rating: number;
   commentCount: number;
   likeCount: number;
+}
+
+export interface BackendFeedPostResponse {
+  id: number;
+  userId: number;
+  text: string;
+  images: string[];
+  gifUrl?: string | null;
+  tags?: string[];
+  hasSpoiler?: boolean;
+  commentCount: number;
+  likeCount: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface BackendPageResponse<T> {
@@ -132,7 +158,7 @@ function readCurrentUserIdFromToken(accessToken: string): number | null {
       return null;
     }
 
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const base64 = payload.replaceAll("-", "+").replaceAll("_", "/");
     const paddedBase64 = `${base64}${"=".repeat((4 - (base64.length % 4)) % 4)}`;
     const decodedPayload = JSON.parse(atob(paddedBase64)) as { sub?: string };
     const subject = Number(decodedPayload.sub);
@@ -429,6 +455,19 @@ export async function listCollections(): Promise<BackendCollectionSummaryRespons
   return parseJsonResponse<BackendCollectionSummaryResponse[]>(response, "Falha ao carregar coleções.");
 }
 
+export async function getCollectionById(collectionId: number): Promise<BackendCollectionResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/collections/${collectionId}`, {
+      headers: buildAuthHeaders(),
+    });
+  } catch {
+    throw new BookcaseApiError("Não foi possível carregar os detalhes da coleção.");
+  }
+
+  return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao carregar detalhes da coleção.");
+}
+
 export async function createCollection(
   name: string,
   description = "",
@@ -455,6 +494,31 @@ export async function createCollection(
   return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao criar coleção.");
 }
 
+export async function updateCollection(
+  collectionId: number,
+  name: string,
+  description = "",
+): Promise<BackendCollectionResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/collections/${collectionId}`, {
+      method: "PUT",
+      headers: {
+        ...buildAuthHeaders(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        description,
+      }),
+    });
+  } catch {
+    throw new BookcaseApiError("Não foi possível atualizar a coleção.");
+  }
+
+  return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao atualizar coleção.");
+}
+
 export async function addShelfToCollection(
   collectionId: number,
   shelfId: number,
@@ -478,6 +542,38 @@ export async function addShelfToCollection(
   return parseJsonResponse<BackendCollectionResponse>(response, "Falha ao vincular estante na coleção.");
 }
 
+export async function deleteCollection(collectionId: number): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/collections/${collectionId}`, {
+      method: "DELETE",
+      headers: buildAuthHeaders(),
+    });
+  } catch {
+    throw new BookcaseApiError("Não foi possível apagar a coleção.");
+  }
+
+  await ensureSuccessResponse(response, "Falha ao apagar coleção.");
+}
+
+export async function getCollectionStatistics(
+  collectionId: number,
+): Promise<BackendCollectionStatisticsResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/collections/${collectionId}/statistics`, {
+      headers: buildAuthHeaders(),
+    });
+  } catch {
+    throw new BookcaseApiError("Não foi possível carregar as estatísticas da coleção.");
+  }
+
+  return parseJsonResponse<BackendCollectionStatisticsResponse>(
+    response,
+    "Falha ao carregar estatísticas da coleção.",
+  );
+}
+
 export async function createBookReview(
   bookId: number,
   rating: number,
@@ -486,6 +582,7 @@ export async function createBookReview(
   const formData = new FormData();
   formData.append("bookId", String(bookId));
   formData.append("rating", String(rating));
+  formData.append("publish", "true");
   if (typeof text === "string" && text.length > 0) {
     formData.append("text", text);
   }
@@ -553,5 +650,41 @@ export async function getMyBookReview(bookId: number): Promise<BackendReviewResp
   );
 
   return page.content.find((review) => review.bookId === bookId) ?? null;
+}
+
+export async function createFeedPost(
+  text: string,
+  options?: { hasSpoiler?: boolean; tags?: string[] },
+): Promise<BackendFeedPostResponse> {
+  const normalizedText = text.trim();
+  if (!normalizedText) {
+    throw new BookcaseApiError("O texto do post é obrigatório.");
+  }
+
+  const formData = new FormData();
+  formData.append("text", normalizedText);
+  formData.append("hasSpoiler", String(Boolean(options?.hasSpoiler)));
+
+  if (options?.tags && options.tags.length > 0) {
+    options.tags
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0)
+      .forEach((tag) => {
+        formData.append("tags", tag);
+      });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/feed/posts`, {
+      method: "POST",
+      headers: buildAuthHeaders(),
+      body: formData,
+    });
+  } catch {
+    throw new BookcaseApiError("Não foi possível publicar no feed.");
+  }
+
+  return parseJsonResponse<BackendFeedPostResponse>(response, "Falha ao publicar no feed.");
 }
 

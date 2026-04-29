@@ -143,8 +143,8 @@ export default function EditarPerfilPage() {
   return (
     <AppShell>
       <div className="w-full max-w-[860px] mx-auto">
-        <header className="flex items-center justify-between gap-3 py-2">
-          <div className="flex items-center gap-2">
+        <header className="flex flex-col gap-3 py-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
             <Link
               href="/profile"
               className="inline-flex items-center gap-2 rounded-md px-1 py-1 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"

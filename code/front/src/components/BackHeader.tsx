@@ -26,12 +26,12 @@ export function BackHeader({
   backButtonClassName,
 }: Readonly<BackHeaderProps>) {
   return (
-    <span className={`inline-flex items-start gap-2 ${className ?? ""}`.trim()}>
+    <span className={`inline-flex flex-col items-start gap-1 ${className ?? ""}`.trim()}>
       <BackArrowButton
         onClick={onBack}
         ariaLabel={ariaLabel}
         label={backLabel ?? ariaLabel}
-        className={`-mt-0.5 ${backButtonClassName ?? ""}`.trim()}
+        className={`${backButtonClassName ?? ""}`.trim()}
       />
       {title || subtitle ? (
         <span className="min-w-0">

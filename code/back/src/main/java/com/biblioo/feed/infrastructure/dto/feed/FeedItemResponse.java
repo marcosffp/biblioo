@@ -10,13 +10,15 @@ public record FeedItemResponse(
     Long contentId,
     String contentType,
     Long authorId,
+    String authorUsername,
+    String authorAvatarUrl,
     long score,
     LocalDateTime createdAt,
     EmbeddedContentResponse content) {
 
   /**
-   * Resposta unificada de conteúdo. Os campos bookId e rating são preenchidos apenas para REVIEW;
-   * null para POST.
+   * Resposta unificada de conteúdo. Os campos bookId, rating, bookTitle, bookCoverUrl e bookAuthors
+   * são preenchidos apenas para REVIEW; null para POST.
    */
   public record EmbeddedContentResponse(
       Long id,
@@ -31,9 +33,19 @@ public record FeedItemResponse(
       LocalDateTime createdAt,
       // Exclusivo de Review:
       Long bookId,
-      Integer rating) {}
+      Integer rating,
+      String bookTitle,
+      String bookCoverUrl,
+      List<String> bookAuthors) {}
 
-  public static FeedItemResponse from(FeedItem item, Review review) {
+  public static FeedItemResponse from(
+      FeedItem item,
+      Review review,
+      String authorUsername,
+      String authorAvatarUrl,
+      String bookTitle,
+      String bookCoverUrl,
+      List<String> bookAuthors) {
     var embedded =
         new EmbeddedContentResponse(
             review.getId(),
@@ -47,13 +59,23 @@ public record FeedItemResponse(
             review.getCommentCount(),
             review.getCreatedAt(),
             review.getBookId(),
-            review.getRating());
+            review.getRating(),
+            bookTitle,
+            bookCoverUrl,
+            bookAuthors);
     return new FeedItemResponse(
-        item.getContentId(), item.getContentType(), item.getAuthorId(),
-        item.getScore(), item.getCreatedAt(), embedded);
+        item.getContentId(),
+        item.getContentType(),
+        item.getAuthorId(),
+        authorUsername,
+        authorAvatarUrl,
+        item.getScore(),
+        item.getCreatedAt(),
+        embedded);
   }
 
-  public static FeedItemResponse from(FeedItem item, FeedPost post) {
+  public static FeedItemResponse from(
+      FeedItem item, FeedPost post, String authorUsername, String authorAvatarUrl) {
     var embedded =
         new EmbeddedContentResponse(
             post.getId(),
@@ -67,9 +89,18 @@ public record FeedItemResponse(
             post.getCommentCount(),
             post.getCreatedAt(),
             null,
+            null,
+            null,
+            null,
             null);
     return new FeedItemResponse(
-        item.getContentId(), item.getContentType(), item.getAuthorId(),
-        item.getScore(), item.getCreatedAt(), embedded);
+        item.getContentId(),
+        item.getContentType(),
+        item.getAuthorId(),
+        authorUsername,
+        authorAvatarUrl,
+        item.getScore(),
+        item.getCreatedAt(),
+        embedded);
   }
 }

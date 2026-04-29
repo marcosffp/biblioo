@@ -122,7 +122,7 @@ export default function FollowingPage() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-[920px] space-y-5">
-        <header className="flex items-center gap-3">
+        <header className="space-y-1">
           <button
             type="button"
             onClick={() => router.back()}

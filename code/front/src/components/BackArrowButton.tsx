@@ -21,7 +21,7 @@ export function BackArrowButton({
       aria-label={ariaLabel}
     >
       <ArrowLeft size={16} />
-      <span>{label}</span>
+      {label ? <span>{label}</span> : null}
     </button>
   );
 }

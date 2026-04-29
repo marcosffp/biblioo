@@ -10,6 +10,7 @@ public record NotificationResponse(
     String actorUsername,
     String actorAvatarUrl,
     Long entityId,
+  Long communityId,
     boolean read,
     LocalDateTime createdAt) {
 
@@ -21,6 +22,7 @@ public record NotificationResponse(
         n.getActorUsername(),
         n.getActorAvatarUrl(),
         n.getEntityId(),
+        n.getCommunityId(),
         n.isRead(),
         n.getCreatedAt());
   }

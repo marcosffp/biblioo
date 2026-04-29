@@ -31,6 +31,7 @@ export default function EstantePage() {
     availableShelvesForManagedCollection,
     bookDetailsError,
     collectionToManage,
+
     createCollectionError,
     createShelfError,
     deleteShelfError,
@@ -58,13 +59,17 @@ export default function EstantePage() {
     handleCreateCollection,
     handleCreateShelf,
     handleDeleteShelf,
+    handleDeleteCollection,
     handleEnterCollection,
     handleEnterShelf,
+    handleEditCollection,
     handleOpenCreateCollectionModal,
     handleOpenCreateShelfModal,
     handleOpenDeleteShelfModal,
     handleOpenEditShelfModal,
+
     handleOpenAddShelfToSelectedCollection,
+
     handleOpenShelfBookDetails,
     handleOpenSuggestionBookById,
     handleRemoveSelectedShelfBook,
@@ -86,6 +91,8 @@ export default function EstantePage() {
     isDeleteShelfModalOpen,
     isDeletingShelf,
     isEditShelfModalOpen,
+    isLoadingCollectionStats,
+
     isCreatingCollection,
     isCreatingShelf,
     isInsideCollection,
@@ -100,6 +107,7 @@ export default function EstantePage() {
     isShelfBookDetailsOpen,
     isSelectedBookAlreadyInShelf,
     loadError,
+    collectionStatsError,
     manageCollectionError,
     manageCollectionShelfIds,
     newCollectionDescription,
@@ -116,6 +124,7 @@ export default function EstantePage() {
     isSavingReview,
     reviewCommentDraft,
     reviewError,
+    reviewSuccessMessage,
     reviewRatingDraft,
     rootViewMode,
     searchInputAriaLabel,
@@ -123,6 +132,7 @@ export default function EstantePage() {
     shouldSearchAddBook,
     searchTerm,
     selectedCollectionName,
+    selectedCollectionStats,
     selectedShelfDescription,
     selectedShelfName,
     selectedShelfBook,
@@ -187,14 +197,14 @@ export default function EstantePage() {
   };
 
   const visibleStatusOptions = readingStatusOptions.filter((option) => option.value !== "relendo");
-  let pageHeaderTitle: ReactNode = "Minha Estante";
+  let pageHeaderTitle: ReactNode = rootViewMode === "colecoes" ? "Minhas Coleções" : "Minhas Estantes";
   if (isInsideShelf) {
     pageHeaderTitle = (
       <BackHeader
         onBack={handleBackToShelves}
-        ariaLabel="Voltar para estantes"
+        ariaLabel="Voltar para biblioteca"
         title={selectedShelfName}
-        subtitle={selectedShelfDescription ? selectedShelfDescription : null}
+        subtitle={selectedShelfDescription || null}
         subtitleClassName="mt-0.5 text-sm font-normal text-[var(--text-secondary)]"
       />
     );
@@ -234,6 +244,8 @@ export default function EstantePage() {
     );
   }
 
+  const shouldRenderPageHeader = isInsideShelf || isInsideCollection;
+
   return (
     <AppShell>
       <PageHeader
@@ -242,13 +254,19 @@ export default function EstantePage() {
           <div className="flex items-center gap-2">
             {!isInsideShelf && !isInsideCollection && rootViewMode === "estantes" ? (
               <PrimaryButton onClick={handleOpenCreateShelfModal} aria-label="Criar estante">
-                Criar estante
+                <span className="inline-flex items-center gap-2">
+                  <Plus size={16} />
+                  <span>Criar estante</span>
+                </span>
               </PrimaryButton>
             ) : null}
 
             {!isInsideShelf && !isInsideCollection && rootViewMode === "colecoes" ? (
               <PrimaryButton onClick={handleOpenCreateCollectionModal} aria-label="Criar coleção">
-                Criar coleção
+                <span className="inline-flex items-center gap-2">
+                  <Plus size={16} />
+                  <span>Criar coleção</span>
+                </span>
               </PrimaryButton>
             ) : null}
 
@@ -391,6 +409,13 @@ export default function EstantePage() {
         onOpenDeleteShelfModal={handleOpenDeleteShelfModal}
         filteredCollections={filteredCollections}
         onEnterCollection={handleEnterCollection}
+        onEditCollection={handleEditCollection}
+        onDeleteCollection={handleDeleteCollection}
+        selectedCollectionStats={selectedCollectionStats}
+        isLoadingCollectionStats={isLoadingCollectionStats}
+        collectionStatsError={collectionStatsError}
+        selectedCollectionName={selectedCollectionName}
+        onOpenAddShelfToCollection={handleOpenAddShelfToSelectedCollection}
       />
 
       <ShelfBookDetailsPanel
@@ -407,6 +432,7 @@ export default function EstantePage() {
         onChangeReviewRating={handleSetReviewRating}
         onChangeReviewComment={handleSetReviewComment}
         onSaveReview={handleSaveBookReview}
+        reviewSuccessMessage={reviewSuccessMessage}
         reviewError={reviewError}
         isSavingReview={isSavingReview}
         isLoadingReview={false}

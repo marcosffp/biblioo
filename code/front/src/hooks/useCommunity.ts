@@ -1,9 +1,15 @@
+"use client";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAccessToken } from "@/services/auth";
 import { getBookById, searchBooks } from "@/services/bookcase";
 import {
   createCommunity,
+  inviteUserToCommunity,
+  joinCommunity,
+  joinCommunityByInviteLink,
   listCommunities,
+  requestCommunityJoin,
   type BackendCommunityResponse,
 } from "@/services/community";
 
@@ -34,6 +40,7 @@ export interface CommunityMember {
   id: string;
   name: string;
   username: string;
+  avatarUrl?: string | null;
   isPro?: boolean;
   isAdmin?: boolean;
 }
@@ -47,6 +54,12 @@ export interface CommunityChatMessage {
   isMine?: boolean;
   isSystem?: boolean;
   isSpoiler?: boolean;
+  heartCount?: number;
+  hasHeartReaction?: boolean;
+  images?: string[];
+  gifUrl?: string | null;
+  isDeleted?: boolean;
+  isEdited?: boolean;
 }
 
 interface CreateCommunityInput {
@@ -152,6 +165,7 @@ export function useCommunity() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [isLoadingCommunities, setIsLoadingCommunities] = useState(true);
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
+  const [pendingJoinRequestIds, setPendingJoinRequestIds] = useState<Set<string>>(new Set());
   const [communitiesError, setCommunitiesError] = useState("");
 
   const currentUserId = useMemo(() => decodeCurrentUserId(), []);
@@ -261,6 +275,130 @@ export function useCommunity() {
     }
   }, []);
 
+  const joinPublicCommunity = useCallback(async (communityId: string) => {
+    const parsedId = Number(communityId);
+
+    if (!Number.isFinite(parsedId)) {
+      throw new TypeError("Comunidade invalida.");
+    }
+
+    try {
+      await joinCommunity(parsedId);
+
+      setCommunities((current) =>
+        current.map((community) => {
+          if (community.id !== communityId) {
+            return community;
+          }
+
+          return {
+            ...community,
+            isMember: true,
+            members: community.members + 1,
+          };
+        }),
+      );
+
+      setPendingJoinRequestIds((current) => {
+        if (!current.has(communityId)) {
+          return current;
+        }
+
+        const next = new Set(current);
+        next.delete(communityId);
+        return next;
+      });
+    } catch (error) {
+      throw new Error(getErrorMessage(error, "Nao foi possivel entrar na comunidade."));
+    }
+  }, []);
+
+  const requestPrivateCommunityJoin = useCallback(async (communityId: string) => {
+    const parsedId = Number(communityId);
+
+    if (!Number.isFinite(parsedId)) {
+      throw new TypeError("Comunidade invalida.");
+    }
+
+    try {
+      await requestCommunityJoin(parsedId);
+
+      setPendingJoinRequestIds((current) => {
+        const next = new Set(current);
+        next.add(communityId);
+        return next;
+      });
+    } catch (error) {
+      const message = getErrorMessage(error, "Nao foi possivel solicitar entrada na comunidade.");
+
+      if (message.toLowerCase().includes("solicitacao pendente")) {
+        setPendingJoinRequestIds((current) => {
+          const next = new Set(current);
+          next.add(communityId);
+          return next;
+        });
+      }
+
+      throw new Error(message);
+    }
+  }, []);
+
+  const joinPrivateCommunityByInviteCode = useCallback(async (communityId: string, inviteToken: string) => {
+    const parsedId = Number(communityId);
+
+    if (!Number.isFinite(parsedId)) {
+      throw new TypeError("Comunidade invalida.");
+    }
+
+    try {
+      await joinCommunityByInviteLink(inviteToken);
+
+      setCommunities((current) =>
+        current.map((community) => {
+          if (community.id !== communityId) {
+            return community;
+          }
+
+          return {
+            ...community,
+            isMember: true,
+            members: community.members + 1,
+          };
+        }),
+      );
+
+      setPendingJoinRequestIds((current) => {
+        if (!current.has(communityId)) {
+          return current;
+        }
+
+        const next = new Set(current);
+        next.delete(communityId);
+        return next;
+      });
+    } catch (error) {
+      throw new Error(getErrorMessage(error, "Nao foi possivel entrar na comunidade com o codigo."));
+    }
+  }, []);
+
+  const inviteUser = useCallback(async (communityId: string, inviteeId: number) => {
+    const parsedCommunityId = Number(communityId);
+
+    if (!Number.isFinite(parsedCommunityId)) {
+      throw new TypeError("Comunidade invalida.");
+    }
+
+    if (!Number.isFinite(inviteeId)) {
+      throw new TypeError("Usuario invalido.");
+    }
+
+    try {
+      await inviteUserToCommunity(parsedCommunityId, inviteeId);
+    } catch (error) {
+      throw new Error(getErrorMessage(error, "Nao foi possivel enviar o convite."));
+    }
+  }, []);
+
   return {
     communities,
     isLoadingCommunities,
@@ -269,6 +407,11 @@ export function useCommunity() {
     refreshCommunities,
     createNewCommunity,
     searchBookOptions,
+    joinPublicCommunity,
+    requestPrivateCommunityJoin,
+    joinPrivateCommunityByInviteCode,
+    inviteUser,
+    pendingJoinRequestIds,
     currentUserId,
   };
 }
