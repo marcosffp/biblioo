@@ -98,4 +98,48 @@ public class RecommendationListenerConfig {
     factory.setDefaultRequeueRejected(false);
     return factory;
   }
+
+  @Bean
+  Advice similarAuthorsRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory similarAuthorsListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice similarAuthorsRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(similarAuthorsRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  @Bean
+  Advice rereadWorthItRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory rereadWorthItListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice rereadWorthItRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(rereadWorthItRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
 }

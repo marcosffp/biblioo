@@ -3,6 +3,7 @@ package com.biblioo.recommendation.infrastructure.persistence;
 import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
 import com.biblioo.recommendation.domain.model.BookScore;
 import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
+import com.biblioo.recommendation.domain.model.RecommendationResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,6 +11,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -88,6 +90,40 @@ public class RecommendationResultRepository {
         .findByUserIdAndTrailType(userId, trailType)
         .map(result -> deserialize(result.getBooks()))
         .orElse(List.of());
+  }
+
+  @Transactional(readOnly = true)
+  public Optional<RecommendationResult> findResultEntity(Long userId, String trailType) {
+    return jpaRepository.findByUserIdAndTrailType(userId, trailType);
+  }
+
+  @Transactional
+  public void upsertWithRawMetadata(
+      Long userId, String trailType, List<BookScore> bookScores, String rawMetadata) {
+    String booksJson = serialize(bookScores);
+
+    entityManager
+        .createNativeQuery(
+            """
+            INSERT INTO recommendation_results (user_id, trail_type, books, metadata, computed_at)
+            VALUES (:userId, :trailType, :books, :metadata, :computedAt)
+            ON DUPLICATE KEY UPDATE
+                books       = VALUES(books),
+                metadata    = VALUES(metadata),
+                computed_at = VALUES(computed_at)
+            """)
+        .setParameter("userId", userId)
+        .setParameter("trailType", trailType)
+        .setParameter("books", booksJson)
+        .setParameter("metadata", rawMetadata)
+        .setParameter("computedAt", LocalDateTime.now())
+        .executeUpdate();
+
+    log.info(
+        "[SQL] Upsert recommendation_results com metadata raw: user={} trail={} livros={}",
+        userId,
+        trailType,
+        bookScores.size());
   }
 
   @Transactional

@@ -89,6 +89,16 @@ public class RabbitMQConfig {
   public static final String SHELF_READING_ABANDONED_ROUTING_KEY = "shelf.reading.abandoned";
   public static final String EVENT_SHELF_READING_ABANDONED = "SHELF_READING_ABANDONED";
 
+  // ── Recommendation T5 — SIMILAR_AUTHORS ──────────────────────────────────────
+  public static final String SA_QUEUE = "rec.similar-authors.triggered";
+  public static final String SA_DLQ = "rec.similar-authors.triggered.dlq";
+  public static final String SA_DLQ_ROUTING_KEY = "rec.similar-authors.dead";
+
+  // ── Recommendation T6 — REREAD_WORTH_IT ──────────────────────────────────────
+  public static final String RWI_QUEUE = "rec.reread-worth-it.triggered";
+  public static final String RWI_DLQ = "rec.reread-worth-it.triggered.dlq";
+  public static final String RWI_DLQ_ROUTING_KEY = "rec.reread-worth-it.dead";
+
   // ── Recommendation T3 — TRENDING_IN_COMMUNITIES ──────────────────────────────
   public static final String TIC_MESSAGE_QUEUE = "rec.trending-in-communities.message";
   public static final String TIC_MESSAGE_DLQ = "rec.trending-in-communities.message.dlq";
@@ -401,6 +411,58 @@ public class RabbitMQConfig {
   @Bean
   Binding feedBackfillDlqBinding(Queue feedBackfillDlq, DirectExchange dlxExchange) {
     return BindingBuilder.bind(feedBackfillDlq).to(dlxExchange).with(FEED_BACKFILL_DLQ_ROUTING_KEY);
+  }
+
+  // ── Recommendation T5 — SIMILAR_AUTHORS beans ───────────────────────────────
+
+  @Bean
+  Queue saQueue() {
+    return QueueBuilder.durable(SA_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", SA_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue saDlq() {
+    return QueueBuilder.durable(SA_DLQ).build();
+  }
+
+  @Bean
+  Binding saBinding(Queue saQueue, TopicExchange mainExchange) {
+    // Cópia independente do shelf.reading.completed — mesmo routing key do T1/T2/RWI
+    return BindingBuilder.bind(saQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding saDlqBinding(Queue saDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(saDlq).to(dlxExchange).with(SA_DLQ_ROUTING_KEY);
+  }
+
+  // ── Recommendation T6 — REREAD_WORTH_IT beans ───────────────────────────────
+
+  @Bean
+  Queue rwiQueue() {
+    return QueueBuilder.durable(RWI_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", RWI_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue rwiDlq() {
+    return QueueBuilder.durable(RWI_DLQ).build();
+  }
+
+  @Bean
+  Binding rwiBinding(Queue rwiQueue, TopicExchange mainExchange) {
+    // Cópia independente do shelf.reading.completed — mesmo routing key do T1/T2
+    return BindingBuilder.bind(rwiQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding rwiDlqBinding(Queue rwiDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(rwiDlq).to(dlxExchange).with(RWI_DLQ_ROUTING_KEY);
   }
 
   // ── Community WebSocket Broadcast beans ─────────────────────────────────────

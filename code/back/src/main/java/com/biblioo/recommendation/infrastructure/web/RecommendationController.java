@@ -6,12 +6,16 @@ import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
 import com.biblioo.recommendation.domain.model.BookScore;
 import com.biblioo.recommendation.domain.model.CatalogSurpriseResult;
 import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
+import com.biblioo.recommendation.domain.model.RereadWorthItResult;
+import com.biblioo.recommendation.domain.model.SimilarAuthorsResult;
 import com.biblioo.recommendation.domain.model.TrendingInCommunitiesResult;
 import com.biblioo.recommendation.domain.port.in.RecommendationUseCase;
 import com.biblioo.recommendation.infrastructure.dto.BecauseYouReadResponse;
 import com.biblioo.recommendation.infrastructure.dto.CatalogSurpriseResponse;
 import com.biblioo.recommendation.infrastructure.dto.FavoriteGenreNowResponse;
 import com.biblioo.recommendation.infrastructure.dto.RecommendationResponse;
+import com.biblioo.recommendation.infrastructure.dto.RereadWorthItResponse;
+import com.biblioo.recommendation.infrastructure.dto.SimilarAuthorsResponse;
 import com.biblioo.recommendation.infrastructure.dto.TrendingInCommunitiesResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -111,6 +115,51 @@ public class RecommendationController {
 
     return ResponseEntity.ok(
         CatalogSurpriseResponse.builder()
+            .books(toRecommendationResponses(result.getBooks()))
+            .build());
+  }
+
+  @GetMapping("/similar-authors")
+  @Operation(
+      summary = "Autores Similares",
+      description =
+          "Recomenda livros com base em autores que o usuário já aprovou (nível 1) e autores "
+              + "descobertos por leitores com histórico parecido (nível 2). "
+              + "Nível 1 (autores confirmados): autores de livros concluídos com avaliação ≥ 4 "
+              + "estrelas e finalizados há mais de 7 dias. Score: [0.6, 1.0]. "
+              + "Nível 2 (autores descobertos): collaborative filtering SQL — autores aprovados "
+              + "por leitores similares que o usuário nunca leu. Score: [0.3, 0.7]. "
+              + "Livros sem avaliação usam nota neutra 3 (não confirmam autor). "
+              + "Fallback: livros mais bem avaliados globalmente quando sem candidatos.")
+  public ResponseEntity<SimilarAuthorsResponse> getSimilarAuthors(
+      @AuthenticationPrincipal UserDetails principal) {
+
+    Long userId = Long.parseLong(principal.getUsername());
+    SimilarAuthorsResult result = recommendationUseCase.getSimilarAuthors(userId);
+
+    return ResponseEntity.ok(
+        SimilarAuthorsResponse.builder()
+            .books(toRecommendationResponses(result.getBooks()))
+            .build());
+  }
+
+  @GetMapping("/reread-worth-it")
+  @Operation(
+      summary = "Releituras que Valem",
+      description =
+          "Reapresenta livros que o usuário já leu no momento ideal para releitura, calculado por "
+              + "Spaced Repetition. O intervalo cresce com a avaliação do usuário e se multiplica "
+              + "a cada releitura confirmada. Livros concluídos há menos de 90 dias são excluídos. "
+              + "Score: maturidade do intervalo (70%) + avaliação do usuário (30%). "
+              + "Fallback para novos usuários: livros mais bem avaliados globalmente.")
+  public ResponseEntity<RereadWorthItResponse> getRereadWorthIt(
+      @AuthenticationPrincipal UserDetails principal) {
+
+    Long userId = Long.parseLong(principal.getUsername());
+    RereadWorthItResult result = recommendationUseCase.getRereadWorthIt(userId);
+
+    return ResponseEntity.ok(
+        RereadWorthItResponse.builder()
             .books(toRecommendationResponses(result.getBooks()))
             .build());
   }
