@@ -73,7 +73,7 @@ public class FeedPostService implements FeedPostUseCase {
     }
 
     long epochMilli = saved.getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli();
-    //fanoutPublisherPort.publishPostCreated(saved.getId(), userId, epochMilli);
+    fanoutPublisherPort.publishPostCreated(saved.getId(), userId, epochMilli);
 
     return saved;
   }
