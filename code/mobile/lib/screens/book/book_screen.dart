@@ -1,6 +1,15 @@
 import 'package:biblioo/core/di/injector.dart';
+import 'package:biblioo/features/auth/bloc/auth_bloc.dart';
+import 'package:biblioo/features/auth/bloc/auth_state.dart';
 import 'package:biblioo/features/book/domain/book.dart';
+import 'package:biblioo/features/feed/bloc/feed_bloc.dart';
+import 'package:biblioo/features/feed/bloc/feed_event.dart';
+import 'package:biblioo/features/feed/bloc/review_bloc.dart';
+import 'package:biblioo/features/feed/bloc/review_event.dart';
+import 'package:biblioo/features/feed/bloc/review_state.dart';
+import 'package:biblioo/features/feed/domain/review.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class BookScreen extends StatefulWidget {
   final int bookId;
@@ -18,13 +27,43 @@ class _BookScreenState extends State<BookScreen> {
   void initState() {
     super.initState();
     _future = Injector.instance.bookRepo.getById(widget.bookId);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadReview());
   }
 
   Future<void> _reload() async {
     setState(() {
       _future = Injector.instance.bookRepo.getById(widget.bookId);
     });
+    _loadReview();
     await _future;
+  }
+
+  void _loadReview() {
+    if (!mounted) return;
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) return;
+    context.read<ReviewBloc>().add(ReviewCleared());
+    context.read<ReviewBloc>().add(
+      ReviewLoadForBookRequested(
+        userId: authState.session.user.id,
+        bookId: widget.bookId,
+      ),
+    );
+  }
+
+  void _showReviewSheet(Book book, Review? review) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => BlocProvider.value(
+        value: context.read<ReviewBloc>(),
+        child: _ReviewSheet(book: book, review: review),
+      ),
+    );
   }
 
   @override
@@ -128,6 +167,20 @@ class _BookScreenState extends State<BookScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      BlocBuilder<ReviewBloc, ReviewState>(
+                        builder: (context, reviewState) {
+                          final review = _reviewFromState(reviewState);
+                          return _Section(
+                            title: 'Sua avaliacao',
+                            child: _ReviewSection(
+                              state: reviewState,
+                              review: review,
+                              onWrite: () => _showReviewSheet(book, review),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -138,6 +191,14 @@ class _BookScreenState extends State<BookScreen> {
       ),
     );
   }
+}
+
+Review? _reviewFromState(ReviewState state) {
+  if (state is ReviewLoaded) return state.review;
+  if (state is ReviewSaveSuccess) return state.review;
+  if (state is ReviewSaving) return state.review;
+  if (state is ReviewError) return state.review;
+  return null;
 }
 
 class _Header extends StatelessWidget {
@@ -330,6 +391,287 @@ class _RatingRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ReviewSection extends StatelessWidget {
+  final ReviewState state;
+  final Review? review;
+  final VoidCallback onWrite;
+
+  const _ReviewSection({
+    required this.state,
+    required this.review,
+    required this.onWrite,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (state is ReviewLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (review == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Registre sua nota e comentario para este livro.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: onWrite,
+            icon: const Icon(Icons.rate_review_outlined, size: 18),
+            label: const Text('Avaliar livro'),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            _EditableRatingStars(rating: review!.rating, onChanged: null),
+            const SizedBox(width: 8),
+            Text(
+              'Publicado no feed',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(review!.text, style: theme.textTheme.bodyMedium),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: onWrite,
+          icon: const Icon(Icons.edit_outlined, size: 18),
+          label: const Text('Editar avaliacao'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReviewSheet extends StatefulWidget {
+  final Book book;
+  final Review? review;
+
+  const _ReviewSheet({required this.book, required this.review});
+
+  @override
+  State<_ReviewSheet> createState() => _ReviewSheetState();
+}
+
+class _ReviewSheetState extends State<_ReviewSheet> {
+  late int _rating;
+  late final TextEditingController _textController;
+  String? _validationError;
+
+  @override
+  void initState() {
+    super.initState();
+    _rating = widget.review?.rating ?? 0;
+    _textController = TextEditingController(text: widget.review?.text ?? '');
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final text = _textController.text.trim();
+    if (_rating < 1 || _rating > 5) {
+      setState(() => _validationError = 'Selecione uma nota de 1 a 5.');
+      return;
+    }
+    if (text.isEmpty) {
+      setState(() => _validationError = 'Escreva um comentario.');
+      return;
+    }
+    if (text.length > 2000) {
+      setState(
+        () => _validationError = 'O comentario deve ter ate 2000 caracteres.',
+      );
+      return;
+    }
+
+    setState(() => _validationError = null);
+    context.read<ReviewBloc>().add(
+      ReviewSaveRequested(
+        reviewId: widget.review?.id,
+        bookId: widget.book.id,
+        rating: _rating,
+        text: text,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return BlocConsumer<ReviewBloc, ReviewState>(
+      listener: (context, state) {
+        if (state is ReviewSaveSuccess) {
+          final authState = context.read<AuthBloc>().state;
+          if (authState is AuthAuthenticated) {
+            context.read<FeedBloc>().add(
+              FeedLoadRequested(
+                userId: authState.session.user.id,
+                refresh: true,
+              ),
+            );
+          }
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Avaliacao publicada no feed.')),
+          );
+        }
+      },
+      builder: (context, state) {
+        final saving = state is ReviewSaving;
+        final backendError = state is ReviewError ? state.message : null;
+
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 12,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.3,
+                      ),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  widget.review == null ? 'Avaliar livro' : 'Editar avaliacao',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.book.title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 16),
+                _EditableRatingStars(
+                  rating: _rating,
+                  onChanged: saving
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _rating = value;
+                            _validationError = null;
+                          });
+                        },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _textController,
+                  enabled: !saving,
+                  maxLines: 5,
+                  maxLength: 2000,
+                  decoration: const InputDecoration(
+                    hintText: 'Escreva seu comentario sobre a leitura...',
+                  ),
+                  onChanged: (_) {
+                    if (_validationError != null) {
+                      setState(() => _validationError = null);
+                    }
+                  },
+                ),
+                if (_validationError != null || backendError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _validationError ?? backendError!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: saving ? null : _save,
+                    child: saving
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Salvar avaliacao'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EditableRatingStars extends StatelessWidget {
+  final int rating;
+  final ValueChanged<int>? onChanged;
+
+  const _EditableRatingStars({required this.rating, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final filledColor = theme.colorScheme.primary;
+    final emptyColor = theme.colorScheme.outline;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (index) {
+        final value = index + 1;
+        final filled = value <= rating;
+        return IconButton(
+          onPressed: onChanged == null ? null : () => onChanged!(value),
+          icon: Icon(
+            filled ? Icons.star : Icons.star_border,
+            color: filled ? filledColor : emptyColor,
+          ),
+          color: filledColor,
+          disabledColor: filledColor,
+          tooltip: '$value estrelas',
+          visualDensity: VisualDensity.compact,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+        );
+      }),
     );
   }
 }

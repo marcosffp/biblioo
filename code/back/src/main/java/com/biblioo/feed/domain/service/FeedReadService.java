@@ -1,17 +1,21 @@
 package com.biblioo.feed.domain.service;
 
 import com.biblioo.feed.domain.model.FeedItem;
+import com.biblioo.feed.domain.model.FeedPost;
 import com.biblioo.feed.domain.model.FeedSlice;
 import com.biblioo.feed.domain.port.in.FeedUseCase;
 import com.biblioo.feed.domain.port.out.FeedCachePort;
 import com.biblioo.feed.domain.port.out.FollowerQueryPort;
 import com.biblioo.feed.infrastructure.persistence.FeedItemRepository;
+import com.biblioo.feed.infrastructure.persistence.FeedPostRepository;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FeedReadService implements FeedUseCase {
 
   private final FeedItemRepository feedItemRepository;
+  private final FeedPostRepository feedPostRepository;
   private final ReviewRepository reviewRepository;
   private final FollowerQueryPort followerQueryPort;
   private final FeedCachePort feedCachePort;
@@ -45,6 +50,12 @@ public class FeedReadService implements FeedUseCase {
     if (feedCachePort.isCacheWarm(userId)) {
       List<FeedItem> cached = feedCachePort.getCachedPage(userId, cursor, size);
       if (!cached.isEmpty()) {
+        if (cursor == null) {
+          List<FeedItem> merged = new ArrayList<>(loadOwnItems(userId));
+          merged.addAll(cached);
+          merged.sort(Comparator.comparingLong(FeedItem::getScore).reversed());
+          cached = dedupe(merged).stream().limit(size).toList();
+        }
         triggerSlidingWindowIfNeeded(userId, cursor, size);
         return buildSlice(cached, size);
       }
@@ -73,6 +84,8 @@ public class FeedReadService implements FeedUseCase {
   }
 
   private List<FeedItem> loadFromDb(Long userId) {
+    List<FeedItem> ownItems = loadOwnItems(userId);
+
     // Itens do fan-out on write (autores abaixo do threshold)
     List<FeedItem> writeItems =
         feedItemRepository.findTopByUserIdOrderByScoreDesc(userId, PageRequest.of(0, warmSize));
@@ -102,10 +115,55 @@ public class FeedReadService implements FeedUseCase {
               .toList();
     }
 
-    List<FeedItem> merged = new ArrayList<>(writeItems);
+    List<FeedItem> merged = new ArrayList<>(ownItems);
+    merged.addAll(writeItems);
     merged.addAll(readItems);
     merged.sort(Comparator.comparingLong(FeedItem::getScore).reversed());
-    return merged.stream().limit(warmSize).toList();
+    return dedupe(merged).stream().limit(warmSize).toList();
+  }
+
+  private List<FeedItem> loadOwnItems(Long userId) {
+    PageRequest page = PageRequest.of(0, Math.max(1, warmSize / 2));
+    List<FeedItem> items = new ArrayList<>();
+
+    reviewRepository.findRecentReviewsByUserId(userId, page).stream()
+        .filter(review -> Boolean.TRUE.equals(review.getIsPublished()))
+        .forEach(
+            review ->
+                items.add(
+                    FeedItem.builder()
+                        .userId(userId)
+                        .contentId(review.getId())
+                        .contentType("REVIEW")
+                        .authorId(review.getUserId())
+                        .score(review.getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli())
+                        .createdAt(review.getCreatedAt())
+                        .build()));
+
+    feedPostRepository.findRecentByUserId(userId, page).stream()
+        .forEach(post -> items.add(toFeedItem(userId, post)));
+
+    return items;
+  }
+
+  private FeedItem toFeedItem(Long userId, FeedPost post) {
+    return FeedItem.builder()
+        .userId(userId)
+        .contentId(post.getId())
+        .contentType("POST")
+        .authorId(post.getUserId())
+        .score(post.getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli())
+        .createdAt(post.getCreatedAt())
+        .build();
+  }
+
+  private List<FeedItem> dedupe(List<FeedItem> items) {
+    Map<String, FeedItem> byKey = new LinkedHashMap<>();
+    for (FeedItem item : items) {
+      byKey.putIfAbsent(
+          item.getUserId() + ":" + item.getContentType() + ":" + item.getContentId(), item);
+    }
+    return new ArrayList<>(byKey.values());
   }
 
   private FeedSlice buildSlice(List<FeedItem> page, int size) {

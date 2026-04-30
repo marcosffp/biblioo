@@ -23,6 +23,11 @@ import 'package:biblioo/features/user/bloc/user_bloc.dart';
 import 'package:biblioo/features/community/data/community_local_datasource.dart';
 import 'package:biblioo/features/community/data/community_remote_datasource.dart';
 import 'package:biblioo/features/community/data/community_repository.dart';
+import 'package:biblioo/features/feed/bloc/feed_bloc.dart';
+import 'package:biblioo/features/feed/bloc/review_bloc.dart';
+import 'package:biblioo/features/feed/data/feed_local_datasource.dart';
+import 'package:biblioo/features/feed/data/feed_remote_datasource.dart';
+import 'package:biblioo/features/feed/data/feed_repository.dart';
 import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
 import 'package:biblioo/features/notification/data/notification_remote_datasource.dart';
 import 'package:biblioo/features/notification/data/notification_repository.dart';
@@ -92,6 +97,10 @@ class Injector {
   CommunityRepository get communityRepo =>
       CommunityRepository(_communityRemote, _communityLocal);
 
+  FeedLocalDatasource get _feedLocal => FeedLocalDatasource(_prefs);
+  FeedRemoteDatasource get _feedRemote => FeedRemoteDatasource(_dio);
+  FeedRepository get feedRepo => FeedRepository(_feedRemote, _feedLocal);
+
   // ── notification ─────────────────────────────────────
   NotificationRemoteDatasource get _notificationRemote =>
       NotificationRemoteDatasource(_dio);
@@ -109,6 +118,8 @@ class Injector {
     BlocProvider<BookBloc>(create: (_) => BookBloc(bookRepo)),
     BlocProvider<ShelfBloc>(create: (_) => ShelfBloc(shelfRepo)),
     BlocProvider<CollectionBloc>(create: (_) => CollectionBloc(collectionRepo)),
+    BlocProvider<FeedBloc>(create: (_) => FeedBloc(feedRepo)),
+    BlocProvider<ReviewBloc>(create: (_) => ReviewBloc(feedRepo)),
     BlocProvider<NotificationBloc>(
       create: (_) => NotificationBloc(notificationRepo),
     ),

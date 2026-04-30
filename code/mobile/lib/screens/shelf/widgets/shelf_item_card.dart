@@ -4,6 +4,7 @@ import 'package:biblioo/features/shelf/domain/reading_status.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 /// Card de item na estante — exibe capa, título, status e barra de progresso.
 /// Segue wireframe: ícone de placeholdercapa + título + autor + barra de progresso %.
@@ -24,11 +25,13 @@ class ShelfItemCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: InkWell(
+        onTap: () => context.push('/book/${item.bookId}'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // ── Capa do livro ──
             _buildCover(theme),
             const SizedBox(width: 12),
@@ -103,7 +106,8 @@ class ShelfItemCard extends StatelessWidget {
                 ),
               ],
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

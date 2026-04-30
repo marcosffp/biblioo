@@ -42,6 +42,24 @@ public class FeedFanoutService {
 
   public void processFanout(
       String eventId, Long contentId, String contentType, Long authorId, long createdAtEpochMilli) {
+    LocalDateTime createdAt =
+        LocalDateTime.ofEpochSecond(
+            createdAtEpochMilli / 1000,
+            (int) ((createdAtEpochMilli % 1000) * 1_000_000),
+            ZoneOffset.UTC);
+
+    FeedItem selfItem =
+        FeedItem.builder()
+            .userId(authorId)
+            .contentId(contentId)
+            .contentType(contentType)
+            .authorId(authorId)
+            .score(createdAtEpochMilli)
+            .createdAt(createdAt)
+            .build();
+    saveBatchIdempotent(List.of(selfItem));
+    feedCachePort.addIfActive(authorId, selfItem);
+
     long followerCount = followerQueryPort.countAcceptedFollowers(authorId);
     if (followerCount >= fanoutWriteThreshold) {
       log.info(
@@ -57,9 +75,6 @@ public class FeedFanoutService {
     }
 
     long lastId = progress.getLastProcessedFollowerId();
-    LocalDateTime createdAt =
-        LocalDateTime.ofEpochSecond(
-            createdAtEpochMilli / 1000, (int) ((createdAtEpochMilli % 1000) * 1_000_000), ZoneOffset.UTC);
 
     log.info("[FeedFanout] Iniciando fan-out eventId={} contentType={} contentId={} authorId={}",
         eventId, contentType, contentId, authorId);

@@ -63,7 +63,9 @@ public class ReviewService implements ReviewUseCase {
       throw new ReviewBusinessException("Livro não encontrado.");
     }
 
-    shelfInteractionPort.ensureBookReadStatusIsCompleted(userId, bookId);
+    if (!shelfInteractionPort.containsBook(userId, bookId)) {
+      throw new ReviewBusinessException("O livro precisa estar na estante para ser avaliado.");
+    }
 
     var review =
         Review.builder()
