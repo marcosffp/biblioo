@@ -44,10 +44,7 @@ public class FeedFanoutService {
       String eventId, Long contentId, String contentType, Long authorId, long createdAtEpochMilli) {
     LocalDateTime createdAt =
         LocalDateTime.ofEpochSecond(
-            createdAtEpochMilli / 1000,
-            (int) ((createdAtEpochMilli % 1000) * 1_000_000),
-            ZoneOffset.UTC);
-
+            createdAtEpochMilli / 1000, (int) ((createdAtEpochMilli % 1000) * 1_000_000), ZoneOffset.UTC);
     FeedItem selfItem =
         FeedItem.builder()
             .userId(authorId)

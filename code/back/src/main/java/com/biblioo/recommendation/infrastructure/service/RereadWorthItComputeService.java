@@ -37,10 +37,11 @@ public class RereadWorthItComputeService {
                     si.finished_at
                 FROM shelf_items si
                 JOIN shelves sh ON sh.id = si.shelf_id
-                LEFT JOIN reviews r
-                       ON r.book_id   = si.book_id
-                      AND r.user_id   = :userId
-                      AND r.deleted_at IS NULL
+                LEFT JOIN (
+                    SELECT rv.book_id, rv.rating
+                    FROM reviews rv
+                    JOIN content c ON c.id = rv.id AND c.user_id = :userId AND c.is_deleted = FALSE
+                ) r ON r.book_id = si.book_id
                 WHERE sh.user_id    = :userId
                   AND si.status     = 'COMPLETED'
                   AND si.deleted_at  IS NULL

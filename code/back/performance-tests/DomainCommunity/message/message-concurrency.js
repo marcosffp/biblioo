@@ -23,7 +23,7 @@ const CONFIG = {
   baseHttp: 'http://localhost:8080',
   baseWs:   'ws://localhost:8080',
   wsPath:   '/ws',
-  password: 'senha12345',
+  password: 'Senha@12345',
   prefix:   'msgconc',
 
   // Pool pequeno: todos os VUs entram na mesma comunidade

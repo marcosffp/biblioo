@@ -2,7 +2,6 @@ package com.biblioo.feed.domain.service;
 
 import com.biblioo.feed.domain.exception.FeedPostBusinessException;
 import com.biblioo.feed.domain.model.FeedPost;
-import com.biblioo.feed.domain.model.Like;
 import com.biblioo.feed.domain.model.LikeType;
 import com.biblioo.feed.domain.port.in.FeedPostUseCase;
 import com.biblioo.feed.domain.port.out.FeedImagePort;
@@ -11,7 +10,6 @@ import com.biblioo.feed.domain.port.out.UserPort;
 import com.biblioo.feed.infrastructure.persistence.CommentRepository;
 import com.biblioo.feed.infrastructure.persistence.FeedPostRepository;
 import com.biblioo.feed.infrastructure.persistence.LikeRepository;
-import com.biblioo.feed.infrastructure.persistence.LikeSaveHelper;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +28,6 @@ public class FeedPostService implements FeedPostUseCase {
   private final FeedPostRepository feedPostRepository;
   private final CommentRepository commentRepository;
   private final LikeRepository likeRepository;
-  private final LikeSaveHelper likeSaveHelper;
   private final UserPort userPort;
   private final FeedImagePort feedImagePort;
   private final FeedPostFanoutPublisherPort fanoutPublisherPort;
@@ -56,7 +53,7 @@ public class FeedPostService implements FeedPostUseCase {
         FeedPost.builder()
             .userId(userId)
             .text(text)
-            .tags(tags != null ? tags : List.of())
+            .tags(tags != null ? new ArrayList<>(tags) : new ArrayList<>())
             .hasSpoiler(hasSpoiler)
             .build();
 
@@ -76,7 +73,7 @@ public class FeedPostService implements FeedPostUseCase {
     }
 
     long epochMilli = saved.getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli();
-    fanoutPublisherPort.publishPostCreated(saved.getId(), userId, epochMilli);
+    //fanoutPublisherPort.publishPostCreated(saved.getId(), userId, epochMilli);
 
     return saved;
   }
@@ -103,7 +100,7 @@ public class FeedPostService implements FeedPostUseCase {
     }
 
     post.setText(text);
-    post.setTags(tags != null ? tags : List.of());
+    post.setTags(tags != null ? new ArrayList<>(tags) : new ArrayList<>());
     post.setHasSpoiler(hasSpoiler);
 
     if (gif != null && gif.length > 0) {
@@ -181,8 +178,7 @@ public class FeedPostService implements FeedPostUseCase {
       return false;
     }
 
-    var like = Like.builder().contentId(postId).userId(userId).type(LikeType.LIKE).build();
-    boolean inserted = likeSaveHelper.tryInsert(like);
+    boolean inserted = likeRepository.insertIgnore(postId, userId, LikeType.LIKE.name()) > 0;
     if (inserted) feedPostRepository.incrementLikeCount(postId);
     return true;
   }

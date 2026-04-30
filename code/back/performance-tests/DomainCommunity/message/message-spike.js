@@ -17,7 +17,7 @@ const CONFIG = {
   baseHttp: 'http://localhost:8080',
   baseWs:   'ws://localhost:8080',
   wsPath:   '/ws',
-  password: 'senha12345',
+  password: 'Senha@12345',
   prefix:   'msgspike',
 
   // Pool menor que peakVus — tokens compartilhados entre VUs é aceitável

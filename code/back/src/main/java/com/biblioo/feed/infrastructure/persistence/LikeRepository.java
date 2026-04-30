@@ -15,4 +15,15 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
   @Modifying
   @Query("DELETE FROM Like l WHERE l.contentId = :contentId AND l.userId = :userId")
   int deleteByContentIdAndUserId(@Param("contentId") Long contentId, @Param("userId") Long userId);
+
+  @Modifying
+  @Query(
+      value =
+          "INSERT IGNORE INTO likes (content_id, user_id, type, created_at)"
+              + " VALUES (:contentId, :userId, :type, NOW())",
+      nativeQuery = true)
+  int insertIgnore(
+      @Param("contentId") Long contentId,
+      @Param("userId") Long userId,
+      @Param("type") String type);
 }

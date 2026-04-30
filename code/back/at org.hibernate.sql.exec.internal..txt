@@ -1,0 +1,598 @@
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.doExecuteQuery(JdbcSelectExecutorStandardImpl.java:135) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.executeQuery(JdbcSelectExecutorStandardImpl.java:100) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.executeQuery(JdbcSelectExecutor.java:63) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:137) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:114) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:104) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeSelectQueryPlanImpl.performList(NativeSelectQueryPlanImpl.java:138) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeQueryImpl.doList(NativeQueryImpl.java:756) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.spi.AbstractSelectionQuery.list(AbstractSelectionQuery.java:153) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.Query.getResultList(Query.java:121) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at com.biblioo.recommendation.infrastructure.service.RereadWorthItComputeService.getEligibleReadings(RereadWorthItComputeService.java:54) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.6.jar:7.0.6]
+        at com.biblioo.recommendation.infrastructure.service.RereadWorthItComputeService$$SpringCGLIB$$0.getEligibleReadings(<generated>) ~[classes/:na]
+        at com.biblioo.recommendation.domain.service.RereadWorthItService.compute(RereadWorthItService.java:64) ~[classes/:na]
+        at com.biblioo.recommendation.infrastructure.consumer.RereadWorthItConsumer.handle(RereadWorthItConsumer.java:58) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:168) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.KotlinAwareInvocableHandlerMethod.doInvoke(KotlinAwareInvocableHandlerMethod.java:47) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.invoke(InvocableHandlerMethod.java:119) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.HandlerAdapter.invoke(HandlerAdapter.java:83) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandler(MessagingMessageListenerAdapter.java:287) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandlerAndProcessResult(MessagingMessageListenerAdapter.java:233) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.onMessage(MessagingMessageListenerAdapter.java:157) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doInvokeListener(AbstractMessageListenerContainer.java:1683) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.actualInvokeListener(AbstractMessageListenerContainer.java:1612) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.core.retry.RetryTemplate.execute(RetryTemplate.java:135) ~[spring-core-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.config.StatelessRetryOperationsInterceptor.invoke(StatelessRetryOperationsInterceptor.java:57) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:222) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.$Proxy267.invokeListener(Unknown Source) ~[na:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.invokeListener(AbstractMessageListenerContainer.java:1599) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doExecuteListener(AbstractMessageListenerContainer.java:1590) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListenerAndHandleException(AbstractMessageListenerContainer.java:1539) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListener(AbstractMessageListenerContainer.java:1520) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.doReceiveAndExecute(SimpleMessageListenerContainer.java:1116) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.receiveAndExecute(SimpleMessageListenerContainer.java:1061) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.mainLoop(SimpleMessageListenerContainer.java:1465) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.run(SimpleMessageListenerContainer.java:1359) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/java.lang.Thread.run(Thread.java:1474) ~[na:na]
+Caused by: java.sql.SQLSyntaxErrorException: Unknown column 'r.user_id' in 'on clause'
+        at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:112) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:114) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:988) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeQuery(ClientPreparedStatement.java:1056) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeQuery(ProxyPreparedStatement.java:52) ~[HikariCP-7.0.2.jar:na]
+        at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeQuery(HikariProxyPreparedStatement.java) ~[HikariCP-7.0.2.jar:na]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:271) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        ... 60 common frames omitted
+
+2026-04-30T08:37:17.250-03:00  INFO 31676 --- [biblioo] [tContainer#11-1] c.b.r.i.consumer.SimilarAuthorsConsumer  : [SA-Consumer] Evento duplicado event_id=6d4ffbda-d49a-4c45-90e9-e8d5d1338e76, descartando
+2026-04-30T08:37:17.252-03:00  INFO 31676 --- [biblioo] [tContainer#11-1] c.b.r.i.consumer.SimilarAuthorsConsumer  : [SA-Consumer] Processando event_id=fc663f29-c562-4b7a-a4a6-4aa339b9b255 userId=869
+2026-04-30T08:37:17.259-03:00  INFO 31676 --- [biblioo] [tContainer#11-1] c.b.r.d.service.SimilarAuthorsService    : [SA] Computando trilho SimilarAuthors para userId=869
+2026-04-30T08:37:17.262-03:00  WARN 31676 --- [biblioo] [tContainer#11-1] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 1054, SQLState: 42S22
+2026-04-30T08:37:17.262-03:00  WARN 31676 --- [biblioo] [tContainer#11-1] org.hibernate.orm.jdbc.error             : Unknown column 'r.user_id' in 'on clause'
+2026-04-30T08:37:17.264-03:00 ERROR 31676 --- [biblioo] [tContainer#11-1] c.b.r.i.consumer.SimilarAuthorsConsumer  : [SA-Consumer] Falha ao processar event_id=fc663f29-c562-4b7a-a4a6-4aa339b9b255: JDBC exception executing SQL [Unknown column 'r.user_id' in 'on clause'] [WITH confirmed_authors AS (
+    SELECT DISTINCT ba.author
+    FROM shelf_items si
+    JOIN shelves sh     ON sh.id        = si.shelf_id
+    JOIN book_authors ba ON ba.book_id   = si.book_id
+    LEFT JOIN reviews r  ON r.book_id   = si.book_id
+                       AND r.user_id    = ?
+                       AND r.deleted_at IS NULL
+    WHERE sh.user_id     = ?
+      AND si.status      = 'COMPLETED'
+      AND si.deleted_at  IS NULL
+      AND sh.deleted_at  IS NULL
+      AND si.finished_at IS NOT NULL
+      AND DATEDIFF(CURRENT_DATE, si.finished_at) > ?
+      AND COALESCE(r.rating, 3) >= ?
+)
+SELECT DISTINCT
+    b.id AS book_id,
+    0.6 + 0.4 * (COALESCE(b.average_rating, 3.0) / 5.0) AS score
+FROM book_authors ba
+JOIN confirmed_authors ca ON ca.author  = ba.author
+JOIN books b              ON b.id       = ba.book_id
+WHERE b.id NOT IN (
+    SELECT si2.book_id
+    FROM shelf_items si2
+    JOIN shelves sh2 ON sh2.id = si2.shelf_id
+    WHERE sh2.user_id    = ?
+      AND si2.status    IN ('COMPLETED', 'READING')
+      AND si2.deleted_at IS NULL
+      AND sh2.deleted_at IS NULL
+)
+ORDER BY score DESC
+LIMIT ?
+]
+
+org.hibernate.exception.SQLGrammarException: JDBC exception executing SQL [Unknown column 'r.user_id' in 'on clause'] [WITH confirmed_authors AS (
+    SELECT DISTINCT ba.author
+    FROM shelf_items si
+    JOIN shelves sh     ON sh.id        = si.shelf_id
+    JOIN book_authors ba ON ba.book_id   = si.book_id
+    LEFT JOIN reviews r  ON r.book_id   = si.book_id
+                       AND r.user_id    = ?
+                       AND r.deleted_at IS NULL
+    WHERE sh.user_id     = ?
+      AND si.status      = 'COMPLETED'
+      AND si.deleted_at  IS NULL
+      AND sh.deleted_at  IS NULL
+      AND si.finished_at IS NOT NULL
+      AND DATEDIFF(CURRENT_DATE, si.finished_at) > ?
+      AND COALESCE(r.rating, 3) >= ?
+)
+SELECT DISTINCT
+    b.id AS book_id,
+    0.6 + 0.4 * (COALESCE(b.average_rating, 3.0) / 5.0) AS score
+FROM book_authors ba
+JOIN confirmed_authors ca ON ca.author  = ba.author
+JOIN books b              ON b.id       = ba.book_id
+WHERE b.id NOT IN (
+    SELECT si2.book_id
+    FROM shelf_items si2
+    JOIN shelves sh2 ON sh2.id = si2.shelf_id
+    WHERE sh2.user_id    = ?
+      AND si2.status    IN ('COMPLETED', 'READING')
+      AND si2.deleted_at IS NULL
+      AND sh2.deleted_at IS NULL
+)
+ORDER BY score DESC
+LIMIT ?
+]
+        at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:64) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:290) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.getResultSet(DeferredResultSetAccess.java:190) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getResultSetMetaData(AbstractResultSetAccess.java:52) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getColumnCount(AbstractResultSetAccess.java:66) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.results.internal.ResultSetMappingImpl.resolve(ResultSetMappingImpl.java:188) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValues(JdbcSelectExecutorStandardImpl.java:380) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValuesSource(JdbcSelectExecutorStandardImpl.java:354) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.doExecuteQuery(JdbcSelectExecutorStandardImpl.java:135) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.executeQuery(JdbcSelectExecutorStandardImpl.java:100) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.executeQuery(JdbcSelectExecutor.java:63) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:137) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:114) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:104) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeSelectQueryPlanImpl.performList(NativeSelectQueryPlanImpl.java:138) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeQueryImpl.doList(NativeQueryImpl.java:756) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.spi.AbstractSelectionQuery.list(AbstractSelectionQuery.java:153) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.Query.getResultList(Query.java:121) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at com.biblioo.recommendation.infrastructure.service.SimilarAuthorsComputeService.computeLevel1(SimilarAuthorsComputeService.java:73) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.6.jar:7.0.6]
+        at com.biblioo.recommendation.infrastructure.service.SimilarAuthorsComputeService$$SpringCGLIB$$0.computeLevel1(<generated>) ~[classes/:na]
+        at com.biblioo.recommendation.domain.service.SimilarAuthorsService.compute(SimilarAuthorsService.java:58) ~[classes/:na]
+        at com.biblioo.recommendation.infrastructure.consumer.SimilarAuthorsConsumer.handle(SimilarAuthorsConsumer.java:58) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:168) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.KotlinAwareInvocableHandlerMethod.doInvoke(KotlinAwareInvocableHandlerMethod.java:47) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.invoke(InvocableHandlerMethod.java:119) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.HandlerAdapter.invoke(HandlerAdapter.java:83) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandler(MessagingMessageListenerAdapter.java:287) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandlerAndProcessResult(MessagingMessageListenerAdapter.java:233) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.onMessage(MessagingMessageListenerAdapter.java:157) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doInvokeListener(AbstractMessageListenerContainer.java:1683) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.actualInvokeListener(AbstractMessageListenerContainer.java:1612) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.core.retry.RetryTemplate.execute(RetryTemplate.java:135) ~[spring-core-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.config.StatelessRetryOperationsInterceptor.invoke(StatelessRetryOperationsInterceptor.java:57) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:222) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.$Proxy267.invokeListener(Unknown Source) ~[na:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.invokeListener(AbstractMessageListenerContainer.java:1599) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doExecuteListener(AbstractMessageListenerContainer.java:1590) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListenerAndHandleException(AbstractMessageListenerContainer.java:1539) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListener(AbstractMessageListenerContainer.java:1520) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.doReceiveAndExecute(SimpleMessageListenerContainer.java:1116) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.receiveAndExecute(SimpleMessageListenerContainer.java:1061) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.mainLoop(SimpleMessageListenerContainer.java:1465) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.run(SimpleMessageListenerContainer.java:1359) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/java.lang.Thread.run(Thread.java:1474) ~[na:na]
+Caused by: java.sql.SQLSyntaxErrorException: Unknown column 'r.user_id' in 'on clause'
+        at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:112) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:114) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:988) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeQuery(ClientPreparedStatement.java:1056) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeQuery(ProxyPreparedStatement.java:52) ~[HikariCP-7.0.2.jar:na]
+        at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeQuery(HikariProxyPreparedStatement.java) ~[HikariCP-7.0.2.jar:na]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:271) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        ... 60 common frames omitted
+
+2026-04-30T08:37:17.987-03:00  INFO 31676 --- [biblioo] [tContainer#10-1] c.b.r.i.consumer.RereadWorthItConsumer   : [RWI-Consumer] Evento duplicado event_id=f1050b75-6786-411d-b4b0-471c4e06c074, descartando
+2026-04-30T08:37:17.989-03:00  INFO 31676 --- [biblioo] [tContainer#10-1] c.b.r.i.consumer.RereadWorthItConsumer   : [RWI-Consumer] Processando event_id=6d4ffbda-d49a-4c45-90e9-e8d5d1338e76 userId=869
+2026-04-30T08:37:17.996-03:00  INFO 31676 --- [biblioo] [tContainer#10-1] c.b.r.d.service.RereadWorthItService     : [RWI] Computando trilho RereadWorthIt para userId=869
+2026-04-30T08:37:18.004-03:00  WARN 31676 --- [biblioo] [tContainer#10-1] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 1054, SQLState: 42S22
+2026-04-30T08:37:18.004-03:00  WARN 31676 --- [biblioo] [tContainer#10-1] org.hibernate.orm.jdbc.error             : Unknown column 'r.user_id' in 'on clause'
+2026-04-30T08:37:18.006-03:00 ERROR 31676 --- [biblioo] [tContainer#10-1] c.b.r.i.consumer.RereadWorthItConsumer   : [RWI-Consumer] Falha ao processar event_id=6d4ffbda-d49a-4c45-90e9-e8d5d1338e76: JDBC exception executing SQL [Unknown column 'r.user_id' in 'on clause'] [SELECT
+    si.book_id,
+    DATEDIFF(CURRENT_DATE, si.finished_at) AS days_since_read,
+    COALESCE(MAX(r.rating), 3)             AS user_rating,
+    si.finished_at
+FROM shelf_items si
+JOIN shelves sh ON sh.id = si.shelf_id
+LEFT JOIN reviews r
+       ON r.book_id   = si.book_id
+      AND r.user_id   = ?
+      AND r.deleted_at IS NULL
+WHERE sh.user_id    = ?
+  AND si.status     = 'COMPLETED'
+  AND si.deleted_at  IS NULL
+  AND sh.deleted_at  IS NULL
+  AND si.finished_at IS NOT NULL
+  AND DATEDIFF(CURRENT_DATE, si.finished_at) >= ?
+GROUP BY si.book_id, si.finished_at
+]
+
+org.hibernate.exception.SQLGrammarException: JDBC exception executing SQL [Unknown column 'r.user_id' in 'on clause'] [SELECT
+    si.book_id,
+    DATEDIFF(CURRENT_DATE, si.finished_at) AS days_since_read,
+    COALESCE(MAX(r.rating), 3)             AS user_rating,
+    si.finished_at
+FROM shelf_items si
+JOIN shelves sh ON sh.id = si.shelf_id
+LEFT JOIN reviews r
+       ON r.book_id   = si.book_id
+      AND r.user_id   = ?
+      AND r.deleted_at IS NULL
+WHERE sh.user_id    = ?
+  AND si.status     = 'COMPLETED'
+  AND si.deleted_at  IS NULL
+  AND sh.deleted_at  IS NULL
+  AND si.finished_at IS NOT NULL
+  AND DATEDIFF(CURRENT_DATE, si.finished_at) >= ?
+GROUP BY si.book_id, si.finished_at
+]
+        at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:64) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:290) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.getResultSet(DeferredResultSetAccess.java:190) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getResultSetMetaData(AbstractResultSetAccess.java:52) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getColumnCount(AbstractResultSetAccess.java:66) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.results.internal.ResultSetMappingImpl.resolve(ResultSetMappingImpl.java:188) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValues(JdbcSelectExecutorStandardImpl.java:380) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValuesSource(JdbcSelectExecutorStandardImpl.java:354) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.doExecuteQuery(JdbcSelectExecutorStandardImpl.java:135) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.executeQuery(JdbcSelectExecutorStandardImpl.java:100) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.executeQuery(JdbcSelectExecutor.java:63) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:137) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:114) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:104) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeSelectQueryPlanImpl.performList(NativeSelectQueryPlanImpl.java:138) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeQueryImpl.doList(NativeQueryImpl.java:756) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.spi.AbstractSelectionQuery.list(AbstractSelectionQuery.java:153) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.Query.getResultList(Query.java:121) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at com.biblioo.recommendation.infrastructure.service.RereadWorthItComputeService.getEligibleReadings(RereadWorthItComputeService.java:54) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.6.jar:7.0.6]
+        at com.biblioo.recommendation.infrastructure.service.RereadWorthItComputeService$$SpringCGLIB$$0.getEligibleReadings(<generated>) ~[classes/:na]
+        at com.biblioo.recommendation.domain.service.RereadWorthItService.compute(RereadWorthItService.java:64) ~[classes/:na]
+        at com.biblioo.recommendation.infrastructure.consumer.RereadWorthItConsumer.handle(RereadWorthItConsumer.java:58) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:168) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.KotlinAwareInvocableHandlerMethod.doInvoke(KotlinAwareInvocableHandlerMethod.java:47) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.invoke(InvocableHandlerMethod.java:119) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.HandlerAdapter.invoke(HandlerAdapter.java:83) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandler(MessagingMessageListenerAdapter.java:287) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandlerAndProcessResult(MessagingMessageListenerAdapter.java:233) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.onMessage(MessagingMessageListenerAdapter.java:157) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doInvokeListener(AbstractMessageListenerContainer.java:1683) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.actualInvokeListener(AbstractMessageListenerContainer.java:1612) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.core.retry.RetryTemplate.execute(RetryTemplate.java:135) ~[spring-core-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.config.StatelessRetryOperationsInterceptor.invoke(StatelessRetryOperationsInterceptor.java:57) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:222) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.$Proxy267.invokeListener(Unknown Source) ~[na:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.invokeListener(AbstractMessageListenerContainer.java:1599) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doExecuteListener(AbstractMessageListenerContainer.java:1590) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListenerAndHandleException(AbstractMessageListenerContainer.java:1539) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListener(AbstractMessageListenerContainer.java:1520) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.doReceiveAndExecute(SimpleMessageListenerContainer.java:1116) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.receiveAndExecute(SimpleMessageListenerContainer.java:1061) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.mainLoop(SimpleMessageListenerContainer.java:1465) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.run(SimpleMessageListenerContainer.java:1359) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/java.lang.Thread.run(Thread.java:1474) ~[na:na]
+Caused by: java.sql.SQLSyntaxErrorException: Unknown column 'r.user_id' in 'on clause'
+        at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:112) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:114) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:988) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeQuery(ClientPreparedStatement.java:1056) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeQuery(ProxyPreparedStatement.java:52) ~[HikariCP-7.0.2.jar:na]
+        at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeQuery(HikariProxyPreparedStatement.java) ~[HikariCP-7.0.2.jar:na]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:271) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        ... 60 common frames omitted
+
+2026-04-30T08:37:19.270-03:00  INFO 31676 --- [biblioo] [tContainer#11-1] c.b.r.i.consumer.SimilarAuthorsConsumer  : [SA-Consumer] Evento duplicado event_id=fc663f29-c562-4b7a-a4a6-4aa339b9b255, descartando
+2026-04-30T08:37:19.271-03:00  INFO 31676 --- [biblioo] [tContainer#11-1] c.b.r.i.consumer.SimilarAuthorsConsumer  : [SA-Consumer] Processando event_id=01f5048f-9ab4-4c12-9588-88f2a18dea13 userId=869
+2026-04-30T08:37:19.277-03:00  INFO 31676 --- [biblioo] [tContainer#11-1] c.b.r.d.service.SimilarAuthorsService    : [SA] Computando trilho SimilarAuthors para userId=869
+2026-04-30T08:37:19.282-03:00  WARN 31676 --- [biblioo] [tContainer#11-1] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 1054, SQLState: 42S22
+2026-04-30T08:37:19.282-03:00  WARN 31676 --- [biblioo] [tContainer#11-1] org.hibernate.orm.jdbc.error             : Unknown column 'r.user_id' in 'on clause'
+2026-04-30T08:37:19.284-03:00 ERROR 31676 --- [biblioo] [tContainer#11-1] c.b.r.i.consumer.SimilarAuthorsConsumer  : [SA-Consumer] Falha ao processar event_id=01f5048f-9ab4-4c12-9588-88f2a18dea13: JDBC exception executing SQL [Unknown column 'r.user_id' in 'on clause'] [WITH confirmed_authors AS (
+    SELECT DISTINCT ba.author
+    FROM shelf_items si
+    JOIN shelves sh     ON sh.id        = si.shelf_id
+    JOIN book_authors ba ON ba.book_id   = si.book_id
+    LEFT JOIN reviews r  ON r.book_id   = si.book_id
+                       AND r.user_id    = ?
+                       AND r.deleted_at IS NULL
+    WHERE sh.user_id     = ?
+      AND si.status      = 'COMPLETED'
+      AND si.deleted_at  IS NULL
+      AND sh.deleted_at  IS NULL
+      AND si.finished_at IS NOT NULL
+      AND DATEDIFF(CURRENT_DATE, si.finished_at) > ?
+      AND COALESCE(r.rating, 3) >= ?
+)
+SELECT DISTINCT
+    b.id AS book_id,
+    0.6 + 0.4 * (COALESCE(b.average_rating, 3.0) / 5.0) AS score
+FROM book_authors ba
+JOIN confirmed_authors ca ON ca.author  = ba.author
+JOIN books b              ON b.id       = ba.book_id
+WHERE b.id NOT IN (
+    SELECT si2.book_id
+    FROM shelf_items si2
+    JOIN shelves sh2 ON sh2.id = si2.shelf_id
+    WHERE sh2.user_id    = ?
+      AND si2.status    IN ('COMPLETED', 'READING')
+      AND si2.deleted_at IS NULL
+      AND sh2.deleted_at IS NULL
+)
+ORDER BY score DESC
+LIMIT ?
+]
+
+org.hibernate.exception.SQLGrammarException: JDBC exception executing SQL [Unknown column 'r.user_id' in 'on clause'] [WITH confirmed_authors AS (
+    SELECT DISTINCT ba.author
+    FROM shelf_items si
+    JOIN shelves sh     ON sh.id        = si.shelf_id
+    JOIN book_authors ba ON ba.book_id   = si.book_id
+    LEFT JOIN reviews r  ON r.book_id   = si.book_id
+                       AND r.user_id    = ?
+                       AND r.deleted_at IS NULL
+    WHERE sh.user_id     = ?
+      AND si.status      = 'COMPLETED'
+      AND si.deleted_at  IS NULL
+      AND sh.deleted_at  IS NULL
+      AND si.finished_at IS NOT NULL
+      AND DATEDIFF(CURRENT_DATE, si.finished_at) > ?
+      AND COALESCE(r.rating, 3) >= ?
+)
+SELECT DISTINCT
+    b.id AS book_id,
+    0.6 + 0.4 * (COALESCE(b.average_rating, 3.0) / 5.0) AS score
+FROM book_authors ba
+JOIN confirmed_authors ca ON ca.author  = ba.author
+JOIN books b              ON b.id       = ba.book_id
+WHERE b.id NOT IN (
+    SELECT si2.book_id
+    FROM shelf_items si2
+    JOIN shelves sh2 ON sh2.id = si2.shelf_id
+    WHERE sh2.user_id    = ?
+      AND si2.status    IN ('COMPLETED', 'READING')
+      AND si2.deleted_at IS NULL
+      AND sh2.deleted_at IS NULL
+)
+ORDER BY score DESC
+LIMIT ?
+]
+        at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:64) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:290) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.getResultSet(DeferredResultSetAccess.java:190) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getResultSetMetaData(AbstractResultSetAccess.java:52) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getColumnCount(AbstractResultSetAccess.java:66) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.results.internal.ResultSetMappingImpl.resolve(ResultSetMappingImpl.java:188) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValues(JdbcSelectExecutorStandardImpl.java:380) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValuesSource(JdbcSelectExecutorStandardImpl.java:354) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.doExecuteQuery(JdbcSelectExecutorStandardImpl.java:135) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.executeQuery(JdbcSelectExecutorStandardImpl.java:100) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.executeQuery(JdbcSelectExecutor.java:63) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:137) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:114) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:104) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeSelectQueryPlanImpl.performList(NativeSelectQueryPlanImpl.java:138) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeQueryImpl.doList(NativeQueryImpl.java:756) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.spi.AbstractSelectionQuery.list(AbstractSelectionQuery.java:153) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.Query.getResultList(Query.java:121) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at com.biblioo.recommendation.infrastructure.service.SimilarAuthorsComputeService.computeLevel1(SimilarAuthorsComputeService.java:73) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.6.jar:7.0.6]
+        at com.biblioo.recommendation.infrastructure.service.SimilarAuthorsComputeService$$SpringCGLIB$$0.computeLevel1(<generated>) ~[classes/:na]
+        at com.biblioo.recommendation.domain.service.SimilarAuthorsService.compute(SimilarAuthorsService.java:58) ~[classes/:na]
+        at com.biblioo.recommendation.infrastructure.consumer.SimilarAuthorsConsumer.handle(SimilarAuthorsConsumer.java:58) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:168) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.KotlinAwareInvocableHandlerMethod.doInvoke(KotlinAwareInvocableHandlerMethod.java:47) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.invoke(InvocableHandlerMethod.java:119) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.HandlerAdapter.invoke(HandlerAdapter.java:83) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandler(MessagingMessageListenerAdapter.java:287) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandlerAndProcessResult(MessagingMessageListenerAdapter.java:233) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.onMessage(MessagingMessageListenerAdapter.java:157) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doInvokeListener(AbstractMessageListenerContainer.java:1683) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.actualInvokeListener(AbstractMessageListenerContainer.java:1612) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.core.retry.RetryTemplate.execute(RetryTemplate.java:135) ~[spring-core-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.config.StatelessRetryOperationsInterceptor.invoke(StatelessRetryOperationsInterceptor.java:57) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:222) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.$Proxy267.invokeListener(Unknown Source) ~[na:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.invokeListener(AbstractMessageListenerContainer.java:1599) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doExecuteListener(AbstractMessageListenerContainer.java:1590) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListenerAndHandleException(AbstractMessageListenerContainer.java:1539) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListener(AbstractMessageListenerContainer.java:1520) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.doReceiveAndExecute(SimpleMessageListenerContainer.java:1116) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.receiveAndExecute(SimpleMessageListenerContainer.java:1061) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.mainLoop(SimpleMessageListenerContainer.java:1465) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.run(SimpleMessageListenerContainer.java:1359) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/java.lang.Thread.run(Thread.java:1474) ~[na:na]
+Caused by: java.sql.SQLSyntaxErrorException: Unknown column 'r.user_id' in 'on clause'
+        at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:112) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:114) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:988) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeQuery(ClientPreparedStatement.java:1056) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeQuery(ProxyPreparedStatement.java:52) ~[HikariCP-7.0.2.jar:na]
+        at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeQuery(HikariProxyPreparedStatement.java) ~[HikariCP-7.0.2.jar:na]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:271) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        ... 60 common frames omitted
+
+2026-04-30T08:37:20.026-03:00  INFO 31676 --- [biblioo] [tContainer#10-1] c.b.r.i.consumer.RereadWorthItConsumer   : [RWI-Consumer] Evento duplicado event_id=6d4ffbda-d49a-4c45-90e9-e8d5d1338e76, descartando
+2026-04-30T08:37:20.032-03:00  INFO 31676 --- [biblioo] [tContainer#10-1] c.b.r.i.consumer.RereadWorthItConsumer   : [RWI-Consumer] Processando event_id=fc663f29-c562-4b7a-a4a6-4aa339b9b255 userId=869
+2026-04-30T08:37:20.052-03:00  INFO 31676 --- [biblioo] [tContainer#10-1] c.b.r.d.service.RereadWorthItService     : [RWI] Computando trilho RereadWorthIt para userId=869
+2026-04-30T08:37:20.082-03:00  WARN 31676 --- [biblioo] [tContainer#10-1] org.hibernate.orm.jdbc.error             : HHH000247: ErrorCode: 1054, SQLState: 42S22
+2026-04-30T08:37:20.082-03:00  WARN 31676 --- [biblioo] [tContainer#10-1] org.hibernate.orm.jdbc.error             : Unknown column 'r.user_id' in 'on clause'
+2026-04-30T08:37:20.090-03:00 ERROR 31676 --- [biblioo] [tContainer#10-1] c.b.r.i.consumer.RereadWorthItConsumer   : [RWI-Consumer] Falha ao processar event_id=fc663f29-c562-4b7a-a4a6-4aa339b9b255: JDBC exception executing SQL [Unknown column 'r.user_id' in 'on clause'] [SELECT
+    si.book_id,
+    DATEDIFF(CURRENT_DATE, si.finished_at) AS days_since_read,
+    COALESCE(MAX(r.rating), 3)             AS user_rating,
+    si.finished_at
+FROM shelf_items si
+JOIN shelves sh ON sh.id = si.shelf_id
+LEFT JOIN reviews r
+       ON r.book_id   = si.book_id
+      AND r.user_id   = ?
+      AND r.deleted_at IS NULL
+WHERE sh.user_id    = ?
+  AND si.status     = 'COMPLETED'
+  AND si.deleted_at  IS NULL
+  AND sh.deleted_at  IS NULL
+  AND si.finished_at IS NOT NULL
+  AND DATEDIFF(CURRENT_DATE, si.finished_at) >= ?
+GROUP BY si.book_id, si.finished_at
+]
+
+org.hibernate.exception.SQLGrammarException: JDBC exception executing SQL [Unknown column 'r.user_id' in 'on clause'] [SELECT
+    si.book_id,
+    DATEDIFF(CURRENT_DATE, si.finished_at) AS days_since_read,
+    COALESCE(MAX(r.rating), 3)             AS user_rating,
+    si.finished_at
+FROM shelf_items si
+JOIN shelves sh ON sh.id = si.shelf_id
+LEFT JOIN reviews r
+       ON r.book_id   = si.book_id
+      AND r.user_id   = ?
+      AND r.deleted_at IS NULL
+WHERE sh.user_id    = ?
+  AND si.status     = 'COMPLETED'
+  AND si.deleted_at  IS NULL
+  AND sh.deleted_at  IS NULL
+  AND si.finished_at IS NOT NULL
+  AND DATEDIFF(CURRENT_DATE, si.finished_at) >= ?
+GROUP BY si.book_id, si.finished_at
+]
+        at org.hibernate.exception.internal.SQLExceptionTypeDelegate.convert(SQLExceptionTypeDelegate.java:64) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.exception.internal.StandardSQLExceptionConverter.convert(StandardSQLExceptionConverter.java:34) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.engine.jdbc.spi.SqlExceptionHelper.convert(SqlExceptionHelper.java:115) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:290) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.getResultSet(DeferredResultSetAccess.java:190) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getResultSetMetaData(AbstractResultSetAccess.java:52) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.results.jdbc.internal.AbstractResultSetAccess.getColumnCount(AbstractResultSetAccess.java:66) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.results.internal.ResultSetMappingImpl.resolve(ResultSetMappingImpl.java:188) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValues(JdbcSelectExecutorStandardImpl.java:380) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.resolveJdbcValuesSource(JdbcSelectExecutorStandardImpl.java:354) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.doExecuteQuery(JdbcSelectExecutorStandardImpl.java:135) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.internal.JdbcSelectExecutorStandardImpl.executeQuery(JdbcSelectExecutorStandardImpl.java:100) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.executeQuery(JdbcSelectExecutor.java:63) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:137) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:114) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.sql.exec.spi.JdbcSelectExecutor.list(JdbcSelectExecutor.java:104) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeSelectQueryPlanImpl.performList(NativeSelectQueryPlanImpl.java:138) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.sql.internal.NativeQueryImpl.doList(NativeQueryImpl.java:756) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.spi.AbstractSelectionQuery.list(AbstractSelectionQuery.java:153) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at org.hibernate.query.Query.getResultList(Query.java:121) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        at com.biblioo.recommendation.infrastructure.service.RereadWorthItComputeService.getEligibleReadings(RereadWorthItComputeService.java:54) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130) ~[spring-tx-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719) ~[spring-aop-7.0.6.jar:7.0.6]
+        at com.biblioo.recommendation.infrastructure.service.RereadWorthItComputeService$$SpringCGLIB$$0.getEligibleReadings(<generated>) ~[classes/:na]
+        at com.biblioo.recommendation.domain.service.RereadWorthItService.compute(RereadWorthItService.java:64) ~[classes/:na]
+        at com.biblioo.recommendation.infrastructure.consumer.RereadWorthItConsumer.handle(RereadWorthItConsumer.java:58) ~[classes/:na]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:168) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.KotlinAwareInvocableHandlerMethod.doInvoke(KotlinAwareInvocableHandlerMethod.java:47) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.messaging.handler.invocation.InvocableHandlerMethod.invoke(InvocableHandlerMethod.java:119) ~[spring-messaging-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.adapter.HandlerAdapter.invoke(HandlerAdapter.java:83) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandler(MessagingMessageListenerAdapter.java:287) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.invokeHandlerAndProcessResult(MessagingMessageListenerAdapter.java:233) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.adapter.MessagingMessageListenerAdapter.onMessage(MessagingMessageListenerAdapter.java:157) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doInvokeListener(AbstractMessageListenerContainer.java:1683) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.actualInvokeListener(AbstractMessageListenerContainer.java:1612) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104) ~[na:na]
+        at java.base/java.lang.reflect.Method.invoke(Method.java:565) ~[na:na]
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.core.retry.RetryTemplate.execute(RetryTemplate.java:135) ~[spring-core-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.config.StatelessRetryOperationsInterceptor.invoke(StatelessRetryOperationsInterceptor.java:57) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:222) ~[spring-aop-7.0.6.jar:7.0.6]
+        at org.springframework.amqp.rabbit.listener.$Proxy267.invokeListener(Unknown Source) ~[na:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.invokeListener(AbstractMessageListenerContainer.java:1599) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.doExecuteListener(AbstractMessageListenerContainer.java:1590) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListenerAndHandleException(AbstractMessageListenerContainer.java:1539) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer.executeListener(AbstractMessageListenerContainer.java:1520) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.doReceiveAndExecute(SimpleMessageListenerContainer.java:1116) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer.receiveAndExecute(SimpleMessageListenerContainer.java:1061) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.mainLoop(SimpleMessageListenerContainer.java:1465) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer$AsyncMessageProcessingConsumer.run(SimpleMessageListenerContainer.java:1359) ~[spring-rabbit-4.0.2.jar:4.0.2]
+        at java.base/java.lang.Thread.run(Thread.java:1474) ~[na:na]
+Caused by: java.sql.SQLSyntaxErrorException: Unknown column 'r.user_id' in 'on clause'
+        at com.mysql.cj.jdbc.exceptions.SQLError.createSQLException(SQLError.java:112) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.exceptions.SQLExceptionsMapping.translateException(SQLExceptionsMapping.java:114) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeInternal(ClientPreparedStatement.java:988) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.mysql.cj.jdbc.ClientPreparedStatement.executeQuery(ClientPreparedStatement.java:1056) ~[mysql-connector-j-9.6.0.jar:9.6.0]
+        at com.zaxxer.hikari.pool.ProxyPreparedStatement.executeQuery(ProxyPreparedStatement.java:52) ~[HikariCP-7.0.2.jar:na]
+        at com.zaxxer.hikari.pool.HikariProxyPreparedStatement.executeQuery(HikariProxyPreparedStatement.java) ~[HikariCP-7.0.2.jar:na]
+        at org.hibernate.sql.results.jdbc.internal.DeferredResultSetAccess.executeQuery(DeferredResultSetAccess.java:271) ~[hibernate-core-7.2.7.Final.jar:7.2.7.Final]
+        ... 60 common frames omitted
+
+2026-04-30T08:37:20.390-03:00  INFO 31676 --- [biblioo] [tContainer#12-2] o.s.a.r.l.SimpleMessageListenerContainer : Waiting for workers to finish.
+2026-04-30T08:37:20.394-03:00  INFO 31676 --- [biblioo] [tContainer#13-2] o.s.a.r.l.SimpleMessageListenerContainer : Waiting for workers to finish.

@@ -2,6 +2,7 @@ package com.biblioo.infrastructure.web;
 
 import com.biblioo.books.domain.exception.BookNotFoundException;
 import com.biblioo.books.domain.exception.ShelfBusinessException;
+import com.biblioo.feed.domain.exception.FeedPostBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
 import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
@@ -198,6 +199,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
     return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno. Tente novamente.", request);
+  }
+
+  @ExceptionHandler(FeedPostBusinessException.class)
+  ResponseEntity<ErrorResponse> handleBusiness(
+      FeedPostBusinessException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
   }
 
   // ── Helper ────────────────────────────────────────────────────────────────

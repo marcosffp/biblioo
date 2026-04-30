@@ -37,9 +37,11 @@ public class SimilarAuthorsComputeService {
                     FROM shelf_items si
                     JOIN shelves sh     ON sh.id        = si.shelf_id
                     JOIN book_authors ba ON ba.book_id   = si.book_id
-                    LEFT JOIN reviews r  ON r.book_id   = si.book_id
-                                       AND r.user_id    = :userId
-                                       AND r.deleted_at IS NULL
+                    LEFT JOIN (
+                        SELECT rv.book_id, rv.rating
+                        FROM reviews rv
+                        JOIN content c ON c.id = rv.id AND c.user_id = :userId AND c.is_deleted = FALSE
+                    ) r ON r.book_id = si.book_id
                     WHERE sh.user_id     = :userId
                       AND si.status      = 'COMPLETED'
                       AND si.deleted_at  IS NULL
@@ -101,9 +103,11 @@ public class SimilarAuthorsComputeService {
                     SELECT si.book_id
                     FROM shelf_items si
                     JOIN shelves sh    ON sh.id      = si.shelf_id
-                    LEFT JOIN reviews r ON r.book_id = si.book_id
-                                       AND r.user_id = :userId
-                                       AND r.deleted_at IS NULL
+                    LEFT JOIN (
+                        SELECT rv.book_id, rv.rating
+                        FROM reviews rv
+                        JOIN content c ON c.id = rv.id AND c.user_id = :userId AND c.is_deleted = FALSE
+                    ) r ON r.book_id = si.book_id
                     WHERE sh.user_id    = :userId
                       AND si.status     = 'COMPLETED'
                       AND si.deleted_at  IS NULL
@@ -119,9 +123,11 @@ public class SimilarAuthorsComputeService {
                     JOIN shelves sh2       ON sh2.id         = si2.shelf_id
                                           AND sh2.user_id   != :userId
                                           AND sh2.deleted_at IS NULL
-                    LEFT JOIN reviews r2   ON r2.book_id    = si2.book_id
-                                          AND r2.user_id    = sh2.user_id
-                                          AND r2.deleted_at IS NULL
+                    LEFT JOIN (
+                        SELECT rv.book_id, rv.rating, c.user_id
+                        FROM reviews rv
+                        JOIN content c ON c.id = rv.id AND c.is_deleted = FALSE
+                    ) r2 ON r2.book_id = si2.book_id AND r2.user_id = sh2.user_id
                     WHERE COALESCE(r2.rating, 3) >= :minRating
                     GROUP BY sh2.user_id
                     ORDER BY common_books DESC
@@ -144,9 +150,11 @@ public class SimilarAuthorsComputeService {
                     JOIN shelf_items si ON si.shelf_id = sh.id
                                        AND si.status   = 'COMPLETED'
                                        AND si.deleted_at IS NULL
-                    LEFT JOIN reviews r ON r.book_id   = si.book_id
-                                       AND r.user_id   = su.user_id
-                                       AND r.deleted_at IS NULL
+                    LEFT JOIN (
+                        SELECT rv.book_id, rv.rating, c.user_id
+                        FROM reviews rv
+                        JOIN content c ON c.id = rv.id AND c.is_deleted = FALSE
+                    ) r ON r.book_id = si.book_id AND r.user_id = su.user_id
                     JOIN book_authors ba ON ba.book_id = si.book_id
                     WHERE COALESCE(r.rating, 3) >= :minRating
                       AND ba.author NOT IN (SELECT author FROM user_known_authors)

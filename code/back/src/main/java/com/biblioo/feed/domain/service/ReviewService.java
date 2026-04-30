@@ -1,7 +1,6 @@
 package com.biblioo.feed.domain.service;
 
 import com.biblioo.feed.domain.exception.ReviewBusinessException;
-import com.biblioo.feed.domain.model.Like;
 import com.biblioo.feed.domain.model.LikeType;
 import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
@@ -13,7 +12,6 @@ import com.biblioo.feed.domain.port.out.ShelfInteractionPort;
 import com.biblioo.feed.domain.port.out.UserPort;
 import com.biblioo.feed.infrastructure.persistence.CommentRepository;
 import com.biblioo.feed.infrastructure.persistence.LikeRepository;
-import com.biblioo.feed.infrastructure.persistence.LikeSaveHelper;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +30,6 @@ public class ReviewService implements ReviewUseCase {
   private final ReviewRepository reviewRepository;
   private final CommentRepository commentRepository;
   private final LikeRepository likeRepository;
-  private final LikeSaveHelper likeSaveHelper;
   private final BookPort bookPort;
   private final UserPort userPort;
   private final ShelfInteractionPort shelfInteractionPort;
@@ -241,8 +238,7 @@ public class ReviewService implements ReviewUseCase {
       return false;
     }
 
-    var like = Like.builder().contentId(reviewId).userId(userId).type(LikeType.LIKE).build();
-    boolean inserted = likeSaveHelper.tryInsert(like);
+    boolean inserted = likeRepository.insertIgnore(reviewId, userId, LikeType.LIKE.name()) > 0;
     if (inserted) {
       reviewRepository.incrementLikeCount(reviewId);
     }

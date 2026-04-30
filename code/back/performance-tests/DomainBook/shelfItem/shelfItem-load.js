@@ -4,7 +4,7 @@ import { sleep, check } from 'k6';
 const CONFIG = {
   base:         'http://localhost:8080',
   userPoolSize: 100, // deve ser >= crudVus + listingVus (80) para evitar que VUs compartilhem usuário
-  password:     'senha12345',
+  password:     'Senha@12345',
   prefix:       'loadshelfitem',
 
   bookId: 1,  // ID de um livro existente no banco para usar nos testes

@@ -17,7 +17,7 @@ const CONFIG = {
   baseHttp: 'http://localhost:8080',
   baseWs:   'ws://localhost:8080',
   wsPath:   '/ws',           // endpoint WebSocket nativo (sem SockJS)
-  password: 'senha12345',
+  password: 'Senha@12345',
   prefix:   'msgload',
 
   userPoolSize:      20,
