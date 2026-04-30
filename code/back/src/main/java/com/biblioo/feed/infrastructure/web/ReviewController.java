@@ -69,7 +69,7 @@ public class ReviewController {
       @Parameter(
               description =
                   "Se true, publica a review imediatamente no feed dos seguidores. Se false, salva como rascunho.")
-          @RequestParam(value = "publish", defaultValue = "false")
+          @RequestParam(value = "publish", defaultValue = "true")
           boolean publish,
       @Parameter(description = "Arquivos de imagens para anexar à avaliação (máx 5)")
           @RequestPart(value = "images", required = false)
