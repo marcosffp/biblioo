@@ -113,7 +113,11 @@ class FeedRemoteDatasource {
         MapEntry('gif', MultipartFile.fromBytes(gif, filename: name)),
       );
     }
-    final response = await _dio.post('/feed/posts', data: formData);
+    final response = await _dio.post(
+      '/feed/posts',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
     return PostModel.fromJson(response.data as Map<String, dynamic>);
   }
 

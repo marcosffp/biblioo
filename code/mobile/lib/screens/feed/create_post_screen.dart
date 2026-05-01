@@ -26,6 +26,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   static const int _maxImages = 5;
   static const int _maxChars = 2000;
+  static const int _maxImageBytes = 5 * 1024 * 1024;
+  static const int _maxGifBytes = 10 * 1024 * 1024;
 
   @override
   void dispose() {
@@ -38,11 +40,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (_images.length >= _maxImages) return;
     final remaining = _maxImages - _images.length;
     final files = await _imagePicker.pickMultiImage(limit: remaining);
+    var skipped = 0;
     for (final file in files) {
       final bytes = await file.readAsBytes();
+      if (bytes.length > _maxImageBytes) {
+        skipped++;
+        continue;
+      }
       if (mounted) {
         setState(() => _images.add(_PickedImage(bytes: bytes, name: file.name)));
       }
+    }
+    if (mounted && skipped > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagem excede o limite de 5 MB.')),
+      );
     }
   }
 
@@ -59,6 +71,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
     final bytes = await file.readAsBytes();
+    if (bytes.length > _maxGifBytes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('GIF excede o limite de 10 MB.')),
+        );
+      }
+      return;
+    }
     if (mounted) {
       setState(() => _gif = _PickedImage(bytes: bytes, name: file.name));
     }
