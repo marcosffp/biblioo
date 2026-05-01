@@ -100,25 +100,32 @@ public class CommunityTrendingRepository {
         entityManager
             .createNativeQuery(
                 """
-                SELECT
-                    cts.book_id,
-                    cts.current_score
-                        * POW(1.0 - :decayRate, TIMESTAMPDIFF(SECOND, cts.last_updated, NOW()) / 3600.0)
-                        AS decayed_score
-                FROM community_trending_scores cts
-                WHERE cts.current_score
-                          * POW(1.0 - :decayRate, TIMESTAMPDIFF(SECOND, cts.last_updated, NOW()) / 3600.0)
-                      >= :minScore
-                  AND cts.book_id NOT IN (
-                      SELECT si.book_id
-                      FROM shelf_items si
-                      JOIN shelves sh ON sh.id = si.shelf_id
-                      WHERE sh.user_id    = :userId
-                        AND si.status    IN ('COMPLETED', 'READING')
-                        AND si.deleted_at  IS NULL
-                        AND sh.deleted_at  IS NULL
-                  )
-                ORDER BY decayed_score DESC, cts.book_id ASC
+                WITH scored AS (
+                    SELECT
+                        cts.book_id,
+                        cts.current_score
+                            * POW(1.0 - :decayRate, TIMESTAMPDIFF(SECOND, cts.last_updated, NOW()) / 3600.0)
+                            AS decayed_score
+                    FROM community_trending_scores cts
+                ),
+                filtered AS (
+                    SELECT s.book_id, s.decayed_score
+                    FROM scored s
+                    WHERE s.decayed_score >= :minScore
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM shelf_items si
+                          JOIN shelves sh ON sh.id = si.shelf_id
+                          WHERE sh.user_id    = :userId
+                            AND si.book_id    = s.book_id
+                            AND si.status    IN ('COMPLETED', 'READING')
+                            AND si.deleted_at  IS NULL
+                            AND sh.deleted_at  IS NULL
+                      )
+                )
+                SELECT book_id, decayed_score
+                FROM filtered
+                ORDER BY decayed_score DESC, book_id ASC
                 LIMIT :limit
                 """)
             .setParameter("decayRate", decayPerHour)

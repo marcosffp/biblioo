@@ -9,6 +9,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -77,6 +78,7 @@ public class TrendingInCommunitiesService {
    * acima do limiar, filtrados pelos já lidos. Camada 2 (fallback): completa os 20 slots com os
    * livros mais bem avaliados adicionados nos últimos {@code fallbackWindowDays} dias.
    */
+  @Cacheable(value = "rec-tic", key = "#userId")
   public TrendingInCommunitiesResult get(Long userId) {
     List<BookScore> organic =
         trendingRepository.findOrganicBooks(userId, minScore, decayPerHour, trailSize);

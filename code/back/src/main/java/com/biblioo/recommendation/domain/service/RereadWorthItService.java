@@ -17,6 +17,8 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -54,6 +56,7 @@ public class RereadWorthItService {
    * múltiplas por contagem de linhas. A cada chamada, livros com finished_at posterior ao último
    * computed_at têm seu contador incrementado.
    */
+  @CacheEvict(value = "rec-rwi", key = "#userId")
   public void compute(Long userId) {
     log.info("[RWI] Computando trilho RereadWorthIt para userId={}", userId);
 
@@ -88,6 +91,7 @@ public class RereadWorthItService {
    * Retorna resultado pré-computado. Quando nenhum resultado existe (usuário nunca computado),
    * calcula e persiste o fallback global imediatamente para que chamadas subsequentes sejam rápidas.
    */
+  @Cacheable(value = "rec-rwi", key = "#userId")
   public RereadWorthItResult get(Long userId) {
     Optional<RecommendationResult> stored = resultRepository.findResultEntity(userId, TRAIL_TYPE);
 
@@ -128,7 +132,6 @@ public class RereadWorthItService {
     return new BookScore(r.bookId(), finalScore, "spaced_repetition");
   }
 
-  @SuppressWarnings("unchecked")
   private Map<Long, Integer> readRereadCounts(Optional<RecommendationResult> previous) {
     if (previous.isEmpty() || previous.get().getMetadata() == null) {
       return new HashMap<>();

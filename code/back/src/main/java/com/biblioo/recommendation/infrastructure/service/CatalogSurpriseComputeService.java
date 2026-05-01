@@ -1,11 +1,16 @@
 package com.biblioo.recommendation.infrastructure.service;
 
 import com.biblioo.recommendation.domain.model.BookScore;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,7 +18,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class CatalogSurpriseComputeService {
 
+  private static final String CANDIDATES_KEY_PREFIX = "cs:candidates:";
+  private static final long CANDIDATES_TTL_MINUTES = 5;
+  private static final TypeReference<List<BookScore>> BOOK_SCORE_LIST =
+      new TypeReference<List<BookScore>>() {};
+
   @PersistenceContext private EntityManager entityManager;
+
+  @Autowired private StringRedisTemplate stringRedisTemplate;
+
+  @Autowired private ObjectMapper objectMapper;
 
   @Value("${recommendation.catalog-surprise.distance-threshold:0.2}")
   private double distanceThreshold;
@@ -27,21 +41,35 @@ public class CatalogSurpriseComputeService {
   /**
    * Busca livros candidatos de categorias "distantes" do perfil de leitura do usuário.
    *
-   * <p>Uma categoria é distante quando seu peso no histórico concluído é menor que
-   * {@code distanceThreshold}. Categorias ausentes do histórico têm peso implícito 0.0 e também
-   * são incluídas — cobrindo naturalmente o cold start sem lógica adicional.
+   * <p>Uma categoria é distante quando seu peso no histórico concluído é menor que {@code
+   * distanceThreshold}. Categorias ausentes do histórico têm peso implícito 0.0 e também são
+   * incluídas — cobrindo naturalmente o cold start sem lógica adicional.
    *
    * <p>Livros com qualquer status ativo (COMPLETED, READING, REREADING, ABANDONED) são excluídos
-   * para não recomendar o que o usuário já interagiu diretamente. WANT_TO_READ permanece
-   * elegível, pois o usuário manifestou interesse mas ainda não leu.
+   * para não recomendar o que o usuário já interagiu diretamente. WANT_TO_READ permanece elegível,
+   * pois o usuário manifestou interesse mas ainda não leu.
    *
-   * <p>Score base de qualidade global: avg_rating (60%) + popularidade log-normalizada (40%).
-   * O Thompson Sampling em {@link CatalogSurpriseBanditService} aplica o fator de exploração
-   * sobre esse score base no momento do request.
+   * <p>Score base de qualidade global: avg_rating (60%) + popularidade log-normalizada (40%). O
+   * Thompson Sampling em {@link CatalogSurpriseBanditService} aplica o fator de exploração sobre
+   * esse score base no momento do request.
+   *
+   * <p>O resultado é cacheado no Redis via StringRedisTemplate + TypeReference para evitar
+   * problemas de type erasure do GenericJacksonJsonRedisSerializer com listas como valor raiz.
    */
   @SuppressWarnings("unchecked")
-  @Transactional(readOnly = true)
   public List<BookScore> getCandidates(Long userId, int limit) {
+    String key = CANDIDATES_KEY_PREFIX + userId;
+
+    String cached = stringRedisTemplate.opsForValue().get(key);
+    if (cached != null) {
+      try {
+        return objectMapper.readValue(cached, BOOK_SCORE_LIST);
+      } catch (Exception e) {
+        log.warn("[CS-Compute] Falha ao ler candidatos do cache userId={}: {}", userId, e.getMessage());
+        stringRedisTemplate.delete(key);
+      }
+    }
+
     List<Object[]> rows =
         entityManager
             .createNativeQuery(
@@ -98,17 +126,28 @@ public class CatalogSurpriseComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
+    List<BookScore> result =
+        rows.stream()
+            .map(
+                r ->
+                    new BookScore(
+                        ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_distant"))
+            .toList();
+
     log.info(
         "[CS-Compute] {} candidatos de categorias distantes para userId={} threshold={}",
-        rows.size(),
+        result.size(),
         userId,
         distanceThreshold);
 
-    return rows.stream()
-        .map(
-            r ->
-                new BookScore(
-                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_distant"))
-        .toList();
+    try {
+      stringRedisTemplate
+          .opsForValue()
+          .set(key, objectMapper.writeValueAsString(result), CANDIDATES_TTL_MINUTES, TimeUnit.MINUTES);
+    } catch (Exception e) {
+      log.warn("[CS-Compute] Falha ao cachear candidatos userId={}: {}", userId, e.getMessage());
+    }
+
+    return result;
   }
 }

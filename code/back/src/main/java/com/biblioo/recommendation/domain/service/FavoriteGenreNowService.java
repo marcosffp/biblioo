@@ -9,6 +9,8 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,6 +32,7 @@ public class FavoriteGenreNowService {
   @Value("${recommendation.favorite-genre-now.min-reviews:10}")
   private int minReviews;
 
+  @CacheEvict(value = "rec-fgn", key = "#userId")
   public void compute(Long userId) {
     log.info("[FGN] Computando trilho FavoriteGenreNow para userId={}", userId);
 
@@ -83,6 +86,7 @@ public class FavoriteGenreNowService {
         genreNames);
   }
 
+  @Cacheable(value = "rec-fgn", key = "#userId")
   public FavoriteGenreNowResult get(Long userId) {
     return resultRepository.findFavoriteGenreNowResult(userId);
   }

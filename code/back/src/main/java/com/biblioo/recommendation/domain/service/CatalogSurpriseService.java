@@ -10,6 +10,8 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,21 +31,41 @@ public class CatalogSurpriseService {
   /**
    * Atualiza o estado α/β do bandit no Redis.
    * Chamado pelo consumer ao receber evento de interação do usuário com um livro.
+   * Também evicta o cache para que a próxima leitura reflita o novo estado.
    */
   public void updateBanditState(Long userId, Long bookId, String status) {
     log.info("[CS] Atualizando bandit userId={} bookId={} status={}", userId, bookId, status);
     switch (status) {
-      case "COMPLETED" -> banditService.incrementAlpha(userId, bookId);
-      case "ABANDONED" -> banditService.incrementBeta(userId, bookId);
+      case "COMPLETED" -> {
+        banditService.incrementAlpha(userId, bookId);
+        evictCache(userId);
+      }
+      case "ABANDONED" -> {
+        banditService.incrementBeta(userId, bookId);
+        evictCache(userId);
+      }
       default -> log.warn("[CS] Status desconhecido para atualização de bandit: {}", status);
     }
   }
 
+  @CacheEvict(value = "rec-cs", key = "#userId")
+  public void evictCache(Long userId) {
+    // Evicta o cache do CatalogSurprise quando o estado alfa/beta do bandit muda.
+  }
+
   /**
    * Computa recomendações de categorias distantes com Thompson Sampling.
-   * Executado sob demanda no GET request — sem cache de resultado final
-   * pois o sample Beta muda a cada chamada (exploração estocástica).
+   *
+   * <p>O resultado é cacheado por um TTL curto (configurado em {@code rec-cs}).
+   * O TTL curto preserva boa parte da natureza estocástica do Thompson Sampling
+   * (theta varia entre sessões distintas) sem pagar o custo de computação a cada
+   * request individual — que seria insuportável sob alta concorrência.
+   *
+   * <p>Trade-off intencional: usuários verão o mesmo sample dentro da janela
+   * do TTL. Para variar mais, reduzir o TTL em {@code CacheConfig}; para
+   * melhorar a performance sob spike, aumentar.
    */
+  @Cacheable(value = "rec-cs", key = "#userId")
   public CatalogSurpriseResult getCatalogSurprise(Long userId) {
     int poolSize = candidateLimit * candidatePoolMultiplier;
     List<BookScore> candidates = computeService.getCandidates(userId, poolSize);
@@ -56,7 +78,6 @@ public class CatalogSurpriseService {
     List<Long> bookIds = candidates.stream().map(BookScore::getBookId).toList();
     Map<Long, Double> thetas = banditService.sampleThetas(userId, bookIds);
 
-    // Score final = θ_i (bandit) × base_score_i (qualidade global)
     List<BookScore> ranked =
         candidates.stream()
             .map(

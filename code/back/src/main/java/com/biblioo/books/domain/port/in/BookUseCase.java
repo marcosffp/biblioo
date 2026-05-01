@@ -7,4 +7,6 @@ public interface BookUseCase {
   List<Book> search(String query);
 
   Book getById(Long id);
+
+  List<Book> getByIds(List<Long> ids);
 }

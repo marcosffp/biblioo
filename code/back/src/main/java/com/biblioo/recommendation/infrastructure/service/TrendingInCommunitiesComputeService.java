@@ -36,11 +36,12 @@ public class TrendingInCommunitiesComputeService {
                 FROM books b
                 WHERE b.created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
                   AND b.id NOT IN (:excludeBookIds)
-                  AND b.id NOT IN (
-                      SELECT si.book_id
+                  AND NOT EXISTS (
+                      SELECT 1
                       FROM shelf_items si
                       JOIN shelves sh ON sh.id = si.shelf_id
                       WHERE sh.user_id    = :userId
+                        AND si.book_id    = b.id
                         AND si.status    IN ('COMPLETED', 'READING')
                         AND si.deleted_at  IS NULL
                         AND sh.deleted_at  IS NULL

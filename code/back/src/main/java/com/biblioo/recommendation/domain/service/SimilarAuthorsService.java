@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -51,6 +53,7 @@ public class SimilarAuthorsService {
    * [0.6, 0.7] permite que um livro de nível 2 muito bem avaliado preceda um livro de nível 1
    * mal avaliado — comportamento intencional (CT-15).
    */
+  @CacheEvict(value = "rec-sa", key = "#userId")
   public void compute(Long userId) {
     log.info("[SA] Computando trilho SimilarAuthors para userId={}", userId);
 
@@ -92,6 +95,7 @@ public class SimilarAuthorsService {
    * Retorna resultado pré-computado. Quando nenhum resultado existe, computa e persiste
    * o fallback global imediatamente para que chamadas subsequentes sejam rápidas (CT-27).
    */
+  @Cacheable(value = "rec-sa", key = "#userId")
   public SimilarAuthorsResult get(Long userId) {
     List<BookScore> books = resultRepository.findByUserId(userId, TRAIL_TYPE);
 

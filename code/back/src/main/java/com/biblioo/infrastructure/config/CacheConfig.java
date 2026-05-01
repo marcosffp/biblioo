@@ -11,8 +11,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.support.RetryTemplate;
 import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -23,14 +25,31 @@ import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 @EnableRetry
 public class CacheConfig implements CachingConfigurer {
 
-  @Bean
-  RedisCacheManager cacheManager(RedisConnectionFactory factory) {
+  private GenericJacksonJsonRedisSerializer buildSerializer() {
     var typeValidator = BasicPolymorphicTypeValidator.builder().allowIfBaseType(Object.class).build();
-
-    var serializer = GenericJacksonJsonRedisSerializer.builder()
+    return GenericJacksonJsonRedisSerializer.builder()
         .enableDefaultTyping(typeValidator)
         .typePropertyName("@class")
         .build();
+  }
+
+  /**
+   * Template dedicado para operações diretas no Redis (ex.: MGET em batch de livros).
+   * Usa o mesmo serializer do CacheManager para garantir compatibilidade de chaves/valores.
+   */
+  @Bean("bookCacheTemplate")
+  RedisTemplate<String, Object> bookCacheTemplate(RedisConnectionFactory factory) {
+    var template = new RedisTemplate<String, Object>();
+    template.setConnectionFactory(factory);
+    template.setKeySerializer(new StringRedisSerializer());
+    template.setValueSerializer(buildSerializer());
+    template.afterPropertiesSet();
+    return template;
+  }
+
+  @Bean
+  RedisCacheManager cacheManager(RedisConnectionFactory factory) {
+    var serializer = buildSerializer();
 
     var valuePair = RedisSerializationContext.SerializationPair.fromSerializer(serializer);
 
@@ -42,21 +61,46 @@ public class CacheConfig implements CachingConfigurer {
     return RedisCacheManager.builder(factory)
         .cacheDefaults(base)
         // books
-        .withCacheConfiguration("book-search", base.entryTtl(Duration.ofMinutes(5)))
-        .withCacheConfiguration("book-detail", base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("book-search",  base.entryTtl(Duration.ofMinutes(5)))
+        .withCacheConfiguration("book-detail",  base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("google-books", base.entryTtl(Duration.ofMinutes(10)))
         // user
         .withCacheConfiguration("user-profile", base.entryTtl(Duration.ofMinutes(10)))
         // shelf
-        .withCacheConfiguration("shelf-list", base.entryTtl(Duration.ofHours(1)))
-        .withCacheConfiguration("shelf", base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("shelf-list",       base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("shelf",            base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("shelf-items-list", base.entryTtl(Duration.ofHours(1)))
-        .withCacheConfiguration("shelf-item", base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("shelf-item",       base.entryTtl(Duration.ofHours(1)))
         // collection
-        .withCacheConfiguration("collection-list", base.entryTtl(Duration.ofHours(1)))
+        .withCacheConfiguration("collection-list",   base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("collection-detail", base.entryTtl(Duration.ofHours(1)))
         // community
         .withCacheConfiguration("community-membership", base.entryTtl(Duration.ofMinutes(2)))
+        // recommendation — TTLs calibrados por volatilidade × pressão de pico
+        //
+        // rec-byr:  antes 60s — expirava durante o spike (warm-up + 60s = meio do pico).
+        //           Aumentado para 5min: resultado muda apenas quando o usuário termina um livro
+        //           (evento raro), não a cada request. O @CacheEvict no compute() invalida
+        //           imediatamente quando há novo dado real.
+        .withCacheConfiguration("rec-byr", base.entryTtl(Duration.ofMinutes(5)))
+        //
+        // rec-fgn:  antes 2min — razoável, mantido.
+        .withCacheConfiguration("rec-fgn", base.entryTtl(Duration.ofMinutes(5)))
+        //
+        // rec-tic:  trending decai continuamente; TTL curto faz sentido.
+        //           3min mantido — score orgânico muda com eventos de comunidade.
+        .withCacheConfiguration("rec-tic", base.entryTtl(Duration.ofMinutes(3)))
+        //
+        // rec-cs:   novo — CatalogSurprise agora usa @Cacheable.
+        //           TTL de 2min: curto o suficiente para variar o sample entre sessões
+        //           distintas, longo o suficiente para absorver picos de concorrência.
+        //           O @CacheEvict em updateBanditState() invalida quando há interação real.
+        .withCacheConfiguration("rec-cs",  base.entryTtl(Duration.ofMinutes(2)))
+        //
+        // rec-sa / rec-rwi: collaborative filtering e spaced repetition raramente mudam;
+        //                   5min mantidos.
+        .withCacheConfiguration("rec-sa",  base.entryTtl(Duration.ofMinutes(5)))
+        .withCacheConfiguration("rec-rwi", base.entryTtl(Duration.ofMinutes(5)))
         .build();
   }
 

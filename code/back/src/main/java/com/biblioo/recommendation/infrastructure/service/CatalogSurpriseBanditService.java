@@ -8,8 +8,8 @@ import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.connection.StringRedisConnection;
-import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.RedisOperations;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -65,14 +65,17 @@ public class CatalogSurpriseBanditService {
 
     List<Object> pipelineResults =
         redisTemplate.executePipelined(
-            (RedisCallback<Object>)
-                connection -> {
-                  StringRedisConnection sc = (StringRedisConnection) connection;
-                  for (Long bookId : bookIds) {
-                    sc.hGetAll(buildKey(userId, bookId));
-                  }
-                  return null;
-                });
+            new SessionCallback<Object>() {
+              @Override
+              @SuppressWarnings("unchecked")
+              public <K, V> Object execute(RedisOperations<K, V> ops) {
+                RedisOperations<String, String> stringOps = (RedisOperations<String, String>) ops;
+                for (Long bookId : bookIds) {
+                  stringOps.opsForHash().entries(buildKey(userId, bookId));
+                }
+                return null;
+              }
+            });
 
     Map<Long, Double> thetas = new HashMap<>(bookIds.size());
     for (int i = 0; i < bookIds.size(); i++) {

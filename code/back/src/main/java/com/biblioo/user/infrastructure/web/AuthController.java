@@ -8,6 +8,8 @@ import com.biblioo.user.infrastructure.dto.LoginRequest;
 import com.biblioo.user.infrastructure.dto.RefreshTokenRequest;
 import com.biblioo.user.infrastructure.dto.RegisterRequest;
 import com.biblioo.user.infrastructure.dto.mapper.UserMapper;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Auth", description = "Autenticação e cadastro de usuários")
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor

@@ -1,5 +1,13 @@
 ALTER TABLE books ADD FULLTEXT INDEX ft_search_text (search_text);
 
+-- Índices para collaborative filtering (similar-authors)
+-- (book_id, status, shelf_id): cobre o join da CTE similar_users sem tocar em linhas desnecessárias
+CREATE INDEX IF NOT EXISTS idx_si_book_status_shelf ON shelf_items (book_id, status, shelf_id);
+-- (shelf_id, status, book_id): cobre o join inverso (shelf → items) no nível 2 de discovered_authors
+CREATE INDEX IF NOT EXISTS idx_si_shelf_status_book ON shelf_items (shelf_id, status, book_id);
+-- author: elimina full scan no match de VARCHAR entre book_authors e a CTE de autores confirmados/descobertos
+CREATE INDEX IF NOT EXISTS idx_ba_author ON book_authors (author);
+
 ALTER TABLE users MODIFY COLUMN password_hash VARCHAR(255) NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE AFTER email;
 

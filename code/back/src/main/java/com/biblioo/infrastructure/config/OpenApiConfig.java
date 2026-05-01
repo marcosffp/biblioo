@@ -31,3 +31,5 @@ class OpenApiConfig {
                         .description("Insira o access token JWT obtido em /auth/login")));
   }
 }
+
+
