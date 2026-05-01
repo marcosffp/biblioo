@@ -58,6 +58,13 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
+  Future<void> _openCreatePost() async {
+    final result = await context.push<bool>('/post/create');
+    if (result == true && mounted) {
+      _loadFeed(refresh: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
@@ -70,6 +77,8 @@ class _FeedScreenState extends State<FeedScreen> {
     if (_loadedForUserId != authState.session.user.id) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadFeed());
     }
+
+    final currentUserId = authState.session.user.id;
 
     return Scaffold(
       body: RefreshIndicator(
@@ -127,7 +136,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         }
                         return _FeedItemCard(
                           item: loaded.items[index],
-                          currentUserId: authState.session.user.id,
+                          currentUserId: currentUserId,
                         );
                       },
                       childCount:
@@ -140,12 +149,146 @@ class _FeedScreenState extends State<FeedScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'feed_review_search_fab',
-        onPressed: () => context.push('/search'),
-        tooltip: 'Avaliar livro',
-        child: const Icon(Icons.rate_review_outlined),
+      floatingActionButton: _FeedFab(
+        onCreatePost: _openCreatePost,
+        onRateBook: () => context.push('/search'),
       ),
+    );
+  }
+}
+
+class _FeedFab extends StatefulWidget {
+  final VoidCallback onCreatePost;
+  final VoidCallback onRateBook;
+
+  const _FeedFab({required this.onCreatePost, required this.onRateBook});
+
+  @override
+  State<_FeedFab> createState() => _FeedFabState();
+}
+
+class _FeedFabState extends State<_FeedFab>
+    with SingleTickerProviderStateMixin {
+  bool _open = false;
+  late final AnimationController _controller;
+  late final Animation<double> _expandAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _expandAnim = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _open = !_open);
+    if (_open) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  void _close() {
+    setState(() => _open = false);
+    _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        FadeTransition(
+          opacity: _expandAnim,
+          child: ScaleTransition(
+            scale: _expandAnim,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _MiniFabItem(
+                  icon: Icons.edit_note_outlined,
+                  label: 'Criar post',
+                  onTap: () {
+                    _close();
+                    widget.onCreatePost();
+                  },
+                ),
+                const SizedBox(height: 8),
+                _MiniFabItem(
+                  icon: Icons.rate_review_outlined,
+                  label: 'Avaliar livro',
+                  onTap: () {
+                    _close();
+                    widget.onRateBook();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+        FloatingActionButton(
+          heroTag: 'feed_main_fab',
+          onPressed: _toggle,
+          child: AnimatedRotation(
+            turns: _open ? 0.125 : 0,
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              _open ? Icons.close : Icons.add,
+              color: theme.colorScheme.onPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniFabItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _MiniFabItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Material(
+          elevation: 2,
+          borderRadius: BorderRadius.circular(8),
+          color: theme.colorScheme.surfaceContainerHigh,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text(label, style: theme.textTheme.labelMedium),
+          ),
+        ),
+        const SizedBox(width: 8),
+        FloatingActionButton.small(
+          heroTag: 'feed_fab_$label',
+          onPressed: onTap,
+          child: Icon(icon),
+        ),
+      ],
     );
   }
 }
@@ -276,8 +419,10 @@ class _FeedItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!item.isReview) return _TextPostCard(item: item);
-    return _ReviewPostCard(item: item, currentUserId: currentUserId);
+    if (item.isReview) {
+      return _ReviewPostCard(item: item, currentUserId: currentUserId);
+    }
+    return _TextPostCard(item: item, currentUserId: currentUserId);
   }
 }
 
@@ -347,14 +492,25 @@ class _ReviewPostCard extends StatelessWidget {
   }
 }
 
-class _TextPostCard extends StatelessWidget {
+class _TextPostCard extends StatefulWidget {
   final FeedItem item;
+  final int currentUserId;
 
-  const _TextPostCard({required this.item});
+  const _TextPostCard({required this.item, required this.currentUserId});
+
+  @override
+  State<_TextPostCard> createState() => _TextPostCardState();
+}
+
+class _TextPostCardState extends State<_TextPostCard> {
+  bool _spoilerRevealed = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final content = widget.item.content;
+    final hiddenBySpoiler = content.hasSpoiler && !_spoilerRevealed;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -363,15 +519,125 @@ class _TextPostCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _AuthorRow(
-              author: item.authorUsername ?? 'Leitor',
-              avatarUrl: item.authorAvatarUrl,
-              createdAt: item.content.createdAt ?? item.createdAt,
+              author: widget.item.authorUsername ?? 'Leitor',
+              avatarUrl: widget.item.authorAvatarUrl,
+              createdAt: content.createdAt ?? widget.item.createdAt,
             ),
+            if (hiddenBySpoiler) ...[
+              const SizedBox(height: 10),
+              _SpoilerBanner(onReveal: () => setState(() => _spoilerRevealed = true)),
+            ] else ...[
+              if (content.text.trim().isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(content.text, style: theme.textTheme.bodyMedium),
+              ],
+              if (content.images.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _ImageStrip(urls: content.images),
+              ],
+              if (content.gifUrl != null) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    content.gifUrl!,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ],
+              if (content.tags.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _TagRow(tags: content.tags),
+              ],
+            ],
             const SizedBox(height: 12),
-            Text(item.content.text, style: theme.textTheme.bodyMedium),
+            Row(
+              children: [
+                _ActionButton(
+                  icon: Icons.favorite_border,
+                  label: '${content.likeCount}',
+                  onTap: content.userId == widget.currentUserId
+                      ? null
+                      : () => context.read<FeedBloc>().add(
+                          FeedPostLikeToggled(postId: content.id),
+                        ),
+                ),
+                const SizedBox(width: 16),
+                _ActionButton(
+                  icon: Icons.chat_bubble_outline,
+                  label: '${content.commentCount}',
+                  onTap: null,
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SpoilerBanner extends StatelessWidget {
+  final VoidCallback onReveal;
+
+  const _SpoilerBanner({required this.onReveal});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onReveal,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.warning_amber_outlined,
+              size: 16,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Contém spoiler — toque para revelar',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TagRow extends StatelessWidget {
+  final List<String> tags;
+
+  const _TagRow({required this.tags});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: tags
+          .map(
+            (tag) => Text(
+              '#$tag',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -637,19 +903,19 @@ class _EmptyFeed extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.rate_review_outlined,
+            Icons.dynamic_feed_outlined,
             size: 56,
             color: theme.colorScheme.primary,
           ),
           const SizedBox(height: 12),
           Text(
-            'Ainda nao ha avaliacoes no seu feed.',
+            'Ainda nao ha publicacoes no seu feed.',
             style: theme.textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Siga outros leitores ou publique sua primeira avaliacao.',
+            'Siga outros leitores ou crie seu primeiro post.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

@@ -5,6 +5,7 @@ import 'package:biblioo/screens/community/community_detail_screen.dart';
 import 'package:biblioo/screens/shelf/biblioteca_screen.dart';
 import 'package:biblioo/screens/auth/login_screen.dart';
 import 'package:biblioo/screens/auth/register_screen.dart';
+import 'package:biblioo/screens/feed/create_post_screen.dart';
 import 'package:biblioo/screens/feed/feed_screen.dart';
 import 'package:biblioo/screens/notification/notification_screen.dart';
 import 'package:biblioo/screens/profile/edit_profile_screen.dart';
@@ -34,6 +35,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/search',
       builder: (context, state) => const BookSearchScreen(),
+    ),
+
+    // ── CRIAR POST (sem bottom nav) ──────────────────────
+    GoRoute(
+      path: '/post/create',
+      builder: (context, state) => const CreatePostScreen(),
     ),
 
     // ── NOTIFICACOES (sem bottom nav) ───────────────────
