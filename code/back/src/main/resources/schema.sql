@@ -36,6 +36,3 @@ CREATE TABLE IF NOT EXISTS feed_fanout_progress (
     UNIQUE KEY uq_fanout_event (event_id),
     INDEX idx_fanout_status (status)
 );
-
-ALTER TABLE content_images DROP FOREIGN KEY FKqrs10uprmrvqt1735ewv0pa86;
-ALTER TABLE content_tags DROP FOREIGN KEY FK6gdgxyqefi21adsy5to2jvha8;
