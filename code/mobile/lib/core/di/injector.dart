@@ -24,6 +24,7 @@ import 'package:biblioo/features/community/data/community_local_datasource.dart'
 import 'package:biblioo/features/community/data/community_remote_datasource.dart';
 import 'package:biblioo/features/community/data/community_repository.dart';
 import 'package:biblioo/features/feed/bloc/feed_bloc.dart';
+import 'package:biblioo/features/feed/bloc/post_bloc.dart';
 import 'package:biblioo/features/feed/bloc/review_bloc.dart';
 import 'package:biblioo/features/feed/data/feed_local_datasource.dart';
 import 'package:biblioo/features/feed/data/feed_remote_datasource.dart';
@@ -120,6 +121,7 @@ class Injector {
     BlocProvider<CollectionBloc>(create: (_) => CollectionBloc(collectionRepo)),
     BlocProvider<FeedBloc>(create: (_) => FeedBloc(feedRepo)),
     BlocProvider<ReviewBloc>(create: (_) => ReviewBloc(feedRepo)),
+    BlocProvider<PostBloc>(create: (_) => PostBloc(feedRepo)),
     BlocProvider<NotificationBloc>(
       create: (_) => NotificationBloc(notificationRepo),
     ),

@@ -18,3 +18,9 @@ class FeedReviewLikeToggled extends FeedEvent {
 
   FeedReviewLikeToggled({required this.reviewId});
 }
+
+class FeedPostLikeToggled extends FeedEvent {
+  final int postId;
+
+  FeedPostLikeToggled({required this.postId});
+}

@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:biblioo/features/feed/domain/feed_item.dart';
+import 'package:biblioo/features/feed/domain/post.dart';
 import 'package:biblioo/features/feed/domain/review.dart';
 
 import 'feed_local_datasource.dart';
@@ -40,6 +43,8 @@ class FeedRepository {
     }
   }
 
+  // ── reviews ──────────────────────────────────────────────────────────────
+
   Future<Review?> getMyReviewForBook({
     required int userId,
     required int bookId,
@@ -69,6 +74,33 @@ class FeedRepository {
 
   Future<bool> toggleReviewLike(int reviewId) {
     return _remote.toggleReviewLike(reviewId);
+  }
+
+  // ── posts ────────────────────────────────────────────────────────────────
+
+  Future<Post> createPost({
+    required String text,
+    List<String> tags = const [],
+    bool hasSpoiler = false,
+    List<Uint8List> images = const [],
+    List<String> imageNames = const [],
+    Uint8List? gif,
+    String? gifName,
+  }) async {
+    final model = await _remote.createPost(
+      text: text,
+      tags: tags,
+      hasSpoiler: hasSpoiler,
+      images: images,
+      imageNames: imageNames,
+      gif: gif,
+      gifName: gifName,
+    );
+    return model.toEntity();
+  }
+
+  Future<bool> togglePostLike(int postId) {
+    return _remote.togglePostLike(postId);
   }
 }
 
