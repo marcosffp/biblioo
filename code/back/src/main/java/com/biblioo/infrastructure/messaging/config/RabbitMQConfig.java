@@ -465,6 +465,50 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(rwiDlq).to(dlxExchange).with(RWI_DLQ_ROUTING_KEY);
   }
 
+  // ── Email (SendGrid via RabbitMQ) ────────────────────────────────────────────
+  public static final String EMAIL_QUEUE = "biblioo.email";
+  public static final String EMAIL_DLQ = "biblioo.email.dlq";
+  public static final String EMAIL_ROUTING_PATTERN = "email.#";
+  public static final String EMAIL_DLQ_ROUTING_KEY = "email.dead";
+  public static final String EMAIL_PASSWORD_RESET_ROUTING_KEY = "email.password-reset";
+  public static final String EMAIL_PASSWORD_CHANGED_ROUTING_KEY = "email.password-changed";
+  public static final String EVENT_PASSWORD_RESET_REQUESTED = "PASSWORD_RESET_REQUESTED";
+  public static final String EVENT_PASSWORD_CHANGED = "PASSWORD_CHANGED";
+
+  @Bean
+  Queue emailQueue() {
+    return QueueBuilder.durable(EMAIL_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", EMAIL_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue emailDlq() {
+    return QueueBuilder.durable(EMAIL_DLQ).build();
+  }
+
+  @Bean
+  Binding emailBinding(Queue emailQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(emailQueue).to(mainExchange).with(EMAIL_ROUTING_PATTERN);
+  }
+
+  @Bean
+  Binding emailDlqBinding(Queue emailDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(emailDlq).to(dlxExchange).with(EMAIL_DLQ_ROUTING_KEY);
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory emailListenerFactory(
+      ConnectionFactory connectionFactory, Jackson2JsonMessageConverter messageConverter) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
   // ── Community WebSocket Broadcast beans ─────────────────────────────────────
 
   @Bean

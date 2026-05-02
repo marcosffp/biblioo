@@ -4,18 +4,13 @@ import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const CONFIG = {
   baseUrl:  'http://localhost:8080',
-  poolSize: 80,
+  poolSize: 450,
   password: 'Senha@12345',
-  prefix:   'loadrolldice',
-
-  load: {
-    vus:      60,
-    duration: '2m',
-  },
+  prefix:   'stressrolldice',
 
   thresholds: {
     p95:      2000,
-    failRate: 0.02,
+    failRate: 0.05,
   },
 
   sleep: {
@@ -73,13 +68,19 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '300s',
+  setupTimeout: '600s',
   scenarios: {
-    rollDice: {
-      executor: 'constant-vus',
-      vus:      CONFIG.load.vus,
-      duration: CONFIG.load.duration,
-      exec:     'execRollDice',
+    rollDiceStress: {
+      executor:         'ramping-vus',
+      startVUs:         0,
+      stages: [
+        { duration: '1m', target: 100 },
+        { duration: '1m', target: 200 },
+        { duration: '1m', target: 300 },
+        { duration: '1m', target: 400 },
+      ],
+      gracefulRampDown: '10s',
+      exec:             'execRollDice',
     },
   },
   thresholds: {
@@ -101,8 +102,8 @@ export function execRollDice(data) {
   );
 
   const ok = check(r, {
-    'roll-dice 200 ou 204':        (res) => res.status === 200 || res.status === 204,
-    'roll-dice tem id (se 200)':   (res) => res.status !== 200 || res.json('id') !== null,
+    'roll-dice 200 ou 204':       (res) => res.status === 200 || res.status === 204,
+    'roll-dice tem id (se 200)':  (res) => res.status !== 200 || res.json('id') !== null,
   });
 
   if (!ok) logError('roll-dice falhou', { status: r.status, body: r.body });

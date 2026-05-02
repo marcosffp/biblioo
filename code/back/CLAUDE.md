@@ -54,6 +54,8 @@ Acessos: API `:8080` · Swagger `:8080/swagger-ui.html` · Grafana `:3001` · Pr
 `GOOGLE_BOOKS_API_KEY` · `GOOGLE_CLIENT_ID` ·
 `CLOUDINARY_URL` ·
 `FIREBASE_SERVICE_ACCOUNT_BASE64` ·
+`SENDGRID_API_KEY` · `SENDGRID_FROM_EMAIL` ·
+`FRONTEND_URL` ·
 `APP_WEBSOCKET_ALLOWED_ORIGINS`
 
 **Nunca versionar `.env` em produção.**

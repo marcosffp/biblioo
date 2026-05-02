@@ -6,9 +6,13 @@ import com.biblioo.feed.domain.exception.FeedPostBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
 import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
+import com.biblioo.user.domain.exception.GoogleAccountNeedsPasswordException;
 import com.biblioo.user.domain.exception.GoogleAuthException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
+import com.biblioo.user.domain.exception.InvalidPasswordResetTokenException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
+import com.biblioo.user.domain.exception.PasswordAlreadyExistsException;
+import com.biblioo.user.domain.exception.PasswordResetRateLimitException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
 import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -94,6 +98,24 @@ public class GlobalExceptionHandler {
   ResponseEntity<ErrorResponse> handleGoogleAuth(
       GoogleAuthException ex, HttpServletRequest request) {
     return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(PasswordResetRateLimitException.class)
+  ResponseEntity<ErrorResponse> handlePasswordResetRateLimit(
+      PasswordResetRateLimitException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(InvalidPasswordResetTokenException.class)
+  ResponseEntity<ErrorResponse> handleInvalidPasswordResetToken(
+      InvalidPasswordResetTokenException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(PasswordAlreadyExistsException.class)
+  ResponseEntity<ErrorResponse> handlePasswordAlreadyExists(
+      PasswordAlreadyExistsException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
   @ExceptionHandler(AlreadyFollowingException.class)
@@ -206,6 +228,12 @@ public class GlobalExceptionHandler {
       FeedPostBusinessException ex, HttpServletRequest request) {
     return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
   }
+
+  @ExceptionHandler(GoogleAccountNeedsPasswordException.class)
+ResponseEntity<ErrorResponse> handleGoogleAccountNeedsPassword(
+    GoogleAccountNeedsPasswordException ex, HttpServletRequest request) {
+  return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+}
 
   // ── Helper ────────────────────────────────────────────────────────────────
 

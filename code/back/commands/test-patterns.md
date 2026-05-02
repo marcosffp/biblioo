@@ -5,16 +5,13 @@ description: "Use quando fornecer um controller e pedir testes; criar arquivo de
 
 ## Estado atual
 
-**43 testes K6** em `performance-tests/` + **1 teste Java** trivial (`BibliooApplicationTests` — só context load).
-Padrões Java abaixo são os padrões a estabelecer com base na stack disponível.
+**45 testes K6** em `performance-tests/`
 
 ---
 
 ## 1. Stack
 
 **K6 (padrão existente — performance):** `http`, `check`, `sleep`, `SharedArray`, `uuidv4`, `Trend`, `Rate`. Executors: `constant-vus` (load), `stages` (spike/stress).
-
-**Java (a estabelecer — unitário/integração):** JUnit 5, Mockito (`@MockBean`), AssertJ (`assertThat`), `@WebMvcTest`, `spring-security-test` (`@WithMockUser`).
 
 ---
 
@@ -51,6 +48,7 @@ Antes de escrever `setup()`, ler nesta ordem:
 | Collection | register → login |
 | Community | register owner → POST /communities → register members → POST /communities/{id}/join |
 | Recommendation | register → login (grafo Neo4j deve ter dados de leitura pré-existentes) |
+| DiceRoll | register → login (usuário novo cai no fallback de livros populares) |
 | User profile | register → login (público por padrão) |
 
 **Regras de negócio críticas para o setup:**
@@ -133,47 +131,6 @@ export function setup() {
   return { users };
 }
 ```
-
----
-
-## 7. Java — Estrutura de arquivo e mocks
-
-```java
-@WebMvcTest(XxxController.class)
-class XxxControllerTest {
-  @Autowired MockMvc mockMvc;
-  @Autowired ObjectMapper objectMapper;
-  @MockBean XxxUseCase xxxUseCase;        // um @MockBean por dependência do controller
-
-  private static final String BASE = "/rota";
-  private static final Long USER_ID = 1L; // principal.getUsername() = "1"
-
-  // happy path → erros de validação → erros de serviço → erros de auth
-  // helpers privados ao final
-}
-```
-
-- Auth: `@WithMockUser(username = "1")` em métodos que usam `@AuthenticationPrincipal`
-- Stub: `given(useCase.método(any())).willReturn(obj)` (BDDMockito)
-- Erro: `given(useCase.método(any())).willThrow(new XxxException(...))`
-- Assertion: `andExpect(status().isCreated())` + `andExpect(jsonPath("$.id").exists())`
-- Nunca `@SpringBootTest` em testes de controller; nunca `Mockito.verify()`
-
----
-
-## 8. Java — Casos obrigatórios por endpoint
-
-| Caso | Status |
-|---|---|
-| Happy path válido | 201 / 200 / 204 |
-| `@Valid` falha | 400 |
-| `XxxNotFoundException` | 404 |
-| `XxxBusinessException` | 400 |
-| Conflito (`EmailAlreadyExists`, `ShelfBusinessException`) | 409 |
-| Sem autenticação (endpoint protegido) | 401 |
-
-Endpoints públicos (`/auth/**`, GET /books, GET /users/{username}`): omitir casos de auth.
-Endpoints multipart (`ReviewController`): usar `MockMultipartFile`.
 
 ---
 

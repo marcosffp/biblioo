@@ -1,6 +1,7 @@
 package com.biblioo.user.infrastructure.auth;
 
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
+import com.biblioo.user.domain.exception.GoogleAccountNeedsPasswordException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
@@ -66,18 +67,25 @@ public class AuthServiceImpl implements AuthUseCase {
     return buildAuthResult(user);
   }
 
-  @Override
-  public AuthResult login(String email, String rawPassword) {
-    User user = userRepo.findByEmail(email).orElseThrow(InvalidCredentialsException::new);
+@Override
+public AuthResult login(String email, String rawPassword) {
+  User user = userRepo.findByEmail(email).orElseThrow(InvalidCredentialsException::new);
 
-    if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
-      throw new InvalidCredentialsException();
+  if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+    if (user.getGoogleId() != null && !user.getGoogleId().isBlank()) {
+      throw new GoogleAccountNeedsPasswordException();
     }
-
-    AuthResult result = buildAuthResult(user);
-    tokenCleanup.scheduleCleanup(user.getId());
-    return result;
+    throw new InvalidCredentialsException();
   }
+
+  if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+    throw new InvalidCredentialsException();
+  }
+
+  AuthResult result = buildAuthResult(user);
+  tokenCleanup.scheduleCleanup(user.getId());
+  return result;
+}
 
   @Override
   public AuthResult refresh(String refreshToken) {

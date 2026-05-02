@@ -39,19 +39,20 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 
 ## user
 
-**Contratos (port/in):** `AuthUseCase` register/login/refresh/logout/Google · `UserUseCase` perfil/follow/busca
+**Contratos (port/in):** `AuthUseCase` register/login/refresh/logout/Google · `UserUseCase` perfil/follow/busca · `PasswordResetUseCase` requestPasswordReset/resetPassword/createPassword
 
-**Entidades:** `User` · `UserFollow` (ACCEPTED/PENDING/REJECTED) · `RefreshToken` · `DeviceToken`
+**Entidades:** `User` · `UserFollow` (ACCEPTED/PENDING/REJECTED) · `RefreshToken` · `DeviceToken` · `PasswordResetToken` (30 min expiry, max 3/hora)
 
 **Controllers:**
 - `AuthController /auth` → POST /register, /login, /refresh, /logout, /google
+- `PasswordResetController /auth` → POST /forgot-password, /reset-password, /create-password (autenticado)
 - `UserController /users` → GET /me, GET /{username}, PUT /me, PUT /me/visibility, POST /me/avatar, POST /me/banner, POST /{username}/follow, DELETE /{username}/follow, GET /me/follow-requests, POST+DELETE /me/follow-requests/{username}, DELETE /me, GET ?q=, GET /{username}/followers, GET /{username}/following
 
-**Serviços:** `AuthServiceImpl` · `UserService` · `CachedUserService` (decorator Redis) · `JwtService`
+**Serviços:** `AuthServiceImpl` · `PasswordResetService` · `UserService` · `CachedUserService` (decorator Redis) · `JwtService`
 
 **Security:** `JwtAuthenticationFilter` · `UserDetailsServiceAdapter` · `GoogleTokenVerifierAdapter`
 
-**Adapters:** `OpenSearchUserAdapter` → busca usuários · `CloudinaryUploadAdapter` → avatar/banner
+**Adapters:** `OpenSearchUserAdapter` → busca usuários · `CloudinaryUploadAdapter` → avatar/banner · `RabbitMQPasswordResetEmailAdapter` → publica eventos de e-mail via Outbox
 
 ---
 
@@ -132,7 +133,9 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 
 **RabbitMQ:** `RabbitMQConfig` → exchange `biblioo.events` (topic) + DLX `biblioo.events.dlx`; define todas as filas acima
 
-**Publishers:** `RabbitMQEventPublisher` · `RabbitMQShelfEventAdapter` · `RabbitMQUserNotificationAdapter` · `RabbitMQFeedEventAdapter`
+**Publishers:** `RabbitMQEventPublisher` · `RabbitMQShelfEventAdapter` · `RabbitMQUserNotificationAdapter` · `RabbitMQFeedEventAdapter` · `RabbitMQPasswordResetEmailAdapter` → fila `biblioo.email` (email.#)
+
+**Email Consumer:** `EmailConsumer` → `EMAIL_QUEUE` (email.#) · chama SendGrid REST API via `RestClient`
 
 **Outbox:** `OutboxEvent` (@Entity) + `OutboxEventService` → publicação transacional confiável
 

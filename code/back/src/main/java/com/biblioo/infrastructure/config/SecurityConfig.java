@@ -39,6 +39,9 @@ public class SecurityConfig {
                     // JwtChannelInterceptor
                     .requestMatchers("/ws/**")
                     .permitAll()
+                    // create-password exige autenticação: declarado antes do permitAll de /auth/**
+                    .requestMatchers(HttpMethod.POST, "/auth/create-password")
+                    .authenticated()
                     .requestMatchers("/auth/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/users")
