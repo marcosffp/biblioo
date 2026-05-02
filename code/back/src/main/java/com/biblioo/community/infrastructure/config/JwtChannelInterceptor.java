@@ -1,8 +1,10 @@
 package com.biblioo.community.infrastructure.config;
 
 import com.biblioo.user.infrastructure.security.JwtService;
+
+import lombok.RequiredArgsConstructor;
+
 import java.util.Collections;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -14,9 +16,10 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class JwtChannelInterceptor implements ChannelInterceptor {
 
-  @Autowired private JwtService jwtService;
+  private final JwtService jwtService;
 
   @Override
   public Message<?> preSend(Message<?> message, MessageChannel channel) {

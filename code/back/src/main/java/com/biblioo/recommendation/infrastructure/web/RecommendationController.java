@@ -9,9 +9,11 @@ import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
 import com.biblioo.recommendation.domain.model.RereadWorthItResult;
 import com.biblioo.recommendation.domain.model.SimilarAuthorsResult;
 import com.biblioo.recommendation.domain.model.TrendingInCommunitiesResult;
+import com.biblioo.recommendation.domain.port.in.DiceRollUseCase;
 import com.biblioo.recommendation.domain.port.in.RecommendationUseCase;
 import com.biblioo.recommendation.infrastructure.dto.BecauseYouReadResponse;
 import com.biblioo.recommendation.infrastructure.dto.CatalogSurpriseResponse;
+import com.biblioo.recommendation.infrastructure.dto.DiceRollResponse;
 import com.biblioo.recommendation.infrastructure.dto.FavoriteGenreNowResponse;
 import com.biblioo.recommendation.infrastructure.dto.RecommendationResponse;
 import com.biblioo.recommendation.infrastructure.dto.RereadWorthItResponse;
@@ -37,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RecommendationController {
 
   private final RecommendationUseCase recommendationUseCase;
+  private final DiceRollUseCase diceRollUseCase;
   private final BookUseCase bookUseCase;
 
   @GetMapping("/because-you-read")
@@ -163,6 +166,35 @@ public class RecommendationController {
     return ResponseEntity.ok(
         RereadWorthItResponse.builder()
             .books(toRecommendationResponses(result.getBooks()))
+            .build());
+  }
+
+  @GetMapping("/roll-dice")
+  @Operation(
+      summary = "Jogar o Dado",
+      description =
+          "Sorteia um livro de forma uniforme a partir do pool combinado das 6 trilhas de "
+              + "recomendação do usuário (sem peso, sem histórico). Quando nenhuma trilha possui "
+              + "candidatos (usuário novo), o sorteio recai sobre os livros mais populares da "
+              + "plataforma. Retorna 204 apenas se o catálogo estiver completamente vazio.")
+  public ResponseEntity<?> rollDice(@AuthenticationPrincipal UserDetails principal) {
+    Long userId = Long.parseLong(principal.getUsername());
+    Long bookId = diceRollUseCase.rollDice(userId).getBookId();
+
+    if (bookId == null) {
+      return ResponseEntity.noContent().build();
+    }
+
+    Book book = bookUseCase.getById(bookId);
+    return ResponseEntity.ok(
+        DiceRollResponse.builder()
+            .id(book.getId())
+            .title(book.getTitle())
+            .description(book.getDescription())
+            .pageCount(book.getPageCount())
+            .readerCount(book.getReaderCount())
+            .averageRating(book.getAverageRating())
+            .coverUrl(book.getCoverUrl())
             .build());
   }
 

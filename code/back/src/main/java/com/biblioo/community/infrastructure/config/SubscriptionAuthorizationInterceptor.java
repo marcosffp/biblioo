@@ -1,10 +1,12 @@
 package com.biblioo.community.infrastructure.config;
 
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
+
+import lombok.RequiredArgsConstructor;
+
 import java.security.Principal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -14,12 +16,13 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class SubscriptionAuthorizationInterceptor implements ChannelInterceptor {
 
   private static final Pattern COMMUNITY_TOPIC =
       Pattern.compile("^/topic/community\\.(\\d+)(?:\\..*)?$");
 
-  @Autowired private CommunityMemberRepository memberRepository;
+  private final CommunityMemberRepository memberRepository;
 
   @Override
   public Message<?> preSend(Message<?> message, MessageChannel channel) {
