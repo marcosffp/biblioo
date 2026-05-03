@@ -8,13 +8,24 @@ import 'package:biblioo/features/feed/bloc/review_bloc.dart';
 import 'package:biblioo/features/feed/bloc/review_event.dart';
 import 'package:biblioo/features/feed/bloc/review_state.dart';
 import 'package:biblioo/features/feed/domain/review.dart';
+import 'package:biblioo/features/shelf/bloc/shelf_bloc.dart';
+import 'package:biblioo/features/shelf/bloc/shelf_event.dart';
+import 'package:biblioo/features/shelf/bloc/shelf_state.dart';
+import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class BookScreen extends StatefulWidget {
   final int bookId;
+  final int? shelfId;
+  final ShelfItem? shelfItem;
 
-  const BookScreen({super.key, required this.bookId});
+  const BookScreen({
+    super.key,
+    required this.bookId,
+    this.shelfId,
+    this.shelfItem,
+  });
 
   @override
   State<BookScreen> createState() => _BookScreenState();
@@ -22,12 +33,40 @@ class BookScreen extends StatefulWidget {
 
 class _BookScreenState extends State<BookScreen> {
   late Future<Book> _future;
+  ShelfItem? _shelfItem;
+  int? _shelfId;
 
   @override
   void initState() {
     super.initState();
     _future = Injector.instance.bookRepo.getById(widget.bookId);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadReview());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadReview();
+      _resolveShelfContext();
+    });
+  }
+
+  void _resolveShelfContext() {
+    if (!mounted) return;
+    if (widget.shelfItem != null && widget.shelfId != null) {
+      setState(() {
+        _shelfItem = widget.shelfItem;
+        _shelfId = widget.shelfId;
+      });
+      return;
+    }
+    // Fallback: look up in current ShelfBloc state (user browsed from shelf)
+    final state = context.read<ShelfBloc>().state;
+    if (state is ShelfItemsLoaded) {
+      try {
+        final item =
+            state.items.firstWhere((it) => it.bookId == widget.bookId);
+        setState(() {
+          _shelfItem = item;
+          _shelfId = state.shelfId;
+        });
+      } catch (_) {}
+    }
   }
 
   Future<void> _reload() async {
@@ -70,7 +109,15 @@ class _BookScreenState extends State<BookScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return BlocListener<ShelfBloc, ShelfState>(
+      listener: (context, state) {
+        if (state is ShelfProgressUpdateSuccess && _shelfItem != null) {
+          if (state.updatedItem.id == _shelfItem!.id) {
+            setState(() => _shelfItem = state.updatedItem);
+          }
+        }
+      },
+      child: Scaffold(
       body: FutureBuilder<Book>(
         future: _future,
         builder: (context, snapshot) {
@@ -167,6 +214,16 @@ class _BookScreenState extends State<BookScreen> {
                           ],
                         ),
                       ),
+                      if (_shelfItem != null && _shelfId != null) ...[
+                        const SizedBox(height: 20),
+                        _Section(
+                          title: 'Progresso de leitura',
+                          child: _ProgressSection(
+                            shelfId: _shelfId!,
+                            item: _shelfItem!,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       BlocBuilder<ReviewBloc, ReviewState>(
                         builder: (context, reviewState) {
@@ -188,6 +245,7 @@ class _BookScreenState extends State<BookScreen> {
             ],
           );
         },
+      ),
       ),
     );
   }
@@ -638,6 +696,166 @@ class _ReviewSheetState extends State<_ReviewSheet> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ProgressSection extends StatefulWidget {
+  final int shelfId;
+  final ShelfItem item;
+
+  const _ProgressSection({required this.shelfId, required this.item});
+
+  @override
+  State<_ProgressSection> createState() => _ProgressSectionState();
+}
+
+class _ProgressSectionState extends State<_ProgressSection> {
+  late int _currentPage;
+  bool _awaitingProgressSave = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPage = widget.item.currentPage ?? 0;
+  }
+
+  int get _totalPages => widget.item.totalPages ?? 0;
+  double get _progressFraction =>
+      _totalPages > 0 ? (_currentPage / _totalPages).clamp(0.0, 1.0) : 0;
+  int get _progressPercent => (_progressFraction * 100).round();
+
+  void _decrement() {
+    if (_currentPage > 0) setState(() => _currentPage--);
+  }
+
+  void _increment() {
+    if (_totalPages == 0 || _currentPage < _totalPages) {
+      setState(() => _currentPage++);
+    }
+  }
+
+  void _save(BuildContext context) {
+    setState(() => _awaitingProgressSave = true);
+    context.read<ShelfBloc>().add(ShelfItemProgressUpdated(
+      shelfId: widget.shelfId,
+      itemId: widget.item.id,
+      currentPage: _currentPage,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return BlocListener<ShelfBloc, ShelfState>(
+      listener: (context, state) {
+        if (!_awaitingProgressSave) return;
+        if (state is ShelfProgressUpdateSuccess) {
+          setState(() => _awaitingProgressSave = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Progresso salvo!'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: theme.colorScheme.primary,
+            ),
+          );
+        } else if (state is ShelfError) {
+          setState(() => _awaitingProgressSave = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: theme.colorScheme.error,
+            ),
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'p. $_currentPage${_totalPages > 0 ? ' / $_totalPages' : ''}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  '$_progressPercent%',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: _progressFraction,
+                minHeight: 8,
+                backgroundColor:
+                    theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton.filled(
+                  onPressed: _awaitingProgressSave ? null : _decrement,
+                  icon: const Icon(Icons.remove, size: 18),
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(40, 40),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  '$_currentPage',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                IconButton.filled(
+                  onPressed: _awaitingProgressSave ? null : _increment,
+                  icon: const Icon(Icons.add, size: 18),
+                  style: IconButton.styleFrom(
+                    minimumSize: const Size(40, 40),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _awaitingProgressSave ? null : () => _save(context),
+                child: _awaitingProgressSave
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Salvar progresso'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

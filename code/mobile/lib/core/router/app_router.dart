@@ -1,4 +1,5 @@
 import 'package:biblioo/core/shell/main_shell.dart';
+import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
 import 'package:biblioo/screens/community/community_list_screen.dart';
 import 'package:biblioo/screens/community/community_detail_screen.dart';
@@ -52,18 +53,26 @@ final appRouter = GoRouter(
     // ── LIVRO (fora do shell, exibido em tela própria) ───
     GoRoute(
       path: '/book/:id',
-      pageBuilder: (context, state) => CustomTransitionPage<void>(
-        key: state.pageKey,
-        child: BookScreen(bookId: int.parse(state.pathParameters['id']!)),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-            SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 1),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            ),
-      ),
+      pageBuilder: (context, state) {
+        final extra = state.extra as Map?;
+        return CustomTransitionPage<void>(
+          key: state.pageKey,
+          child: BookScreen(
+            bookId: int.parse(state.pathParameters['id']!),
+            shelfId: extra?['shelfId'] as int?,
+            shelfItem: extra?['item'] as ShelfItem?,
+          ),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) =>
+                  SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 1),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+        );
+      },
     ),
 
     // ── PERFIL PUBLICO (fora do shell, exibido como janela elevada) ─────
