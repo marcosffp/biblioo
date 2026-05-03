@@ -518,10 +518,21 @@ class _ShelfDetailScreenContentState extends State<ShelfDetailScreenContent> {
                 backgroundColor: theme.colorScheme.primary,
               ),
             );
-            // Recarrega itens após mutação
+            // Recarrega itens após mutação (status, add, remove, etc.)
             context
                 .read<ShelfBloc>()
                 .add(ShelfItemsLoadRequested(widget.shelf.id));
+          }
+          if (state is ShelfProgressUpdateSuccess) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Progresso atualizado!'),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: theme.colorScheme.primary,
+              ),
+            );
+            // Sem reload: o bloc já atualizou a lista em memória com os dados
+            // completos (currentPage/totalPages) vindos do servidor.
           }
           if (state is ShelfError) {
             ScaffoldMessenger.of(context).showSnackBar(

@@ -26,7 +26,10 @@ class ShelfItemCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/book/${item.bookId}'),
+        onTap: () => context.push(
+          '/book/${item.bookId}',
+          extra: {'shelfId': shelfId, 'item': item},
+        ),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -55,9 +58,12 @@ class ShelfItemCard extends StatelessWidget {
                   _buildStatusChip(theme),
                   const SizedBox(height: 8),
 
-                  // ── Barra de progresso (se ativo) ──
-                  if (item.isActiveReading) ...[
+                  // ── Progresso de leitura ──
+                  if (item.isActiveReading || item.status == ReadingStatus.completed) ...[
                     _buildProgressBar(theme),
+                    const SizedBox(height: 4),
+                  ] else if (item.totalPages != null && item.totalPages! > 0) ...[
+                    _buildPageCountOnly(theme),
                     const SizedBox(height: 4),
                   ],
                 ],
@@ -165,31 +171,54 @@ class ShelfItemCard extends StatelessWidget {
 
   Widget _buildProgressBar(ThemeData theme) {
     final percent = (item.progressPercent ?? 0) / 100.0;
+    final color = item.status == ReadingStatus.completed
+        ? const Color(0xFF2E7D32)
+        : theme.colorScheme.primary;
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percent.clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor:
-                  theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: percent.clamp(0.0, 1.0),
+                  minHeight: 5,
+                  backgroundColor:
+                      theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            Text(
+              '${item.progressPercent ?? 0}%',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
+        const SizedBox(height: 2),
         Text(
-          '${item.progressPercent ?? 0}%',
+          'p. ${item.currentPage ?? 0} / ${item.totalPages ?? 0}',
           style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPageCountOnly(ThemeData theme) {
+    return Text(
+      'p. ${item.currentPage ?? 0} / ${item.totalPages ?? 0}',
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
     );
   }
 

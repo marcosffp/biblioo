@@ -1,4 +1,5 @@
 import 'package:biblioo/features/shelf/domain/reading_status.dart';
+import 'package:biblioo/features/shelf/data/models/shelf_item_model.dart';
 import 'package:biblioo/features/shelf/domain/shelf.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'shelf_local_datasource.dart';
@@ -81,8 +82,9 @@ class ShelfRepository {
   Future<List<ShelfItem>> getItems(int shelfId) async {
     try {
       final remote = await _remote.getItems(shelfId);
-      await _local.saveItems(shelfId, remote);
-      return remote.map((m) => m.toEntity()).toList();
+      final hydrated = await _hydrateMissingPageDetails(shelfId, remote);
+      await _local.saveItems(shelfId, hydrated);
+      return hydrated.map((m) => m.toEntity()).toList();
     } catch (_) {
       final local = _local.getCachedItems(shelfId);
       return local.map((m) => m.toEntity()).toList();
@@ -121,6 +123,7 @@ class ShelfRepository {
       itemId: itemId,
       currentPage: currentPage,
     );
+    await _upsertCachedItem(shelfId, model);
     return model.toEntity();
   }
 
@@ -134,6 +137,42 @@ class ShelfRepository {
       itemId: itemId,
       newStatus: newStatus,
     );
+    await _upsertCachedItem(shelfId, model);
     return model.toEntity();
+  }
+
+  Future<List<ShelfItemModel>> _hydrateMissingPageDetails(
+    int shelfId,
+    List<ShelfItemModel> items,
+  ) async {
+    if (items.every(_hasPageDetails)) return items;
+
+    return Future.wait(
+      items.map((item) async {
+        if (_hasPageDetails(item)) return item;
+
+        try {
+          return await _remote.getItem(shelfId, item.id);
+        } catch (_) {
+          return item;
+        }
+      }),
+    );
+  }
+
+  bool _hasPageDetails(ShelfItemModel item) =>
+      item.currentPage != null && item.totalPages != null;
+
+  Future<void> _upsertCachedItem(int shelfId, ShelfItemModel model) async {
+    final cached = _local.getCachedItems(shelfId);
+    final index = cached.indexWhere((item) => item.id == model.id);
+
+    if (index == -1) {
+      cached.add(model);
+    } else {
+      cached[index] = model;
+    }
+
+    await _local.saveItems(shelfId, cached);
   }
 }
