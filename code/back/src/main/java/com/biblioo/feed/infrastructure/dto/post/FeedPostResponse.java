@@ -6,6 +6,7 @@ import java.util.List;
 public record FeedPostResponse(
     Long id,
     Long userId,
+    Long bookId,
     String text,
     List<String> images,
     String gifUrl,

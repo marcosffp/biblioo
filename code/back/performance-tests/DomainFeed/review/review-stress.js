@@ -224,16 +224,11 @@ export default function (data) {
   sleep(CONFIG.sleep.betweenSteps);
 
   // ── CREATE ──────────────────────────────────────────────────────────────
-  const mp = multipart({
-    bookId:  String(bookId),
-    rating:  '4',
-    text:    `Stress review VU${__VU} iter${__ITER}`,
-    publish: 'false',
-  });
+  // ReviewController: POST /feed/reviews — @RequestParam (sem multipart)
   const createRes = http.post(
-    `${CONFIG.base}/feed/reviews`,
-    mp.body,
-    { headers: { 'Content-Type': mp.contentType, Authorization: `Bearer ${accessToken}` } }
+    `${CONFIG.base}/feed/reviews?bookId=${bookId}&rating=4&text=${encodeURIComponent(`Stress review VU${__VU} iter${__ITER}`)}`,
+    null,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
   // FIX #7 (validação mais profunda): em 201 também valida o id retornado.

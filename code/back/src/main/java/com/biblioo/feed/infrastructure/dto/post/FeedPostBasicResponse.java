@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public record FeedPostBasicResponse(
     Long id,
     Long userId,
+    Long bookId,
     String text,
     Integer commentCount,
     Integer likeCount,

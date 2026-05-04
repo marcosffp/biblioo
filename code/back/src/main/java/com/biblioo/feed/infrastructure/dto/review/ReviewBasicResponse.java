@@ -5,7 +5,5 @@ public record ReviewBasicResponse(
     Long userId,
     Long bookId,
     Integer rating,
-    Boolean hasSpoiler,
     Integer commentCount,
-    Integer likeCount,
-    Boolean isPublished) {}
+    Integer likeCount) {}

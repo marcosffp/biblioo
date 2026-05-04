@@ -154,9 +154,11 @@ export function crudPost(data) {
   const likerToken = liker.accessToken;
 
   // ── CREATE ────────────────────────────────────────────────────────────────
+  // bookId é opcional; inclui apenas em metade das iterações para testar ambos os casos
   const mp = multipart({
     text:       `Post de load test VU${__VU} iter${__ITER}`,
     hasSpoiler: 'false',
+    ...(__ITER % 2 === 0 ? { bookId: '1' } : {}),
   });
 
   const createRes = http.post(
@@ -221,6 +223,7 @@ export function crudPost(data) {
   const updMp = multipart({
     text:       `Post atualizado VU${__VU} iter${__ITER}`,
     hasSpoiler: 'false',
+    ...(__ITER % 2 === 0 ? { bookId: '1' } : {}),
   });
 
   const updateRes = http.put(

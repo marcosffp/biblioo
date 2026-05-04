@@ -1,5 +1,6 @@
 package com.biblioo.feed.domain.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.PrimaryKeyJoinColumn;
 import jakarta.persistence.Table;
@@ -15,4 +16,8 @@ import lombok.experimental.SuperBuilder;
 @Entity
 @Table(name = "feed_posts")
 @PrimaryKeyJoinColumn(name = "id")
-public class FeedPost extends FeedContent {}
+public class FeedPost extends FeedContent {
+
+  @Column(name = "book_id")
+  private Long bookId;
+}

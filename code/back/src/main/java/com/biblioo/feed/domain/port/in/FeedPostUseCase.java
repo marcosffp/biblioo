@@ -9,6 +9,7 @@ public interface FeedPostUseCase {
 
   FeedPost createPost(
       Long userId,
+      Long bookId,
       String text,
       List<byte[]> images,
       byte[] gif,
@@ -18,6 +19,7 @@ public interface FeedPostUseCase {
   FeedPost updatePost(
       Long userId,
       Long postId,
+      Long bookId,
       String text,
       List<byte[]> newImages,
       List<String> imagesToDeleteUrls,

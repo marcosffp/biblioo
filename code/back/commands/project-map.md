@@ -60,13 +60,13 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 
 **Contratos (port/in):** `ReviewUseCase` · `FeedPostUseCase` · `CommentUseCase` · `FeedUseCase`
 
-**Entidades:** `Review` → herda `Content` (soft delete) · `FeedPost` → herda `Content` · `Comment` · `Like` · `FeedItem` (read-side fanout) · `FeedFanoutProgress`
+**Entidades:** `Review` → herda `Content` (soft delete; sem tags/spoiler/imagens/gif) · `FeedPost` → herda `Content` com `bookId` opcional · `Comment` · `Like` · `FeedItem` (read-side fanout) · `FeedFanoutProgress`
 
 **Controllers:**
 - `FeedController /feed` → GET / (cursor+size)
-- `ReviewController /feed/reviews` → POST, PUT /{id}, DELETE /{id}, GET /{id}, POST /{id}/like, DELETE /{id}/like, POST /{id}/publish
+- `ReviewController /feed/reviews` → POST (bookId, rating, text?), PUT /{id} (rating?, text?), DELETE /{id}, GET /{id}, POST /{id}/like
 - `CommentController /feed/reviews/{id}/comments` → POST, PUT /{commentId}, DELETE /{commentId}, GET, POST /{commentId}/like
-- `FeedPostController /feed/posts` → POST, PUT /{id}, DELETE /{id}, GET /{id}, POST /{id}/like, DELETE /{id}/like, GET ?userId=
+- `FeedPostController /feed/posts` → POST (text, bookId?, images?, gif?, tags?, hasSpoiler), PUT /{id}, DELETE /{id}, GET /{id}, POST /{id}/like, GET ?userId=
 
 **Messaging:** `FeedFanoutConsumer` → `FEED_FANOUT_QUEUE` · `FeedFollowBackfillConsumer` → `FEED_BACKFILL_QUEUE`
 

@@ -225,18 +225,12 @@ export function crudReview(data) {
   const bookId = currentBookId();
 
   // ── CREATE ────────────────────────────────────────────────────────────────
-  // ReviewController: POST /feed/reviews — MULTIPART_FORM_DATA
-  // Campos: bookId, rating, text, publish (@RequestParam)
-  const mp = multipart({
-    bookId:  String(bookId),
-    rating:  '4',
-    text:    `Review de load test VU${__VU} iter${__ITER}`,
-    publish: 'false',
-  });
+  // ReviewController: POST /feed/reviews
+  // Campos: bookId, rating, text (opcional), publish (@RequestParam)
   const createRes = http.post(
-    `${CONFIG.base}/feed/reviews`,
-    mp.body,
-    { headers: { 'Content-Type': mp.contentType, ...authHeaders } }
+    `${CONFIG.base}/feed/reviews?bookId=${bookId}&rating=4&text=${encodeURIComponent(`Review de load test VU${__VU} iter${__ITER}`)}`,
+    null,
+    { headers: authHeaders }
   );
 
   // FIX #5 (validação mais profunda):
@@ -295,16 +289,12 @@ export function crudReview(data) {
   sleep(CONFIG.sleep.betweenSteps);
 
   // ── UPDATE ───────────────────────────────────────────────────────────────
-  // ReviewController: PUT /feed/reviews/{reviewId} — MULTIPART_FORM_DATA
-  // Campos: rating, text (@RequestParam); images, gif (@RequestPart, opcionais)
-  const updMp = multipart({
-    rating: '5',
-    text:   `Review atualizada VU${__VU} iter${__ITER}`,
-  });
+  // ReviewController: PUT /feed/reviews/{reviewId}
+  // Campos: rating, text (ambos opcionais, @RequestParam)
   const updateRes = http.put(
-    `${CONFIG.base}/feed/reviews/${reviewId}`,
-    updMp.body,
-    { headers: { 'Content-Type': updMp.contentType, ...authHeaders } }
+    `${CONFIG.base}/feed/reviews/${reviewId}?rating=5&text=${encodeURIComponent(`Review atualizada VU${__VU} iter${__ITER}`)}`,
+    null,
+    { headers: authHeaders }
   );
   check(updateRes, { 'update 200': (r) => r.status === 200 });
 

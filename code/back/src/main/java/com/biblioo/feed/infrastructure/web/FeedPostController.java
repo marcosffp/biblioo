@@ -43,7 +43,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/feed/posts")
-@Tag(name = "Posts", description = "Posts livres no feed — sem vínculo com livro")
+@Tag(name = "Posts", description = "Posts no feed — com vínculo opcional a um livro")
 public class FeedPostController {
 
   private final FeedPostUseCase feedPostUseCase;
@@ -65,16 +65,17 @@ public class FeedPostController {
   // ── CRUD do Post ────────────────────────────────────────────────────────────
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @Operation(summary = "Cria um post no feed", description = "Permite texto, até 5 imagens, 1 GIF, tags e marcação de spoiler.")
+  @Operation(summary = "Cria um post no feed", description = "Permite texto, até 5 imagens, 1 GIF, tags, marcação de spoiler e vínculo opcional com um livro.")
   public ResponseEntity<FeedPostResponse> createPost(
       @AuthenticationPrincipal UserDetails principal,
-      @RequestParam String text,
+      @RequestParam(required = false) String text,
+      @RequestParam(required = false) Long bookId,
       @RequestPart(required = false) List<MultipartFile> images,
       @RequestPart(required = false) MultipartFile gif,
       @RequestParam(required = false) List<String> tags,
       @RequestParam(defaultValue = "false") boolean hasSpoiler) {
 
-    if (text.length() > 2000) {
+    if (text != null && text.length() > 2000) {
       throw new FeedPostBusinessException("O texto não pode ultrapassar 2000 caracteres.");
     }
 
@@ -84,27 +85,25 @@ public class FeedPostController {
 
     FeedPost result =
         feedPostUseCase.createPost(
-            userId, safeText, parseImages(images), parseGif(gif), tags, hasSpoiler);
+            userId, bookId, safeText, parseImages(images), parseGif(gif), tags, hasSpoiler);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(feedPostMapper.toResponse(result));
   }
 
   @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @Operation(summary = "Edita um post", description = "Atualiza texto, imagens, GIF, tags e spoiler.")
+  @Operation(summary = "Edita um post", description = "Atualiza texto, imagens, GIF, tags, spoiler e vínculo com livro.")
   public ResponseEntity<FeedPostResponse> updatePost(
       @AuthenticationPrincipal UserDetails principal,
       @PathVariable Long postId,
-      @RequestParam String text,
+      @RequestParam(required = false) String text,
+      @RequestParam(required = false) Long bookId,
       @RequestParam(required = false) List<String> imagesToDeleteUrls,
       @RequestPart(required = false) List<MultipartFile> images,
       @RequestPart(required = false) MultipartFile gif,
       @RequestParam(required = false) List<String> tags,
       @RequestParam(defaultValue = "false") boolean hasSpoiler) {
 
-    if (text == null || text.isBlank()) {
-      throw new FeedPostBusinessException("O texto é obrigatório.");
-    }
-    if (text.length() > 2000) {
+    if (text != null && text.length() > 2000) {
       throw new FeedPostBusinessException("O texto não pode ultrapassar 2000 caracteres.");
     }
 
@@ -114,8 +113,8 @@ public class FeedPostController {
 
     FeedPost result =
         feedPostUseCase.updatePost(
-            userId, postId, safeText, parseImages(images), imagesToDeleteUrls, parseGif(gif),
-            tags, hasSpoiler);
+            userId, postId, bookId, safeText, parseImages(images), imagesToDeleteUrls,
+            parseGif(gif), tags, hasSpoiler);
 
     return ResponseEntity.ok(feedPostMapper.toResponse(result));
   }
@@ -192,7 +191,7 @@ public class FeedPostController {
   public ResponseEntity<CommentResponse> updateComment(
       @AuthenticationPrincipal UserDetails principal,
       @PathVariable Long commentId,
-      @RequestParam String text,
+      @RequestParam(required = false) String text,
       @RequestParam(required = false) List<String> imagesToDeleteUrls,
       @RequestPart(required = false) List<MultipartFile> images,
       @RequestPart(required = false) MultipartFile gif) {

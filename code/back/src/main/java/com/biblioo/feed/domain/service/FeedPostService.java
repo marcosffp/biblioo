@@ -36,6 +36,7 @@ public class FeedPostService implements FeedPostUseCase {
   @Transactional
   public FeedPost createPost(
       Long userId,
+      Long bookId,
       String text,
       List<byte[]> images,
       byte[] gif,
@@ -44,15 +45,13 @@ public class FeedPostService implements FeedPostUseCase {
 
     if (!userPort.existsById(userId)) {
       throw new FeedPostBusinessException("Usuário não encontrado.");
-    }
-    if (text == null || text.isBlank()) {
-      throw new FeedPostBusinessException("O post precisa ter texto.");
-    }
+    } 
 
     var post =
         FeedPost.builder()
             .userId(userId)
-            .text(text)
+            .bookId(bookId)
+            .text(text!=null && !text.trim().isEmpty() ? text : null)
             .tags(tags != null ? new ArrayList<>(tags) : new ArrayList<>())
             .hasSpoiler(hasSpoiler)
             .build();
@@ -83,6 +82,7 @@ public class FeedPostService implements FeedPostUseCase {
   public FeedPost updatePost(
       Long userId,
       Long postId,
+      Long bookId,
       String text,
       List<byte[]> newImages,
       List<String> imagesToDeleteUrls,
@@ -99,7 +99,8 @@ public class FeedPostService implements FeedPostUseCase {
       throw new FeedPostBusinessException("Sem permissão para editar este post.");
     }
 
-    post.setText(text);
+    post.setBookId(bookId);
+    post.setText(text!=null && !text.trim().isEmpty() ? text : null);
     post.setTags(tags != null ? new ArrayList<>(tags) : new ArrayList<>());
     post.setHasSpoiler(hasSpoiler);
 

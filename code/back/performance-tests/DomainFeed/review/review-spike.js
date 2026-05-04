@@ -234,16 +234,11 @@ export default function (data) {
   sleep(CONFIG.sleep.betweenOps);
 
   // ── CREATE ──────────────────────────────────────────────────────────────
-  const mp = multipart({
-    bookId:  String(bookId),
-    rating:  '3',
-    text:    `Spike review VU${__VU} iter${__ITER}`,
-    publish: 'false',
-  });
+  // ReviewController: POST /feed/reviews — @RequestParam (sem multipart)
   const createRes = http.post(
-    `${CONFIG.base}/feed/reviews`,
-    mp.body,
-    { headers: { 'Content-Type': mp.contentType, Authorization: `Bearer ${accessToken}` } }
+    `${CONFIG.base}/feed/reviews?bookId=${bookId}&rating=3&text=${encodeURIComponent(`Spike review VU${__VU} iter${__ITER}`)}`,
+    null,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
   // 429 é esperado e aceitável em spike: o servidor pode ter rate-limit ativo.

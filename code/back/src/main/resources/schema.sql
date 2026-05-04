@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS feed_items (
     INDEX idx_feed_user_score (user_id, score DESC, id DESC)
 );
 
+ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS book_id BIGINT NULL;
+
 CREATE TABLE IF NOT EXISTS feed_fanout_progress (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     event_id VARCHAR(255) NOT NULL,

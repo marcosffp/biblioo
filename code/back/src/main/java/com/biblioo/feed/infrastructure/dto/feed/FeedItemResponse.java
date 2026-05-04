@@ -16,10 +16,6 @@ public record FeedItemResponse(
     LocalDateTime createdAt,
     EmbeddedContentResponse content) {
 
-  /**
-   * Resposta unificada de conteúdo. Os campos bookId, rating, bookTitle, bookCoverUrl e bookAuthors
-   * são preenchidos apenas para REVIEW; null para POST.
-   */
   public record EmbeddedContentResponse(
       Long id,
       Long userId,
@@ -31,7 +27,6 @@ public record FeedItemResponse(
       Integer likeCount,
       Integer commentCount,
       LocalDateTime createdAt,
-      // Exclusivo de Review:
       Long bookId,
       Integer rating,
       String bookTitle,
@@ -51,10 +46,10 @@ public record FeedItemResponse(
             review.getId(),
             review.getUserId(),
             review.getText(),
-            review.getImages(),
-            review.getGifUrl(),
-            review.getTags(),
-            review.getHasSpoiler(),
+            null,
+            null,
+            null,
+            null,
             review.getLikeCount(),
             review.getCommentCount(),
             review.getCreatedAt(),
@@ -88,7 +83,7 @@ public record FeedItemResponse(
             post.getLikeCount(),
             post.getCommentCount(),
             post.getCreatedAt(),
-            null,
+            post.getBookId(),
             null,
             null,
             null,
