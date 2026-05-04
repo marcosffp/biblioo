@@ -9,11 +9,15 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, action }: Readonly<PageHeaderProps>) {
   return (
-    <header className="flex items-start justify-between gap-4 border-b border-[var(--border-soft)] pb-4">
+    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border-soft)] pb-5">
       {title || subtitle ? (
         <div>
-          {title ? <h1 className="m-0 text-4xl font-bold leading-tight text-[var(--text-primary)]">{title}</h1> : null}
-          {subtitle ? <p className="mt-2 text-sm text-[var(--text-secondary)]">{subtitle}</p> : null}
+          {title ? (
+            <h1 className="m-0 text-3xl font-semibold leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl">
+              {title}
+            </h1>
+          ) : null}
+          {subtitle ? <p className="mt-2 text-sm font-medium text-[var(--text-secondary)]">{subtitle}</p> : null}
         </div>
       ) : (
         <div />

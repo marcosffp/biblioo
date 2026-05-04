@@ -12,14 +12,15 @@ import {
   ProfileShelfBookCard,
   ProfileStatsGrid,
   ProfileTabs,
-  ProgressBar,
-  SectionHeader,
-  TagList,
   UnfollowPrivateConfirmModal,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
+import { ReadingGoalSection } from "@/components/profile/ReadingGoalSection";
+import { LiteraryDnaSection } from "@/components/profile/LiteraryDnaSection";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
-import type { ReadingStatus } from "@/utils/bookcase-filters";
+import { mapBackendReadingStatus } from "@/utils/bookcase-filters";
+import { humanizeUsername } from "@/utils/format";
+import type { DisplayShelfBook, GenreDistribution, ShelfItemWithShelfId } from "@/types/profile";
 import { getAccessToken } from "@/services/auth";
 import {
   followUser,
@@ -32,7 +33,6 @@ import {
   listShelvesByUserId,
   listMyFollowing,
   listShelfItemsByUserId,
-  type ShelfItemSummaryResponse,
   type UserSummaryResponse,
   unfollowUser,
   type UserProfileResponse,
@@ -40,63 +40,18 @@ import {
 
 const tabs = ["Biblioteca", "Comunidades", "Resenhas"] as const;
 
-type DisplayShelfBook = Omit<ShelfBook, "shelfItemId"> & {
-  shelfId: number;
-  shelfItemId: number;
-  bookId: number;
-};
-
-type GenreDistribution = {
-  label: string;
-  value: number;
-};
-
-function mapBackendReadingStatus(status: string): Exclude<ReadingStatus, "todos"> {
-  switch (status) {
-    case "READING":
-      return "lendo";
-    case "REREADING":
-      return "relendo";
-    case "COMPLETED":
-      return "lido";
-    case "ABANDONED":
-      return "abandonei";
-    case "WANT_TO_READ":
-    default:
-      return "quero-ler";
-  }
-}
-
-type ShelfItemWithShelfId = ShelfItemSummaryResponse & {
-  shelfId: number;
-};
-
-type PanelShelfBook = ShelfBook & {
-  shelfId?: number;
-};
+type PanelShelfBook = ShelfBook & { shelfId?: number };
 
 function toPanelBook(book: DisplayShelfBook): PanelShelfBook {
-  return {
-    ...book,
-    shelfItemId: book.shelfItemId,
-    // In another user's profile, show a neutral default status in the details panel.
-    readingStatus: "quero-ler",
-  };
-}
-
-function Noop() {
-  return;
+  return { ...book, shelfItemId: book.shelfItemId, readingStatus: "quero-ler" };
 }
 
 function normalizeUsernameParam(value: string): string {
   return decodeURIComponent(value).trim().replace(/^@+/, "").toLowerCase();
 }
 
-function humanizeUsername(username: string): string {
-  return username
-    .replaceAll(/[_-]+/g, " ")
-    .replaceAll(/\b\w/g, (match) => match.toUpperCase());
-}
+
+const noop = () => undefined;
 
 export default function SeguidorProfilePage() {
   const params = useParams<{ username: string }>();
@@ -125,8 +80,6 @@ export default function SeguidorProfilePage() {
   const [selectedShelfBook, setSelectedShelfBook] = React.useState<DisplayShelfBook | null>(null);
 
   const goalTarget = 24;
-  const goalCurrent = booksRead;
-  const goalPct = goalTarget > 0 ? (goalCurrent / goalTarget) * 100 : 0;
 
   React.useEffect(() => {
     if (!username) {
@@ -136,7 +89,6 @@ export default function SeguidorProfilePage() {
     }
 
     const accessToken = getAccessToken();
-
     let cancelled = false;
 
     const run = async () => {
@@ -159,7 +111,6 @@ export default function SeguidorProfilePage() {
           ownProfileState = me.username.toLowerCase() === username;
           myFollowing = myFollowingList;
           followingState = myFollowing.some((user) => user.username.toLowerCase() === username);
-
         }
 
         let computedBooksRead = 0;
@@ -176,12 +127,11 @@ export default function SeguidorProfilePage() {
           );
 
           const flatItems = shelfItemGroups.flatMap((items, index) =>
-            items.map((item) => ({
-              ...item,
-              shelfId: shelves[index]?.id,
-            })),
+            items.map((item) => ({ ...item, shelfId: shelves[index]?.id })),
           );
-          const uniqueItems = Array.from(new Map(flatItems.map((item) => [item.id, item])).values()) as ShelfItemWithShelfId[];
+          const uniqueItems = Array.from(
+            new Map(flatItems.map((item) => [item.id, item])).values(),
+          ) as ShelfItemWithShelfId[];
 
           const ratingsByBookId = new Map<number, number>();
           if (accessToken) {
@@ -191,7 +141,7 @@ export default function SeguidorProfilePage() {
                 ratingsByBookId.set(review.bookId, review.rating);
               });
             } catch {
-              // Rating is optional in this view. If it fails, shelf data still renders.
+              // Rating is optional in this view
             }
           }
 
@@ -213,37 +163,30 @@ export default function SeguidorProfilePage() {
             }),
           );
 
-          computedPagesRead = pageCountEntries.reduce((total, entry) => {
-            return total + Math.round((entry.pageCount * entry.progressPercent) / 100);
-          }, 0);
+          computedPagesRead = pageCountEntries.reduce(
+            (total, entry) => total + Math.round((entry.pageCount * entry.progressPercent) / 100),
+            0,
+          );
 
-          computedReadersReached = pageCountEntries.reduce((total, entry) => {
-            return total + Math.max(0, entry.readerCount ?? 0);
-          }, 0);
+          computedReadersReached = pageCountEntries.reduce(
+            (total, entry) => total + Math.max(0, entry.readerCount ?? 0),
+            0,
+          );
 
           const authorCountMap = new Map<string, number>();
-
           pageCountEntries.forEach((entry) => {
             entry.authors.forEach((author) => {
-              if (!author || !author.trim()) {
-                return;
+              if (author?.trim()) {
+                authorCountMap.set(author, (authorCountMap.get(author) ?? 0) + 1);
               }
-
-              authorCountMap.set(author, (authorCountMap.get(author) ?? 0) + 1);
             });
           });
 
-          computedAuthorItems = Array.from(authorCountMap.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 6)
-            .map(([label, value]) => ({ label, value }));
+          const sortedAuthors = Array.from(authorCountMap.entries()).sort((a, b) => b[1] - a[1]);
+          computedAuthorItems = sortedAuthors.slice(0, 6).map(([label, value]) => ({ label, value }));
+          computedFavoriteAuthors = sortedAuthors.slice(0, 5).map(([name]) => name);
 
-          computedFavoriteAuthors = Array.from(authorCountMap.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([name]) => name);
-
-          const loadedShelfBooks = await Promise.all(
+          computedShelfBooks = await Promise.all(
             uniqueItems.map(async (item) => {
               try {
                 const book = await getBookById(item.bookId, accessToken);
@@ -287,13 +230,9 @@ export default function SeguidorProfilePage() {
               }
             }),
           );
-
-          computedShelfBooks = loadedShelfBooks;
         }
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         setProfile(loadedProfile);
         setFollowersUsers(followersList);
@@ -310,22 +249,14 @@ export default function SeguidorProfilePage() {
         setFavoriteAuthors(computedFavoriteAuthors);
         setShelfBooks(computedShelfBooks);
       } catch {
-        if (cancelled) {
-          return;
-        }
-        setError("Não foi possível carregar o perfil deste usuário.");
+        if (!cancelled) setError("Não foi possível carregar o perfil deste usuário.");
       } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     void run();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [username]);
 
   const handleOpenShelfBookDetails = (book: DisplayShelfBook) => {
@@ -340,9 +271,7 @@ export default function SeguidorProfilePage() {
 
   const handleToggleFollow = async () => {
     const accessToken = getAccessToken();
-    if (!accessToken || isTogglingFollow) {
-      return;
-    }
+    if (!accessToken || isTogglingFollow) return;
 
     const previous = followRelationship;
     if (previous === "following" && profile?.isPrivate) {
@@ -362,12 +291,9 @@ export default function SeguidorProfilePage() {
     try {
       if (previous === "following" || previous === "requested") {
         await unfollowUser(username, accessToken);
-        if (previous === "following") {
-          setFollowersCount((prev) => Math.max(0, prev - 1));
-        }
+        if (previous === "following") setFollowersCount((prev) => Math.max(0, prev - 1));
       } else {
         const result = await followUser(username, accessToken);
-
         if (result === "following") {
           setFollowRelationship("following");
           setFollowersCount((prev) => prev + 1);
@@ -384,9 +310,7 @@ export default function SeguidorProfilePage() {
 
   const handleConfirmPrivateUnfollow = async () => {
     const accessToken = getAccessToken();
-    if (!accessToken || isTogglingFollow) {
-      return;
-    }
+    if (!accessToken || isTogglingFollow) return;
 
     setIsTogglingFollow(true);
     try {
@@ -401,9 +325,7 @@ export default function SeguidorProfilePage() {
 
   const displayName = profile ? humanizeUsername(profile.username) : humanizeUsername(username || "usuario");
   const isRestrictedProfileView = Boolean(profile?.restricted && !isOwnProfile);
-  const bio = isRestrictedProfileView
-    ? ""
-    : profile?.bio ?? "Sem bio cadastrada.";
+  const bio = isRestrictedProfileView ? "" : profile?.bio ?? "Sem bio cadastrada.";
   const initial = displayName[0]?.toUpperCase() ?? "U";
   const booksReadLabel = booksRead.toLocaleString("pt-BR");
   const pagesReadLabel = pagesRead.toLocaleString("pt-BR");
@@ -470,7 +392,7 @@ export default function SeguidorProfilePage() {
 
         {isRestrictedProfileView ? (
           <section className="rounded-2xl border border-border bg-card p-6 text-center text-medium-text">
-            <strong>Este perfil é privado.</strong>  Apenas seguidores tem acesso às informações. Clique em seguir para solicitar acesso.
+            <strong>Este perfil é privado.</strong> Apenas seguidores tem acesso às informações. Clique em seguir para solicitar acesso.
           </section>
         ) : (
           <>
@@ -483,58 +405,14 @@ export default function SeguidorProfilePage() {
               ]}
             />
 
-            <section className="rounded-lg border border-gray-200 bg-white p-5">
-              <SectionHeader title="Meta de leitura 2024" />
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-sm font-semibold text-gray-900">
-                  <span>Meta de leitura 2024</span>
-                  <span>
-                    {goalCurrent}/{goalTarget}
-                  </span>
-                </div>
-                <div className="mt-3">
-                  <ProgressBar value={goalPct} />
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
-                  Faltam {Math.max(0, goalTarget - goalCurrent)} livros para completar a meta.
-                </p>
-              </div>
-            </section>
+            <ReadingGoalSection current={booksRead} target={goalTarget} />
 
-            <section className="rounded-lg border border-gray-200 bg-white p-5">
-              <SectionHeader title="DNA literário" subtitle="Perfil de leitura" />
-              <div className="mt-4">
-                {authorItems.length > 0 ? (
-                  <div className="space-y-3">
-                    {authorItems.map((item) => {
-                      const total = authorItems.reduce((acc, current) => acc + current.value, 0) || 1;
-                      const pct = Math.round((item.value / total) * 100);
-                      return (
-                        <div key={item.label}>
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>{item.label}</span>
-                            <span>{pct}%</span>
-                          </div>
-                          <div className="mt-1 h-2 rounded-full bg-emerald-100">
-                            <div className="h-2 rounded-full bg-emerald-600" style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">Ainda não há dados suficientes para montar o DNA literário.</p>
-                )}
-                <div className="mt-4 border-t border-gray-200 pt-4">
-                  <div className="text-xs font-semibold text-gray-500">Autores favoritos</div>
-                  {favoriteAuthors.length > 0 ? (
-                    <TagList className="mt-2" tags={favoriteAuthors} />
-                  ) : (
-                    <p className="mt-2 text-sm text-gray-500">Sem autores suficientes para análise.</p>
-                  )}
-                </div>
-              </div>
-            </section>
+            <LiteraryDnaSection
+              authorItems={authorItems}
+              favoriteAuthors={favoriteAuthors}
+              subtitle="Perfil de leitura"
+              emptyMessage="Ainda não há dados suficientes para montar o DNA literário."
+            />
 
             <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
@@ -555,7 +433,11 @@ export default function SeguidorProfilePage() {
                 ) : (
                   <EmptyState
                     title="Biblioteca vazia"
-                    description={isOwnProfile ? "Adicione livros para acompanhar progresso e metas no perfil." : "Este usuário ainda não adicionou livros visíveis na biblioteca."}
+                    description={
+                      isOwnProfile
+                        ? "Adicione livros para acompanhar progresso e metas no perfil."
+                        : "Este usuário ainda não adicionou livros visíveis na biblioteca."
+                    }
                   />
                 )}
               </section>
@@ -588,6 +470,7 @@ export default function SeguidorProfilePage() {
 
         {isLoading ? <p className="text-sm text-medium-text">Carregando...</p> : null}
       </div>
+
       <UnfollowPrivateConfirmModal
         isOpen={isUnfollowConfirmOpen}
         username={username}
@@ -595,22 +478,21 @@ export default function SeguidorProfilePage() {
         onCancel={() => setIsUnfollowConfirmOpen(false)}
         onConfirm={handleConfirmPrivateUnfollow}
       />
+
       <ShelfBookDetailsPanel
         isOpen={isShelfBookDetailsOpen}
         book={selectedShelfBook ? toPanelBook(selectedShelfBook) : null}
         onClose={handleCloseShelfBookDetails}
-        onSelectStatus={Noop}
-        onStepPage={Noop}
-        onSetPage={Noop}
-        onRemoveFromShelf={Noop}
+        onSelectStatus={noop}
+        onStepPage={noop}
+        onSetPage={noop}
+        onRemoveFromShelf={noop}
         reviewRating={0}
         reviewComment=""
         reviewExists={false}
-        reviewPublishToFeed={false}
-        onChangeReviewRating={Noop}
-        onChangeReviewComment={Noop}
-        onChangeReviewPublishToFeed={Noop}
-        onSaveReview={Noop}
+        onChangeReviewRating={noop}
+        onChangeReviewComment={noop}
+        onSaveReview={noop}
         reviewSuccessMessage=""
         reviewError=""
         isSavingReview={false}

@@ -1,4 +1,5 @@
 import { getAccessToken } from "@/services/auth";
+import { normalizeEntityId } from "@/utils/notifications";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
 
@@ -47,14 +48,6 @@ function bearerHeaders(token?: string | null): HeadersInit {
   };
 }
 
-function normalizeEntityId(value: number | string | null | undefined): number | null {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 function mapNotification(item: NotificationApiResponse): NotificationSummary {
   return {

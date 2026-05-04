@@ -6,11 +6,13 @@ import {
   ArrowLeft,
   BookOpen,
   CirclePlus,
+  CornerUpLeft,
   Heart,
   Image,
   ImagePlus,
   Info,
   MoreHorizontal,
+  Reply,
   Send,
   X,
 } from "lucide-react";
@@ -26,7 +28,7 @@ export interface CommunityChatPanelProps {
   isSendingMessage: boolean;
   isConnected: boolean;
   messageError?: string;
-  onSendMessage: (input: { content: string; hasSpoiler: boolean; images?: File[]; gif?: File | null }) => Promise<void>;
+  onSendMessage: (input: { content: string; hasSpoiler: boolean; images?: File[]; gif?: File | null; parentMessageId?: number | null }) => Promise<void>;
   onEditMessage: (input: { messageId: string; content: string }) => Promise<void>;
   onDeleteMessage: (messageId: string) => Promise<void>;
   onToggleHeartReaction: (messageId: string) => Promise<void>;
@@ -65,9 +67,17 @@ export function CommunityChatPanel({
   const [isPerformingAction, setIsPerformingAction] = React.useState(false);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = React.useState(false);
   const [openedMessageMenuId, setOpenedMessageMenuId] = React.useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = React.useState<CommunityChatMessage | null>(null);
 
   const imageInputRef = React.useRef<HTMLInputElement | null>(null);
   const gifInputRef = React.useRef<HTMLInputElement | null>(null);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const messagesById = React.useMemo(() => {
+    const map = new Map<string, CommunityChatMessage>();
+    for (const m of messages) map.set(m.id, m);
+    return map;
+  }, [messages]);
   const moreOptionsRef = React.useRef<HTMLDivElement | null>(null);
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -123,12 +133,14 @@ export function CommunityChatPanel({
         hasSpoiler: spoilerEnabled,
         images: selectedImages,
         gif: selectedGif,
+        parentMessageId: replyingTo ? Number(replyingTo.id) : null,
       });
       setIsMoreOptionsOpen(false);
       setNewMessage("");
       setSpoilerEnabled(false);
       setSelectedImages([]);
       setSelectedGif(null);
+      setReplyingTo(null);
       if (imageInputRef.current) {
         imageInputRef.current.value = "";
       }
@@ -141,7 +153,7 @@ export function CommunityChatPanel({
         return;
       }
 
-      setLocalSendError("Nao foi possivel enviar a mensagem.");
+      setLocalSendError("Não foi possível enviar a mensagem.");
     }
   };
 
@@ -184,7 +196,7 @@ export function CommunityChatPanel({
       if (error instanceof Error && error.message) {
         setLocalSendError(error.message);
       } else {
-        setLocalSendError("Nao foi possivel editar a mensagem.");
+        setLocalSendError("Não foi possível editar a mensagem.");
       }
     } finally {
       setIsPerformingAction(false);
@@ -210,7 +222,7 @@ export function CommunityChatPanel({
       if (error instanceof Error && error.message) {
         setLocalSendError(error.message);
       } else {
-        setLocalSendError("Nao foi possivel remover a mensagem.");
+        setLocalSendError("Não foi possível remover a mensagem.");
       }
     } finally {
       setIsPerformingAction(false);
@@ -226,7 +238,7 @@ export function CommunityChatPanel({
       if (error instanceof Error && error.message) {
         setLocalSendError(error.message);
       } else {
-        setLocalSendError("Nao foi possivel reagir a mensagem.");
+        setLocalSendError("Não foi possível reagir a mensagem.");
       }
     }
   };
@@ -292,13 +304,27 @@ export function CommunityChatPanel({
           <ArrowLeft className="h-5 w-5" />
         </button>
 
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 bg-cover bg-center"
-          style={community.coverUrl ? { backgroundImage: `url(${community.coverUrl})` } : undefined}
-          aria-hidden="true"
-        >
-          {community.coverUrl ? null : <BookOpen className="h-5 w-5 text-primary" />}
-        </div>
+        {(() => {
+          const displayUrl = community.coverUrl ?? community.bookCoverUrl;
+          if (displayUrl) {
+            return (
+              <img
+                src={displayUrl}
+                alt={community.name}
+                aria-hidden="true"
+                className="h-10 w-10 rounded-full object-cover"
+              />
+            );
+          }
+          return (
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"
+              aria-hidden="true"
+            >
+              <BookOpen className="h-5 w-5 text-primary" />
+            </div>
+          );
+        })()}
 
         <button
           type="button"
@@ -346,11 +372,10 @@ export function CommunityChatPanel({
             return (
               <div key={message.id} className={`group flex ${message.isMine ? "justify-end" : "justify-start"}`}>
                 <div className={`flex max-w-[66%] items-end gap-1.5 ${message.isMine ? "flex-row" : "flex-row-reverse"}`}>
+                  {/* Heart reaction */}
                   <button
                     type="button"
-                    onClick={() => {
-                      void toggleHeart(message.id);
-                    }}
+                    onClick={() => { void toggleHeart(message.id); }}
                     disabled={message.id.startsWith("temp-") || Boolean(message.isDeleted)}
                     className={`inline-flex h-7 min-w-7 shrink-0 items-center justify-center gap-0.5 rounded-full border px-1.5 shadow-sm transition-all ${
                       Boolean(message.hasHeartReaction) || (message.heartCount ?? 0) > 0
@@ -365,6 +390,18 @@ export function CommunityChatPanel({
                     ) : null}
                   </button>
 
+                  {/* Reply button */}
+                  {!message.isDeleted ? (
+                    <button
+                      type="button"
+                      onClick={() => { setReplyingTo(message); inputRef.current?.focus(); }}
+                      className="opacity-0 group-hover:opacity-100 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-white text-muted-foreground shadow-sm transition-all hover:bg-slate-50"
+                      aria-label="Responder mensagem"
+                    >
+                      <Reply className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+
                   <div className={message.isMine ? "items-end" : "items-start"}>
                   {message.isMine ? null : (
                     <p className="mb-0.5 ml-1 text-[10px] font-medium text-slate-600">{message.userName}</p>
@@ -373,8 +410,8 @@ export function CommunityChatPanel({
                   <div
                     className={`relative rounded-2xl px-3 py-2 text-[13px] leading-snug ${
                       message.isMine
-                        ? "rounded-tr-md border border-[#d7e7ff] bg-[#eaf3ff] pr-9 text-slate-800"
-                        : "rounded-tl-md border border-border bg-white text-slate-800"
+                        ? "rounded-tr-md border border-[var(--brand-500)]/20 bg-[var(--brand-100)] pr-9 text-[var(--text-primary)]"
+                        : "rounded-tl-md border border-[var(--border)] bg-white text-slate-800"
                     }`}
                     data-chat-message-menu="true"
                   >
@@ -414,6 +451,28 @@ export function CommunityChatPanel({
                         ) : null}
                       </div>
                     ) : null}
+
+                    {/* Reply context */}
+                    {message.parentMessageId != null ? (() => {
+                      const parent = messagesById.get(String(message.parentMessageId));
+                      return (
+                        <div className={`mb-2 flex items-start gap-1.5 rounded-lg border-l-2 pl-2 pr-2 py-1.5 ${
+                          message.isMine
+                            ? "border-[var(--brand-600)] bg-[var(--brand-600)]/10"
+                            : "border-[var(--brand-500)] bg-[var(--bg-soft)]"
+                        }`}>
+                          <CornerUpLeft className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold text-slate-600 truncate">
+                              {parent ? parent.userName : "Mensagem"}
+                            </p>
+                            <p className="text-[11px] text-slate-500 line-clamp-1 truncate">
+                              {parent?.isDeleted ? "Mensagem removida" : (parent?.text ?? "Mensagem não disponível")}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })() : null}
 
                     {message.isSpoiler ? (
                       <p
@@ -525,6 +584,24 @@ export function CommunityChatPanel({
 
         {localSendError ? <p className="mb-2 ml-1 text-[11px] text-red-700">{localSendError}</p> : null}
 
+        {replyingTo ? (
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-border/60 bg-slate-50 px-3 py-2">
+            <CornerUpLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-semibold text-slate-600">{replyingTo.userName}</p>
+              <p className="truncate text-[11px] text-muted-foreground">{replyingTo.text}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              className="shrink-0 rounded-full p-0.5 text-muted-foreground hover:bg-muted"
+              aria-label="Cancelar resposta"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
+
         {spoilerEnabled ? (
           <div className="mb-2 ml-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
             <AlertTriangle className="h-3 w-3" />
@@ -630,6 +707,7 @@ export function CommunityChatPanel({
           </button>
 
           <input
+            ref={inputRef}
             type="text"
             value={newMessage}
             onChange={(event) => {
@@ -637,7 +715,7 @@ export function CommunityChatPanel({
               onTyping();
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Digite uma mensagem..."
+            placeholder={replyingTo ? `Responder a ${replyingTo.userName}...` : "Digite uma mensagem..."}
             className="h-10 flex-1 rounded-full border border-border bg-white px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
           />
 

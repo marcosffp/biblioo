@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getAccessToken } from "@/services/auth";
+import { getJwtUserId } from "@/utils/jwt";
 import { getBookById, searchBooks } from "@/services/bookcase";
 import {
   createCommunity,
@@ -20,6 +21,7 @@ export interface Community {
   name: string;
   bookId: number;
   bookTitle: string;
+  bookCoverUrl?: string | null;
   visibility: CommunityVisibility;
   members: number;
   discussions: number;
@@ -43,6 +45,7 @@ export interface CommunityMember {
   avatarUrl?: string | null;
   isPro?: boolean;
   isAdmin?: boolean;
+  role?: "OWNER" | "MODERATOR" | "MEMBER";
 }
 
 export interface CommunityChatMessage {
@@ -60,6 +63,7 @@ export interface CommunityChatMessage {
   gifUrl?: string | null;
   isDeleted?: boolean;
   isEdited?: boolean;
+  parentMessageId?: number | null;
 }
 
 interface CreateCommunityInput {
@@ -94,16 +98,21 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-async function loadBookTitlesById(bookIds: number[]): Promise<Map<number, string>> {
+interface BookInfo {
+  title: string;
+  coverUrl?: string | null;
+}
+
+async function loadBookInfoById(bookIds: number[]): Promise<Map<number, BookInfo>> {
   const uniqueBookIds = Array.from(new Set(bookIds));
   const entries = await Promise.all(
     uniqueBookIds.map(async (bookId) => {
       try {
         const book = await getBookById(bookId);
         const author = book.authors?.join(", ") || "Autor desconhecido";
-        return [bookId, `${book.title} - ${author}`] as const;
+        return [bookId, { title: `${book.title} - ${author}`, coverUrl: book.coverUrl }] as const;
       } catch {
-        return [bookId, `Livro #${bookId}`] as const;
+        return [bookId, { title: `Livro #${bookId}` }] as const;
       }
     }),
   );
@@ -115,20 +124,21 @@ function mapToCommunity(
   apiCommunity: BackendCommunityResponse,
   context: {
     mineIds: Set<number>;
-    bookTitlesById: Map<number, string>;
+    bookInfoById: Map<number, BookInfo>;
     fallbackBookTitleById?: Map<number, string>;
     currentUserId: string | null;
   },
 ): Community {
+  const bookInfo = context.bookInfoById.get(apiCommunity.bookId);
   const fallbackTitle = context.fallbackBookTitleById?.get(apiCommunity.bookId);
-  const bookTitle =
-    context.bookTitlesById.get(apiCommunity.bookId) ?? fallbackTitle ?? `Livro #${apiCommunity.bookId}`;
+  const bookTitle = bookInfo?.title ?? fallbackTitle ?? `Livro #${apiCommunity.bookId}`;
 
   return {
     id: String(apiCommunity.id),
     name: apiCommunity.name,
     bookId: apiCommunity.bookId,
     bookTitle,
+    bookCoverUrl: bookInfo?.coverUrl,
     visibility: apiCommunity.type,
     members: apiCommunity.memberCount ?? 0,
     discussions: 0,
@@ -141,24 +151,7 @@ function mapToCommunity(
 
 function decodeCurrentUserId(): string | null {
   const token = getAccessToken();
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const payload = token.split(".")[1];
-    if (!payload) {
-      return null;
-    }
-
-    const base64 = payload.replaceAll("-", "+").replaceAll("_", "/");
-    const paddedBase64 = `${base64}${"=".repeat((4 - (base64.length % 4)) % 4)}`;
-    const decoded = JSON.parse(atob(paddedBase64)) as { sub?: string };
-    return decoded.sub ?? null;
-  } catch {
-    return null;
-  }
+  return token ? getJwtUserId(token) : null;
 }
 
 export function useCommunity() {
@@ -190,13 +183,13 @@ export function useCommunity() {
       });
 
       const mergedList = Array.from(merged.values());
-      const bookTitlesById = await loadBookTitlesById(mergedList.map((item) => item.bookId));
+      const bookInfoById = await loadBookInfoById(mergedList.map((item) => item.bookId));
 
       setCommunities(
         mergedList.map((community) =>
           mapToCommunity(community, {
             mineIds,
-            bookTitlesById,
+            bookInfoById,
             currentUserId,
           }),
         ),
@@ -233,10 +226,10 @@ export function useCommunity() {
           );
         }
 
-        const bookTitlesById = await loadBookTitlesById([created.bookId]);
+        const bookInfoById = await loadBookInfoById([created.bookId]);
         const mapped = mapToCommunity(created, {
           mineIds: new Set<number>([created.id]),
-          bookTitlesById,
+          bookInfoById,
           fallbackBookTitleById,
           currentUserId,
         });

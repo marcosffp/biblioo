@@ -16,7 +16,7 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        display: ["Playfair Display", "Georgia", "serif"],
+        display: ["Space Grotesk", "DM Sans", "system-ui", "sans-serif"],
         body: ["DM Sans", "system-ui", "sans-serif"],
       },
       colors: {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { BookMarked, BookOpen, Bookmark, BookX, Library, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { EmptyState, ProfileShelfBookCard } from "@/components";
 import type {
@@ -102,6 +103,16 @@ export function BookcaseResults({
   const [openCollectionMenuId, setOpenCollectionMenuId] = useState<number | null>(null);
   const [animatedProgressPercent, setAnimatedProgressPercent] = useState(0);
 
+  const listVariants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { staggerChildren: 0.05 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 },
+  };
+
   const formatNumber = (value: number) => value.toLocaleString("pt-BR");
 
   const totalBooks = selectedCollectionStats?.totalBooks ?? 0;
@@ -175,41 +186,47 @@ export function BookcaseResults({
 
   if (loadError) {
     return (
-      <div className="space-y-4">
+      <motion.div className="space-y-4" initial="hidden" animate="show" variants={listVariants}>
         <EmptyState title="Falha ao carregar estante" description={loadError} />
-      </div>
+      </motion.div>
     );
   }
 
   if (hasNoVisibleItems) {
     return (
-      <div className="space-y-4">
+      <motion.div className="space-y-4" initial="hidden" animate="show" variants={listVariants}>
         <EmptyState title={emptyStateTitle} description={emptyStateDescription} />
-      </div>
+      </motion.div>
     );
   }
 
   if (isInsideShelf) {
     return (
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] gap-4">
+      <motion.div
+        className="grid grid-cols-[repeat(auto-fill,minmax(170px,200px))] gap-4"
+        initial="hidden"
+        animate="show"
+        variants={listVariants}
+      >
         {filteredBooks.map((book) => (
-          <ProfileShelfBookCard
-            key={book.id}
-            title={book.title}
-            author={book.author}
-            coverUrl={book.coverUrl}
-            userRating={book.rating}
-            statusLabel={statusLabel(book.readingStatus)}
-            statusClassName={statusClassName(book.readingStatus)}
-            showProgress={true}
-            progressPercent={book.progress}
-            currentPage={book.currentPage}
-            totalPages={book.totalPages}
-            showPageCount={true}
-            onClick={() => onOpenBookDetails(book)}
-          />
+          <motion.div key={book.id} variants={itemVariants} className="group">
+            <ProfileShelfBookCard
+              title={book.title}
+              author={book.author}
+              coverUrl={book.coverUrl}
+              userRating={book.rating}
+              statusLabel={statusLabel(book.readingStatus)}
+              statusClassName={statusClassName(book.readingStatus)}
+              showProgress={true}
+              progressPercent={book.progress}
+              currentPage={book.currentPage}
+              totalPages={book.totalPages}
+              showPageCount={true}
+              onClick={() => onOpenBookDetails(book)}
+            />
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     );
   }
 
@@ -217,7 +234,12 @@ export function BookcaseResults({
     return (
       <section className="grid gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(280px,3fr)]">
         <div className="space-y-8">
-          <div className="relative overflow-hidden rounded-[16px] bg-gradient-to-br from-[#edf8f3] via-[#f7fcf9] to-[#ffffff] p-6 shadow-[0_16px_34px_rgba(31,61,58,0.1)]">
+          <motion.div
+            className="relative overflow-hidden rounded-[16px] bg-gradient-to-br from-[#edf8f3] via-[#f7fcf9] to-[#ffffff] p-6 shadow-[0_16px_34px_rgba(31,61,58,0.1)]"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
             <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[rgba(62,190,158,0.12)] blur-2xl" aria-hidden="true" />
             <div className="pointer-events-none absolute -bottom-16 left-16 h-44 w-44 rounded-full bg-[rgba(126,217,182,0.18)] blur-2xl" aria-hidden="true" />
 
@@ -243,7 +265,7 @@ export function BookcaseResults({
             <p className="mt-3 text-sm font-medium text-[var(--text-secondary)]">
               {formatNumber(selectedCollectionStats?.pagesRead ?? 0)} / {formatNumber(selectedCollectionStats?.totalPages ?? 0)} páginas lidas
             </p>
-          </div>
+          </motion.div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3">
@@ -251,11 +273,12 @@ export function BookcaseResults({
               <p className="text-sm text-[var(--text-secondary)]">{filteredShelves.length} estantes</p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <motion.div className="grid gap-4 md:grid-cols-2" initial="hidden" animate="show" variants={listVariants}>
               {filteredShelves.map((shelf) => (
-                <div
+                <motion.div
                   key={shelf.id}
-                  className="relative rounded-[14px] bg-white p-5 shadow-[0_8px_20px_rgba(31,61,58,0.07)] transition duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(31,61,58,0.12)]"
+                  variants={itemVariants}
+                  className="relative rounded-[14px] bg-white/90 p-5 shadow-[0_8px_20px_rgba(31,61,58,0.07)] transition duration-200 ease-out hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(31,61,58,0.12)]"
                 >
                   <button
                     type="button"
@@ -320,9 +343,9 @@ export function BookcaseResults({
                       </div>
                     ) : null}
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </div>
 
@@ -386,12 +409,13 @@ export function BookcaseResults({
 
   if (rootViewMode === "estantes") {
     return (
-      <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <motion.div className="space-y-4" initial="hidden" animate="show" variants={listVariants}>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredShelves.map((shelf) => (
-            <div
+            <motion.div
               key={shelf.id}
-              className="relative rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
+              variants={itemVariants}
+              className="relative rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-white/80 p-4 shadow-[0_8px_18px_rgba(31,61,58,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--brand-500)] hover:shadow-[0_16px_28px_rgba(31,61,58,0.12)]"
             >
               <button
                 type="button"
@@ -456,20 +480,21 @@ export function BookcaseResults({
                   </div>
                 ) : null}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+    <motion.div className="space-y-4" initial="hidden" animate="show" variants={listVariants}>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredCollections.map((collection) => (
-          <div
+          <motion.div
             key={collection.id}
-            className="relative rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 transition hover:border-[var(--brand-500)] hover:shadow-[var(--shadow-soft)]"
+            variants={itemVariants}
+            className="relative rounded-[var(--radius-lg)] border border-[var(--border-soft)] bg-white/80 p-4 shadow-[0_8px_18px_rgba(31,61,58,0.06)] transition hover:-translate-y-0.5 hover:border-[var(--brand-500)] hover:shadow-[0_16px_28px_rgba(31,61,58,0.12)]"
           >
             <button
               type="button"
@@ -542,9 +567,9 @@ export function BookcaseResults({
                 </div>
               ) : null}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

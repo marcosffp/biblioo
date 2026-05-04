@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { clearAuthSession, getAuthSession, isTokenExpired } from "@/services/auth";
+import { getJwtExpiry } from "@/utils/jwt";
 
 const PUBLIC_ROUTES = new Set(["/login", "/register"]);
 
@@ -22,7 +23,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const exp = parseJwtExp(session.accessToken);
+    const exp = getJwtExpiry(session.accessToken);
     if (!exp) return;
 
     const msUntilExpiry = exp * 1000 - Date.now();
@@ -37,15 +38,4 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   return <>{children}</>;
-}
-
-function parseJwtExp(token: string): number | null {
-  try {
-    const base64Payload = token.split(".")[1];
-    const decoded = atob(base64Payload.replace(/-/g, "+").replace(/_/g, "/"));
-    const payload = JSON.parse(decoded) as { exp?: number };
-    return typeof payload.exp === "number" ? payload.exp : null;
-  } catch {
-    return null;
-  }
 }

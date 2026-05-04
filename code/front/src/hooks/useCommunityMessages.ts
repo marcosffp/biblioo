@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Client, type IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { getAccessToken } from "@/services/auth";
+import { getJwtUserId } from "@/utils/jwt";
 import {
   getCommunityMembers,
   getCommunityRecentMessages,
@@ -19,6 +20,7 @@ interface SendMessageInput {
   hasSpoiler: boolean;
   images?: File[];
   gif?: File | null;
+  parentMessageId?: number | null;
 }
 
 interface EditMessageInput {
@@ -39,24 +41,7 @@ export interface TypingUser {
 
 function decodeCurrentUserId(): string | null {
   const token = getAccessToken();
-
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const payload = token.split(".")[1];
-    if (!payload) {
-      return null;
-    }
-
-    const base64 = payload.replaceAll("-", "+").replaceAll("_", "/");
-    const paddedBase64 = `${base64}${"=".repeat((4 - (base64.length % 4)) % 4)}`;
-    const decoded = JSON.parse(atob(paddedBase64)) as { sub?: string };
-    return decoded.sub ?? null;
-  } catch {
-    return null;
-  }
+  return token ? getJwtUserId(token) : null;
 }
 
 function parseMessageEvent(payload: string): BackendMessageEventPayload | null {
@@ -89,6 +74,7 @@ function mapMember(item: BackendCommunityMember): CommunityMember {
     username,
     avatarUrl: item.avatarUrl ?? null,
     isAdmin: item.role === "OWNER" || item.role === "MODERATOR",
+    role: item.role,
   };
 }
 
@@ -116,6 +102,7 @@ function mapBackendMessageToUi(
     gifUrl: item.gifUrl ?? null,
     isDeleted: item.deleted,
     isEdited: Boolean(item.editedAt),
+    parentMessageId: item.parentMessageId ?? null,
   };
 }
 
@@ -517,7 +504,7 @@ export function useCommunityMessages(communityId: string) {
   }, [communityIdNumber, currentUserId, subscribeRealtimeTopics, syncLostMessages]);
 
   const sendMessage = useCallback(
-    async ({ content, hasSpoiler, images, gif }: SendMessageInput) => {
+    async ({ content, hasSpoiler, images, gif, parentMessageId }: SendMessageInput) => {
       const client = clientRef.current;
       if (!client?.connected) {
         throw new Error("Conexão em tempo real indisponível. Tente novamente em alguns instantes.");
@@ -561,6 +548,7 @@ export function useCommunityMessages(communityId: string) {
             images: uploadedImages,
             gifUrl: uploadedGifUrl,
             isDeleted: false,
+            parentMessageId: parentMessageId ?? null,
           };
 
           setMessages((current) => [...current, optimisticMessage]);
@@ -570,7 +558,7 @@ export function useCommunityMessages(communityId: string) {
           destination: `/app/community/${communityIdNumber}/send`,
           body: JSON.stringify({
             content: normalizedContent,
-            parentMessageId: null,
+            parentMessageId: parentMessageId ?? null,
             tags: [],
             images: uploadedImages,
             gifUrl: uploadedGifUrl,
@@ -586,7 +574,7 @@ export function useCommunityMessages(communityId: string) {
           throw error;
         }
 
-        throw new Error("Nao foi possivel enviar a mensagem.");
+        throw new Error("Não foi possível enviar a mensagem.");
       } finally {
         setIsSendingMessage(false);
       }
@@ -720,7 +708,7 @@ export function useCommunityMessages(communityId: string) {
           throw error;
         }
 
-        throw new Error("Nao foi possivel reagir a mensagem.");
+        throw new Error("Não foi possível reagir a mensagem.");
       }
 
       // Se não vier evento por alguma razão, libera o lock para evitar travar o botão.

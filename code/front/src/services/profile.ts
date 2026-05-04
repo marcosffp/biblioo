@@ -172,6 +172,23 @@ export async function uploadMyAvatar(file: File, token?: string | null): Promise
   return (await response.json()) as UserProfileResponse;
 }
 
+export async function uploadMyBanner(file: File, token?: string | null): Promise<UserProfileResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE_URL}/users/me/banner`, {
+    method: "POST",
+    headers: bearerHeaders(token),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("banner_upload_failed");
+  }
+
+  return (await response.json()) as UserProfileResponse;
+}
+
 export async function listMyShelves(token?: string | null): Promise<ShelfSummaryResponse[]> {
   const response = await fetch(`${API_BASE_URL}/shelves`, {
     headers: bearerHeaders(token),

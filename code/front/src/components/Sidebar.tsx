@@ -18,7 +18,7 @@ export interface SidebarProps {
 
 const defaultItems: SidebarItem[] = [
   { label: "Feed", href: "/feed", icon: <Rss size={18} /> },
-  { label: "Biblioteca", href: "/bookcase", icon: <Book size={18} /> },
+  { label: "Bibliooteca", href: "/bookcase", icon: <Book size={18} /> },
   { label: "Comunidades", href: "/community", icon: <Users size={18} /> },
   { label: "Explorar", href: "/for-you", icon: <Compass size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
@@ -30,7 +30,7 @@ export function Sidebar({ items = defaultItems, className }: Readonly<SidebarPro
   return (
     <aside
       className={
-        `fixed left-0 top-16 z-40 hidden h-[calc(100vh-4rem)] w-64 overflow-y-auto border-r border-[#e2ebe7] bg-[#fbfdfc] p-5 lg:block ${className ?? ""}`.trim()
+        `fixed left-0 top-16 z-40 hidden h-[calc(100vh-4rem)] w-64 overflow-y-auto border-r border-[#e2ebe7] bg-white/80 p-5 shadow-[0_10px_30px_rgba(31,61,58,0.08)] backdrop-blur-xl lg:block ${className ?? ""}`.trim()
       }
     >
       <nav aria-label="Navegacao lateral" className="flex flex-col gap-2">

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, BookOpen, MessageCircle, Plus, Send, Users, X } from "lucide-react";
+import { BookOpen, Globe, Lock, Plus, Send, Users, X } from "lucide-react";
 import {
   AppShell,
   ChipToggle,
@@ -16,14 +16,20 @@ import {
   acceptCommunityInvite,
   declineCommunityInvite,
   listPendingCommunityInvites,
+  listPendingCommunityJoinRequests,
+  approveCommunityJoinRequest,
+  rejectCommunityJoinRequest,
   type PendingCommunityInviteResponse,
+  type PendingCommunityJoinRequestResponse,
 } from "@/services/community";
+import { markNotificationAsRead } from "@/services/notifications";
 import {
   type Community,
   useCommunity,
   type CommunityBookOption,
   type CommunityVisibility,
 } from "@/hooks/useCommunity";
+import { parseBookTitle } from "@/utils/book-utils";
 
 type FormSubmitEvent = Parameters<NonNullable<React.ComponentProps<"form">["onSubmit"]>>[0];
 
@@ -33,6 +39,17 @@ function normalizeCommunityName(value: string): string {
 
 function formatMembersLabel(total: number): string {
   return total.toLocaleString("pt-BR");
+}
+
+function formatJoinRequestDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Agora";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 type InviteModalProps = {
@@ -96,8 +113,8 @@ function CommunityInviteModal({
             </div>
             <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.11em] text-emerald-700/80">Leitura atual</p>
-              <p className="mt-2 text-xl font-semibold text-[var(--deep-green)]">{community.bookTitle.split(" - ")[0]}</p>
-              <p className="text-sm text-emerald-900/70">{community.bookTitle.split(" - ").slice(1).join(" - ") || "Autor desconhecido"}</p>
+              <p className="mt-2 text-xl font-semibold text-[var(--deep-green)]">{parseBookTitle(community.bookTitle).title}</p>
+              <p className="text-sm text-emerald-900/70">{parseBookTitle(community.bookTitle).author || "Autor desconhecido"}</p>
             </div>
           </div>
 
@@ -129,6 +146,129 @@ function CommunityInviteModal({
   );
 }
 
+type JoinRequestsModalProps = {
+  isOpen: boolean;
+  community: Community | null;
+  requests: PendingCommunityJoinRequestResponse[];
+  isLoading: boolean;
+  actionError: string;
+  processingRequestId: number | null;
+  onClose: () => void;
+  onApprove: (requestId: number) => void;
+  onReject: (requestId: number) => void;
+};
+
+function CommunityJoinRequestsModal({
+  isOpen,
+  community,
+  requests,
+  isLoading,
+  actionError,
+  processingRequestId,
+  onClose,
+  onApprove,
+  onReject,
+}: Readonly<JoinRequestsModalProps>) {
+  if (!isOpen || !community) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-8">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-full p-2 text-emerald-900/60 transition-colors hover:bg-emerald-100"
+          aria-label="Fechar solicitações"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="border-b border-emerald-100 bg-emerald-50/70 px-6 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Solicitações pendentes</p>
+          <h2 className="mt-2 text-2xl font-semibold text-[var(--deep-green)]">{community.name}</h2>
+          <p className="mt-1 text-sm text-emerald-900/70">Gerencie os pedidos para entrar na comunidade.</p>
+        </div>
+
+        <div className="px-6 py-5">
+          {actionError ? (
+            <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              {actionError}
+            </p>
+          ) : null}
+
+          {isLoading ? (
+            <p className="text-sm text-[var(--text-secondary)]">Carregando solicitações...</p>
+          ) : null}
+
+          {!isLoading && requests.length === 0 ? (
+            <p className="text-sm text-[var(--text-secondary)]">Nenhuma solicitação pendente.</p>
+          ) : null}
+
+          {!isLoading && requests.length > 0 ? (
+            <ul className="space-y-3">
+              {requests.map((request) => {
+                const displayName = request.username ?? "Usuario";
+                const displayHandle = request.username ? `@${request.username}` : `#${request.userId}`;
+                const isProcessing = processingRequestId === request.id;
+                return (
+                  <li
+                    key={request.id}
+                    className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 overflow-hidden rounded-full border border-emerald-100 bg-white">
+                        {request.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={request.avatarUrl}
+                            alt={`Avatar de ${displayName}`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-emerald-700">
+                            {displayName.slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--deep-green)]">{displayName}</p>
+                        <p className="text-xs text-emerald-700">{displayHandle}</p>
+                        <p className="text-xs text-[var(--text-secondary)]">
+                          {formatJoinRequestDate(request.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onReject(request.id)}
+                        disabled={isProcessing}
+                        className="inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-900/70 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Recusar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onApprove(request.id)}
+                        disabled={isProcessing}
+                        className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isProcessing ? "Processando..." : "Aceitar"}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ComunidadesPage() {
   const searchParams = useSearchParams();
   const {
@@ -144,6 +284,7 @@ export default function ComunidadesPage() {
     joinPrivateCommunityByInviteCode,
     inviteUser,
     pendingJoinRequestIds,
+    currentUserId,
   } = useCommunity();
 
   const [tab, setTab] = React.useState<"minhas" | "descobrir">("minhas");
@@ -172,12 +313,21 @@ export default function ComunidadesPage() {
   const [isSubmittingInviteAction, setIsSubmittingInviteAction] = React.useState(false);
   const [pendingInvite, setPendingInvite] = React.useState<PendingCommunityInviteResponse | null>(null);
   const [consumedInviteToken, setConsumedInviteToken] = React.useState<string | null>(null);
+  const [isJoinRequestsModalOpen, setIsJoinRequestsModalOpen] = React.useState(false);
+  const [joinRequests, setJoinRequests] = React.useState<PendingCommunityJoinRequestResponse[]>([]);
+  const [joinRequestsError, setJoinRequestsError] = React.useState("");
+  const [isLoadingJoinRequests, setIsLoadingJoinRequests] = React.useState(false);
+  const [processingJoinRequestId, setProcessingJoinRequestId] = React.useState<number | null>(null);
+  const [joinRequestsNotificationId, setJoinRequestsNotificationId] = React.useState<string | null>(null);
 
   const normalizedCommunityName = normalizeCommunityName(communityName);
   const selectedCommunity = React.useMemo(
     () => communities.find((community) => community.id === selectedCommunityId) ?? null,
     [communities, selectedCommunityId],
   );
+
+  const isSelectedCommunityOwner =
+    Boolean(selectedCommunity && currentUserId) && selectedCommunity?.ownerId === currentUserId;
 
   const filteredCommunities = React.useMemo(() => {
     if (tab === "minhas") {
@@ -255,7 +405,7 @@ export default function ComunidadesPage() {
       } catch {
         if (!isCancelled) {
           setBookOptions([]);
-          setBookSearchError("Nao foi possivel buscar livros no momento.");
+          setBookSearchError("Não foi possivel buscar livros no momento.");
         }
       } finally {
         if (!isCancelled) {
@@ -313,7 +463,7 @@ export default function ComunidadesPage() {
           return;
         }
 
-        setSubmitError("Nao foi possivel criar a comunidade.");
+        setSubmitError("Não foi possivel criar a comunidade.");
       }
     })();
   };
@@ -324,6 +474,14 @@ export default function ComunidadesPage() {
     setInviteCodeError("");
     setPrivateJoinFeedback("");
     setSelectedCommunityId(communityId);
+  }, []);
+
+  const handleCloseNonMemberModal = React.useCallback(() => {
+    setSelectedCommunityId(null);
+    setCommunityActionError("");
+    setInviteCode("");
+    setInviteCodeError("");
+    setPrivateJoinFeedback("");
   }, []);
 
   const handleCommunityPrimaryAction = React.useCallback(
@@ -372,7 +530,7 @@ export default function ComunidadesPage() {
       if (error instanceof Error && error.message) {
         setCommunityActionError(error.message);
       } else {
-        setCommunityActionError("Nao foi possivel entrar na comunidade.");
+        setCommunityActionError("Não foi possivel entrar na comunidade.");
       }
     } finally {
       setProcessingCommunityId(null);
@@ -387,8 +545,10 @@ export default function ComunidadesPage() {
     const communityIdFromQuery = searchParams.get("communityId");
     const shouldOpen = searchParams.get("open") === "1";
     const shouldOpenInviteModal = searchParams.get("openInviteModal") === "1";
+    const shouldOpenJoinRequests = searchParams.get("openJoinRequests") === "1";
+    const notificationIdFromQuery = searchParams.get("notificationId");
 
-    if (!communityIdFromQuery && !shouldOpenInviteModal) {
+    if (!communityIdFromQuery && !shouldOpenInviteModal && !shouldOpenJoinRequests) {
       return;
     }
 
@@ -461,6 +621,11 @@ export default function ComunidadesPage() {
       setIsInviteModalOpen(true);
     }
 
+    if (shouldOpenJoinRequests && targetCommunity.isMember) {
+      setIsJoinRequestsModalOpen(true);
+      setJoinRequestsNotificationId(notificationIdFromQuery);
+    }
+
     setOpenedFromQuery(true);
   }, [communities, openedFromQuery, searchParams]);
 
@@ -483,7 +648,7 @@ export default function ComunidadesPage() {
         const candidates = pendingInvites.filter((item) => item.communityId === Number(selectedCommunity.id));
         if (candidates.length === 0) {
           setPendingInvite(null);
-          setModalActionError("Nao ha convite pendente para esta comunidade.");
+          setModalActionError("Não ha convite pendente para esta comunidade.");
           return;
         }
 
@@ -498,7 +663,7 @@ export default function ComunidadesPage() {
       } catch {
         if (!cancelled) {
           setPendingInvite(null);
-          setModalActionError("Nao foi possivel carregar os detalhes do convite.");
+          setModalActionError("Não foi possivel carregar os detalhes do convite.");
         }
       }
     })();
@@ -518,12 +683,12 @@ export default function ComunidadesPage() {
 
     try {
       await requestPrivateCommunityJoin(selectedCommunity.id);
-      setPrivateJoinFeedback("Solicitacao enviada aos administradores da comunidade.");
+      setPrivateJoinFeedback("Solicitação enviada aos administradores da comunidade.");
     } catch (error) {
       if (error instanceof Error && error.message) {
         setCommunityActionError(error.message);
       } else {
-        setCommunityActionError("Nao foi possivel solicitar entrada nesta comunidade.");
+        setCommunityActionError("Não foi possível solicitar entrada nesta comunidade.");
       }
     } finally {
       setProcessingCommunityId(null);
@@ -555,7 +720,7 @@ export default function ComunidadesPage() {
       if (error instanceof Error && error.message) {
         setInviteCodeError(error.message);
       } else {
-        setInviteCodeError("Nao foi possivel usar o codigo de convite.");
+        setInviteCodeError("Não foi possivel usar o codigo de convite.");
       }
     } finally {
       setProcessingPrivateCodeJoin(false);
@@ -567,6 +732,116 @@ export default function ComunidadesPage() {
     setPendingInvite(null);
     setModalActionError("");
   }, []);
+
+  const closeJoinRequestsModal = React.useCallback(() => {
+    setIsJoinRequestsModalOpen(false);
+    setJoinRequests([]);
+    setJoinRequestsError("");
+    setJoinRequestsNotificationId(null);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isJoinRequestsModalOpen || !selectedCommunity) {
+      return;
+    }
+
+    if (!isSelectedCommunityOwner) {
+      setJoinRequestsError("Apenas o dono da comunidade pode gerenciar solicitações.");
+      setJoinRequests([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      setIsLoadingJoinRequests(true);
+      setJoinRequestsError("");
+      try {
+        const requests = await listPendingCommunityJoinRequests(Number(selectedCommunity.id), 0, 100);
+        if (cancelled) {
+          return;
+        }
+        setJoinRequests(requests);
+      } catch {
+        if (!cancelled) {
+          setJoinRequestsError("Não foi possivel carregar as solicitações pendentes.");
+          setJoinRequests([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingJoinRequests(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isJoinRequestsModalOpen, isSelectedCommunityOwner, selectedCommunity]);
+
+  const handleApproveJoinRequest = React.useCallback(
+    async (requestId: number) => {
+      if (processingJoinRequestId) {
+        return;
+      }
+      setProcessingJoinRequestId(requestId);
+      setJoinRequestsError("");
+
+      try {
+        await approveCommunityJoinRequest(requestId);
+        if (joinRequestsNotificationId) {
+          try {
+            await markNotificationAsRead(joinRequestsNotificationId);
+          } catch {
+            // Mantem fluxo mesmo se nao conseguir marcar notificacao como lida.
+          }
+        }
+        setJoinRequests((current) => current.filter((request) => request.id !== requestId));
+        await refreshCommunities();
+      } catch (error) {
+        if (error instanceof Error && error.message) {
+          setJoinRequestsError(error.message);
+        } else {
+          setJoinRequestsError("Não foi possivel aprovar a solicitação.");
+        }
+      } finally {
+        setProcessingJoinRequestId(null);
+      }
+    },
+    [joinRequestsNotificationId, processingJoinRequestId, refreshCommunities],
+  );
+
+  const handleRejectJoinRequest = React.useCallback(
+    async (requestId: number) => {
+      if (processingJoinRequestId) {
+        return;
+      }
+      setProcessingJoinRequestId(requestId);
+      setJoinRequestsError("");
+
+      try {
+        await rejectCommunityJoinRequest(requestId);
+        if (joinRequestsNotificationId) {
+          try {
+            await markNotificationAsRead(joinRequestsNotificationId);
+          } catch {
+            // Mantem fluxo mesmo se nao conseguir marcar notificacao como lida.
+          }
+        }
+        setJoinRequests((current) => current.filter((request) => request.id !== requestId));
+        await refreshCommunities();
+      } catch (error) {
+        if (error instanceof Error && error.message) {
+          setJoinRequestsError(error.message);
+        } else {
+          setJoinRequestsError("Não foi possivel recusar a solicitação.");
+        }
+      } finally {
+        setProcessingJoinRequestId(null);
+      }
+    },
+    [joinRequestsNotificationId, processingJoinRequestId, refreshCommunities],
+  );
 
   React.useEffect(() => {
     if (!selectedCommunity || selectedCommunity.isMember || selectedCommunity.visibility !== "PRIVATE") {
@@ -596,7 +871,7 @@ export default function ComunidadesPage() {
         if (error instanceof Error && error.message) {
           setInviteCodeError(error.message);
         } else {
-          setInviteCodeError("Nao foi possivel usar o link de convite.");
+          setInviteCodeError("Não foi possivel usar o link de convite.");
         }
       } finally {
         setProcessingPrivateCodeJoin(false);
@@ -634,7 +909,7 @@ export default function ComunidadesPage() {
         if (error instanceof Error && error.message) {
           setModalActionError(error.message);
         } else {
-          setModalActionError("Nao foi possivel processar o convite.");
+          setModalActionError("Não foi possivel processar o convite.");
         }
       } finally {
         setIsSubmittingInviteAction(false);
@@ -645,151 +920,157 @@ export default function ComunidadesPage() {
 
   if (selectedCommunity?.isMember) {
     return (
-      <CommunityChatView
-        community={selectedCommunity}
-        onBack={() => setSelectedCommunityId(null)}
-        onUpdateCommunity={() => {
-          // A atualizacao detalhada de comunidade sera sincronizada com backend nas proximas etapas.
-        }}
-        onInviteUser={inviteUser}
-      />
+      <>
+        <CommunityChatView
+          community={selectedCommunity}
+          onBack={() => setSelectedCommunityId(null)}
+          onUpdateCommunity={() => {
+            // A atualizacao detalhada de comunidade sera sincronizada com backend nas proximas etapas.
+          }}
+          onInviteUser={inviteUser}
+        />
+        <CommunityJoinRequestsModal
+          isOpen={isJoinRequestsModalOpen}
+          community={selectedCommunity}
+          requests={joinRequests}
+          isLoading={isLoadingJoinRequests}
+          actionError={joinRequestsError}
+          processingRequestId={processingJoinRequestId}
+          onClose={closeJoinRequestsModal}
+          onApprove={(requestId) => void handleApproveJoinRequest(requestId)}
+          onReject={(requestId) => void handleRejectJoinRequest(requestId)}
+        />
+      </>
     );
   }
 
   const nonMemberCommunityModal = selectedCommunity && !selectedCommunity.isMember ? (() => {
-    const [bookName, ...bookAuthorParts] = selectedCommunity.bookTitle.split(" - ");
-    const bookAuthor = bookAuthorParts.join(" - ") || "Autor desconhecido";
+    const { title: bookName, author: bookAuthorRaw } = parseBookTitle(selectedCommunity.bookTitle);
+    const bookAuthor = bookAuthorRaw || "Autor desconhecido";
     const hasPendingJoinRequest = pendingJoinRequestIds.has(selectedCommunity.id);
+    const isPublic = selectedCommunity.visibility === "PUBLIC";
+    const displayUrl = selectedCommunity.coverUrl ?? selectedCommunity.bookCoverUrl;
 
     return (
-      <div className="fixed inset-x-0 bottom-0 top-16 z-40 flex items-center justify-center overflow-y-auto bg-black/35 p-4 backdrop-blur-[1px] sm:p-6">
+      <div className="fixed inset-x-0 bottom-0 top-16 z-40 flex items-center justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-[2px]">
         <button
           type="button"
-          onClick={() => setSelectedCommunityId(null)}
+          onClick={handleCloseNonMemberModal}
           className="absolute inset-0 h-full w-full cursor-default"
           aria-label="Fechar detalhes da comunidade"
         />
 
-        <div className="relative z-10 my-4 h-[74vh] max-h-[640px] w-full max-w-[900px] overflow-hidden rounded-3xl border border-emerald-100 bg-[#e8f4f1] p-3 shadow-2xl sm:p-3.5">
-          <div className="grid h-full min-h-0 gap-3.5 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <section className="h-full min-h-0 overflow-y-auto rounded-3xl bg-[#dce9e7] px-5 pb-6 pt-5 sm:px-6">
-            <button
-              type="button"
-              onClick={() => setSelectedCommunityId(null)}
-              className="inline-flex items-center gap-2 text-sm font-medium text-emerald-800/80 transition-colors hover:text-emerald-900"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </button>
+        <div className="relative z-10 my-4 w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl">
+          {/* Botão fechar */}
+          <button
+            type="button"
+            onClick={handleCloseNonMemberModal}
+            className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-slate-500 transition-colors hover:bg-white hover:text-slate-700"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
 
-            <div className="mt-5 overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-b from-[#b7e7d9] to-[#bfeadf]">
-              <div className="flex h-52 items-center justify-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white/55">
-                  <BookOpen className="h-12 w-12 text-emerald-500" />
-                </div>
-              </div>
+          {/* Header: avatar + info inline */}
+          <div className="flex items-start gap-3 px-5 pb-4 pt-5 pr-12">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-emerald-50 shadow-sm ring-2 ring-emerald-100">
+              {displayUrl ? (
+                <img src={displayUrl} alt={selectedCommunity.name} className="h-full w-full object-cover" />
+              ) : (
+                <Users className="h-7 w-7 text-emerald-500" />
+              )}
             </div>
-
-            <div className="mt-7 space-y-3">
-              <h1 className="text-balance text-3xl font-semibold leading-[1.08] text-[var(--deep-green)] sm:text-[2.2rem]">
-                {selectedCommunity.name}
-              </h1>
-              <p className="max-w-3xl text-[1rem] leading-relaxed text-emerald-900/70 sm:text-[1.1rem]">
-                {selectedCommunity.description ?? "Comunidade de leitura para debates e trocas literarias."}
+            <div className="min-w-0 flex-1 pt-0.5">
+              <div className="flex items-center gap-1.5">
+                <h2 className="truncate text-base font-bold text-foreground">{selectedCommunity.name}</h2>
+                {isPublic
+                  ? <Globe className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                  : <Lock className="h-3.5 w-3.5 shrink-0 text-slate-400" />}
+              </div>
+              {selectedCommunity.description && (
+                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{selectedCommunity.description}</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{selectedCommunity.members}</span> membros
               </p>
             </div>
-          </section>
+          </div>
 
-          <aside className="min-h-0 space-y-4">
-            <section className="h-full min-h-0 overflow-y-auto rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm">
-              <div className="flex items-start gap-3 rounded-2xl bg-[#e4f4ee] p-3.5">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d2ece3]">
-                  <BookOpen className="h-6 w-6 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.11em] text-emerald-700/80">Leitura atual</p>
-                  <p className="mt-2 break-words text-[1.95rem] font-semibold leading-tight text-[var(--deep-green)]">{bookName}</p>
-                  <p className="mt-1 break-words text-[0.9rem] leading-snug text-emerald-900/70">{bookAuthor}</p>
-                </div>
-              </div>
+          <div className="border-t border-border" />
 
-              <div className="mt-5 grid grid-cols-2 gap-4 border-y border-emerald-100 py-4">
-                <div>
-                  <p className="text-3xl font-semibold text-emerald-500">{formatMembersLabel(selectedCommunity.members)}</p>
-                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.07em] text-emerald-900/55">Leitores ativos</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-semibold text-emerald-500">{selectedCommunity.discussions}</p>
-                  <p className="mt-1 text-xs font-medium uppercase tracking-[0.07em] text-emerald-900/55">Discussoes</p>
-                </div>
-              </div>
+          {/* Leitura atual */}
+          <div className="flex items-center gap-3 px-5 py-3.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+              <BookOpen className="h-4 w-4 text-emerald-500" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600/70">Leitura atual</p>
+              <p className="truncate text-sm font-semibold text-foreground">{bookName}</p>
+              <p className="truncate text-xs text-emerald-700">{bookAuthor}</p>
+            </div>
+          </div>
 
-              {communityActionError ? (
-                <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{communityActionError}</p>
-              ) : null}
+          <div className="border-t border-border" />
 
-              {selectedCommunity.visibility === "PUBLIC" ? (
-                <button
-                  type="button"
-                  onClick={() => void handleJoinPublicFromDetails()}
-                  disabled={processingCommunityId !== null}
-                  className="mt-4 w-full rounded-2xl bg-emerald-500 px-5 py-3 text-lg font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {processingCommunityId === selectedCommunity.id ? "Entrando..." : "Entrar na comunidade"}
-                </button>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  <p className="text-sm font-semibold uppercase tracking-[0.09em] text-emerald-900/60">Codigo de convite</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={inviteCode}
-                      onChange={(event) => {
-                        setInviteCode(event.target.value);
-                        setInviteCodeError("");
-                      }}
-                      placeholder="Inserir codigo"
-                      className="h-12 w-full rounded-xl border border-emerald-100 bg-[#f4fbf8] px-3 text-sm text-emerald-950 outline-none focus:border-emerald-300"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void handleJoinPrivateWithCode()}
-                      disabled={processingPrivateCodeJoin}
-                      className="inline-flex h-12 min-w-[92px] items-center justify-center rounded-xl bg-emerald-500 px-4 text-base font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {processingPrivateCodeJoin ? "..." : "Entrar"}
-                    </button>
-                  </div>
+          {/* Ação */}
+          <div className="px-5 pb-5 pt-4">
+            {communityActionError && (
+              <p className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{communityActionError}</p>
+            )}
 
-                  {inviteCodeError ? (
-                    <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{inviteCodeError}</p>
-                  ) : null}
-                  {privateJoinFeedback ? (
-                    <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{privateJoinFeedback}</p>
-                  ) : null}
-
-                  <div className="relative py-2 text-center text-xs uppercase tracking-[0.16em] text-emerald-900/50">
-                    <span className="absolute left-0 top-1/2 h-px w-[42%] -translate-y-1/2 bg-emerald-100" />
-                    ou
-                    <span className="absolute right-0 top-1/2 h-px w-[42%] -translate-y-1/2 bg-emerald-100" />
-                  </div>
-
+            {isPublic ? (
+              <button
+                type="button"
+                onClick={() => void handleJoinPublicFromDetails()}
+                disabled={processingCommunityId !== null}
+                className="w-full rounded-2xl bg-emerald-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {processingCommunityId === selectedCommunity.id ? "Entrando..." : "Participar"}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Código de convite</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) => { setInviteCode(e.target.value); setInviteCodeError(""); }}
+                    placeholder="Inserir código"
+                    className="h-10 w-full rounded-xl border border-border bg-slate-50 px-3 text-sm outline-none focus:border-emerald-300 focus:ring-1 focus:ring-emerald-200"
+                  />
                   <button
                     type="button"
-                    onClick={() => void handleRequestPrivateJoinFromDetails()}
-                    disabled={processingCommunityId !== null || hasPendingJoinRequest}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-white px-4 py-3 text-base font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+                    onClick={() => void handleJoinPrivateWithCode()}
+                    disabled={processingPrivateCodeJoin}
+                    className="inline-flex h-10 min-w-[72px] items-center justify-center rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-70"
                   >
-                    <Send className="h-5 w-5" />
-                    {hasPendingJoinRequest ? "Solicitacao enviada" : "Solicitar entrada"}
+                    {processingPrivateCodeJoin ? "..." : "Entrar"}
                   </button>
-
-                  <p className="text-xs text-emerald-900/55">A aprovacao e feita pelos administradores da comunidade.</p>
                 </div>
-              )}
-            </section>
-          </aside>
-        </div>
+                {inviteCodeError && (
+                  <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{inviteCodeError}</p>
+                )}
+                {privateJoinFeedback && (
+                  <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{privateJoinFeedback}</p>
+                )}
+                <div className="relative py-1 text-center text-xs uppercase tracking-widest text-muted-foreground">
+                  <span className="absolute left-0 top-1/2 h-px w-[44%] -translate-y-1/2 bg-border" />
+                  ou
+                  <span className="absolute right-0 top-1/2 h-px w-[44%] -translate-y-1/2 bg-border" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleRequestPrivateJoinFromDetails()}
+                  disabled={processingCommunityId !== null || hasPendingJoinRequest}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-emerald-300 py-3 text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-70"
+                >
+                  <Send className="h-4 w-4" />
+                  {hasPendingJoinRequest ? "Solicitação enviada" : "Solicitar entrada"}
+                </button>
+                <p className="text-xs text-muted-foreground">A aprovação é feita pelos administradores.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -833,12 +1114,6 @@ export default function ComunidadesPage() {
 
       <SectionHeader title={tab === "minhas" ? "Minhas comunidades" : "Comunidades para descobrir"} />
       <div className="grid gap-4 lg:grid-cols-2">
-        {communityActionError ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {communityActionError}
-          </p>
-        ) : null}
-
         {isLoadingCommunities ? (
           <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
             Carregando comunidades...
@@ -854,26 +1129,31 @@ export default function ComunidadesPage() {
         {!isLoadingCommunities && !communitiesError && filteredCommunities.length === 0 ? (
           <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
             {tab === "minhas"
-              ? "Voce ainda nao participa de comunidades."
+              ? "Você ainda não participa de comunidades."
               : "Nenhuma comunidade encontrada no momento."}
           </p>
         ) : null}
 
-        {filteredCommunities.map((community) => (
-          <CommunityCard
-            key={community.id}
-            name={community.name}
-            description={community.description}
-            bookTitle={community.bookTitle}
-            visibility={community.visibility}
-            members={community.members}
-            onClick={community.isMember ? () => handleOpenCommunity(community.id) : undefined}
-            actionLabel={getCommunityActionLabel(community.id)}
-            onActionClick={() => void handleCommunityPrimaryAction(community.id)}
-            actionDisabled={processingCommunityId !== null}
-            actionLoading={processingCommunityId === community.id}
-          />
-        ))}
+        {filteredCommunities.map((community) => {
+          const hasPending = !community.isMember && community.visibility === "PRIVATE" && pendingJoinRequestIds.has(community.id);
+          return (
+            <CommunityCard
+              key={community.id}
+              name={community.name}
+              description={community.description}
+              bookTitle={community.bookTitle}
+              bookCoverUrl={community.bookCoverUrl}
+              visibility={community.visibility}
+              members={community.members}
+              onClick={community.isMember ? () => handleOpenCommunity(community.id) : undefined}
+              actionLabel={getCommunityActionLabel(community.id)}
+              onActionClick={hasPending ? undefined : () => void handleCommunityPrimaryAction(community.id)}
+              actionDisabled={processingCommunityId !== null}
+              actionLoading={processingCommunityId === community.id}
+              pendingJoinRequest={hasPending}
+            />
+          );
+        })}
       </div>
 
       <CommunityCreateModal
@@ -909,6 +1189,18 @@ export default function ComunidadesPage() {
         onClose={closeInviteModal}
         onAccept={() => void handleInviteDecision("accept")}
         onDecline={() => void handleInviteDecision("decline")}
+      />
+
+      <CommunityJoinRequestsModal
+        isOpen={isJoinRequestsModalOpen}
+        community={selectedCommunity}
+        requests={joinRequests}
+        isLoading={isLoadingJoinRequests}
+        actionError={joinRequestsError}
+        processingRequestId={processingJoinRequestId}
+        onClose={closeJoinRequestsModal}
+        onApprove={(requestId) => void handleApproveJoinRequest(requestId)}
+        onReject={(requestId) => void handleRejectJoinRequest(requestId)}
       />
     </AppShell>
   );

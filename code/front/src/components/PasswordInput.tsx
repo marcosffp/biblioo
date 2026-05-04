@@ -13,11 +13,11 @@ export function PasswordInput({ label, error, className, disabled, ...rest }: Re
   return (
     <label className={`flex flex-col gap-2 ${className ?? ""}`.trim()}>
       {label ? <span className="font-bold text-[var(--text-primary)]">{label}</span> : null}
-      <div className="flex items-center gap-2 bg-[var(--bg-surface)] border border-[var(--border-soft)] px-3 py-2.5 rounded-[var(--radius-md)]">
+      <div className="flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-white/80 px-3 py-2.5 shadow-sm transition focus-within:border-[var(--brand-500)] focus-within:ring-2 focus-within:ring-[rgba(63,195,167,0.25)]">
         <input
           type={visible ? "text" : "password"}
           disabled={disabled}
-          className="bg-transparent outline-none border-none flex-1 text-base text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
+          className="flex-1 border-none bg-transparent text-base text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
           {...rest}
         />
         <button

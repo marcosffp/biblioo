@@ -169,7 +169,7 @@ export async function joinCommunity(communityId: number, token?: string | null):
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para entrar na comunidade.");
+    throw new CommunityApiError("Não foi possível conectar ao servidor para entrar na comunidade.");
   }
 
   if (!response.ok) {
@@ -198,7 +198,7 @@ export async function joinCommunityByInviteLink(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para entrar com convite.");
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para entrar com convite.");
   }
 
   if (!response.ok) {
@@ -221,7 +221,7 @@ export async function requestCommunityJoin(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para solicitar entrada.");
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para solicitar entrada.");
   }
 
   if (!response.ok) {
@@ -249,7 +249,7 @@ export async function inviteUserToCommunity(
       body: JSON.stringify({ inviteeId }),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para convidar o usuario.");
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para convidar o usuario.");
   }
 
   if (!response.ok) {
@@ -272,7 +272,7 @@ export async function acceptCommunityInvite(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para aceitar o convite.");
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para aceitar o convite.");
   }
 
   if (!response.ok) {
@@ -295,7 +295,7 @@ export async function declineCommunityInvite(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para recusar o convite.");
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para recusar o convite.");
   }
 
   if (!response.ok) {
@@ -318,7 +318,7 @@ export async function listPendingCommunityInvites(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel carregar convites pendentes.");
+    throw new CommunityApiError("Não foi possivel carregar convites pendentes.");
   }
 
   const data = await parseJsonResponse<BackendPageResponse<PendingCommunityInviteResponse>>(
@@ -342,12 +342,12 @@ export async function listPendingCommunityJoinRequests(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel carregar solicitacoes pendentes.");
+    throw new CommunityApiError("Não foi possivel carregar solicitações pendentes.");
   }
 
   const data = await parseJsonResponse<BackendPageResponse<PendingCommunityJoinRequestResponse>>(
     response,
-    "Falha ao carregar solicitacoes pendentes.",
+    "Falha ao carregar solicitações pendentes.",
   );
 
   return data.content ?? [];
@@ -365,7 +365,7 @@ export async function approveCommunityJoinRequest(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para aprovar solicitacao.");
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para aprovar solicitacao.");
   }
 
   if (!response.ok) {
@@ -388,7 +388,7 @@ export async function rejectCommunityJoinRequest(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para rejeitar solicitacao.");
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para rejeitar solicitacao.");
   }
 
   if (!response.ok) {
@@ -412,7 +412,7 @@ export async function removeCommunityMember(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel conectar ao servidor para remover o membro.");
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para remover o membro.");
   }
 
   if (!response.ok) {
@@ -421,6 +421,68 @@ export async function removeCommunityMember(
   }
 
   return { success: true };
+}
+
+export async function leaveCommunity(
+  communityId: number,
+  token?: string | null,
+): Promise<CommunityActionResult> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/communities/${communityId}/leave`, {
+      method: "DELETE",
+      headers: withRequiredBearerHeaders(token),
+    });
+  } catch {
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para sair da comunidade.");
+  }
+
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new CommunityApiError(message || "Falha ao sair da comunidade.", response.status);
+  }
+
+  return { success: true };
+}
+
+export async function getCommunityInviteLink(
+  communityId: number,
+  token?: string | null,
+): Promise<string | null> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/communities/${communityId}`, {
+      headers: withRequiredBearerHeaders(token),
+    });
+  } catch {
+    throw new CommunityApiError("Não foi possivel carregar os dados da comunidade.");
+  }
+
+  const data = await parseJsonResponse<{ inviteLink?: string | null }>(response, "Falha ao carregar dados da comunidade.");
+  return data.inviteLink ?? null;
+}
+
+export async function revokeCommunityInviteLink(
+  communityId: number,
+  token?: string | null,
+): Promise<void> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/communities/${communityId}/invite-link`, {
+      method: "DELETE",
+      headers: withRequiredBearerHeaders(token),
+    });
+  } catch {
+    throw new CommunityApiError("Não foi possivel revogar o codigo de convite.");
+  }
+
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new CommunityApiError(message || "Falha ao revogar codigo de convite.", response.status);
+  }
 }
 
 export async function generateCommunityInviteLink(
@@ -435,9 +497,59 @@ export async function generateCommunityInviteLink(
       headers: withRequiredBearerHeaders(token),
     });
   } catch {
-    throw new CommunityApiError("Nao foi possivel gerar o codigo de convite.");
+    throw new CommunityApiError("Não foi possivel gerar o codigo de convite.");
   }
 
   const data = await parseJsonResponse<{ inviteLink: string }>(response, "Falha ao gerar codigo de convite.");
   return data.inviteLink;
+}
+
+export async function changeCommunityMemberRole(
+  communityId: number,
+  userId: number,
+  role: "MODERATOR" | "MEMBER",
+  token?: string | null,
+): Promise<CommunityActionResult> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/communities/${communityId}/members/${userId}/role`, {
+      method: "PUT",
+      headers: {
+        ...withRequiredBearerHeaders(token),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ role }),
+    });
+  } catch {
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para alterar o cargo.");
+  }
+
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new CommunityApiError(message || "Falha ao alterar cargo do membro.", response.status);
+  }
+
+  return { success: true };
+}
+
+export async function deleteCommunity(
+  communityId: number,
+  token?: string | null,
+): Promise<void> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/communities/${communityId}`, {
+      method: "DELETE",
+      headers: withRequiredBearerHeaders(token),
+    });
+  } catch {
+    throw new CommunityApiError("Não foi possivel conectar ao servidor para excluir a comunidade.");
+  }
+
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new CommunityApiError(message || "Falha ao excluir comunidade.", response.status);
+  }
 }

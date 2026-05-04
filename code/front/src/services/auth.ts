@@ -1,4 +1,5 @@
 ﻿import { AuthSession, LoginRequest, RegisterRequest } from "@/types";
+import { getJwtExpiry } from "@/utils/jwt";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
 export const AUTH_SESSION_STORAGE_KEY = "biblioo.auth.session";
@@ -36,24 +37,8 @@ function canUseLocalStorage(): boolean {
   }
 }
 
-function parseJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const base64Payload = token.split(".")[1];
-    const decoded = atob(base64Payload.replace(/-/g, "+").replace(/_/g, "/"));
-    return JSON.parse(decoded) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-function getJwtExpirySeconds(token: string): number | null {
-  const payload = parseJwtPayload(token);
-  const exp = payload?.exp;
-  return typeof exp === "number" ? exp : null;
-}
-
 export function isTokenExpired(token: string): boolean {
-  const exp = getJwtExpirySeconds(token);
+  const exp = getJwtExpiry(token);
   if (exp === null) return false;
   return Math.floor(Date.now() / 1000) >= exp;
 }
@@ -64,7 +49,7 @@ function setAuthGuardCookie(accessToken: string): void {
   }
 
   try {
-    const exp = getJwtExpirySeconds(accessToken);
+    const exp = getJwtExpiry(accessToken);
     const maxAge = exp ? Math.max(0, exp - Math.floor(Date.now() / 1000)) : 3600;
     globalThis.document.cookie = `${AUTH_GUARD_COOKIE_KEY}=1; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
   } catch {

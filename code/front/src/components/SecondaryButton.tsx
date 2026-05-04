@@ -7,7 +7,7 @@ export interface SecondaryButtonProps extends React.ButtonHTMLAttributes<HTMLBut
 export function SecondaryButton({ children, className, ...rest }: Readonly<SecondaryButtonProps>) {
   return (
     <button
-      className={`bg-[var(--bg-surface)] text-[var(--brand-600)] border border-[var(--border-soft)] py-2.5 px-3 rounded-[var(--radius-md)] font-bold hover:bg-[var(--bg-soft)] disabled:opacity-60 disabled:cursor-not-allowed transition-colors ${className ?? ""}`.trim()}
+      className={`rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-white/80 px-3 py-2.5 font-semibold text-[var(--text-primary)] shadow-[0_8px_18px_rgba(15,47,44,0.08)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--brand-500)] hover:bg-[var(--bg-soft)] disabled:cursor-not-allowed disabled:opacity-60 ${className ?? ""}`.trim()}
       {...rest}
     >
       {children}

@@ -1,7 +1,6 @@
 import React from "react";
 import { ProgressBar } from "../ProgressBar";
 import { RatingStars } from "../RatingStars";
-import { Bookmark } from "./Bookmark";
 
 type ProfileShelfBookCardProps = {
   title: string;
@@ -56,10 +55,16 @@ export function ProfileShelfBookCard({
   const normalizedProgressPercent = typeof progressPercent === "number" ? progressPercent : 0;
   const progressLabel = typeof progressPercent === "number" ? `${Math.round(progressPercent)}%` : "--";
 
+  const titleClampStyle: React.CSSProperties = {
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+  };
+
   const content = (
-    <>
+    <div className="flex h-full flex-col">
       <div className="relative aspect-[3/4] rounded-t-[22px]">
-        {statusLabel ? <Bookmark label={statusLabel} className={bookmarkColorClass} /> : null}
         <div className="absolute inset-0 h-full w-full overflow-hidden rounded-t-[22px]">
           {coverUrl ? (
             <img
@@ -75,11 +80,13 @@ export function ProfileShelfBookCard({
           )}
         </div>
       </div>
-      <div className="border-t border-border p-3">
-        <p className="truncate text-sm font-semibold text-deep-green">{title}</p>
-        {author ? <p className="truncate text-xs text-medium-text">{author}</p> : null}
+      <div className="flex flex-1 flex-col border-t border-border p-3">
+        <p className="text-sm font-semibold text-deep-green" style={titleClampStyle}>
+          {title}
+        </p>
+        {author ? <p className="mt-1 truncate text-xs text-medium-text">{author}</p> : null}
         {shouldShowProgress ? (
-          <div className="mt-2 min-h-[36px]">
+          <div className="mt-auto pt-3">
             <ProgressBar value={normalizedProgressPercent} />
             <div className="mt-2 flex items-center justify-between text-xs text-medium-text">
               {showPageCount && typeof currentPage === "number" && typeof totalPages === "number" && totalPages > 0 ? (
@@ -93,11 +100,11 @@ export function ProfileShelfBookCard({
             </div>
           </div>
         ) : null}
-        <div className="mt-1 h-[14px]">
+        <div className="mt-2 h-[14px]">
           {shouldShowRating ? <RatingStars value={userRating} /> : null}
         </div>
       </div>
-    </>
+    </div>
   );
 
   if (onClick) {
@@ -105,12 +112,16 @@ export function ProfileShelfBookCard({
       <button
         type="button"
         onClick={onClick}
-        className="self-start overflow-visible rounded-[22px] border border-border bg-card text-left transition-all hover:shadow-card-hover"
+        className="flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-border bg-card text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
       >
         {content}
       </button>
     );
   }
 
-  return <article className="self-start overflow-visible rounded-[22px] border border-border bg-card transition-all hover:shadow-card-hover">{content}</article>;
+  return (
+    <article className="flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
+      {content}
+    </article>
+  );
 }

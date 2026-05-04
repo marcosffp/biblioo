@@ -13,7 +13,8 @@ public interface ReviewUseCase {
       String text,
       List<byte[]> newImages,
       byte[] gif,
-      boolean publish);
+      boolean publish,
+      boolean hasSpoiler);
 
   void publishReview(Long userId, Long reviewId);
 
@@ -24,7 +25,8 @@ public interface ReviewUseCase {
       String text,
       List<byte[]> newImages,
       List<String> imagesToDeleteUrls,
-      byte[] gif);
+      byte[] gif,
+      boolean hasSpoiler);
 
   void deleteReview(Long userId, Long reviewId);
 

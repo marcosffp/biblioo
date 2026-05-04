@@ -14,9 +14,9 @@ export function BookcaseModal({
   maxWidthClassName = "max-w-2xl",
 }: Readonly<BookcaseModalProps>) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#122016]/35 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0b1c17]/45 backdrop-blur-sm p-4">
       <div
-        className={`w-full ${maxWidthClassName} rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-5 shadow-[var(--shadow-soft)]`}
+        className={`w-full ${maxWidthClassName} rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)] animate-fade-up`}
       >
         <div className="flex items-center justify-between gap-4">
           <h3 className="text-2xl font-semibold text-[var(--text-primary)]">{title}</h3>

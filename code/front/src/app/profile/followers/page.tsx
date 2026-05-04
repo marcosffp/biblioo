@@ -1,25 +1,20 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { ArrowLeft, Search, X } from "lucide-react";
-import { AppShell, Avatar, AvatarFallback, AvatarImage, Button } from "@/components";
+import { AppShell } from "@/components";
 import { getAccessToken } from "@/services/auth";
+import { humanizeUsername } from "@/utils/format";
+import { useFollowToggle } from "@/hooks/useFollowToggle";
+import { FollowUserCard } from "@/components/profile/FollowUserCard";
 import {
-  followUser,
   getMyProfile,
   listFollowersByUsername,
   listMyFollowing,
-  unfollowUser,
   type UserSummaryResponse,
 } from "@/services/profile";
-
-function humanizeUsername(username: string): string {
-  return username
-    .replaceAll(/[_-]+/g, " ")
-    .replaceAll(/\b\w/g, (match) => match.toUpperCase());
-}
 
 export default function FollowersPage() {
   const router = useRouter();
@@ -29,8 +24,8 @@ export default function FollowersPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [ownerUsername, setOwnerUsername] = React.useState("usuario");
   const [followers, setFollowers] = React.useState<UserSummaryResponse[]>([]);
-  const [followState, setFollowState] = React.useState<Record<string, boolean>>({});
-  const [requestedState, setRequestedState] = React.useState<Record<string, boolean>>({});
+
+  const { followState, requestedState, initFollowState, handleToggleFollow } = useFollowToggle();
 
   React.useEffect(() => {
     const accessToken = getAccessToken();
@@ -53,34 +48,25 @@ export default function FollowersPage() {
           listMyFollowing(accessToken),
         ]);
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         const followingSet = new Set(myFollowing.map((user) => user.username));
         setOwnerUsername(me.username);
         setFollowers(followersList);
-        setFollowState(
+        initFollowState(
           Object.fromEntries(followersList.map((user) => [user.username, followingSet.has(user.username)])),
         );
       } catch {
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
         setError("Não foi possível carregar seguidores agora.");
       } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [initFollowState]);
 
   const filteredFollowers = followers.filter((user) => {
     const normalized = search.toLowerCase();
@@ -89,42 +75,6 @@ export default function FollowersPage() {
       humanizeUsername(user.username).toLowerCase().includes(normalized)
     );
   });
-
-  const handleToggleFollow = async (username: string) => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      return;
-    }
-
-    const currentlyFollowing = !!followState[username];
-    const currentlyRequested = !!requestedState[username];
-
-    if (currentlyFollowing || currentlyRequested) {
-      setFollowState((prev) => ({ ...prev, [username]: false }));
-      setRequestedState((prev) => ({ ...prev, [username]: false }));
-    } else {
-      setRequestedState((prev) => ({ ...prev, [username]: true }));
-    }
-
-    try {
-      if (currentlyFollowing || currentlyRequested) {
-        await unfollowUser(username, accessToken);
-      } else {
-        const result = await followUser(username, accessToken);
-
-        if (result === "following") {
-          setFollowState((prev) => ({ ...prev, [username]: true }));
-          setRequestedState((prev) => ({ ...prev, [username]: false }));
-        } else {
-          setFollowState((prev) => ({ ...prev, [username]: false }));
-          setRequestedState((prev) => ({ ...prev, [username]: true }));
-        }
-      }
-    } catch {
-      setFollowState((prev) => ({ ...prev, [username]: currentlyFollowing }));
-      setRequestedState((prev) => ({ ...prev, [username]: currentlyRequested }));
-    }
-  };
 
   return (
     <AppShell>
@@ -167,44 +117,15 @@ export default function FollowersPage() {
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <div className="space-y-3">
-          {filteredFollowers.map((user) => {
-            const isFollowing = !!followState[user.username];
-            const isRequested = !!requestedState[user.username];
-            let followLabel = "Seguir";
-            if (isFollowing) {
-              followLabel = "Seguindo";
-            } else if (isRequested) {
-              followLabel = "Solicitado";
-            }
-            return (
-              <div
-                key={user.id}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-card"
-              >
-                <Link href={`/profile/${user.username}`} className="flex min-w-0 flex-1 items-center gap-3">
-                  <Avatar className="h-12 w-12 bg-primary/20">
-                    <AvatarImage src={user.avatarUrl ?? undefined} alt={user.username} />
-                    <AvatarFallback className="bg-primary/20 font-semibold text-primary-dark">
-                      {user.username[0]?.toUpperCase() ?? "U"}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="min-w-0">
-                    <p className="truncate text-xl font-semibold text-deep-green">{humanizeUsername(user.username)}</p>
-                    <p className="truncate text-sm text-medium-text">@{user.username}</p>
-                  </div>
-                </Link>
-
-                <Button
-                  size="sm"
-                  variant={isFollowing || isRequested ? "outline" : "default"}
-                  onClick={() => handleToggleFollow(user.username)}
-                >
-                  {followLabel}
-                </Button>
-              </div>
-            );
-          })}
+          {filteredFollowers.map((user) => (
+            <FollowUserCard
+              key={user.id}
+              user={user}
+              isFollowing={!!followState[user.username]}
+              isRequested={!!requestedState[user.username]}
+              onToggleFollow={(username) => void handleToggleFollow(username)}
+            />
+          ))}
 
           {!isLoading && filteredFollowers.length === 0 ? (
             <p className="py-8 text-center text-sm text-medium-text">Nenhum usuário encontrado.</p>
@@ -214,4 +135,3 @@ export default function FollowersPage() {
     </AppShell>
   );
 }
-

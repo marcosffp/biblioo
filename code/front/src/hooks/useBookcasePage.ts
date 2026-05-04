@@ -2,6 +2,9 @@
 import {
   computeBookSuggestions,
   filterBooksByStatusAndSearch,
+  isDuplicateReviewError,
+  mapBackendReadingStatus,
+  mapFrontendReadingStatus,
   normalizeSearchTerm,
   type ReadingStatus,
   type RuleBook,
@@ -13,7 +16,6 @@ import {
   deleteCollection,
   getCollectionStatistics,
   getCollectionById,
-  type BackendReadingStatus,
   type BackendCollectionStatisticsResponse,
   type BackendReviewResponse,
   BookcaseApiError,
@@ -72,38 +74,6 @@ export type RootViewMode = "estantes" | "colecoes";
 const MIN_ADD_BOOK_SEARCH_LENGTH = 2;
 const ADD_BOOK_SEARCH_DEBOUNCE_MS = 300;
 
-function mapBackendReadingStatus(status: string): Exclude<ReadingStatus, "todos"> {
-  switch (status) {
-    case "READING":
-      return "lendo";
-    case "REREADING":
-      return "relendo";
-    case "COMPLETED":
-      return "lido";
-    case "ABANDONED":
-      return "abandonei";
-    case "WANT_TO_READ":
-    default:
-      return "quero-ler";
-  }
-}
-
-function mapFrontendReadingStatus(status: Exclude<ReadingStatus, "todos">): BackendReadingStatus {
-  switch (status) {
-    case "lendo":
-      return "READING";
-    case "relendo":
-      return "REREADING";
-    case "lido":
-      return "COMPLETED";
-    case "abandonei":
-      return "ABANDONED";
-    case "quero-ler":
-    default:
-      return "WANT_TO_READ";
-  }
-}
-
 function pickAuthor(authors: string[] | undefined): string {
   if (!authors || authors.length === 0) {
     return "Autor desconhecido";
@@ -158,11 +128,6 @@ function mapReviewText(review: BackendReviewResponse | null): string {
   }
 
   return review.text;
-}
-
-function isDuplicateReviewError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return normalized.includes("ja fez uma review") || normalized.includes("já fez uma review");
 }
 
 export function useBookcasePage() {

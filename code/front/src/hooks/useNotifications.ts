@@ -8,6 +8,7 @@ import {
   type NotificationSummary,
   type NotificationType,
 } from "@/services/notifications";
+import { normalizeEntityId } from "@/utils/notifications";
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
 const SSE_EVENT_NAME = "notification";
@@ -23,14 +24,6 @@ type RealtimeNotificationPayload = {
   createdAt: string;
 };
 
-function normalizeEntityId(value: number | string | null | undefined): number | null {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 function fromRealtimePayload(payload: RealtimeNotificationPayload): NotificationSummary {
   return {

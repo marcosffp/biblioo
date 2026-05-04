@@ -1,10 +1,12 @@
 import React from "react";
-import { MessageCircle, Globe, Lock, Users } from "lucide-react";
+import { Clock, MessageCircle, Globe, Lock, Users } from "lucide-react";
+import { parseBookTitle } from "@/utils/book-utils";
 
 export interface CommunityCardProps {
   name: string;
   description?: string;
   bookTitle?: string;
+  bookCoverUrl?: string | null;
   visibility?: "PUBLIC" | "PRIVATE";
   members?: number;
   coverUrl?: string;
@@ -14,14 +16,11 @@ export interface CommunityCardProps {
   onActionClick?: () => void;
   actionDisabled?: boolean;
   actionLoading?: boolean;
+  pendingJoinRequest?: boolean;
 }
 
-function splitBookTitle(bookTitle: string): { bookName: string; bookAuthor: string } {
-  const [bookName, ...rest] = bookTitle.split(" - ");
-  return { bookName: bookName ?? bookTitle, bookAuthor: rest.join(" - ") };
-}
 
-function getAvatarStyle(coverUrl: string | undefined, isPublic: boolean): React.CSSProperties {
+function getAvatarStyle(coverUrl: string | undefined | null, isPublic: boolean): React.CSSProperties {
   if (coverUrl) {
     return { backgroundImage: `url(${coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" };
   }
@@ -55,6 +54,7 @@ export function CommunityCard({
   name,
   description,
   bookTitle,
+  bookCoverUrl,
   visibility = "PUBLIC",
   members,
   coverUrl,
@@ -64,12 +64,14 @@ export function CommunityCard({
   onActionClick,
   actionDisabled,
   actionLoading,
+  pendingJoinRequest,
 }: Readonly<CommunityCardProps>) {
   const isPublic = visibility === "PUBLIC";
   const VisibilityIcon = isPublic ? Globe : Lock;
   const visibilityLabel = isPublic ? "Pública" : "Privada";
-  const { bookName, bookAuthor } = splitBookTitle(bookTitle ?? "Leitura não informada");
+  const { title: bookName, author: bookAuthor } = parseBookTitle(bookTitle ?? "Leitura não informada");
   const hasAction = !!(actionLabel && onActionClick);
+  const displayCoverUrl = coverUrl ?? bookCoverUrl;
 
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,7 +84,14 @@ export function CommunityCard({
   };
 
   let actionContent: React.ReactNode = null;
-  if (hasAction) {
+  if (pendingJoinRequest) {
+    actionContent = (
+      <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 py-2.5 text-sm font-medium text-amber-700">
+        <Clock size={14} />
+        Solicitação enviada
+      </div>
+    );
+  } else if (hasAction) {
     actionContent = (
       <ActionButton
         label={actionLabel}
@@ -109,10 +118,10 @@ export function CommunityCard({
         <div className="flex min-w-0 items-start gap-3">
           <div
             className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-bold"
-            style={getAvatarStyle(coverUrl, isPublic)}
+            style={getAvatarStyle(displayCoverUrl, isPublic)}
             aria-hidden
           >
-            {coverUrl ? null : name.slice(0, 2).toUpperCase()}
+            {displayCoverUrl ? null : name.slice(0, 2).toUpperCase()}
           </div>
 
           <div className="min-w-0">

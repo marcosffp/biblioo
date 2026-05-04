@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
+import { motion } from "framer-motion";
 import { readingStatusOptions, useBookcasePage } from "@/hooks/useBookcasePage";
 import { BookcaseResults } from "@/components/bookcase/BookcaseResults";
 import { BookcaseModals } from "@/components/bookcase/BookcaseModals";
@@ -23,6 +24,7 @@ export default function EstantePage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const handledOpenBookParamsRef = useRef<string | null>(null);
+  const [isPageReady, setIsPageReady] = useState(false);
 
   const {
     addBookSearchTerm,
@@ -160,6 +162,16 @@ export default function EstantePage() {
   } = useBookcasePage();
 
   useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setIsPageReady(true);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
     const openBookDetailsFlag = searchParams.get("openBookDetails");
     const rawBookId = searchParams.get("bookId");
 
@@ -248,59 +260,63 @@ export default function EstantePage() {
 
   return (
     <AppShell>
-      <PageHeader
-        title={pageHeaderTitle}
-        action={
-          <div className="flex items-center gap-2">
-            {!isInsideShelf && !isInsideCollection && rootViewMode === "estantes" ? (
-              <PrimaryButton onClick={handleOpenCreateShelfModal} aria-label="Criar estante">
-                <span className="inline-flex items-center gap-2">
-                  <Plus size={16} />
-                  <span>Criar estante</span>
-                </span>
-              </PrimaryButton>
-            ) : null}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+        <PageHeader
+          title={pageHeaderTitle}
+          action={
+            <div className="flex items-center gap-2">
+              {!isInsideShelf && !isInsideCollection && rootViewMode === "estantes" ? (
+                <PrimaryButton onClick={handleOpenCreateShelfModal} aria-label="Criar estante">
+                  <span className="inline-flex items-center gap-2">
+                    <Plus size={16} />
+                    <span>Criar estante</span>
+                  </span>
+                </PrimaryButton>
+              ) : null}
 
-            {!isInsideShelf && !isInsideCollection && rootViewMode === "colecoes" ? (
-              <PrimaryButton onClick={handleOpenCreateCollectionModal} aria-label="Criar coleção">
-                <span className="inline-flex items-center gap-2">
-                  <Plus size={16} />
-                  <span>Criar coleção</span>
-                </span>
-              </PrimaryButton>
-            ) : null}
+              {!isInsideShelf && !isInsideCollection && rootViewMode === "colecoes" ? (
+                <PrimaryButton onClick={handleOpenCreateCollectionModal} aria-label="Criar coleção">
+                  <span className="inline-flex items-center gap-2">
+                    <Plus size={16} />
+                    <span>Criar coleção</span>
+                  </span>
+                </PrimaryButton>
+              ) : null}
 
-            {isInsideCollection && !isInsideShelf ? (
-              <PrimaryButton onClick={handleOpenAddShelfToSelectedCollection} aria-label="Adicionar estante na coleção">
-                <span className="inline-flex items-center gap-2">
-                  <Plus size={16} />
-                  <span>Adicionar estante</span>
-                </span>
-              </PrimaryButton>
-            ) : null}
+              {isInsideCollection && !isInsideShelf ? (
+                <PrimaryButton onClick={handleOpenAddShelfToSelectedCollection} aria-label="Adicionar estante na coleção">
+                  <span className="inline-flex items-center gap-2">
+                    <Plus size={16} />
+                    <span>Adicionar estante</span>
+                  </span>
+                </PrimaryButton>
+              ) : null}
 
-            {isInsideShelf ? (
-              <PrimaryButton onClick={handleAddBookClick} aria-label="Adicionar livro na estante">
-                <span className="inline-flex items-center gap-2">
-                  <Plus size={16} />
-                  <span>Adicionar livro</span>
-                </span>
-              </PrimaryButton>
-            ) : null}
-          </div>
-        }
-      />
+              {isInsideShelf ? (
+                <PrimaryButton onClick={handleAddBookClick} aria-label="Adicionar livro na estante">
+                  <span className="inline-flex items-center gap-2">
+                    <Plus size={16} />
+                    <span>Adicionar livro</span>
+                  </span>
+                </PrimaryButton>
+              ) : null}
+            </div>
+          }
+        />
+      </motion.div>
 
       {isInsideShelf ? (
-        <TextInput
-          id="bookcase-search-input"
-          aria-label={searchInputAriaLabel}
-          placeholder={searchInputPlaceholder}
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          clearable
-          onClear={() => setSearchTerm("")}
-        />
+        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+          <TextInput
+            id="bookcase-search-input"
+            aria-label={searchInputAriaLabel}
+            placeholder={searchInputPlaceholder}
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            clearable
+            onClear={() => setSearchTerm("")}
+          />
+        </motion.div>
       ) : null}
 
       <BookcaseModals
@@ -376,12 +392,20 @@ export default function EstantePage() {
         isSelectedBookAlreadyInShelf={isSelectedBookAlreadyInShelf}
         isAddingToShelf={isAddingToShelf}
         addToShelfError={addToShelfError}
+        currentShelfName={isInsideShelf && selectedShelfName ? selectedShelfName : undefined}
       />
 
-      {sectionHeaderContent}
+      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        {sectionHeaderContent}
+      </motion.div>
 
       {isInsideShelf ? (
-        <div className="flex flex-wrap gap-2">
+        <motion.div
+          className="flex flex-wrap gap-2"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05 }}
+        >
           {visibleStatusOptions.map((statusOption) => (
             <ChipToggle
               key={statusOption.value}
@@ -390,7 +414,7 @@ export default function EstantePage() {
               onClick={() => setStatusFilter(statusOption.value)}
             />
           ))}
-        </div>
+        </motion.div>
       ) : null}
 
       <BookcaseResults

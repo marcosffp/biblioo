@@ -76,7 +76,9 @@ public class ReviewController {
           List<MultipartFile> images,
       @Parameter(description = "Arquivo GIF animado para anexar")
           @RequestPart(value = "gif", required = false)
-          MultipartFile gif) {
+          MultipartFile gif,
+      @RequestParam(value = "hasSpoiler", defaultValue = "false")
+          boolean hasSpoiler) {
 
     if (rating < 1 || rating > 5) {
       throw new ReviewBusinessException("A avaliação deve ser entre 1 e 5");
@@ -96,7 +98,7 @@ public class ReviewController {
     byte[] gifBytes = parseGif(gif);
 
     Review result =
-        reviewUseCase.createReview(userId, bookId, rating, safeText, newImages, gifBytes, publish);
+        reviewUseCase.createReview(userId, bookId, rating, safeText, newImages, gifBytes, publish, hasSpoiler);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(reviewMapper.toResponse(result));
   }
@@ -138,7 +140,9 @@ public class ReviewController {
           List<MultipartFile> images,
       @Parameter(description = "Novo GIF para sobrescrever atual (se houver)")
           @RequestPart(value = "gif", required = false)
-          MultipartFile gif) {
+          MultipartFile gif,
+      @RequestParam(value = "hasSpoiler", defaultValue = "false")
+          boolean hasSpoiler) {
 
     if (text == null || text.trim().isEmpty()) {
       throw new ReviewBusinessException("O texto da avaliação é obrigatório");
@@ -159,7 +163,7 @@ public class ReviewController {
 
     Review result =
         reviewUseCase.updateReview(
-            userId, reviewId, rating, safeText, newImages, imagesToDeleteUrls, gifBytes);
+            userId, reviewId, rating, safeText, newImages, imagesToDeleteUrls, gifBytes, hasSpoiler);
     return ResponseEntity.ok(reviewMapper.toResponse(result));
   }
 

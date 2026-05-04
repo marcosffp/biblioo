@@ -578,13 +578,23 @@ export async function createBookReview(
   bookId: number,
   rating: number,
   text?: string,
+  images?: File[],
+  gif?: File | null,
+  hasSpoiler?: boolean,
 ): Promise<BackendReviewResponse> {
   const formData = new FormData();
   formData.append("bookId", String(bookId));
   formData.append("rating", String(rating));
   formData.append("publish", "true");
+  formData.append("hasSpoiler", String(hasSpoiler ?? false));
   if (typeof text === "string" && text.length > 0) {
     formData.append("text", text);
+  }
+  if (images && images.length > 0) {
+    images.forEach((img) => formData.append("images", img));
+  }
+  if (gif) {
+    formData.append("gif", gif);
   }
 
   let response: Response;
@@ -604,11 +614,13 @@ export async function createBookReview(
 export async function updateBookReview(
   reviewId: number,
   rating: number,
-  text?: string,
+  text: string,
+  hasSpoiler?: boolean,
 ): Promise<BackendReviewResponse> {
   const formData = new FormData();
   formData.append("rating", String(rating));
-  formData.append("text", text ?? "");
+  formData.append("text", text);
+  formData.append("hasSpoiler", String(hasSpoiler ?? false));
 
   let response: Response;
   try {
@@ -622,6 +634,22 @@ export async function updateBookReview(
   }
 
   return parseJsonResponse<BackendReviewResponse>(response, "Falha ao atualizar avaliação.");
+}
+
+export async function deleteBookReview(reviewId: number): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/feed/reviews/${reviewId}`, {
+      method: "DELETE",
+      headers: buildAuthHeaders(),
+    });
+  } catch {
+    throw new BookcaseApiError("Não foi possível excluir sua avaliação.");
+  }
+
+  if (!response.ok) {
+    throw new BookcaseApiError("Falha ao excluir avaliação.", response.status);
+  }
 }
 
 export async function getMyBookReview(bookId: number): Promise<BackendReviewResponse | null> {

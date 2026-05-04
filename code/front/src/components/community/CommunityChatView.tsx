@@ -4,7 +4,7 @@ import React from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { TopHeader } from "@/components/TopHeader";
 import { useCommunityMessages } from "@/hooks/useCommunityMessages";
-import { removeCommunityMember } from "@/services/community";
+import { changeCommunityMemberRole, deleteCommunity, leaveCommunity, removeCommunityMember } from "@/services/community";
 import { CommunityChatPanel } from "./CommunityChatPanel";
 import { CommunityInfoPanel } from "./CommunityInfoPanel";
 import type { Community } from "../../hooks/useCommunity";
@@ -47,6 +47,21 @@ export function CommunityChatView({
     await refreshMembers();
   };
 
+  const handleLeaveGroup = async () => {
+    await leaveCommunity(Number(community.id));
+    onBack();
+  };
+
+  const handleChangeMemberRole = async (memberId: string, role: "MODERATOR" | "MEMBER") => {
+    await changeCommunityMemberRole(Number(community.id), Number(memberId), role);
+    await refreshMembers();
+  };
+
+  const handleDeleteCommunity = async () => {
+    await deleteCommunity(Number(community.id));
+    onBack();
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <TopHeader />
@@ -82,6 +97,10 @@ export function CommunityChatView({
                 onSaveCommunity={onUpdateCommunity}
                 onInviteUser={onInviteUser}
                 onRemoveMember={isOwner ? handleRemoveMember : undefined}
+                onLeaveGroup={!isOwner ? handleLeaveGroup : undefined}
+                onChangeMemberRole={isOwner ? handleChangeMemberRole : undefined}
+                onDeleteCommunity={isOwner ? handleDeleteCommunity : undefined}
+                onRefreshMembers={refreshMembers}
                 onClose={() => setIsInfoOpen(false)}
               />
             ) : null}

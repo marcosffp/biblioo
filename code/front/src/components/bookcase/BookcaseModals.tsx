@@ -82,6 +82,7 @@ interface BookcaseModalsProps {
   isSelectedBookAlreadyInShelf: boolean;
   isAddingToShelf: boolean;
   addToShelfError: string;
+  currentShelfName?: string;
 }
 
 export function BookcaseModals({
@@ -157,6 +158,7 @@ export function BookcaseModals({
   isSelectedBookAlreadyInShelf,
   isAddingToShelf,
   addToShelfError,
+  currentShelfName,
 }: Readonly<BookcaseModalsProps>) {
   return (
     <>
@@ -402,6 +404,7 @@ export function BookcaseModals({
         isAlreadyInShelf={isSelectedBookAlreadyInShelf}
         isAddingToShelf={isAddingToShelf}
         addToShelfError={addToShelfError}
+        currentShelfName={currentShelfName}
       />
     </>
   );

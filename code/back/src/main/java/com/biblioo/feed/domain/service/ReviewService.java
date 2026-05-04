@@ -46,7 +46,8 @@ public class ReviewService implements ReviewUseCase {
       String text,
       List<byte[]> newImages,
       byte[] gif,
-      boolean publish) {
+      boolean publish,
+      boolean hasSpoiler) {
     if (!userPort.existsById(userId)) {
       throw new ReviewBusinessException("Usuário não encontrado.");
     }
@@ -71,6 +72,7 @@ public class ReviewService implements ReviewUseCase {
             .rating(rating)
             .text(text)
             .isPublished(publish)
+            .hasSpoiler(hasSpoiler)
             .build();
 
     var savedReview = reviewRepository.save(review);
@@ -138,7 +140,8 @@ public class ReviewService implements ReviewUseCase {
       String text,
       List<byte[]> newImages,
       List<String> imagesToDeleteUrls,
-      byte[] gif) {
+      byte[] gif,
+      boolean hasSpoiler) {
     var review =
         reviewRepository
             .findByIdAndIsDeletedFalse(reviewId)
@@ -152,6 +155,7 @@ public class ReviewService implements ReviewUseCase {
 
     review.setRating(rating);
     review.setText(text);
+    review.setHasSpoiler(hasSpoiler);
 
     if (gif != null && gif.length > 0) {
       if (review.getGifUrl() != null && !review.getGifUrl().isEmpty()) {
