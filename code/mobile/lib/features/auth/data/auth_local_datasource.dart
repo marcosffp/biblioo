@@ -34,7 +34,7 @@ class AuthLocalDatasource {
         'bannerUrl': user.bannerUrl,
         'isPrivate': user.isPrivate,
         'restricted': user.restricted,
-        'isFollowing': user.isFollowing,
+        'followStatus': user.followStatus.name,
         'createdAt': user.createdAt,
       }),
     );
@@ -53,9 +53,20 @@ class AuthLocalDatasource {
       bannerUrl: json['bannerUrl'] as String?,
       isPrivate: json['isPrivate'] as bool? ?? false,
       restricted: json['restricted'] as bool? ?? false,
-      isFollowing: json['isFollowing'] as bool? ?? false,
+      followStatus: _parseFollowStatus(json['followStatus'] as String?),
       createdAt: json['createdAt'] as String?,
     );
+  }
+
+  UserFollowStatus _parseFollowStatus(String? raw) {
+    switch ((raw ?? '').toUpperCase()) {
+      case 'FOLLOWING':
+        return UserFollowStatus.following;
+      case 'REQUESTED':
+        return UserFollowStatus.requested;
+      default:
+        return UserFollowStatus.none;
+    }
   }
 
   Future<void> clearTokens() async {

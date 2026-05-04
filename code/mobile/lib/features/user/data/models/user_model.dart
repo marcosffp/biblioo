@@ -9,7 +9,7 @@ class UserModel {
   final String? bannerUrl;
   final bool isPrivate;
   final bool restricted;
-  final bool isFollowing;
+  final UserFollowStatus followStatus;
   final String? createdAt;
 
   const UserModel({
@@ -21,7 +21,7 @@ class UserModel {
     this.bannerUrl,
     required this.isPrivate,
     required this.restricted,
-    this.isFollowing = false,
+    this.followStatus = UserFollowStatus.none,
     this.createdAt,
   });
 
@@ -34,9 +34,24 @@ class UserModel {
     bannerUrl: json['bannerUrl'] as String?,
     isPrivate: json['isPrivate'] as bool? ?? false,
     restricted: json['restricted'] as bool? ?? false,
-    isFollowing: json['isFollowing'] as bool? ?? false,
+    followStatus: _parseFollowStatus(
+      json['followStatus'] as String? ?? json['followState'] as String?,
+    ),
     createdAt: json['createdAt'] as String?,
   );
+
+  static UserFollowStatus _parseFollowStatus(String? raw) {
+    switch ((raw ?? '').toUpperCase()) {
+      case 'FOLLOWING':
+      case 'ACCEPTED':
+        return UserFollowStatus.following;
+      case 'REQUESTED':
+      case 'PENDING':
+        return UserFollowStatus.requested;
+      default:
+        return UserFollowStatus.none;
+    }
+  }
 
   User toEntity() => User(
     id: id,
@@ -47,7 +62,7 @@ class UserModel {
     bannerUrl: bannerUrl,
     isPrivate: isPrivate,
     restricted: restricted,
-    isFollowing: isFollowing,
+    followStatus: followStatus,
     createdAt: createdAt,
   );
 }

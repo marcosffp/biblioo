@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import 'models/community_invite_model.dart';
+import 'models/community_join_request_model.dart';
 import 'models/community_member_model.dart';
 import 'models/community_message_model.dart';
 import 'models/community_model.dart';
@@ -68,6 +69,10 @@ class CommunityRemoteDatasource {
     await _dio.post('/communities/$communityId/join');
   }
 
+  Future<void> requestToJoin(int communityId) async {
+    await _dio.post('/communities/$communityId/join-requests');
+  }
+
   Future<void> leaveCommunity(int communityId) async {
     await _dio.delete('/communities/$communityId/leave');
   }
@@ -117,6 +122,38 @@ class CommunityRemoteDatasource {
 
   Future<void> declineInvite(int inviteId) async {
     await _dio.post('/communities/invites/$inviteId/decline');
+  }
+
+  Future<List<CommunityJoinRequestModel>> getPendingJoinRequests(
+    int communityId, {
+    int page = 0,
+    int size = 10,
+  }) async {
+    final response = await _dio.get(
+      '/communities/$communityId/join-requests',
+      queryParameters: {'page': page, 'size': size},
+    );
+
+    final data = response.data;
+    if (data is! Map<String, dynamic>) return [];
+
+    final content = data['content'];
+    if (content is! List<dynamic>) return [];
+
+    return content
+        .map(
+          (e) =>
+              CommunityJoinRequestModel.fromApiJson(e as Map<String, dynamic>),
+        )
+        .toList();
+  }
+
+  Future<void> approveJoinRequest(int requestId) async {
+    await _dio.post('/communities/join-requests/$requestId/approve');
+  }
+
+  Future<void> rejectJoinRequest(int requestId) async {
+    await _dio.post('/communities/join-requests/$requestId/reject');
   }
 
   Future<List<CommunityMessageModel>> getCommunityMessages(

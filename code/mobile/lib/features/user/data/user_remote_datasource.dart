@@ -1,6 +1,7 @@
 // ignore_for_file: use_null_aware_elements
 
 import 'package:dio/dio.dart';
+import 'package:biblioo/features/user/domain/user.dart';
 import 'models/user_model.dart';
 import 'models/follow_page_model.dart';
 
@@ -22,15 +23,20 @@ class UserRemoteDatasource {
 
   // PUT /users/me — body opcional: bio, avatarUrl, bannerUrl
   Future<UserModel> updateProfile({
+    String? username,
     String? bio,
     String? avatarUrl,
     String? bannerUrl,
   }) async {
-    final response = await _dio.put('/users/me', data: {
-      if (bio != null)       'bio': bio,
-      if (avatarUrl != null) 'avatarUrl': avatarUrl,
-      if (bannerUrl != null) 'bannerUrl': bannerUrl,
-    });
+    final response = await _dio.put(
+      '/users/me',
+      data: {
+        if (username != null) 'username': username,
+        if (bio != null) 'bio': bio,
+        if (avatarUrl != null) 'avatarUrl': avatarUrl,
+        if (bannerUrl != null) 'bannerUrl': bannerUrl,
+      },
+    );
     return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -62,13 +68,24 @@ class UserRemoteDatasource {
   }
 
   // POST /users/{username}/follow → 204
-  Future<void> follow(String username) async {
-    await _dio.post('/users/$username/follow');
+  Future<UserFollowStatus> follow(String username) async {
+    final response = await _dio.post('/users/$username/follow');
+    return response.statusCode == 202
+        ? UserFollowStatus.requested
+        : UserFollowStatus.following;
   }
 
   // DELETE /users/{username}/follow → 204
   Future<void> unfollow(String username) async {
     await _dio.delete('/users/$username/follow');
+  }
+
+  Future<void> acceptFollowRequest(String requesterUsername) async {
+    await _dio.post('/users/me/follow-requests/$requesterUsername/accept');
+  }
+
+  Future<void> rejectFollowRequest(String requesterUsername) async {
+    await _dio.delete('/users/me/follow-requests/$requesterUsername');
   }
 
   // DELETE /users/me → 204
@@ -82,11 +99,10 @@ class UserRemoteDatasource {
     int page = 0,
     int size = 20,
   }) async {
-    final response = await _dio.get('/users', queryParameters: {
-      'q': query,
-      'page': page,
-      'size': size,
-    });
+    final response = await _dio.get(
+      '/users',
+      queryParameters: {'q': query, 'page': page, 'size': size},
+    );
     return FollowPageModel.fromJson(response.data as Map<String, dynamic>);
   }
 

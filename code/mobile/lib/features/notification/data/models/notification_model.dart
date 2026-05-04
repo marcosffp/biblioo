@@ -7,6 +7,7 @@ class NotificationModel {
   final String actorUsername;
   final String? actorAvatarUrl;
   final int? entityId;
+  final int? communityId;
   final bool read;
   final String createdAt;
 
@@ -17,6 +18,7 @@ class NotificationModel {
     required this.actorUsername,
     required this.actorAvatarUrl,
     required this.entityId,
+    required this.communityId,
     required this.read,
     required this.createdAt,
   });
@@ -30,6 +32,14 @@ class NotificationModel {
       parsedEntityId = int.tryParse(rawEntityId);
     }
 
+    final rawCommunityId = json['communityId'];
+    int? parsedCommunityId;
+    if (rawCommunityId is num) {
+      parsedCommunityId = rawCommunityId.toInt();
+    } else if (rawCommunityId is String && rawCommunityId.isNotEmpty) {
+      parsedCommunityId = int.tryParse(rawCommunityId);
+    }
+
     return NotificationModel(
       id: json['id'] as String,
       type: json['type'] as String,
@@ -37,6 +47,7 @@ class NotificationModel {
       actorUsername: json['actorUsername'] as String,
       actorAvatarUrl: json['actorAvatarUrl'] as String?,
       entityId: parsedEntityId,
+      communityId: parsedCommunityId,
       read: (json['read'] as bool?) ?? false,
       createdAt: json['createdAt'] as String,
     );
@@ -50,6 +61,7 @@ class NotificationModel {
       actorUsername: actorUsername,
       actorAvatarUrl: actorAvatarUrl,
       entityId: entityId,
+      communityId: communityId,
       read: read,
       createdAt: DateTime.parse(createdAt),
     );

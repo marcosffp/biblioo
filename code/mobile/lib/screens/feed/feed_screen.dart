@@ -7,6 +7,7 @@ import 'package:biblioo/features/feed/domain/feed_item.dart';
 import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
 import 'package:biblioo/features/notification/bloc/notification_event.dart';
 import 'package:biblioo/features/notification/bloc/notification_state.dart';
+import 'package:biblioo/utils/cooldown_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -81,72 +82,77 @@ class _FeedScreenState extends State<FeedScreen> {
     final currentUserId = authState.session.user.id;
 
     return Scaffold(
-      body: RefreshIndicator(
+      body: CooldownRefreshIndicator(
+        keyId: 'feed',
         onRefresh: _refresh,
-        child: CustomScrollView(
-          controller: _scrollController,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverAppBar(
-              floating: true,
-              snap: true,
-              title: const Text('Feed'),
-              actions: const [_NotificationBellButton()],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(56),
-                child: _SearchBar(onTap: () => context.push('/search')),
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                snap: true,
+                title: const Text('Feed'),
+                actions: const [_NotificationBellButton()],
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(56),
+                  child: _SearchBar(onTap: () => context.push('/search')),
+                ),
               ),
-            ),
-            BlocBuilder<FeedBloc, FeedState>(
-              builder: (context, state) {
-                if (state is FeedInitial || state is FeedLoading) {
-                  return const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
+              BlocBuilder<FeedBloc, FeedState>(
+                builder: (context, state) {
+                  if (state is FeedInitial || state is FeedLoading) {
+                    return const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
-                if (state is FeedError) {
-                  return SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _FeedError(
-                      message: state.message,
-                      onRetry: _loadFeed,
-                    ),
-                  );
-                }
+                  if (state is FeedError) {
+                    return SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _FeedError(
+                        message: state.message,
+                        onRetry: _loadFeed,
+                      ),
+                    );
+                  }
 
-                final loaded = state as FeedLoaded;
-                if (loaded.items.isEmpty) {
-                  return const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _EmptyFeed(),
-                  );
-                }
+                  final loaded = state as FeedLoaded;
+                  if (loaded.items.isEmpty) {
+                    return const SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _EmptyFeed(),
+                    );
+                  }
 
-                return SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        if (index == loaded.items.length) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Center(child: CircularProgressIndicator()),
+                  return SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          if (index == loaded.items.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          return _FeedItemCard(
+                            item: loaded.items[index],
+                            currentUserId: currentUserId,
                           );
-                        }
-                        return _FeedItemCard(
-                          item: loaded.items[index],
-                          currentUserId: currentUserId,
-                        );
-                      },
-                      childCount:
-                          loaded.items.length + (loaded.isLoadingMore ? 1 : 0),
+                        },
+                        childCount:
+                            loaded.items.length +
+                            (loaded.isLoadingMore ? 1 : 0),
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: _FeedFab(
@@ -525,7 +531,9 @@ class _TextPostCardState extends State<_TextPostCard> {
             ),
             if (hiddenBySpoiler) ...[
               const SizedBox(height: 10),
-              _SpoilerBanner(onReveal: () => setState(() => _spoilerRevealed = true)),
+              _SpoilerBanner(
+                onReveal: () => setState(() => _spoilerRevealed = true),
+              ),
             ] else ...[
               if (content.text.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),

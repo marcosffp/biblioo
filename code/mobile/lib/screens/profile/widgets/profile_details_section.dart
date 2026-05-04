@@ -4,11 +4,19 @@ import 'package:flutter/material.dart';
 class ProfileDetailsSection extends StatelessWidget {
   final User user;
   final bool isOwner;
+  final int? followersCount;
+  final int? followingCount;
+  final VoidCallback? onFollowersTap;
+  final VoidCallback? onFollowingTap;
 
   const ProfileDetailsSection({
     super.key,
     required this.user,
     required this.isOwner,
+    this.followersCount,
+    this.followingCount,
+    this.onFollowersTap,
+    this.onFollowingTap,
   });
 
   String _formatCreatedAt(String value) {
@@ -51,6 +59,8 @@ class ProfileDetailsSection extends StatelessWidget {
           const SizedBox(height: 8),
           Text(user.bio!, style: theme.textTheme.bodyMedium),
         ],
+
+        /*
         if (user.email != null) ...[
           const SizedBox(height: 8),
           Row(
@@ -69,6 +79,63 @@ class ProfileDetailsSection extends StatelessWidget {
                   ),
                 ),
               ),
+            ],
+          ),
+        ],
+        */
+        if (followersCount != null || followingCount != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (followersCount != null)
+                InkWell(
+                  onTap: onFollowersTap,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$followersCount',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('Seguidores', style: theme.textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                ),
+              if (followingCount != null) const SizedBox(width: 16),
+              if (followingCount != null)
+                InkWell(
+                  onTap: onFollowingTap,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$followingCount',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('Seguindo', style: theme.textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ],

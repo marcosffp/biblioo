@@ -4,6 +4,7 @@ import 'package:biblioo/features/community/bloc/community_event.dart';
 import 'package:biblioo/features/community/bloc/community_state.dart';
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/features/community/domain/community_invite.dart';
+import 'package:biblioo/utils/cooldown_refresh.dart';
 import 'package:dio/dio.dart';
 import 'package:biblioo/screens/community/widgets/create_community_sheet.dart';
 import 'package:biblioo/screens/community/widgets/invite_code_sheet.dart';
@@ -48,6 +49,11 @@ class _CommunityListViewState extends State<_CommunityListView> {
   void initState() {
     super.initState();
     _loadPendingInvites();
+  }
+
+  Future<void> _refresh() async {
+    context.read<CommunityBloc>().add(CommunityLoadRequested());
+    await _loadPendingInvites();
   }
 
   Future<void> _loadPendingInvites() async {
@@ -284,6 +290,7 @@ class _CommunityListViewState extends State<_CommunityListView> {
         inviteActionBusy: _inviteActionBusy,
         onAcceptInvite: _acceptInvite,
         onDeclineInvite: _declineInvite,
+        onRefresh: _refresh,
       );
     }
 
@@ -305,6 +312,7 @@ class _CommunityList extends StatelessWidget {
   final Set<int> inviteActionBusy;
   final Future<void> Function(CommunityInvite invite) onAcceptInvite;
   final Future<void> Function(CommunityInvite invite) onDeclineInvite;
+  final Future<void> Function() onRefresh;
 
   const _CommunityList({
     required this.mine,
@@ -316,13 +324,14 @@ class _CommunityList extends StatelessWidget {
     required this.inviteActionBusy,
     required this.onAcceptInvite,
     required this.onDeclineInvite,
+    required this.onRefresh,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return ListView(
+    final list = ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         if (pendingInvitesLoading)
@@ -399,6 +408,12 @@ class _CommunityList extends StatelessWidget {
             ),
           ),
       ],
+    );
+
+    return CooldownRefreshIndicator(
+      keyId: 'communities',
+      onRefresh: onRefresh,
+      child: list,
     );
   }
 }

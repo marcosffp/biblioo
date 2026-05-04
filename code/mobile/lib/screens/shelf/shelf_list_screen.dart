@@ -2,6 +2,7 @@ import 'package:biblioo/features/shelf/bloc/shelf_bloc.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_event.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_state.dart';
 import 'package:biblioo/features/shelf/domain/shelf.dart';
+import 'package:biblioo/utils/cooldown_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:biblioo/features/collection/bloc/collection_bloc.dart';
@@ -37,52 +38,65 @@ class _ShelfListScreenState extends State<ShelfListScreen> {
     context.read<CollectionBloc>().add(CollectionLoadRequested());
   }
 
+  Future<void> _refresh() async {
+    context.read<ShelfBloc>().add(ShelfLoadRequested());
+    context.read<CollectionBloc>().add(CollectionLoadRequested());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: BlocConsumer<ShelfBloc, ShelfState>(
-        listener: (context, state) {
-          if (state is ShelfMutationSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-              ),
-            );
-            // Recarrega a lista após uma mutação
-            context.read<ShelfBloc>().add(ShelfLoadRequested());
-          }
-          if (state is ShelfError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-            );
-          }
-        },
-        buildWhen: (previous, current) =>
-            current is ShelfLoading ||
-            current is ShelfLoaded ||
-            current is ShelfError,
-        builder: (context, state) {
-          return CustomScrollView(
-            slivers: [
-              _buildAppBar(context, state),
-              if (state is ShelfLoading) _buildShimmer(),
-              if (state is ShelfLoaded) _buildContent(context, state.shelves),
-              if (state is ShelfError) _buildError(context, state.message),
-              
-              // ── Seção "Minhas Coleções" ──
-              _buildCollectionsSection(context),
+      body: CooldownRefreshIndicator(
+        keyId: 'shelf',
+        onRefresh: _refresh,
+        child: RefreshIndicator(
+          onRefresh: _refresh,
+          child: BlocConsumer<ShelfBloc, ShelfState>(
+            listener: (context, state) {
+              if (state is ShelfMutationSuccess) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                  ),
+                );
+                // Recarrega a lista após uma mutação
+                context.read<ShelfBloc>().add(ShelfLoadRequested());
+              }
+              if (state is ShelfError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                );
+              }
+            },
+            buildWhen: (previous, current) =>
+                current is ShelfLoading ||
+                current is ShelfLoaded ||
+                current is ShelfError,
+            builder: (context, state) {
+              return CustomScrollView(
+                slivers: [
+                  _buildAppBar(context, state),
+                  if (state is ShelfLoading) _buildShimmer(),
+                  if (state is ShelfLoaded)
+                    _buildContent(context, state.shelves),
+                  if (state is ShelfError) _buildError(context, state.message),
 
-              // Padding inferior para o bottom nav não cobrir conteúdo
-              const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
-            ],
-          );
-        },
+                  // ── Seção "Minhas Coleções" ──
+                  _buildCollectionsSection(context),
+
+                  // Padding inferior para o bottom nav não cobrir conteúdo
+                  const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+                ],
+              );
+            },
+          ),
+        ),
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
@@ -134,7 +148,9 @@ class _ShelfListScreenState extends State<ShelfListScreen> {
         }
       },
       buildWhen: (previous, current) =>
-          current is CollectionLoading || current is CollectionLoaded || current is CollectionError,
+          current is CollectionLoading ||
+          current is CollectionLoaded ||
+          current is CollectionError,
       builder: (context, state) {
         return SliverMainAxisGroup(
           slivers: [
@@ -163,7 +179,10 @@ class _ShelfListScreenState extends State<ShelfListScreen> {
               if (state.collections.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Text(
                       'Nenhuma coleção ainda.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -176,28 +195,35 @@ class _ShelfListScreenState extends State<ShelfListScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final collection = state.collections[index];
-                        return CollectionCard(
-                          collection: collection,
-                          onTap: () {
-                            Navigator.of(context).push(MaterialPageRoute(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final collection = state.collections[index];
+                      return CollectionCard(
+                        collection: collection,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
                               builder: (_) => MultiBlocProvider(
                                 providers: [
-                                  BlocProvider.value(value: context.read<ShelfBloc>()),
-                                  BlocProvider.value(value: context.read<CollectionBloc>()),
+                                  BlocProvider.value(
+                                    value: context.read<ShelfBloc>(),
+                                  ),
+                                  BlocProvider.value(
+                                    value: context.read<CollectionBloc>(),
+                                  ),
                                 ],
-                                child: CollectionDetailScreen(collection: collection),
+                                child: CollectionDetailScreen(
+                                  collection: collection,
+                                ),
                               ),
-                            ));
-                          },
-                          onEdit: () => _showEditCollectionSheet(context, collection),
-                          onDelete: () => _confirmCollectionDelete(context, collection),
-                        );
-                      },
-                      childCount: state.collections.length,
-                    ),
+                            ),
+                          );
+                        },
+                        onEdit: () =>
+                            _showEditCollectionSheet(context, collection),
+                        onDelete: () =>
+                            _confirmCollectionDelete(context, collection),
+                      );
+                    }, childCount: state.collections.length),
                   ),
                 ),
           ],
@@ -277,15 +303,15 @@ class _ShelfListScreenState extends State<ShelfListScreen> {
               Text(
                 'Nenhuma estante ainda.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Crie sua primeira estante tocando no +',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -450,7 +476,9 @@ class _ShelfListScreenState extends State<ShelfListScreen> {
           FilledButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
-              context.read<CollectionBloc>().add(CollectionDeleteRequested(collection.id));
+              context.read<CollectionBloc>().add(
+                CollectionDeleteRequested(collection.id),
+              );
             },
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
@@ -519,9 +547,9 @@ class _ShelfDetailScreenContentState extends State<ShelfDetailScreenContent> {
               ),
             );
             // Recarrega itens após mutação (status, add, remove, etc.)
-            context
-                .read<ShelfBloc>()
-                .add(ShelfItemsLoadRequested(widget.shelf.id));
+            context.read<ShelfBloc>().add(
+              ShelfItemsLoadRequested(widget.shelf.id),
+            );
           }
           if (state is ShelfProgressUpdateSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -589,10 +617,7 @@ class _ShelfDetailScreenContentState extends State<ShelfDetailScreenContent> {
               itemCount: items.length,
               itemBuilder: (context, index) {
                 final item = items[index];
-                return ShelfItemCard(
-                  item: item,
-                  shelfId: widget.shelf.id,
-                );
+                return ShelfItemCard(item: item, shelfId: widget.shelf.id);
               },
             );
           }
@@ -611,9 +636,9 @@ class _ShelfDetailScreenContentState extends State<ShelfDetailScreenContent> {
                   Text(state.message),
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: () => context
-                        .read<ShelfBloc>()
-                        .add(ShelfItemsLoadRequested(widget.shelf.id)),
+                    onPressed: () => context.read<ShelfBloc>().add(
+                      ShelfItemsLoadRequested(widget.shelf.id),
+                    ),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Tentar novamente'),
                   ),
@@ -639,11 +664,13 @@ class _ShelfDetailScreenContentState extends State<ShelfDetailScreenContent> {
     );
 
     if (selectedBook != null && selectedBook is Book && mounted) {
-      context.read<ShelfBloc>().add(ShelfItemAddRequested(
-        shelfId: widget.shelf.id,
-        bookId: selectedBook.id,
-        initialStatus: ReadingStatus.wantToRead,
-      ));
+      context.read<ShelfBloc>().add(
+        ShelfItemAddRequested(
+          shelfId: widget.shelf.id,
+          bookId: selectedBook.id,
+          initialStatus: ReadingStatus.wantToRead,
+        ),
+      );
     }
   }
 }

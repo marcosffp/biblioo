@@ -1,5 +1,6 @@
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/features/community/domain/community_invite.dart';
+import 'package:biblioo/features/community/domain/community_join_request.dart';
 import 'package:biblioo/features/community/domain/community_member.dart';
 import 'package:biblioo/features/community/domain/community_message.dart';
 import 'community_local_datasource.dart';
@@ -124,6 +125,10 @@ class CommunityRepository {
     }
   }
 
+  Future<void> requestToJoin(int communityId) async {
+    await _remote.requestToJoin(communityId);
+  }
+
   Future<void> leaveCommunity(int communityId) async {
     await _remote.leaveCommunity(communityId);
     final mine = _local.getCachedMine()
@@ -158,6 +163,27 @@ class CommunityRepository {
 
   Future<void> declineInvite(int inviteId) {
     return _remote.declineInvite(inviteId);
+  }
+
+  Future<List<CommunityJoinRequest>> getPendingJoinRequests(
+    int communityId, {
+    int page = 0,
+    int size = 10,
+  }) async {
+    final requests = await _remote.getPendingJoinRequests(
+      communityId,
+      page: page,
+      size: size,
+    );
+    return requests.map((item) => item.toEntity()).toList();
+  }
+
+  Future<void> approveJoinRequest(int requestId) {
+    return _remote.approveJoinRequest(requestId);
+  }
+
+  Future<void> rejectJoinRequest(int requestId) {
+    return _remote.rejectJoinRequest(requestId);
   }
 
   Future<List<CommunityMessage>> getCommunityMessages(int communityId) async {

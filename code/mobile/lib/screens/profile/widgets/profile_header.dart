@@ -32,11 +32,15 @@ class ProfileHeader extends StatelessWidget {
         ? 'Editar'
         : user.isFollowing
         ? 'Seguindo'
+        : user.isFollowRequested
+        ? 'Solicitado'
         : (user.isPrivate ? 'Pedir para seguir' : 'Seguir');
     final primaryIcon = isOwner
         ? Icons.edit_outlined
         : user.isFollowing
         ? Icons.check
+        : user.isFollowRequested
+        ? Icons.hourglass_top_rounded
         : Icons.person_add_alt_1_outlined;
 
     return SizedBox(

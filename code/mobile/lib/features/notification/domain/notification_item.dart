@@ -15,6 +15,7 @@ class NotificationItem {
   final String actorUsername;
   final String? actorAvatarUrl;
   final int? entityId;
+  final int? communityId;
   final bool read;
   final DateTime createdAt;
 
@@ -25,6 +26,7 @@ class NotificationItem {
     required this.actorUsername,
     required this.actorAvatarUrl,
     required this.entityId,
+    required this.communityId,
     required this.read,
     required this.createdAt,
   });
@@ -37,6 +39,7 @@ class NotificationItem {
       actorUsername: actorUsername,
       actorAvatarUrl: actorAvatarUrl,
       entityId: entityId,
+      communityId: communityId,
       read: read ?? this.read,
       createdAt: createdAt,
     );

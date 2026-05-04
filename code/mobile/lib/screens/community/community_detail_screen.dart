@@ -7,6 +7,7 @@ import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/features/community/domain/community_member.dart';
 import 'package:biblioo/features/community/domain/community_message.dart';
+import 'package:biblioo/features/user/data/models/follow_page_model.dart';
 import 'package:biblioo/features/user/domain/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +54,10 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   bool _sendingMessage = false;
   bool _uploadingMedia = false;
   bool _inviteActionBusy = false;
+  bool _joinRequestPending = false;
+  bool _friendsLoading = false;
+  bool _friendsLoaded = false;
+  List<UserSummaryModel> _friendCandidates = const [];
   bool _hasSpoilerComposer = false;
   List<XFile> _pendingImages = const [];
   CommunityMessage? _replyingTo;
@@ -711,7 +716,11 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     if (community == null) return;
 
     if (!community.isMember) {
-      await _joinCommunity();
+      if (community.isPublic) {
+        await _joinCommunity();
+      } else {
+        await _requestToJoinCommunity();
+      }
       return;
     }
 
@@ -727,7 +736,25 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
   Future<void> _joinCommunity() async {
     await _repo.joinCommunity(widget.communityId);
+    _joinRequestPending = false;
     await _reloadScreenData();
+  }
+
+  Future<void> _requestToJoinCommunity() async {
+    try {
+      await _repo.requestToJoin(widget.communityId);
+      if (!mounted) return;
+      setState(() {
+        _joinRequestPending = true;
+      });
+      _showSnack('Pedido enviado. Aguarde a aprovação dos moderadores.');
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ?? 'Nao foi possivel enviar o pedido.',
+      );
+    } catch (_) {
+      _showSnack('Nao foi possivel enviar o pedido.');
+    }
   }
 
   Future<void> _leaveCommunity() async {
@@ -870,58 +897,69 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     }
   }
 
-  Future<void> _sendInviteToUser() async {
+  Future<List<UserSummaryModel>> _loadMutualFriends() async {
+    if (_friendsLoaded) {
+      return _friendCandidates;
+    }
+
+    final currentUser = _currentUser;
+    if (currentUser == null) return [];
+
+    setState(() {
+      _friendsLoading = true;
+    });
+
+    try {
+      final followers = await Injector.instance.userRepo.getAllFollowers(
+        currentUser.username,
+      );
+      final following = await Injector.instance.userRepo.getAllFollowing(
+        currentUser.username,
+      );
+
+      final followersByUsername = {
+        for (final user in followers) user.username.toLowerCase(): user,
+      };
+
+      final mutuals =
+          following
+              .where(
+                (user) => followersByUsername.containsKey(
+                  user.username.toLowerCase(),
+                ),
+              )
+              .toList()
+            ..sort(
+              (a, b) =>
+                  a.username.toLowerCase().compareTo(b.username.toLowerCase()),
+            );
+
+      if (!mounted) return mutuals;
+      setState(() {
+        _friendCandidates = mutuals;
+        _friendsLoaded = true;
+      });
+      return mutuals;
+    } finally {
+      if (!mounted) return _friendCandidates;
+      setState(() {
+        _friendsLoading = false;
+      });
+    }
+  }
+
+  Future<void> _sendInviteToFriend(UserSummaryModel friend) async {
     if (_community?.isMember != true) {
       _showSnack('Somente membros podem enviar convites.');
       return;
     }
-
-    final controller = TextEditingController();
-    final inviteeId = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Enviar convite'),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'ID do usuário',
-              hintText: 'Ex.: 42',
-            ),
-          ),
-          actions: [
-            OutlinedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final parsed = int.tryParse(controller.text.trim());
-                if (parsed == null || parsed <= 0) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(content: Text('Informe um ID válido.')),
-                  );
-                  return;
-                }
-                Navigator.of(dialogContext).pop(parsed);
-              },
-              child: const Text('Enviar'),
-            ),
-          ],
-        );
-      },
-    );
-
-    controller.dispose();
-    if (inviteeId == null) return;
 
     setState(() {
       _inviteActionBusy = true;
     });
 
     try {
-      await _repo.inviteUserToCommunity(widget.communityId, inviteeId);
+      await _repo.inviteUserToCommunity(widget.communityId, friend.id);
       _showSnack('Convite enviado com sucesso. A pessoa será notificada.');
     } on DioException catch (e) {
       _showSnack(
@@ -935,6 +973,123 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         _inviteActionBusy = false;
       });
     }
+  }
+
+  Future<void> _openInviteFriendSheet() async {
+    if (_community?.isMember != true) {
+      _showSnack('Somente membros podem enviar convites.');
+      return;
+    }
+
+    final friends = await _loadMutualFriends();
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: friends.isEmpty ? 0.45 : 0.78,
+          minChildSize: 0.35,
+          maxChildSize: 0.92,
+          builder: (context, controller) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Escolha um amigo para convidar',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Mostramos apenas quem você segue e quem também segue você.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_friendsLoading)
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (friends.isEmpty)
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Você ainda não tem amigos em comum para convidar.',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.separated(
+                        controller: controller,
+                        itemCount: friends.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final friend = friends[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              backgroundImage:
+                                  friend.avatarUrl != null &&
+                                      friend.avatarUrl!.isNotEmpty
+                                  ? NetworkImage(friend.avatarUrl!)
+                                  : null,
+                              child:
+                                  friend.avatarUrl == null ||
+                                      friend.avatarUrl!.isEmpty
+                                  ? Text(friend.username[0].toUpperCase())
+                                  : null,
+                            ),
+                            title: Text(friend.username),
+                            subtitle: const Text('Amigo em comum'),
+                            trailing: SizedBox(
+                              width:
+                                  200, // largura fixa suficiente para o texto "Convidar"
+                              child: FilledButton(
+                                onPressed: _inviteActionBusy
+                                    ? null
+                                    : () async {
+                                        Navigator.of(sheetContext).pop();
+                                        await _sendInviteToFriend(friend);
+                                      },
+                                child: const Text('Convidar'),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   String? _extractBackendMessage(DioException error) {
@@ -988,16 +1143,14 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                                   ).pop('generate-code'),
                                 ),
                                 ListTile(
-                                  leading: const Icon(Icons.send_rounded),
-                                  title: const Text(
-                                    'Enviar convite por notificação',
-                                  ),
+                                  leading: const Icon(Icons.people_alt_rounded),
+                                  title: const Text('Convidar amigo'),
                                   subtitle: const Text(
-                                    'Informe o ID do usuário',
+                                    'Escolha entre seus amigos em comum',
                                   ),
                                   onTap: () => Navigator.of(
                                     sheetContext,
-                                  ).pop('send-invite'),
+                                  ).pop('send-friend'),
                                 ),
                               ],
                             ),
@@ -1008,8 +1161,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                       if (action == 'generate-code') {
                         await _generateInviteCode();
                       }
-                      if (action == 'send-invite') {
-                        await _sendInviteToUser();
+                      if (action == 'send-friend') {
+                        await _openInviteFriendSheet();
                       }
                     },
               icon: const Icon(Icons.group_add_rounded),
@@ -1057,7 +1210,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   community: _community!,
                   book: _book,
                   members: _members,
+                  joinRequestPending: _joinRequestPending,
                   onJoinOrLeave: _handleJoinOrLeave,
+                  onRefresh: _reloadScreenData,
                 ),
                 CommunityChatTab(
                   loading: _messagesLoading && !_messagesLoaded,

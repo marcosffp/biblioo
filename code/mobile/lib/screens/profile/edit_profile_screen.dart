@@ -99,11 +99,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_saving) return;
     final bloc = context.read<UserBloc>();
 
+    final username = _usernameController.text.trim();
     final bio = _bioController.text.trim();
+
+    if (username.isEmpty || username.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informe um username válido.')),
+      );
+      return;
+    }
 
     setState(() => _saving = true);
     bloc.add(
       UpdateProfile(
+        username: username,
         bio: bio,
         avatarFilePath: _avatarFilePath,
         bannerFilePath: _bannerFilePath,
@@ -143,6 +152,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final theme = Theme.of(context);
         final avatarProvider = _avatarImageProvider(user);
         final bannerProvider = _bannerImageProvider(user);
+        final previewUsername = _usernameController.text.trim().isNotEmpty
+            ? _usernameController.text.trim()
+            : user.username;
 
         return Scaffold(
           appBar: AppBar(
@@ -228,7 +240,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    user.username,
+                                    previewUsername,
                                     style: theme.textTheme.titleMedium
                                         ?.copyWith(fontWeight: FontWeight.w600),
                                   ),
@@ -302,11 +314,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 16),
               TextField(
                 controller: _usernameController,
-                readOnly: true,
+                onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(
                   labelText: 'Nome de usuario',
                   prefixIcon: Icon(Icons.alternate_email),
-                  helperText: 'Nao editavel nesta versao do app.',
                 ),
               ),
               const SizedBox(height: 12),

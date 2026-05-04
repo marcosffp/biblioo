@@ -70,7 +70,8 @@ class Injector {
   // ── user ──────────────────────────────────────────────
   UserLocalDatasource get _userLocal => UserLocalDatasource(_prefs);
   UserRemoteDatasource get _userRemote => UserRemoteDatasource(_dio);
-  UserRepository get userRepo => UserRepository(_userRemote, _userLocal);
+  UserRepository get userRepo =>
+      UserRepository(_userRemote, _userLocal, authLocal);
 
   // ── book ──────────────────────────────────────────────
   BookLocalDatasource get _bookLocal => BookLocalDatasource(_prefs);
