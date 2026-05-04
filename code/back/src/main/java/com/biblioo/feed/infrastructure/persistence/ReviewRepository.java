@@ -51,6 +51,10 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
   void decrementCommentCount(@Param("reviewId") Long reviewId);
 
   @Query(
+      "SELECT r FROM Review r WHERE r.userId = :userId AND r.isDeleted = false AND r.rating IS NOT NULL")
+  List<Review> findRatedReviewsByUserId(@Param("userId") Long userId);
+
+  @Query(
       "SELECT AVG(r.rating) FROM Review r WHERE r.bookId = :bookId AND r.rating IS NOT NULL AND r.isDeleted = false")
   Double calculateAverageRating(@Param("bookId") Long bookId);
 

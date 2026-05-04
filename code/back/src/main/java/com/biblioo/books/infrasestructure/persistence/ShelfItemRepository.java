@@ -2,6 +2,7 @@ package com.biblioo.books.infrasestructure.persistence;
 
 import com.biblioo.books.domain.model.ReadingStatus;
 import com.biblioo.books.domain.model.ShelfItem;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -94,4 +95,15 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
 
   @Query("SELECT COUNT(si) FROM ShelfItem si WHERE si.bookId = :bookId")
   long countByBookId(@Param("bookId") Long bookId);
+
+  @Query(
+      """
+      SELECT si FROM ShelfItem si
+      JOIN Shelf s ON s.id = si.shelfId
+      WHERE s.userId    = :userId
+        AND si.status   IN :statuses
+        AND s.deletedAt IS NULL
+      """)
+  List<ShelfItem> findByUserIdAndStatusIn(
+      @Param("userId") Long userId, @Param("statuses") Collection<ReadingStatus> statuses);
 }

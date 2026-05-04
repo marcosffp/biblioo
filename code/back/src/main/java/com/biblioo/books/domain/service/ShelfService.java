@@ -262,11 +262,15 @@ public class ShelfService implements ShelfUseCase {
         item.setFinishedAt(null);
       }
       case COMPLETED -> {
+        boolean wasRereading = item.getStatus() == ReadingStatus.REREADING;
         item.setStatus(ReadingStatus.COMPLETED);
         item.setFinishedAt(LocalDate.now());
         if (item.getTotalPages() != null && item.getTotalPages() > 0) {
           item.setCurrentPage(item.getTotalPages());
           item.setProgressPercent(100);
+        }
+        if (wasRereading) {
+          item.setRereadCount((item.getRereadCount() != null ? item.getRereadCount() : 0) + 1);
         }
       }
       case ABANDONED -> {

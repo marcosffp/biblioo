@@ -465,6 +465,13 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(rwiDlq).to(dlxExchange).with(RWI_DLQ_ROUTING_KEY);
   }
 
+  // ── DNA Literário ────────────────────────────────────────────────────────────
+  public static final String DNA_RECALC_QUEUE = "biblioo.dna.recalculation";
+  public static final String DNA_RECALC_DLQ = "biblioo.dna.recalculation.dlq";
+  public static final String DNA_RECALC_DLQ_ROUTING_KEY = "dna.recalculation.dead";
+  public static final String REVIEW_RATING_UPDATED_ROUTING_KEY = "feed.review.rating.updated";
+  public static final String EVENT_REVIEW_RATING_UPDATED = "REVIEW_RATING_UPDATED";
+
   // ── Email (SendGrid via RabbitMQ) ────────────────────────────────────────────
   public static final String EMAIL_QUEUE = "biblioo.email";
   public static final String EMAIL_DLQ = "biblioo.email.dlq";
@@ -507,6 +514,47 @@ public class RabbitMQConfig {
     factory.setMessageConverter(messageConverter);
     factory.setDefaultRequeueRejected(false);
     return factory;
+  }
+
+  // ── DNA Literário beans ──────────────────────────────────────────────────────
+
+  @Bean
+  Queue dnaRecalcQueue() {
+    return QueueBuilder.durable(DNA_RECALC_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", DNA_RECALC_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue dnaRecalcDlq() {
+    return QueueBuilder.durable(DNA_RECALC_DLQ).build();
+  }
+
+  @Bean
+  Binding dnaRecalcCompletedBinding(Queue dnaRecalcQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(dnaRecalcQueue)
+        .to(mainExchange)
+        .with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding dnaRecalcAbandonedBinding(Queue dnaRecalcQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(dnaRecalcQueue)
+        .to(mainExchange)
+        .with(SHELF_READING_ABANDONED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding dnaRecalcReviewBinding(Queue dnaRecalcQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(dnaRecalcQueue)
+        .to(mainExchange)
+        .with(REVIEW_RATING_UPDATED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding dnaRecalcDlqBinding(Queue dnaRecalcDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(dnaRecalcDlq).to(dlxExchange).with(DNA_RECALC_DLQ_ROUTING_KEY);
   }
 
   // ── Community WebSocket Broadcast beans ─────────────────────────────────────

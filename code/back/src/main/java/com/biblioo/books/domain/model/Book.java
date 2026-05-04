@@ -78,6 +78,9 @@ public class Book {
   @Column(columnDefinition = "TEXT")
   private String searchText;
 
+  @Column(name = "complexity_score")
+  private Integer complexityScore;
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;

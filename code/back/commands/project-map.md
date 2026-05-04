@@ -8,6 +8,7 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 | Módulo | Pacote raiz | Responsabilidade |
 |---|---|---|
 | `books` | `com.biblioo.books` | Catálogo, estantes, coleções; typo histórico: `infrasestructure` |
+| `dna` | `com.biblioo.dna` | DNA Literário — perfil de leitura personalizado com 7 dimensões, arquétipos e fases |
 | `user` | `com.biblioo.user` | Auth JWT/Google, perfis, follows, busca |
 | `feed` | `com.biblioo.feed` | Reviews, posts, comentários, curtidas, fanout |
 | `community` | `com.biblioo.community` | Book clubs, chat STOMP, reações, convites |
@@ -19,7 +20,7 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 
 ## books
 
-**Contratos (port/in):** `BookUseCase` search/getById · `ShelfUseCase` CRUD estantes+itens · `CollectionUseCase` CRUD coleções
+**Contratos (port/in):** `BookUseCase` search/getById · `ShelfUseCase` CRUD estantes+itens · `CollectionUseCase` CRUD coleções · `ReadingHistoryUseCase` histórico de leitura por usuário (consumido pelo módulo DNA)
 
 **Entidades:** `Book` → `books` · `Shelf` → `shelves` (soft delete) · `ShelfItem` → `shelf_items` · `Collection` → `shelf_collections` · `Category`
 
@@ -58,7 +59,7 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 
 ## feed
 
-**Contratos (port/in):** `ReviewUseCase` · `FeedPostUseCase` · `CommentUseCase` · `FeedUseCase`
+**Contratos (port/in):** `ReviewUseCase` · `FeedPostUseCase` · `CommentUseCase` · `FeedUseCase` · `UserReviewsUseCase` avaliações por usuário (consumido pelo módulo DNA)
 
 **Entidades:** `Review` → herda `Content` (soft delete; sem tags/spoiler/imagens/gif) · `FeedPost` → herda `Content` com `bookId` opcional · `Comment` · `Like` · `FeedItem` (read-side fanout) · `FeedFanoutProgress`
 
@@ -108,6 +109,26 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 **Messaging:** `NotificationConsumer` → `NOTIFICATION_QUEUE` (notification.#) · `NotificationDlqConsumer` → DLQ
 
 **Config:** `FirebaseConfig` · `NotificationListenerConfig`
+
+---
+
+## dna
+
+**Contratos (port/in):** `LiteraryDnaUseCase` getDna/triggerRecalculation/getSnapshots/getPhases/renamePhase
+
+**Entidades:** `LiteraryDna` → `literary_dna` (único por userId) · `DnaSnapshot` → `dna_snapshots` (snapshot mensal) · `LiteraryPhase` → `literary_phases` · `DnaEventLog` → `dna_event_log` (idempotência)
+
+**Enums:** `LiteraryArchetype` (8 arquétipos) · `DnaStatus` (IN_FORMATION / COMPUTING / COMPUTED)
+
+**Controller:** `DnaController /dna` → GET / (DNA ou progresso), GET /snapshots, GET /phases, PATCH /phases/{id}/name
+
+**Serviços:** `LiteraryDnaService` (orchestração) · `DnaCalculationService` (cálculo das 7 dimensões) · `DnaSnapshotService` (snapshot mensal + detecção de fases)
+
+**Messaging:** `DnaRecalculationConsumer` → `DNA_RECALC_QUEUE` (bindings: shelf.reading.completed, shelf.reading.abandoned, feed.review.rating.updated) · `DnaRecalculationDlqConsumer` → DLQ
+
+**Config:** `DnaScheduler` → cron na virada do mês (criar snapshots mensais para todos os usuários)
+
+**Dados que consome de outros módulos:** `ReadingHistoryUseCase` (books) · `UserReviewsUseCase` (feed)
 
 ---
 

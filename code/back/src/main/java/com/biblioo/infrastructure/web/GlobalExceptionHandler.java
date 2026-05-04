@@ -2,6 +2,7 @@ package com.biblioo.infrastructure.web;
 
 import com.biblioo.books.domain.exception.BookNotFoundException;
 import com.biblioo.books.domain.exception.ShelfBusinessException;
+import com.biblioo.dna.domain.exception.DnaInFormationException;
 import com.biblioo.feed.domain.exception.FeedPostBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
@@ -33,6 +34,14 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  // ── DNA Literário ─────────────────────────────────────────────────────────
+
+  @ExceptionHandler(DnaInFormationException.class)
+  ResponseEntity<ErrorResponse> handleDnaInFormation(
+      DnaInFormationException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.valueOf(422), ex.getMessage(), request);
+  }
 
   // ── Community ─────────────────────────────────────────────────────────────
   @ExceptionHandler(com.biblioo.community.domain.exception.CommunityBusinessException.class)

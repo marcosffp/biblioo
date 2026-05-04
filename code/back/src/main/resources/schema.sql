@@ -38,3 +38,20 @@ CREATE TABLE IF NOT EXISTS feed_fanout_progress (
     UNIQUE KEY uq_fanout_event (event_id),
     INDEX idx_fanout_status (status)
 );
+
+-- DNA Literário: colunas adicionais na tabela books
+ALTER TABLE books ADD COLUMN IF NOT EXISTS complexity_score INT NULL;
+
+-- DNA Literário: reread_count no ShelfItem
+ALTER TABLE shelf_items ADD COLUMN IF NOT EXISTS reread_count INT NOT NULL DEFAULT 0;
+
+-- DNA Literário: índice composto para consulta de histórico de leitura por usuário
+CREATE INDEX IF NOT EXISTS idx_si_user_status
+    ON shelf_items (shelf_id, status, book_id);
+
+-- DNA Literário: índice de busca no dna_event_log
+CREATE INDEX IF NOT EXISTS idx_dna_event_log_event_id ON dna_event_log (event_id);
+
+-- DNA Literário: total de páginas lidas e breakdown por ano
+ALTER TABLE literary_dna ADD COLUMN IF NOT EXISTS total_pages_read INT NOT NULL DEFAULT 0;
+ALTER TABLE literary_dna ADD COLUMN IF NOT EXISTS pages_by_year_json TEXT NULL;

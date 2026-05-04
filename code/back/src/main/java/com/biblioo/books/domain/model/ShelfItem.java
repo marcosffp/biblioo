@@ -62,6 +62,10 @@ public class ShelfItem {
   @Column(name = "finished_at")
   private LocalDate finishedAt;
 
+  @Column(name = "reread_count")
+  @Builder.Default
+  private Integer rereadCount = 0;
+
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 

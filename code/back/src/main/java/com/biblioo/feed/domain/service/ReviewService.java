@@ -4,6 +4,7 @@ import com.biblioo.feed.domain.exception.ReviewBusinessException;
 import com.biblioo.feed.domain.model.LikeType;
 import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
+import com.biblioo.feed.domain.port.in.UserReviewsUseCase;
 import com.biblioo.feed.domain.port.out.BookPort;
 import com.biblioo.feed.domain.port.out.FeedEventPublisherPort;
 import com.biblioo.feed.domain.port.out.ReviewFanoutPublisherPort;
@@ -20,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class ReviewService implements ReviewUseCase {
+public class ReviewService implements ReviewUseCase, UserReviewsUseCase {
 
   private final ReviewRepository reviewRepository;
   private final CommentRepository commentRepository;
@@ -94,6 +95,10 @@ public class ReviewService implements ReviewUseCase {
     var savedReview = reviewRepository.save(review);
 
     feedEventPublisherPort.publishBookReviewStatsUpdated(review.getBookId(), oldRating, rating);
+
+    if (!Objects.equals(oldRating, rating)) {
+      feedEventPublisherPort.publishReviewRatingUpdated(userId, review.getBookId());
+    }
 
     return savedReview;
   }

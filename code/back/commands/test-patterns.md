@@ -50,6 +50,7 @@ Antes de escrever `setup()`, ler nesta ordem:
 | Recommendation | register → login (grafo Neo4j deve ter dados de leitura pré-existentes) |
 | DiceRoll | register → login (usuário novo cai no fallback de livros populares) |
 | User profile | register → login (público por padrão) |
+| DNA Literário | register → login → POST /shelves → POST /shelves/{id}/items ×5 (COMPLETED) → recálculo async via RabbitMQ (GET /dna retorna 200 mesmo em IN_FORMATION) |
 
 **Regras de negócio críticas para o setup:**
 - Review: 1 por usuário por livro; livro deve existir na estante com qualquer status; rating 1-5; text ≤ 2000 chars
