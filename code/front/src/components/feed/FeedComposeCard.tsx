@@ -7,9 +7,10 @@ import type { AuthSession } from "@/types";
 
 interface FeedComposeCardProps {
   onOpenReview: () => void;
+  onOpenPost: () => void;
 }
 
-export function FeedComposeCard({ onOpenReview }: FeedComposeCardProps) {
+export function FeedComposeCard({ onOpenReview, onOpenPost }: FeedComposeCardProps) {
   const [session, setSession] = React.useState<AuthSession | null>(null);
 
   React.useEffect(() => {
@@ -33,10 +34,10 @@ export function FeedComposeCard({ onOpenReview }: FeedComposeCardProps) {
 
         <button
           type="button"
-          onClick={onOpenReview}
+          onClick={onOpenPost}
           className="flex-1 rounded-full border border-gray-200 bg-emerald-50/60 px-4 py-2.5 text-left text-sm text-gray-400 hover:bg-emerald-50 transition-colors"
         >
-          O que você está lendo hoje?
+          O que você quer compartilhar?
         </button>
       </div>
 
@@ -54,9 +55,8 @@ export function FeedComposeCard({ onOpenReview }: FeedComposeCardProps) {
 
         <button
           type="button"
-          disabled
-          title="Em breve"
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-sm font-medium text-gray-300 cursor-not-allowed"
+          onClick={onOpenPost}
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-emerald-700 transition-colors"
         >
           <PenLine size={16} aria-hidden />
           Escrever Post

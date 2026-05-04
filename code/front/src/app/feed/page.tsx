@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import {
   AppShell,
+  CreatePostModal,
   CreateReviewModal,
   EditReviewModal,
   EmptyState,
@@ -30,7 +31,6 @@ interface EditingReview {
   id: number;
   rating: number;
   text: string;
-  hasSpoiler: boolean;
   bookTitle: string;
   bookCoverUrl?: string | null;
   bookAuthors?: string[] | null;
@@ -44,6 +44,7 @@ export default function FeedPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
   const [editingReview, setEditingReview] = useState<EditingReview | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -84,11 +85,21 @@ export default function FeedPage() {
       <div className="flex items-start gap-8">
         {/* Coluna principal do feed */}
         <div className="min-w-0 flex-1">
-          <FeedComposeCard onOpenReview={() => setShowReviewModal(true)} />
+          <FeedComposeCard
+            onOpenReview={() => setShowReviewModal(true)}
+            onOpenPost={() => setShowPostModal(true)}
+          />
 
           {showReviewModal && (
             <CreateReviewModal
               onClose={() => setShowReviewModal(false)}
+              onPublished={() => { void loadFeed(); }}
+            />
+          )}
+
+          {showPostModal && (
+            <CreatePostModal
+              onClose={() => setShowPostModal(false)}
               onPublished={() => { void loadFeed(); }}
             />
           )}
@@ -98,7 +109,6 @@ export default function FeedPage() {
               reviewId={editingReview.id}
               initialRating={editingReview.rating}
               initialText={editingReview.text}
-              initialHasSpoiler={editingReview.hasSpoiler}
               bookTitle={editingReview.bookTitle}
               bookCoverUrl={editingReview.bookCoverUrl}
               bookAuthors={editingReview.bookAuthors}
@@ -153,7 +163,6 @@ export default function FeedPage() {
                           id: item.contentId,
                           rating: rating ?? 0,
                           text: text ?? "",
-                          hasSpoiler: hasSpoiler ?? false,
                           bookTitle: bookTitle ?? "Livro",
                           bookCoverUrl,
                           bookAuthors,
@@ -175,6 +184,13 @@ export default function FeedPage() {
                       content={item.content.text ?? ""}
                       likes={item.content.likeCount}
                       comments={item.content.commentCount}
+                      bookId={item.content.bookId}
+                      bookTitle={item.content.bookTitle}
+                      bookAuthors={item.content.bookAuthors}
+                      bookCoverUrl={item.content.bookCoverUrl}
+                      images={item.content.images}
+                      gifUrl={item.content.gifUrl}
+                      hasSpoiler={item.content.hasSpoiler ?? false}
                     />
                   );
                 })}

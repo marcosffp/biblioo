@@ -226,7 +226,7 @@ export function ReviewFeedCard({
         ) : null}
 
         {/* Mídia: imagens */}
-        {images.length > 0 ? (
+        {images && images.length > 0 ? (
           <div className={`mb-3 overflow-hidden rounded-xl ${images.length === 1 ? "" : "grid grid-cols-2 gap-1"}`}>
             {images.map((src, i) => (
               // eslint-disable-next-line @next/next/no-img-element

@@ -578,23 +578,14 @@ export async function createBookReview(
   bookId: number,
   rating: number,
   text?: string,
-  images?: File[],
-  gif?: File | null,
-  hasSpoiler?: boolean,
 ): Promise<BackendReviewResponse> {
   const formData = new FormData();
   formData.append("bookId", String(bookId));
   formData.append("rating", String(rating));
   formData.append("publish", "true");
-  formData.append("hasSpoiler", String(hasSpoiler ?? false));
+  formData.append("hasSpoiler", "false");
   if (typeof text === "string" && text.length > 0) {
     formData.append("text", text);
-  }
-  if (images && images.length > 0) {
-    images.forEach((img) => formData.append("images", img));
-  }
-  if (gif) {
-    formData.append("gif", gif);
   }
 
   let response: Response;
@@ -615,12 +606,11 @@ export async function updateBookReview(
   reviewId: number,
   rating: number,
   text: string,
-  hasSpoiler?: boolean,
 ): Promise<BackendReviewResponse> {
   const formData = new FormData();
   formData.append("rating", String(rating));
   formData.append("text", text);
-  formData.append("hasSpoiler", String(hasSpoiler ?? false));
+  formData.append("hasSpoiler", "false");
 
   let response: Response;
   try {
@@ -682,16 +672,19 @@ export async function getMyBookReview(bookId: number): Promise<BackendReviewResp
 
 export async function createFeedPost(
   text: string,
-  options?: { hasSpoiler?: boolean; tags?: string[] },
+  options?: { hasSpoiler?: boolean; tags?: string[]; bookId?: number; images?: File[]; gif?: File },
 ): Promise<BackendFeedPostResponse> {
   const normalizedText = text.trim();
-  if (!normalizedText) {
-    throw new BookcaseApiError("O texto do post é obrigatório.");
-  }
 
   const formData = new FormData();
-  formData.append("text", normalizedText);
+  if (normalizedText) {
+    formData.append("text", normalizedText);
+  }
   formData.append("hasSpoiler", String(Boolean(options?.hasSpoiler)));
+
+  if (options?.bookId != null) {
+    formData.append("bookId", String(options.bookId));
+  }
 
   if (options?.tags && options.tags.length > 0) {
     options.tags
@@ -700,6 +693,14 @@ export async function createFeedPost(
       .forEach((tag) => {
         formData.append("tags", tag);
       });
+  }
+
+  if (options?.images && options.images.length > 0) {
+    options.images.forEach((img) => formData.append("images", img));
+  }
+
+  if (options?.gif) {
+    formData.append("gif", options.gif);
   }
 
   let response: Response;

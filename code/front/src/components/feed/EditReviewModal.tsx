@@ -8,7 +8,6 @@ interface EditReviewModalProps {
   reviewId: number;
   initialRating: number;
   initialText: string;
-  initialHasSpoiler: boolean;
   bookTitle: string;
   bookCoverUrl?: string | null;
   bookAuthors?: string[] | null;
@@ -20,7 +19,6 @@ export function EditReviewModal({
   reviewId,
   initialRating,
   initialText,
-  initialHasSpoiler,
   bookTitle,
   bookCoverUrl,
   bookAuthors,
@@ -29,7 +27,6 @@ export function EditReviewModal({
 }: EditReviewModalProps) {
   const [rating, setRating] = React.useState(initialRating);
   const [text, setText] = React.useState(initialText);
-  const [hasSpoiler, setHasSpoiler] = React.useState(initialHasSpoiler);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
@@ -41,7 +38,7 @@ export function EditReviewModal({
     setSubmitError(null);
 
     try {
-      await updateBookReview(reviewId, rating, text.trim(), hasSpoiler);
+      await updateBookReview(reviewId, rating, text.trim());
       onSaved?.();
       onClose();
     } catch {
@@ -94,20 +91,6 @@ export function EditReviewModal({
             className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-gray-300 focus:outline-none focus:ring-1 focus:ring-gray-200"
           />
         </div>
-
-        {/* Spoiler toggle */}
-        <label className="flex cursor-pointer items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 hover:bg-gray-100 transition-colors">
-          <div>
-            <p className="text-sm font-medium text-gray-800">Contém spoiler</p>
-            <p className="text-xs text-gray-400">Oculta o conteúdo para quem ainda não leu</p>
-          </div>
-          <span
-            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${hasSpoiler ? "bg-amber-400" : "bg-gray-300"}`}
-            onClick={() => setHasSpoiler((v) => !v)}
-          >
-            <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${hasSpoiler ? "translate-x-4" : "translate-x-0"}`} />
-          </span>
-        </label>
 
         {submitError && <p className="text-xs text-red-600">{submitError}</p>}
 

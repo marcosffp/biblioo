@@ -52,3 +52,4 @@ export * from "./AuthLayout";
 export * from "./feed/FeedComposeCard";
 export * from "./feed/CreateReviewModal";
 export * from "./feed/EditReviewModal";
+export * from "./feed/CreatePostModal";

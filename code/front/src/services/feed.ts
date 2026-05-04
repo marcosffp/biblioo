@@ -13,7 +13,6 @@ export interface FeedEmbeddedContent {
   likeCount: number;
   commentCount: number;
   createdAt: string;
-  // Review-only
   bookId?: number | null;
   rating?: number | null;
   bookTitle?: string | null;
