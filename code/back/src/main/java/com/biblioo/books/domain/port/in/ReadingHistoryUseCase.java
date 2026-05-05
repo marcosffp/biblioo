@@ -20,4 +20,6 @@ public interface ReadingHistoryUseCase {
       LocalDateTime updatedAt) {}
 
   List<BookReadingRecord> getReadingHistory(Long userId);
+
+  int getCurrentReadingPagesTotal(Long userId);
 }

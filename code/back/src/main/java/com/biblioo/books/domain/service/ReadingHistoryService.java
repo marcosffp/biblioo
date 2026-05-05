@@ -34,8 +34,7 @@ public class ReadingHistoryService implements ReadingHistoryUseCase {
 
     Set<Long> bookIds = items.stream().map(i -> i.getBookId()).collect(Collectors.toSet());
     Map<Long, Book> bookById =
-        bookRepository.findAllById(bookIds).stream()
-            .collect(Collectors.toMap(Book::getId, b -> b));
+        bookRepository.findAllById(bookIds).stream().collect(Collectors.toMap(Book::getId, b -> b));
 
     return items.stream()
         .filter(i -> bookById.containsKey(i.getBookId()))
@@ -58,5 +57,15 @@ public class ReadingHistoryService implements ReadingHistoryUseCase {
                   item.getUpdatedAt());
             })
         .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public int getCurrentReadingPagesTotal(Long userId) {
+    return shelfItemRepository
+        .findByUserIdAndStatusIn(userId, List.of(ReadingStatus.READING, ReadingStatus.REREADING))
+        .stream()
+        .mapToInt(item -> item.getCurrentPage() != null ? item.getCurrentPage() : 0)
+        .sum();
   }
 }

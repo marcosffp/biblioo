@@ -14,6 +14,7 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 | `community` | `com.biblioo.community` | Book clubs, chat STOMP, reações, convites |
 | `notification` | `com.biblioo.notification` | SSE web + FCM mobile, histórico |
 | `recommendation` | `com.biblioo.recommendation` | 6 trilhos de recomendação via Neo4j/Redis/MySQL |
+| `share` | `com.biblioo.share` | Geração de cards PNG para compartilhamento (DNA Literário) |
 | `infrastructure` | `com.biblioo.infrastructure` | Config global, RabbitMQ, segurança, exceções |
 
 ---
@@ -129,6 +130,24 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 **Config:** `DnaScheduler` → cron na virada do mês (criar snapshots mensais para todos os usuários)
 
 **Dados que consome de outros módulos:** `ReadingHistoryUseCase` (books) · `UserReviewsUseCase` (feed)
+
+---
+
+## share
+
+**Contratos (port/in):** `ShareCardUseCase` generateDnaCard
+
+**Controller:** `ShareCardController /share` → GET /card?type=dna|book|quote (autenticado, retorna PNG 1080×1080)
+
+**Model:** `ShareCardData` (record) — agrega User + LiteraryDna + capas + DisplayBook(bookId, title) + temas + totalPages
+
+**Serviços:**
+- `ShareCardService` — implements `ShareCardUseCase`; verifica cache Redis → delega coleta ao `ShareCardDataService` → renderiza PNG com Java AWT/Graphics2D → salva cache
+- `ShareCardDataService` — coleta e prepara todos os dados do card; busca título+coverUrl de cada livro e baixa capas em paralelo via virtual threads (`Executors.newVirtualThreadPerTaskExecutor`)
+
+**Cache:** `shareCardRedisTemplate` (CacheConfig) — chave `biblioo:share-card-dna:mobile:{userId}`, TTL 1h
+
+**Dados que consome de outros módulos:** `LiteraryDnaUseCase` (dna) · `UserUseCase` (user) · `ReadingHistoryUseCase` (books) · `UserReviewsUseCase` (feed) · `BookUseCase` (books)
 
 ---
 

@@ -47,6 +47,17 @@ public class CacheConfig implements CachingConfigurer {
     return template;
   }
 
+  /** Template dedicado para share cards — armazena PNG em bytes sem serialização JSON. */
+  @Bean("shareCardRedisTemplate")
+  RedisTemplate<String, byte[]> shareCardRedisTemplate(RedisConnectionFactory factory) {
+    var template = new RedisTemplate<String, byte[]>();
+    template.setConnectionFactory(factory);
+    template.setKeySerializer(new StringRedisSerializer());
+    template.setValueSerializer(new ByteArrayRedisSerializer());
+    template.afterPropertiesSet();
+    return template;
+  }
+
   @Bean
   RedisCacheManager cacheManager(RedisConnectionFactory factory) {
     var serializer = buildSerializer();
