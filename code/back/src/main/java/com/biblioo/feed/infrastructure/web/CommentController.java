@@ -42,10 +42,15 @@ public class CommentController {
 
   private final CommentUseCase commentUseCase;
   private final CommentMapper commentMapper;
+  private final CommentEnricher commentEnricher;
 
-  public CommentController(CommentUseCase commentUseCase, CommentMapper commentMapper) {
+  public CommentController(
+      CommentUseCase commentUseCase,
+      CommentMapper commentMapper,
+      CommentEnricher commentEnricher) {
     this.commentUseCase = commentUseCase;
     this.commentMapper = commentMapper;
+    this.commentEnricher = commentEnricher;
   }
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -127,7 +132,8 @@ public class CommentController {
       @PageableDefault(size = 20) Pageable pageable) {
 
     return ResponseEntity.ok(
-        commentUseCase.getComments(reviewId, pageable).map(commentMapper::toBasicResponse));
+        commentEnricher.enrich(
+            commentUseCase.getComments(reviewId, pageable).map(commentMapper::toBasicResponse)));
   }
 
   @GetMapping("/{commentId}")

@@ -4,12 +4,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Heart, MessageCircle, MoreHorizontal, Pencil, Share2, Trash2 } from "lucide-react";
 import { RatingStars } from "./RatingStars";
 import { UserBadge } from "./UserBadge";
+import { BookDetailsCard } from "./BookDetailsCard";
+import { CommentsSection } from "./CommentsSection";
+import { getBookById } from "@/services/bookcase";
+import { toggleReviewLike } from "@/services/feed";
 
 export interface ReviewFeedCardProps {
   reviewId?: number;
   authorName: string;
   authorAvatarUrl?: string | null;
   time?: string;
+  bookId?: number | null;
   bookTitle: string;
   bookAuthors?: string[] | null;
   bookCoverUrl?: string | null;
@@ -24,6 +29,7 @@ export interface ReviewFeedCardProps {
   className?: string;
   onEdit?: () => void;
   onDelete?: () => Promise<void>;
+  onLikeChange?: (newCount: number) => void;
 }
 
 function ConfirmDeleteModal({
@@ -71,6 +77,7 @@ export function ReviewFeedCard({
   authorName,
   authorAvatarUrl,
   time,
+  bookId,
   bookTitle,
   bookAuthors,
   bookCoverUrl,
@@ -91,6 +98,14 @@ export function ReviewFeedCard({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [bookSynopsis, setBookSynopsis] = useState<string | null | undefined>(undefined);
+
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(likes);
+  const [likePending, setLikePending] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(comments);
 
   const authorsText = bookAuthors?.join(", ") ?? "";
   const subtitle = time ? `avaliou um livro · ${time}` : "avaliou um livro";
@@ -103,6 +118,36 @@ export function ReviewFeedCard({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
+
+  const handleOpenBookModal = () => {
+    setBookModalOpen(true);
+    if (bookId && bookSynopsis === undefined) {
+      getBookById(bookId)
+        .then((b) => setBookSynopsis(b.synopsis ?? b.description ?? null))
+        .catch(() => setBookSynopsis(null));
+    }
+  };
+
+  const handleLike = async () => {
+    if (!reviewId || likePending) return;
+    const prevLiked = liked;
+    const prevCount = likeCount;
+    setLiked(!prevLiked);
+    setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1);
+    setLikePending(true);
+    try {
+      const result = await toggleReviewLike(reviewId);
+      setLiked(result.liked);
+      if (result.liked !== !prevLiked) {
+        setLikeCount(result.liked ? prevCount + 1 : prevCount - 1);
+      }
+    } catch {
+      setLiked(prevLiked);
+      setLikeCount(prevCount);
+    } finally {
+      setLikePending(false);
+    }
+  };
 
   const handleDeleteConfirmed = async () => {
     if (!onDelete) return;
@@ -168,7 +213,11 @@ export function ReviewFeedCard({
         </div>
 
         {/* Card do livro */}
-        <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-lg p-3 flex items-center gap-3 mb-3">
+        <button
+          type="button"
+          onClick={handleOpenBookModal}
+          className="w-full text-left bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg p-3 flex items-center gap-3 mb-3 transition-colors"
+        >
           <div className="w-12 h-[68px] rounded flex-shrink-0 overflow-hidden bg-emerald-200 dark:bg-emerald-800 flex items-center justify-center">
             {bookCoverUrl ? (
               <img src={bookCoverUrl} alt={bookTitle} className="w-full h-full object-cover" />
@@ -191,7 +240,7 @@ export function ReviewFeedCard({
               <RatingStars value={rating} size={14} />
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Texto da avaliação */}
         {reviewText ? (
@@ -254,17 +303,32 @@ export function ReviewFeedCard({
           <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
+              onClick={handleLike}
+              disabled={!reviewId || likePending}
+              className={`inline-flex items-center gap-1.5 transition-colors disabled:cursor-default ${
+                liked
+                  ? "text-rose-500 dark:text-rose-400"
+                  : "hover:text-rose-500 dark:hover:text-rose-400"
+              }`}
             >
-              <Heart size={16} />
-              <span>{likes}</span>
+              <Heart
+                size={16}
+                fill={liked ? "currentColor" : "none"}
+                className="transition-transform active:scale-125"
+              />
+              <span>{likeCount}</span>
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+              onClick={() => setShowComments((v) => !v)}
+              className={`inline-flex items-center gap-1.5 transition-colors ${
+                showComments
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "hover:text-emerald-600 dark:hover:text-emerald-400"
+              }`}
             >
-              <MessageCircle size={16} />
-              <span>{comments}</span>
+              <MessageCircle size={16} fill={showComments ? "currentColor" : "none"} />
+              <span>{commentCount}</span>
             </button>
           </div>
           <button
@@ -275,6 +339,15 @@ export function ReviewFeedCard({
             <Share2 size={16} />
           </button>
         </div>
+
+        {showComments && reviewId !== undefined && (
+          <CommentsSection
+            contentId={reviewId}
+            contentType="REVIEW"
+            initialCount={commentCount}
+            onCommentAdded={() => setCommentCount((c) => c + 1)}
+          />
+        )}
       </article>
 
       <ConfirmDeleteModal
@@ -283,6 +356,19 @@ export function ReviewFeedCard({
         onConfirm={() => void handleDeleteConfirmed()}
         onCancel={() => { if (!isDeleting) setConfirmDeleteOpen(false); }}
       />
+
+      {bookModalOpen && (
+        <BookDetailsCard
+          isOpen={bookModalOpen}
+          title={bookTitle}
+          author={authorsText}
+          coverUrl={bookCoverUrl ?? undefined}
+          synopsis={bookSynopsis ?? undefined}
+          onClose={() => setBookModalOpen(false)}
+          onAddToShelf={() => {}}
+          availableShelves={[]}
+        />
+      )}
     </>
   );
 }

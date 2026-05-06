@@ -1,11 +1,16 @@
-import React from "react";
-import { AlertTriangle } from "lucide-react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { AlertTriangle, Heart, MessageCircle, Share2 } from "lucide-react";
 import { UserBadge } from "./UserBadge";
-import { ActionRow } from "./ActionRow";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
+import { BookDetailsCard } from "./BookDetailsCard";
+import { CommentsSection } from "./CommentsSection";
 import { getBookById } from "@/services/bookcase";
+import { togglePostLike } from "@/services/feed";
 
 export interface PostCardProps {
+  postId?: number;
   author: string;
   authorHandle?: string;
   avatarUrl?: string;
@@ -24,6 +29,7 @@ export interface PostCardProps {
 }
 
 export function PostCard({
+  postId,
   author,
   authorHandle,
   avatarUrl,
@@ -40,23 +46,61 @@ export function PostCard({
   gifUrl,
   hasSpoiler,
 }: PostCardProps) {
-  const [spoilerRevealed, setSpoilerRevealed] = React.useState(false);
-  const [fetchedTitle, setFetchedTitle] = React.useState<string | null>(null);
-  const [fetchedAuthors, setFetchedAuthors] = React.useState<string[] | null>(null);
-  const [fetchedCoverUrl, setFetchedCoverUrl] = React.useState<string | null>(null);
+  const [spoilerRevealed, setSpoilerRevealed] = useState(false);
+  const [fetchedTitle, setFetchedTitle] = useState<string | null>(null);
+  const [fetchedAuthors, setFetchedAuthors] = useState<string[] | null>(null);
+  const [fetchedCoverUrl, setFetchedCoverUrl] = useState<string | null>(null);
+  const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [bookSynopsis, setBookSynopsis] = useState<string | null | undefined>(undefined);
 
-  // Fetch book details when bookId is provided but title wasn't embedded in the feed item
-  React.useEffect(() => {
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(likes);
+  const [likePending, setLikePending] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(comments);
+
+  useEffect(() => {
     if (bookId && !bookTitleProp) {
       getBookById(bookId)
         .then((book) => {
           setFetchedTitle(book.title);
           setFetchedAuthors(book.authors);
           setFetchedCoverUrl(book.coverUrl ?? null);
+          setBookSynopsis(book.synopsis ?? book.description ?? null);
         })
         .catch(() => {});
     }
   }, [bookId, bookTitleProp]);
+
+  const handleOpenBookModal = () => {
+    setBookModalOpen(true);
+    if (bookId && bookSynopsis === undefined) {
+      getBookById(bookId)
+        .then((b) => setBookSynopsis(b.synopsis ?? b.description ?? null))
+        .catch(() => setBookSynopsis(null));
+    }
+  };
+
+  const handleLike = async () => {
+    if (!postId || likePending) return;
+    const prevLiked = liked;
+    const prevCount = likeCount;
+    setLiked(!prevLiked);
+    setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1);
+    setLikePending(true);
+    try {
+      const result = await togglePostLike(postId);
+      setLiked(result.liked);
+      if (result.liked !== !prevLiked) {
+        setLikeCount(result.liked ? prevCount + 1 : prevCount - 1);
+      }
+    } catch {
+      setLiked(prevLiked);
+      setLikeCount(prevCount);
+    } finally {
+      setLikePending(false);
+    }
+  };
 
   const bookTitle = bookTitleProp ?? fetchedTitle;
   const bookAuthors = bookAuthorsProp ?? fetchedAuthors;
@@ -64,7 +108,10 @@ export function PostCard({
   const hasBook = !!(bookId || bookTitle);
 
   return (
-    <article className={`rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 ${className ?? ""}`.trim()}>
+    <>
+    <article
+      className={`rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 ${className ?? ""}`.trim()}
+    >
       <div className="flex items-start justify-between">
         <UserBadge name={author} subtitle={authorHandle} avatarUrl={avatarUrl} />
         {time ? <span className="text-xs text-gray-400">{time}</span> : null}
@@ -72,7 +119,11 @@ export function PostCard({
 
       {/* Referenced book */}
       {hasBook && (
-        <div className="mt-3 flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
+        <button
+          type="button"
+          onClick={handleOpenBookModal}
+          className="mt-3 w-full text-left flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 px-3 py-2 transition-colors"
+        >
           <div className="h-12 w-8 shrink-0 overflow-hidden rounded">
             {bookCoverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -91,7 +142,7 @@ export function PostCard({
               <p className="truncate text-xs text-emerald-700">{bookAuthors.join(", ")}</p>
             )}
           </div>
-        </div>
+        </button>
       )}
 
       {/* Post content with optional spoiler gate */}
@@ -110,12 +161,15 @@ export function PostCard({
       ) : (
         <>
           {content && (
-            <p className="mt-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">{content}</p>
+            <p className="mt-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
+              {content}
+            </p>
           )}
 
-          {/* Images */}
           {images && images.length > 0 && (
-            <div className={`mt-3 grid gap-2 ${images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+            <div
+              className={`mt-3 grid gap-2 ${images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+            >
               {images.map((src, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -128,7 +182,6 @@ export function PostCard({
             </div>
           )}
 
-          {/* GIF (mutually exclusive with images) */}
           {gifUrl && !(images && images.length > 0) && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={gifUrl} alt="GIF" className="mt-3 max-h-64 rounded-lg" />
@@ -136,15 +189,71 @@ export function PostCard({
         </>
       )}
 
-      <div className="mt-4">
-        <ActionRow
-          items={[
-            { label: `${likes} curtidas` },
-            { label: `${comments} comentários` },
-          ]}
-        />
+      {/* Footer actions */}
+      <div className="mt-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+        <button
+          type="button"
+          onClick={handleLike}
+          disabled={!postId || likePending}
+          className={`inline-flex items-center gap-1.5 transition-colors disabled:cursor-default ${
+            liked
+              ? "text-rose-500 dark:text-rose-400"
+              : "hover:text-rose-500 dark:hover:text-rose-400"
+          }`}
+        >
+          <Heart
+            size={16}
+            fill={liked ? "currentColor" : "none"}
+            className="transition-transform active:scale-125"
+          />
+          <span>{likeCount}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowComments((v) => !v)}
+          className={`inline-flex items-center gap-1.5 transition-colors ${
+            showComments
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "hover:text-emerald-600 dark:hover:text-emerald-400"
+          }`}
+        >
+          <MessageCircle size={16} fill={showComments ? "currentColor" : "none"} />
+          <span>{commentCount}</span>
+        </button>
+
+        <button
+          type="button"
+          aria-label="Compartilhar"
+          className="ml-auto hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+        >
+          <Share2 size={16} />
+        </button>
       </div>
+
+      {showComments && postId !== undefined && (
+        <CommentsSection
+          contentId={postId}
+          contentType="POST"
+          initialCount={commentCount}
+          onCommentAdded={() => setCommentCount((c) => c + 1)}
+        />
+      )}
     </article>
+
+    {bookModalOpen && (
+      <BookDetailsCard
+        isOpen={bookModalOpen}
+        title={bookTitle ?? ""}
+        author={bookAuthors?.join(", ") ?? ""}
+        coverUrl={bookCoverUrl ?? undefined}
+        synopsis={bookSynopsis ?? undefined}
+        onClose={() => setBookModalOpen(false)}
+        onAddToShelf={() => {}}
+        availableShelves={[]}
+      />
+    )}
+    </>
   );
 }
 

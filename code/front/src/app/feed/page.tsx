@@ -138,7 +138,7 @@ export default function FeedPage() {
                   const time = formatFeedTime(item.createdAt);
 
                   if (item.contentType === "REVIEW") {
-                    const { bookTitle, bookAuthors, bookCoverUrl, rating, text, likeCount, commentCount, hasSpoiler } =
+                    const { bookId, bookTitle, bookAuthors, bookCoverUrl, rating, text, likeCount, commentCount, hasSpoiler } =
                       item.content;
                     const isOwn = currentUserId !== null && String(item.authorId) === currentUserId;
                     return (
@@ -148,6 +148,7 @@ export default function FeedPage() {
                         authorName={authorName}
                         authorAvatarUrl={item.authorAvatarUrl}
                         time={time}
+                        bookId={bookId}
                         bookTitle={bookTitle ?? "Livro"}
                         bookAuthors={bookAuthors}
                         bookCoverUrl={bookCoverUrl}
@@ -178,6 +179,7 @@ export default function FeedPage() {
                   return (
                     <PostCard
                       key={`post-${item.contentId}`}
+                      postId={item.contentId}
                       author={authorName}
                       avatarUrl={item.authorAvatarUrl ?? undefined}
                       time={time}

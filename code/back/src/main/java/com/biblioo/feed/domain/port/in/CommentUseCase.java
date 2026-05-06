@@ -22,4 +22,8 @@ public interface CommentUseCase {
   Comment getCommentById(Long commentId);
 
   Page<Comment> getComments(Long parentId, Pageable pageable);
+
+  boolean likeComment(Long userId, Long commentId);
+
+  Comment createReply(Long userId, Long commentId, String text);
 }

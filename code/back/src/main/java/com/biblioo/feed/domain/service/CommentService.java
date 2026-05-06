@@ -2,11 +2,13 @@ package com.biblioo.feed.domain.service;
 
 import com.biblioo.feed.domain.exception.CommentBusinessException;
 import com.biblioo.feed.domain.model.Comment;
+import com.biblioo.feed.domain.model.LikeType;
 import com.biblioo.feed.domain.port.in.CommentUseCase;
 import com.biblioo.feed.domain.port.out.FeedImagePort;
 import com.biblioo.feed.domain.port.out.UserPort;
 import com.biblioo.feed.infrastructure.persistence.CommentRepository;
 import com.biblioo.feed.infrastructure.persistence.CommentableRepository;
+import com.biblioo.feed.infrastructure.persistence.LikeRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +25,7 @@ public class CommentService implements CommentUseCase {
 
   private final CommentRepository commentRepository;
   private final CommentableRepository commentableRepository;
+  private final LikeRepository likeRepository;
   private final UserPort userPort;
   private final FeedImagePort feedImagePort;
 
@@ -168,8 +171,45 @@ public class CommentService implements CommentUseCase {
   @Override
   @Transactional(readOnly = true)
   public Page<Comment> getComments(Long parentId, Pageable pageable) {
-    return commentRepository.findByParentIdAndIsDeletedFalseOrderByCreatedAtDesc(
-        parentId, pageable);
+    return commentRepository.findVisibleByParentId(parentId, pageable);
+  }
+
+  @Override
+  @Transactional
+  public boolean likeComment(Long userId, Long commentId) {
+    commentRepository
+        .findByIdAndIsDeletedFalse(commentId)
+        .orElseThrow(() -> new CommentBusinessException("Comentário não encontrado."));
+
+    if (likeRepository.existsByContentIdAndUserId(commentId, userId)) {
+      int deleted = likeRepository.deleteByContentIdAndUserId(commentId, userId);
+      if (deleted > 0) commentRepository.decrementLikeCount(commentId);
+      return false;
+    }
+
+    boolean inserted = likeRepository.insertIgnore(commentId, userId, LikeType.LIKE.name()) > 0;
+    if (inserted) commentRepository.incrementLikeCount(commentId);
+    return inserted;
+  }
+
+  @Override
+  @Transactional
+  public Comment createReply(Long userId, Long commentId, String text) {
+    if (!userPort.existsById(userId)) {
+      throw new CommentBusinessException("Usuário não encontrado.");
+    }
+    if (text == null || text.isBlank()) {
+      throw new CommentBusinessException("O texto da resposta não pode estar vazio.");
+    }
+    if (text.length() > 2000) {
+      throw new CommentBusinessException("A resposta não deve exceder 2000 caracteres.");
+    }
+    commentRepository
+        .findByIdAndIsDeletedFalse(commentId)
+        .orElseThrow(() -> new CommentBusinessException("Comentário não encontrado."));
+
+    var reply = Comment.builder().userId(userId).parentId(commentId).text(text).build();
+    return commentRepository.saveAndFlush(reply);
   }
 
   private List<String> uploadImages(List<byte[]> images, String referenceId) {

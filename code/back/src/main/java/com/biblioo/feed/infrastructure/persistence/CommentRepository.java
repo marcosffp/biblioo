@@ -19,6 +19,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
   Page<Comment> findByParentIdAndIsDeletedFalseOrderByCreatedAtDesc(
       Long parentId, Pageable pageable);
 
+  @Query(
+      "SELECT c FROM Comment c WHERE c.parentId = :parentId"
+          + " AND (c.isDeleted = false OR EXISTS"
+          + " (SELECT r FROM Comment r WHERE r.parentId = c.id AND r.isDeleted = false))"
+          + " ORDER BY c.createdAt DESC")
+  Page<Comment> findVisibleByParentId(@Param("parentId") Long parentId, Pageable pageable);
+
   @Modifying
   @Query(
       "UPDATE Comment c SET c.isDeleted = true"
@@ -35,4 +42,14 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
   @Modifying
   @Query("DELETE FROM Comment c WHERE c.parentId = :parentId")
   void deleteAllByParentId(@Param("parentId") Long parentId);
+
+  @Modifying
+  @Query("UPDATE Comment c SET c.likeCount = c.likeCount + 1 WHERE c.id = :id")
+  int incrementLikeCount(@Param("id") Long id);
+
+  @Modifying
+  @Query("UPDATE Comment c SET c.likeCount = c.likeCount - 1 WHERE c.id = :id AND c.likeCount > 0")
+  int decrementLikeCount(@Param("id") Long id);
+
+  long countByParentIdAndIsDeletedFalse(Long parentId);
 }

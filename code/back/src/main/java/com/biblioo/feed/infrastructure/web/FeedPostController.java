@@ -50,16 +50,19 @@ public class FeedPostController {
   private final FeedPostMapper feedPostMapper;
   private final CommentUseCase commentUseCase;
   private final CommentMapper commentMapper;
+  private final CommentEnricher commentEnricher;
 
   public FeedPostController(
       FeedPostUseCase feedPostUseCase,
       FeedPostMapper feedPostMapper,
       CommentUseCase commentUseCase,
-      CommentMapper commentMapper) {
+      CommentMapper commentMapper,
+      CommentEnricher commentEnricher) {
     this.feedPostUseCase = feedPostUseCase;
     this.feedPostMapper = feedPostMapper;
     this.commentUseCase = commentUseCase;
     this.commentMapper = commentMapper;
+    this.commentEnricher = commentEnricher;
   }
 
   // ── CRUD do Post ────────────────────────────────────────────────────────────
@@ -183,7 +186,8 @@ public class FeedPostController {
   public ResponseEntity<Page<CommentBasicResponse>> getComments(
       @PathVariable Long postId, @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(
-        commentUseCase.getComments(postId, pageable).map(commentMapper::toBasicResponse));
+        commentEnricher.enrich(
+            commentUseCase.getComments(postId, pageable).map(commentMapper::toBasicResponse)));
   }
 
   @PutMapping(value = "/{postId}/comments/{commentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -92,6 +92,146 @@ export async function getFeed(cursor?: string | null, size = 20): Promise<FeedPa
   return (await response.json()) as FeedPage;
 }
 
+export interface CommentData {
+  id: number;
+  userId: number;
+  parentId: number;
+  text: string;
+  likeCount: number;
+  createdAt: string;
+  authorUsername?: string | null;
+  authorAvatarUrl?: string | null;
+  deleted?: boolean;
+}
+
+export interface CommentPage {
+  content: CommentData[];
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  number: number;
+  size: number;
+}
+
+export async function togglePostLike(postId: number): Promise<{ liked: boolean }> {
+  const token = getAccessToken();
+  if (!token) throw new FeedApiError("Usuário não autenticado.", 401);
+  const response = await fetch(`${API_BASE_URL}/feed/posts/${postId}/like`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new FeedApiError("Falha ao curtir o post.", response.status);
+  return (await response.json()) as { liked: boolean };
+}
+
+export async function toggleReviewLike(reviewId: number): Promise<{ liked: boolean }> {
+  const token = getAccessToken();
+  if (!token) throw new FeedApiError("Usuário não autenticado.", 401);
+  const response = await fetch(`${API_BASE_URL}/feed/reviews/${reviewId}/like`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new FeedApiError("Falha ao curtir a avaliação.", response.status);
+  return (await response.json()) as { liked: boolean };
+}
+
+export async function getPostComments(postId: number, page = 0): Promise<CommentPage> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(
+    `${API_BASE_URL}/feed/posts/${postId}/comments?page=${page}&size=10`,
+    { headers },
+  );
+  if (!response.ok) throw new FeedApiError("Falha ao carregar comentários.", response.status);
+  return (await response.json()) as CommentPage;
+}
+
+export async function getReviewComments(reviewId: number, page = 0): Promise<CommentPage> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(
+    `${API_BASE_URL}/feed/reviews/${reviewId}/comments?page=${page}&size=10`,
+    { headers },
+  );
+  if (!response.ok) throw new FeedApiError("Falha ao carregar comentários.", response.status);
+  return (await response.json()) as CommentPage;
+}
+
+export async function createPostComment(postId: number, text: string): Promise<CommentData> {
+  const token = getAccessToken();
+  if (!token) throw new FeedApiError("Usuário não autenticado.", 401);
+  const form = new FormData();
+  form.set("text", text);
+  const response = await fetch(`${API_BASE_URL}/feed/posts/${postId}/comments`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!response.ok) throw new FeedApiError("Falha ao enviar comentário.", response.status);
+  return (await response.json()) as CommentData;
+}
+
+export async function createReviewComment(reviewId: number, text: string): Promise<CommentData> {
+  const token = getAccessToken();
+  if (!token) throw new FeedApiError("Usuário não autenticado.", 401);
+  const form = new FormData();
+  form.set("text", text);
+  const response = await fetch(`${API_BASE_URL}/feed/reviews/${reviewId}/comments`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!response.ok) throw new FeedApiError("Falha ao enviar comentário.", response.status);
+  return (await response.json()) as CommentData;
+}
+
+export async function deleteComment(commentId: number): Promise<void> {
+  const token = getAccessToken();
+  if (!token) throw new FeedApiError("Usuário não autenticado.", 401);
+  const response = await fetch(`${API_BASE_URL}/feed/comments/${commentId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new FeedApiError("Falha ao excluir o comentário.", response.status);
+}
+
+export async function toggleCommentLike(commentId: number): Promise<{ liked: boolean }> {
+  const token = getAccessToken();
+  if (!token) throw new FeedApiError("Usuário não autenticado.", 401);
+  const response = await fetch(`${API_BASE_URL}/feed/comments/${commentId}/like`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new FeedApiError("Falha ao curtir o comentário.", response.status);
+  return (await response.json()) as { liked: boolean };
+}
+
+export async function getCommentReplies(commentId: number, page = 0): Promise<CommentPage> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(
+    `${API_BASE_URL}/feed/comments/${commentId}/replies?page=${page}&size=5`,
+    { headers },
+  );
+  if (!response.ok) throw new FeedApiError("Falha ao carregar respostas.", response.status);
+  return (await response.json()) as CommentPage;
+}
+
+export async function createCommentReply(commentId: number, text: string): Promise<CommentData> {
+  const token = getAccessToken();
+  if (!token) throw new FeedApiError("Usuário não autenticado.", 401);
+  const params = new URLSearchParams({ text });
+  const response = await fetch(`${API_BASE_URL}/feed/comments/${commentId}/replies?${params.toString()}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new FeedApiError("Falha ao enviar resposta.", response.status);
+  return (await response.json()) as CommentData;
+}
+
 export function formatFeedTime(createdAt: string): string {
   try {
     const created = new Date(createdAt);
