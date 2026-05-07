@@ -71,10 +71,11 @@ public class AuthServiceImpl implements AuthUseCase {
 public AuthResult login(String email, String rawPassword) {
   User user = userRepo.findByEmail(email).orElseThrow(InvalidCredentialsException::new);
 
+  if (user.getGoogleId() != null && !user.getGoogleId().isBlank()) {
+    throw new GoogleAccountNeedsPasswordException();
+  }
+
   if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
-    if (user.getGoogleId() != null && !user.getGoogleId().isBlank()) {
-      throw new GoogleAccountNeedsPasswordException();
-    }
     throw new InvalidCredentialsException();
   }
 

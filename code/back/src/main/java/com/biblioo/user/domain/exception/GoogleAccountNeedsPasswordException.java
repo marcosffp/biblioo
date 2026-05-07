@@ -1,6 +1,7 @@
 package com.biblioo.user.domain.exception;
+
 public class GoogleAccountNeedsPasswordException extends RuntimeException {
   public GoogleAccountNeedsPasswordException() {
-    super("Esta conta foi criada via Google. Use 'Entrar com Google' ou redefina sua senha pelo link 'Esqueci minha senha'.");
+    super("Já foi feito o cadastro com esse e-mail via Google. Por favor, faça o login por meio do Google.");
   }
 }
