@@ -1,6 +1,5 @@
 package com.biblioo.books.infrasestructure.web;
 
-import com.biblioo.books.domain.exception.ShelfBusinessException;
 import com.biblioo.books.domain.model.Shelf;
 import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.BookUseCase;
@@ -16,7 +15,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -52,26 +50,15 @@ public class ShelfController {
   public ResponseEntity<List<ShelfSummaryResponse>> listShelves(
       @AuthenticationPrincipal UserDetails principal) {
 
-    Long userId = currentUserId(principal);
+        Long userId = currentUserId(principal);
     List<Shelf> shelves = shelfUseCase.listShelves(userId);
 
-    List<ShelfSummaryResponse> response =
-        shelves.stream()
-            .map(
-                shelf -> {
-                  try {
-                    List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
-                    List<String> covers = buildCoverPreview(items);
-                    return mapper.toSummaryResponse(shelf, items.size(), covers);
-                  } catch (ShelfBusinessException e) {
-                    return null;
-                  }
-                })
-            .filter(Objects::nonNull)
-            .toList();
+    List<ShelfSummaryResponse> response = shelves.stream()
+        .map(shelf -> buildSummaryResponse(userId, shelf))
+        .toList();
 
     return ResponseEntity.ok(response);
-  }
+}
 
   @GetMapping("/{shelfId}")
   @Operation(
@@ -96,22 +83,11 @@ public class ShelfController {
   public ResponseEntity<List<ShelfSummaryResponse>> listUserShelves(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId) {
 
-    List<Shelf> shelves = shelfUseCase.listShelves(userId);
+        List<Shelf> shelves = shelfUseCase.listShelves(userId);
 
-    List<ShelfSummaryResponse> response =
-        shelves.stream()
-            .map(
-                shelf -> {
-                  try {
-                    List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
-                    List<String> covers = buildCoverPreview(items);
-                    return mapper.toSummaryResponse(shelf, items.size(), covers);
-                  } catch (ShelfBusinessException e) {
-                    return null;
-                  }
-                })
-            .filter(Objects::nonNull)
-            .toList();
+    List<ShelfSummaryResponse> response = shelves.stream()
+        .map(shelf -> buildSummaryResponse(userId, shelf))
+        .toList();
 
     return ResponseEntity.ok(response);
   }
@@ -199,4 +175,10 @@ public class ShelfController {
   private Long currentUserId(UserDetails principal) {
     return Long.parseLong(principal.getUsername());
   }
+
+  private ShelfSummaryResponse buildSummaryResponse(Long userId, Shelf shelf) {
+    List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
+    List<String> covers = buildCoverPreview(items);
+    return mapper.toSummaryResponse(shelf, items.size(), covers);
+}
 }

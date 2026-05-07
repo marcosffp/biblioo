@@ -55,3 +55,43 @@ CREATE INDEX IF NOT EXISTS idx_dna_event_log_event_id ON dna_event_log (event_id
 -- DNA Literário: total de páginas lidas e breakdown por ano
 ALTER TABLE literary_dna ADD COLUMN IF NOT EXISTS total_pages_read INT NOT NULL DEFAULT 0;
 ALTER TABLE literary_dna ADD COLUMN IF NOT EXISTS pages_by_year_json TEXT NULL;
+
+-- Sistema de Votação de Livros
+CREATE TABLE IF NOT EXISTS community_votings (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    community_id BIGINT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+    tie_break_rule VARCHAR(20) NOT NULL,
+    starts_at DATETIME NOT NULL,
+    ends_at DATETIME NOT NULL,
+    closed_at DATETIME NULL,
+    winner_option_id BIGINT NULL,
+    rejection_reason VARCHAR(500) NULL,
+    created_by BIGINT NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_cv_community (community_id),
+    INDEX idx_cv_status (community_id, status),
+    INDEX idx_cv_ends_at (ends_at, status)
+);
+
+CREATE TABLE IF NOT EXISTS community_voting_options (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    voting_id BIGINT NOT NULL,
+    book_id BIGINT NOT NULL,
+    book_title VARCHAR(500) NOT NULL,
+    book_cover_url VARCHAR(1000) NULL,
+    vote_count INT NOT NULL DEFAULT 0,
+    INDEX idx_cvo_voting (voting_id)
+);
+
+CREATE TABLE IF NOT EXISTS community_votes (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    voting_id BIGINT NOT NULL,
+    option_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    voted_at DATETIME NOT NULL,
+    UNIQUE KEY uk_cv_user_voting (voting_id, user_id),
+    INDEX idx_cvote_option (option_id)
+);

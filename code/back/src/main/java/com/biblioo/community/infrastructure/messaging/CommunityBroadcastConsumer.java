@@ -2,6 +2,7 @@ package com.biblioo.community.infrastructure.messaging;
 
 import com.biblioo.community.infrastructure.dto.CommunityBroadcastEnvelope;
 import com.biblioo.community.infrastructure.dto.TypingEventPayload;
+import com.biblioo.community.infrastructure.dto.VotingBroadcastEnvelope;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +49,10 @@ public class CommunityBroadcastConsumer {
         TypingEventPayload payload =
             objectMapper.readValue(amqpMessage.getBody(), TypingEventPayload.class);
         messagingTemplate.convertAndSend(destination, payload);
+      } else if ("voting".equals(envelopeType)) {
+        VotingBroadcastEnvelope envelope =
+            objectMapper.readValue(amqpMessage.getBody(), VotingBroadcastEnvelope.class);
+        messagingTemplate.convertAndSend(envelope.destination(), envelope.payload());
       } else {
         CommunityBroadcastEnvelope envelope =
             objectMapper.readValue(amqpMessage.getBody(), CommunityBroadcastEnvelope.class);

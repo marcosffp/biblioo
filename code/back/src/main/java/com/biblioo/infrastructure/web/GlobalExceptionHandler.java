@@ -58,6 +58,20 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), request);
   }
 
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingNotFoundException.class)
+  ResponseEntity<ErrorResponse> handleVotingNotFound(
+      com.biblioo.community.domain.exception.VotingNotFoundException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingOptionNotFoundException.class)
+  ResponseEntity<ErrorResponse> handleVotingOptionNotFound(
+      com.biblioo.community.domain.exception.VotingOptionNotFoundException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+  }
+
   // ── Feed / Reviews ────────────────────────────────────────────────────────
   @ExceptionHandler(com.biblioo.feed.domain.exception.ReviewBusinessException.class)
   ResponseEntity<ErrorResponse> handleReviewBusiness(

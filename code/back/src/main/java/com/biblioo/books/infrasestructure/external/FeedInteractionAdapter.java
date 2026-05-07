@@ -4,6 +4,7 @@ import com.biblioo.books.domain.model.Book;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.infrasestructure.persistence.BookRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfItemRepository;
+import com.biblioo.community.domain.model.CommunityBookSummary;
 import com.biblioo.community.domain.port.out.CommunityBookLookupPort;
 import com.biblioo.feed.domain.port.out.BookPort;
 import com.biblioo.feed.domain.port.out.ShelfInteractionPort;
@@ -29,6 +30,14 @@ public class FeedInteractionAdapter
   @Override
   public boolean existsById(Long bookId) {
     return bookRepository.existsById(bookId);
+  }
+
+  @Override
+  public CommunityBookSummary getById(Long bookId) {
+    return bookRepository
+        .findById(bookId)
+        .map(book -> new CommunityBookSummary(book.getId(), book.getTitle(), book.getCoverUrl()))
+        .orElse(null);
   }
 
   @Override
