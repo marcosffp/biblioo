@@ -31,6 +31,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.util.Set;
+import javax.imageio.ImageIO;
+import org.apache.tika.Tika;
 
 @RestController
 @RequestMapping("/users")
@@ -48,10 +53,7 @@ public class UserController {
   }
 
   @GetMapping("/{username}")
-  @Operation(
-      summary = "Retorna o perfil de um usuário pelo username",
-      description =
-          "Acessível sem autenticação. Perfis privados retornam apenas username, avatar e banner com `restricted=true`.")
+  @Operation(summary = "Retorna o perfil de um usuário pelo username", description = "Acessível sem autenticação. Perfis privados retornam apenas username, avatar e banner com `restricted=true`.")
   public ResponseEntity<UserProfileResponse> getProfile(
       @PathVariable String username, @AuthenticationPrincipal UserDetails principal) {
     ProfileAccess access = userUseCase.getProfile(viewerIdOrNull(principal), username);
@@ -62,19 +64,16 @@ public class UserController {
   }
 
   @PutMapping("/me")
-  @Operation(
-      summary = "Atualiza o perfil do usuário autenticado",
-      description = "Todos os campos são opcionais — envie apenas o que deseja alterar.")
+  @Operation(summary = "Atualiza o perfil do usuário autenticado", description = "Todos os campos são opcionais — envie apenas o que deseja alterar.")
   public ResponseEntity<UserProfileResponse> updateProfile(
       @Valid @RequestBody UpdateProfileRequest request,
       @AuthenticationPrincipal UserDetails principal) {
-    User user =
-        userUseCase.updateProfile(
-            currentUserId(principal),
-            request.username(),
-            request.bio(),
-            request.avatarUrl(),
-            request.bannerUrl());
+    User user = userUseCase.updateProfile(
+        currentUserId(principal),
+        request.username(),
+        request.bio(),
+        request.avatarUrl(),
+        request.bannerUrl());
     return ResponseEntity.ok(UserMapper.toResponse(user));
   }
 
@@ -88,10 +87,7 @@ public class UserController {
   }
 
   @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @Operation(
-      summary = "Faz upload da foto de perfil",
-      description =
-          "Upload assíncrono para o Cloudinary. Máximo 5MB. Tipos aceitos: image/jpeg, image/png, image/webp.")
+  @Operation(summary = "Faz upload da foto de perfil", description = "Upload assíncrono para o Cloudinary. Máximo 5MB. Tipos aceitos: image/jpeg, image/png, image/webp.")
   public ResponseEntity<UserProfileResponse> uploadAvatar(
       @RequestParam("file") MultipartFile file, @AuthenticationPrincipal UserDetails principal)
       throws IOException {
@@ -101,10 +97,7 @@ public class UserController {
   }
 
   @PostMapping(value = "/me/banner", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @Operation(
-      summary = "Faz upload do banner de perfil",
-      description =
-          "Upload assíncrono para o Cloudinary. Máximo 5MB. Tipos aceitos: image/jpeg, image/png, image/webp.")
+  @Operation(summary = "Faz upload do banner de perfil", description = "Upload assíncrono para o Cloudinary. Máximo 5MB. Tipos aceitos: image/jpeg, image/png, image/webp.")
   public ResponseEntity<UserProfileResponse> uploadBanner(
       @RequestParam("file") MultipartFile file, @AuthenticationPrincipal UserDetails principal)
       throws IOException {
@@ -114,10 +107,7 @@ public class UserController {
   }
 
   @PostMapping("/{username}/follow")
-  @Operation(
-      summary = "Segue um usuário pelo username",
-      description =
-          "Para perfis públicos retorna 204. Para perfis privados envia uma solicitação e retorna 202.")
+  @Operation(summary = "Segue um usuário pelo username", description = "Para perfis públicos retorna 204. Para perfis privados envia uma solicitação e retorna 202.")
   public ResponseEntity<Void> follow(
       @PathVariable String username, @AuthenticationPrincipal UserDetails principal) {
     Long targetId = userUseCase.getByUsername(username).getId();
@@ -139,16 +129,13 @@ public class UserController {
   @GetMapping("/me/follow-requests")
   @Operation(summary = "Lista as solicitações de seguir pendentes recebidas")
   public ResponseEntity<FollowPageResponse> getPendingFollowRequests(
-      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0")
-          int page,
-      @Parameter(description = "Itens por página", example = "20")
-          @RequestParam(defaultValue = "20")
-          int size,
+      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Itens por página", example = "20") @RequestParam(defaultValue = "20") int size,
       @AuthenticationPrincipal UserDetails principal) {
-    List<UserSummaryResponse> users =
-        userUseCase.getPendingFollowRequests(currentUserId(principal), page, size).stream()
-            .map(UserMapper::toSummary)
-            .toList();
+    List<UserSummaryResponse> users = userUseCase.getPendingFollowRequests(currentUserId(principal), page, size)
+        .stream()
+        .map(UserMapper::toSummary)
+        .toList();
     return ResponseEntity.ok(new FollowPageResponse(users, page, size, users.size() == size));
   }
 
@@ -171,80 +158,57 @@ public class UserController {
   }
 
   @DeleteMapping("/me")
-  @Operation(
-      summary = "Deleta a conta do usuário autenticado",
-      description =
-          "Remove tokens, relações de follow e a conta permanentemente. Ação irreversível.")
+  @Operation(summary = "Deleta a conta do usuário autenticado", description = "Remove tokens, relações de follow e a conta permanentemente. Ação irreversível.")
   public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal UserDetails principal) {
     userUseCase.deleteAccount(currentUserId(principal));
     return ResponseEntity.noContent().build();
   }
 
   @GetMapping
-  @Operation(
-      summary = "Busca usuários por username",
-      description =
-          "Busca por prefixo via OpenSearch. Mínimo 2 caracteres. Sem autenticação necessária.")
+  @Operation(summary = "Busca usuários por username", description = "Busca por prefixo via OpenSearch. Mínimo 2 caracteres. Sem autenticação necessária.")
   public ResponseEntity<FollowPageResponse> searchUsers(
-      @Parameter(description = "Termo de busca (mínimo 2 caracteres)", example = "rafael")
-          @RequestParam
-          String q,
-      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0")
-          int page,
-      @Parameter(description = "Itens por página (máx 20)", example = "20")
-          @RequestParam(defaultValue = "20")
-          int size) {
+      @Parameter(description = "Termo de busca (mínimo 2 caracteres)", example = "rafael") @RequestParam String q,
+      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Itens por página (máx 20)", example = "20") @RequestParam(defaultValue = "20") int size) {
     if (q == null || q.isBlank() || q.length() < 2) {
       return ResponseEntity.ok(new FollowPageResponse(List.of(), page, size, false));
     }
-    List<UserSummaryResponse> users =
-        userUseCase.searchUsers(q.trim(), page, size).stream().map(UserMapper::toSummary).toList();
+    List<UserSummaryResponse> users = userUseCase.searchUsers(q.trim(), page, size).stream().map(UserMapper::toSummary)
+        .toList();
     return ResponseEntity.ok(new FollowPageResponse(users, page, size, users.size() == size));
   }
 
   @GetMapping("/{username}/followers")
-  @Operation(
-      summary = "Lista os seguidores de um usuário",
-      description = "Paginado. Retorna lista vazia para perfis privados sem acesso.")
+  @Operation(summary = "Lista os seguidores de um usuário", description = "Paginado. Retorna lista vazia para perfis privados sem acesso.")
   public ResponseEntity<FollowPageResponse> getFollowers(
       @PathVariable String username,
-      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0")
-          int page,
-      @Parameter(description = "Itens por página", example = "20")
-          @RequestParam(defaultValue = "20")
-          int size,
+      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Itens por página", example = "20") @RequestParam(defaultValue = "20") int size,
       @AuthenticationPrincipal UserDetails principal) {
     ProfileAccess access = userUseCase.getProfile(viewerIdOrNull(principal), username);
     if (access.restricted()) {
       return ResponseEntity.ok(new FollowPageResponse(List.of(), page, size, false));
     }
-    List<UserSummaryResponse> users =
-        userUseCase.getFollowers(access.user().getId(), page, size).stream()
-            .map(UserMapper::toSummary)
-            .toList();
+    List<UserSummaryResponse> users = userUseCase.getFollowers(access.user().getId(), page, size).stream()
+        .map(UserMapper::toSummary)
+        .toList();
     return ResponseEntity.ok(new FollowPageResponse(users, page, size, users.size() == size));
   }
 
   @GetMapping("/{username}/following")
-  @Operation(
-      summary = "Lista os usuários que um leitor segue",
-      description = "Paginado. Retorna lista vazia para perfis privados sem acesso.")
+  @Operation(summary = "Lista os usuários que um leitor segue", description = "Paginado. Retorna lista vazia para perfis privados sem acesso.")
   public ResponseEntity<FollowPageResponse> getFollowing(
       @PathVariable String username,
-      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0")
-          int page,
-      @Parameter(description = "Itens por página", example = "20")
-          @RequestParam(defaultValue = "20")
-          int size,
+      @Parameter(description = "Página (0-based)", example = "0") @RequestParam(defaultValue = "0") int page,
+      @Parameter(description = "Itens por página", example = "20") @RequestParam(defaultValue = "20") int size,
       @AuthenticationPrincipal UserDetails principal) {
     ProfileAccess access = userUseCase.getProfile(viewerIdOrNull(principal), username);
     if (access.restricted()) {
       return ResponseEntity.ok(new FollowPageResponse(List.of(), page, size, false));
     }
-    List<UserSummaryResponse> users =
-        userUseCase.getFollowing(access.user().getId(), page, size).stream()
-            .map(UserMapper::toSummary)
-            .toList();
+    List<UserSummaryResponse> users = userUseCase.getFollowing(access.user().getId(), page, size).stream()
+        .map(UserMapper::toSummary)
+        .toList();
     return ResponseEntity.ok(new FollowPageResponse(users, page, size, users.size() == size));
   }
 
@@ -257,20 +221,81 @@ public class UserController {
   }
 
   private static final long MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
-  private static final java.util.Set<String> ALLOWED_MIME_TYPES =
-      java.util.Set.of("image/jpeg", "image/png", "image/webp");
+
+  private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
+      "image/jpeg",
+      "image/png",
+      "image/webp");
+
+  private static final Set<String> BLOCKED_MIME_TYPES = Set.of(
+      "image/svg+xml",
+      "image/gif");
+
+  private static final Tika TIKA = new Tika();
 
   private void validateImageFile(MultipartFile file) {
-    if (file.isEmpty()) {
-      throw new IllegalArgumentException("Arquivo não pode estar vazio");
-    }
-    if (file.getSize() > MAX_UPLOAD_BYTES) {
-      throw new IllegalArgumentException("Arquivo excede o tamanho máximo de 5MB");
-    }
-    String contentType = file.getContentType();
-    if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType)) {
-      throw new IllegalArgumentException(
-          "Tipo de arquivo inválido. Tipos aceitos: JPEG, PNG, WebP");
+    try {
+
+      // arquivo obrigatório
+      if (file == null || file.isEmpty()) {
+        throw new IllegalArgumentException("Arquivo não pode estar vazio");
+      }
+
+      // tamanho máximo
+      if (file.getSize() > MAX_UPLOAD_BYTES) {
+        throw new IllegalArgumentException(
+            "Arquivo excede o tamanho máximo permitido de 5MB");
+      }
+
+      // nome original
+      String originalFilename = file.getOriginalFilename();
+
+      if (originalFilename == null || originalFilename.isBlank()) {
+        throw new IllegalArgumentException("Nome do arquivo inválido");
+      }
+
+      // bloqueia path traversal
+      if (originalFilename.contains("..")
+          || originalFilename.contains("/")
+          || originalFilename.contains("\\")) {
+        throw new IllegalArgumentException("Nome de arquivo inválido");
+      }
+
+      // detecta MIME REAL via magic bytes
+      String detectedMimeType;
+
+      try (InputStream inputStream = file.getInputStream()) {
+        detectedMimeType = TIKA.detect(inputStream);
+      }
+
+      if (detectedMimeType == null || detectedMimeType.isBlank()) {
+        throw new IllegalArgumentException("Não foi possível identificar o tipo do arquivo");
+      }
+
+      // bloqueios explícitos
+      if (BLOCKED_MIME_TYPES.contains(detectedMimeType)) {
+        throw new IllegalArgumentException("Tipo de arquivo não permitido");
+      }
+
+      // whitelist
+      if (!ALLOWED_MIME_TYPES.contains(detectedMimeType)) {
+        throw new IllegalArgumentException(
+            "Tipo de arquivo inválido. Tipos aceitos: JPEG, PNG e WebP");
+      }
+
+      // valida se realmente é uma imagem parseável
+      BufferedImage image;
+
+      try (InputStream inputStream = file.getInputStream()) {
+        image = ImageIO.read(inputStream);
+      }
+
+      if (image == null) {
+        throw new IllegalArgumentException("Arquivo enviado não é uma imagem válida");
+      }
+
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Erro ao processar arquivo de imagem", e);
     }
   }
 }

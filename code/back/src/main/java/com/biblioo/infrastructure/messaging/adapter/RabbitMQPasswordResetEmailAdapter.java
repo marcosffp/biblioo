@@ -16,7 +16,6 @@ public class RabbitMQPasswordResetEmailAdapter implements PasswordResetEmailPort
 
   @Override
   public void sendPasswordResetEmail(String toEmail, String username, String resetLink) {
-            System.out.println("Scheduling password reset email to " + toEmail + " with reset link: " + resetLink);
     Map<String, Object> payload = new HashMap<>();
     payload.put("toEmail", toEmail);
     payload.put("username", username);

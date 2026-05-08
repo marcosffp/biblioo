@@ -5,7 +5,7 @@ const CONFIG = {
   base:              'http://localhost:8080',
   password:          'Senha@12345',
   prefix:            'reqcomm',
-  requesterPoolSize: 100,
+  requesterPoolSize: 230,
   // Um par owner+comunidade por VU do cenário request — elimina disputa pelo mesmo requestId
   communityPoolSize: 20,
 
@@ -13,8 +13,8 @@ const CONFIG = {
   bookId: 1,
 
   load: {
-    requestVus: 20,  // cada VU gerencia sua própria comunidade
-    listVus:    15,  // leitura de join-requests pendentes
+    requestVus: 150,  // cada VU gerencia sua própria comunidade
+    listVus:    60,  // leitura de join-requests pendentes
     duration:   '2m',
   },
 

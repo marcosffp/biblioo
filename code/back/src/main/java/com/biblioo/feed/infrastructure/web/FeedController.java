@@ -13,6 +13,7 @@ import com.biblioo.feed.infrastructure.dto.feed.FeedPageResponse;
 import com.biblioo.feed.infrastructure.persistence.FeedPostRepository;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
 import com.biblioo.user.domain.model.User;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -43,11 +46,11 @@ public class FeedController {
   @GetMapping
   @Operation(summary = "Retorna o feed do usuário com paginação por cursor")
   public ResponseEntity<FeedPageResponse> getFeed(
-      @RequestParam Long userId,
+     @AuthenticationPrincipal UserDetails principal,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int size) {
 
-    FeedSlice slice = feedUseCase.getFeed(userId, cursor, Math.min(size, 50));
+    FeedSlice slice = feedUseCase.getFeed(extractUserId(principal), cursor, Math.min(size, 50));
 
     Set<Long> reviewIds =
         slice.items().stream()
@@ -133,8 +136,13 @@ public class FeedController {
   @GetMapping("/new-count")
   @Operation(summary = "Retorna contagem de novos itens desde o último score visto")
   public ResponseEntity<Map<String, Long>> getNewItemsCount(
-      @RequestParam Long userId, @RequestParam Long sinceScore) {
-    long count = feedUseCase.getNewItemsCount(userId, sinceScore);
+      @AuthenticationPrincipal UserDetails principal,
+      @RequestParam Long sinceScore) {
+    long count = feedUseCase.getNewItemsCount(extractUserId(principal), sinceScore);
     return ResponseEntity.ok(Map.of("newItems", count));
+  }
+
+    private Long extractUserId(UserDetails principal) {
+    return Long.parseLong(principal.getUsername());
   }
 }

@@ -20,7 +20,7 @@ const CONFIG = {
   password: 'Senha@12345',
   prefix:   'msgstress',
 
-  userPoolSize:      50,   // compartilhado entre VUs — aceitável para stress
+  userPoolSize:      150,   // compartilhado entre VUs — aceitável para stress
   communityPoolSize: 10,   // mais comunidades distribuem o broadcast
 
   bookId: 1,

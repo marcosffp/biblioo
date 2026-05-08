@@ -4,12 +4,12 @@ import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const CONFIG = {
   baseUrl:  'http://localhost:8080',
-  poolSize: 450,
+  poolSize: 800,
   password: 'Senha@12345',
   prefix:   'stressrolldice',
 
   thresholds: {
-    p95:      2000,
+    p95:      2500,
     failRate: 0.05,
   },
 

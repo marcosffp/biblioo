@@ -1,6 +1,5 @@
 package com.biblioo.dna.infrastructure.web;
 
-import java.lang.reflect.Parameter;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

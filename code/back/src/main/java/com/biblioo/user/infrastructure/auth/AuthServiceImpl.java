@@ -4,6 +4,7 @@ import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
 import com.biblioo.user.domain.exception.GoogleAccountNeedsPasswordException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
+import com.biblioo.user.domain.exception.RegistrationConflictException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
 import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
 import com.biblioo.user.domain.model.AuthResult;
@@ -54,18 +55,19 @@ public class AuthServiceImpl implements AuthUseCase {
   }
 
   @Override
-  public AuthResult register(String username, String email, String rawPassword) {
-    if (userRepo.existsByEmail(email)) throw new EmailAlreadyExistsException(email);
-    if (userRepo.existsByUsername(username)) throw new UsernameAlreadyExistsException(username);
-
-    User user = new User();
-    user.setUsername(username);
-    user.setEmail(email);
-    user.setPasswordHash(passwordEncoder.encode(rawPassword));
-    user = userRepo.save(user);
-
-    return buildAuthResult(user);
+public AuthResult register(String username, String email, String rawPassword) {
+  if (userRepo.existsByEmail(email) || userRepo.existsByUsername(username)) {
+    throw new RegistrationConflictException();
   }
+
+  User user = new User();
+  user.setUsername(username);
+  user.setEmail(email);
+  user.setPasswordHash(passwordEncoder.encode(rawPassword));
+  user = userRepo.save(user);
+
+  return buildAuthResult(user);
+}
 
 @Override
 public AuthResult login(String email, String rawPassword) {
@@ -89,22 +91,24 @@ public AuthResult login(String email, String rawPassword) {
 }
 
   @Override
-  public AuthResult refresh(String refreshToken) {
-    RefreshToken token =
-        tokenRepo.findByToken(refreshToken).orElseThrow(InvalidTokenException::new);
+@Transactional
+public AuthResult refresh(String refreshToken) {
+  RefreshToken token =
+      tokenRepo.findByTokenForUpdate(refreshToken)
+               .orElseThrow(InvalidTokenException::new);
 
-    if (!token.isValid()) throw new InvalidTokenException();
+  if (!token.isValid()) throw new InvalidTokenException();
 
-    token.setUsed(true);
-    tokenRepo.save(token);
+  token.setUsed(true);
+  tokenRepo.save(token);
 
-    User user =
-        userRepo
-            .findById(token.getUserId())
-            .orElseThrow(() -> new UserNotFoundException(token.getUserId()));
+  User user =
+      userRepo
+          .findById(token.getUserId())
+          .orElseThrow(() -> new UserNotFoundException(token.getUserId()));
 
-    return buildAuthResult(user);
-  }
+  return buildAuthResult(user);
+}
 
   @Override
   public void logout(String refreshToken) {

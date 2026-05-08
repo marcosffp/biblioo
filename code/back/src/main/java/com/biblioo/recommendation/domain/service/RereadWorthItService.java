@@ -4,6 +4,7 @@ import com.biblioo.recommendation.domain.model.BookScore;
 import com.biblioo.recommendation.domain.model.RecommendationResult;
 import com.biblioo.recommendation.domain.model.RereadWorthItResult;
 import com.biblioo.recommendation.infrastructure.persistence.RecommendationResultRepository;
+import com.biblioo.recommendation.infrastructure.service.RecommendationFallbackWriter;
 import com.biblioo.recommendation.infrastructure.service.RereadWorthItComputeService;
 import com.biblioo.recommendation.infrastructure.service.RereadWorthItComputeService.ReadingData;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -31,6 +32,7 @@ public class RereadWorthItService {
 
   private final RereadWorthItComputeService computeService;
   private final RecommendationResultRepository resultRepository;
+  private final RecommendationFallbackWriter fallbackWriter;
   private final ObjectMapper objectMapper;
 
   @Value("${recommendation.reread-worth-it.candidate-limit:20}")
@@ -102,7 +104,7 @@ public class RereadWorthItService {
 
     log.info("[RWI] Sem resultado pré-computado para userId={}, calculando e persistindo fallback", userId);
     List<BookScore> fallback = computeService.computeFallback(userId, candidateLimit);
-    resultRepository.upsertWithRawMetadata(userId, TRAIL_TYPE, fallback, "{}");
+    fallbackWriter.persistRereadWorthIt(userId, fallback);
 
     return new RereadWorthItResult(fallback);
   }

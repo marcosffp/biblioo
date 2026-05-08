@@ -5,12 +5,12 @@ const CONFIG = {
   base:            'http://localhost:8080',
   password:        'Senha@12345',
   prefix:          'sinvcomm',
-  inviteePoolSize: 300,
+  inviteePoolSize: 800,
   bookId:          1,
 
   stress: {
     stageDuration: '30s',
-    stages: [10, 20, 50, 100, 150, 200],
+    stages: [10, 20, 50, 100, 150, 200, 600],  // VUs por estágio (rampa crescente)
   },
 
   thresholds: {

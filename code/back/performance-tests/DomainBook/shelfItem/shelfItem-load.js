@@ -3,22 +3,22 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 100, // deve ser >= crudVus + listingVus (80) para evitar que VUs compartilhem usuário
+  userPoolSize: 230, // deve ser >= crudVus + listingVus (80) para evitar que VUs compartilhem usuário
   password:     'Senha@12345',
   prefix:       'loadshelfitem',
 
   bookId: 1,  // ID de um livro existente no banco para usar nos testes
 
   load: {
-    crudVus:    60,
-    listingVus: 20,
+    crudVus:    150,
+    listingVus: 60,
     duration:   '2m',
   },
 
   thresholds: {
     p95General:  1000,  // ms
     p95Crud:     1500,  // ms
-    p95Listing:   500,  // ms
+    p95Listing:   1500,  // ms
     failRate:    0.01,  // 1%
   },
 

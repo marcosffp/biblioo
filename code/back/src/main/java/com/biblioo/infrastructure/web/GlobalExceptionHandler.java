@@ -14,6 +14,7 @@ import com.biblioo.user.domain.exception.InvalidPasswordResetTokenException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
 import com.biblioo.user.domain.exception.PasswordAlreadyExistsException;
 import com.biblioo.user.domain.exception.PasswordResetRateLimitException;
+import com.biblioo.user.domain.exception.RegistrationConflictException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
 import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -93,7 +94,7 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
   }
 
-  @ExceptionHandler(EmailAlreadyExistsException.class)
+    @ExceptionHandler(EmailAlreadyExistsException.class)
   ResponseEntity<ErrorResponse> handleEmailExists(
       EmailAlreadyExistsException ex, HttpServletRequest request) {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
@@ -104,6 +105,13 @@ public class GlobalExceptionHandler {
       UsernameAlreadyExistsException ex, HttpServletRequest request) {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
+
+
+  @ExceptionHandler(RegistrationConflictException.class)
+ResponseEntity<ErrorResponse> handleRegistrationConflict(
+    RegistrationConflictException ex, HttpServletRequest request) {
+  return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+}
 
   @ExceptionHandler(InvalidCredentialsException.class)
   ResponseEntity<ErrorResponse> handleInvalidCredentials(

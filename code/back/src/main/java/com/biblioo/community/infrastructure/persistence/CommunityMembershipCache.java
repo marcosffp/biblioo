@@ -3,6 +3,8 @@ package com.biblioo.community.infrastructure.persistence;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import com.biblioo.community.domain.exception.CommunityAccessDeniedException;
+
 
 @Component
 @RequiredArgsConstructor
@@ -41,4 +43,11 @@ public class CommunityMembershipCache {
       cache.evict(communityId + ":" + userId);
     }
   }
+
+  public void requireMember(Long communityId, Long userId) {
+  if (!isMember(communityId, userId)) {
+    throw new CommunityAccessDeniedException(
+        "Acesso negado: você não é membro desta comunidade.");
+  }
+}
 }

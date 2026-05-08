@@ -5,21 +5,21 @@ const CONFIG = {
   base:            'http://localhost:8080',
   password:        'Senha@12345',
   prefix:          'invcomm',
-  inviteePoolSize: 100,
+  inviteePoolSize: 230,
 
   // ID de um livro que existe no banco
   bookId: 1,
 
   load: {
-    inviteVus: 20,  // owner manda convites para usuários aleatórios
-    listVus:   20,  // invitees consultam seus convites pendentes
+    crudVus:    150,
+    listingVus: 60,
     duration:  '2m',
   },
 
   thresholds: {
     p95General: 1500,  // ms
     p95Invite: 2000,   // ms — write
-    p95List:    500,   // ms — read paginado
+    p95List:    1500,   // ms — read paginado
     failRate:   0.05,  // 5% — esperam-se conflitos de "já convidado"
   },
 

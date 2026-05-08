@@ -3,6 +3,7 @@ package com.biblioo.recommendation.domain.service;
 import com.biblioo.recommendation.domain.model.BookScore;
 import com.biblioo.recommendation.domain.model.SimilarAuthorsResult;
 import com.biblioo.recommendation.infrastructure.persistence.RecommendationResultRepository;
+import com.biblioo.recommendation.infrastructure.service.RecommendationFallbackWriter;
 import com.biblioo.recommendation.infrastructure.service.SimilarAuthorsComputeService;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,6 +26,7 @@ public class SimilarAuthorsService {
 
   private final SimilarAuthorsComputeService computeService;
   private final RecommendationResultRepository resultRepository;
+  private final RecommendationFallbackWriter fallbackWriter;
 
   @Value("${recommendation.similar-authors.candidate-limit:20}")
   private int candidateLimit;
@@ -105,7 +107,7 @@ public class SimilarAuthorsService {
 
     log.info("[SA] Sem resultado pré-computado para userId={}, calculando e persistindo fallback", userId);
     List<BookScore> fallback = computeService.computeFallback(userId, candidateLimit);
-    resultRepository.upsert(userId, TRAIL_TYPE, fallback);
+    fallbackWriter.persistSimilarAuthors(userId, fallback);
 
     return new SimilarAuthorsResult(fallback);
   }

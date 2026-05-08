@@ -22,12 +22,12 @@ const CONFIG = {
 
   // Pool menor que peakVus — tokens compartilhados entre VUs é aceitável
   // para spike: o que importa é a carga de conexões WS, não unicidade de usuário
-  userPoolSize:      50,
+  userPoolSize:      300,
   communityPoolSize: 5,
   bookId:            1,
 
   spike: {
-    baseVus:    20,
+    baseVus:    100,
     peakVus:    150,
     rampUpBase: '10s',  // estabiliza na base antes do spike
     rampToPeak: '5s',   // ramp agressivo — simula pico súbito

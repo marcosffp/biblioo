@@ -4,12 +4,12 @@ import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const CONFIG = {
   baseUrl:  'http://localhost:8080',
-  poolSize: 80,
+  poolSize: 230,
   password: 'Senha@12345',
   prefix:   'loadrolldice',
 
   load: {
-    vus:      60,
+    vus:      150,
     duration: '2m',
   },
 

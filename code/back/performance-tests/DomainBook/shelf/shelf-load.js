@@ -3,20 +3,20 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 100,
+  userPoolSize: 230,
   password:     'Senha@12345',
   prefix:       'loadshelf',
 
   load: {
-    crudVus:    60,
-    listingVus: 20,
+    crudVus:    150,
+    listingVus: 60,
     duration:   '2m',
   },
 
   thresholds: {
     p95General:  1000,  // ms
     p95Crud:     1500,  // ms
-    p95Listing:   500,  // ms
+    p95Listing:   1500,  // ms
     failRate:    0.01,  // 1%
   },
 

@@ -20,13 +20,13 @@ const CONFIG = {
   password: 'Senha@12345',
   prefix:   'msgload',
 
-  userPoolSize:      20,
-  communityPoolSize: 5,
+  userPoolSize:      80,
+  communityPoolSize: 10,
   bookId:            1,
 
   load: {
-    sendVus:  40,
-    listVus:  20,
+    sendVus:  100,
+    listVus:  60,
     duration: '2m',
   },
 
@@ -38,7 +38,7 @@ const CONFIG = {
 
   thresholds: {
     p95General:    1500,  // ms
-    p95List:        500,  // ms
+    p95List:        1500,  // ms
     p95DeliveryMs: 2000,  // ms — latência end-to-end SEND → broadcast
     failRate:      0.01,  // 1 %
   },

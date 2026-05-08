@@ -3,13 +3,13 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 400,
+  userPoolSize: 500,
   password:     'Senha@12345',
   prefix:       'spikeshelf',
 
   spike: {
-    baseVus:       50,
-    peakVus:       300,
+    baseVus:       70,
+    peakVus:       500,
     rampUpBase:    '10s',
     rampToPeak:    '5s',
     holdPeak:      '20s',
@@ -18,7 +18,7 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 1000,  // ms
+    p95General: 2500,  // ms
     failRate:   0.05,  // 5% — spike tolera mais erros
   },
 

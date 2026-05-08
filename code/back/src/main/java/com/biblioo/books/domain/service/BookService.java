@@ -2,6 +2,7 @@ package com.biblioo.books.domain.service;
 
 import com.biblioo.books.domain.exception.BookNotFoundException;
 import com.biblioo.books.domain.model.Book;
+import com.biblioo.books.domain.model.BookSearchResultDTO;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.infrasestructure.config.BookQueryHelper;
 import com.biblioo.books.infrasestructure.persistence.BookRepository;
@@ -47,20 +48,36 @@ public class BookService implements BookUseCase {
   // Deduplication de requests simultâneos para a mesma query.
   // putIfAbsent garante que apenas a primeira thread executa doSearch;
   // as demais aguardam o mesmo CompletableFuture na thread HTTP (classloader correto).
-  private final ConcurrentHashMap<String, CompletableFuture<List<Book>>> inFlight =
+  private final ConcurrentHashMap<String, CompletableFuture<List<BookSearchResultDTO>>> inFlight =
       new ConcurrentHashMap<>();
 
   @Override
-  public List<Book> search(String query) {
+  public List<BookSearchResultDTO> search(String query) {
     String key = query.strip().toLowerCase();
     Cache cache = cacheManager.getCache("book-search");
 
     if (cache != null) {
-      Cache.ValueWrapper hit = cache.get(key);
+      Cache.ValueWrapper hit = null;
+      try {
+        hit = cache.get(key);
+      } catch (Exception e) {
+        // Entrada corrompida (formato legado, PersistentBag serializado ou incompatibilidade de
+        // classloader). cache.get() manual não passa pelo CacheErrorHandler do Spring, por isso
+        // capturamos aqui e evictamos para garantir que a próxima chamada refaça a busca.
+        log.warn(
+            "Cache GET corrompido para book-search key='{}'. Evictando e tratando como miss. Causa: {}",
+            key,
+            e.getMessage());
+        try {
+          cache.evict(key);
+        } catch (Exception evictEx) {
+          log.warn("Falha ao evictar key='{}' do book-search. Causa: {}", key, evictEx.getMessage());
+        }
+      }
       if (hit != null) {
         try {
           @SuppressWarnings("unchecked")
-          List<Book> cached = (List<Book>) hit.get();
+          List<BookSearchResultDTO> cached = (List<BookSearchResultDTO>) hit.get();
           return cached != null ? cached : List.of();
         } catch (ClassCastException e) {
           // DevTools RestartClassLoader: entrada stale do classloader anterior — evicta e recalcula.
@@ -69,8 +86,8 @@ public class BookService implements BookUseCase {
       }
     }
 
-    CompletableFuture<List<Book>> myFuture = new CompletableFuture<>();
-    CompletableFuture<List<Book>> existing = inFlight.putIfAbsent(key, myFuture);
+    CompletableFuture<List<BookSearchResultDTO>> myFuture = new CompletableFuture<>();
+    CompletableFuture<List<BookSearchResultDTO>> existing = inFlight.putIfAbsent(key, myFuture);
 
     if (existing != null) {
       try {
@@ -82,7 +99,7 @@ public class BookService implements BookUseCase {
     }
 
     try {
-      List<Book> result = doSearch(key);
+      List<BookSearchResultDTO> result = doSearch(key);
       myFuture.complete(result);
       if (!result.isEmpty() && cache != null) {
         cache.put(key, result);
@@ -97,7 +114,7 @@ public class BookService implements BookUseCase {
     }
   }
 
-  private List<Book> doSearch(String query) {
+  private List<BookSearchResultDTO> doSearch(String query) {
     var futureLocal =
         CompletableFuture.supplyAsync(() -> search.search(query), bookEnrichExecutor)
             .exceptionally(
@@ -110,21 +127,34 @@ public class BookService implements BookUseCase {
                 });
 
     List<Book> local = futureLocal.join();
-    if (!local.isEmpty()) return local;
+    if (!local.isEmpty()) return local.stream().map(this::toSearchResult).toList();
 
     try {
       List<Book> db = bookQueryHelper.searchByTerm(query);
-      if (!db.isEmpty()) return db;
+      if (!db.isEmpty()) return db.stream().map(this::toSearchResult).toList();
     } catch (Exception e) {
       log.warn("DB falhou durante searchByTerm. query='{}'. Causa: {}", query, e.getMessage());
     }
 
     try {
-      return enrichService.enrichSync(query);
+      return enrichService.enrichSync(query).stream().map(this::toSearchResult).toList();
     } catch (Exception e) {
       log.warn("Enriquecimento externo falhou. query='{}'. Causa: {}", query, e.getMessage());
       return new ArrayList<>();
     }
+  }
+
+  private BookSearchResultDTO toSearchResult(Book book) {
+    return BookSearchResultDTO.builder()
+        .id(book.getId())
+        .title(book.getTitle())
+        .authors(book.getAuthors() != null ? new ArrayList<>(book.getAuthors()) : new ArrayList<>())
+        .coverUrl(book.getCoverUrl())
+        .pageCount(book.getPageCount())
+        .averageRating(book.getAverageRating())
+        .description(book.getDescription())
+        .readerCount(book.getReaderCount())
+        .build();
   }
 
   @Override

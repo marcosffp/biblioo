@@ -1,5 +1,8 @@
 ALTER TABLE books ADD FULLTEXT INDEX ft_search_text (search_text);
 
+-- Garante que a coluna source (legacy sem DEFAULT) aceite NULL para não bloquear INSERTs do Hibernate
+ALTER TABLE books MODIFY COLUMN source VARCHAR(255) NULL DEFAULT NULL;
+
 -- Índices para collaborative filtering (similar-authors)
 -- (book_id, status, shelf_id): cobre o join da CTE similar_users sem tocar em linhas desnecessárias
 CREATE INDEX IF NOT EXISTS idx_si_book_status_shelf ON shelf_items (book_id, status, shelf_id);
