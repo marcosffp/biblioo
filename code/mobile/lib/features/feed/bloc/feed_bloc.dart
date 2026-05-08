@@ -13,6 +13,9 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
     on<FeedLoadMoreRequested>(_onLoadMore);
     on<FeedReviewLikeToggled>(_onToggleReviewLike);
     on<FeedPostLikeToggled>(_onTogglePostLike);
+    on<FeedReviewDeleteRequested>(_onDeleteReview);
+    on<FeedPostDeleteRequested>(_onDeletePost);
+    on<FeedCommentCountChanged>(_onCommentCountChanged);
   }
 
   Future<void> _onLoad(FeedLoadRequested event, Emitter<FeedState> emit) async {
@@ -70,8 +73,15 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
     try {
       final liked = await _repository.toggleReviewLike(event.reviewId);
-      emit(current.copyWith(items: _updateLike(current.items, event.reviewId, liked)));
-    } catch (_) {}
+      emit(
+        current.copyWith(
+          items: _updateLike(current.items, event.reviewId, 'REVIEW', liked),
+          clearActionError: true,
+        ),
+      );
+    } catch (_) {
+      emit(current.copyWith(actionError: 'Nao foi possivel curtir.'));
+    }
   }
 
   Future<void> _onTogglePostLike(
@@ -83,14 +93,89 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
 
     try {
       final liked = await _repository.togglePostLike(event.postId);
-      emit(current.copyWith(items: _updateLike(current.items, event.postId, liked)));
-    } catch (_) {}
+      emit(
+        current.copyWith(
+          items: _updateLike(current.items, event.postId, 'POST', liked),
+          clearActionError: true,
+        ),
+      );
+    } catch (_) {
+      emit(current.copyWith(actionError: 'Nao foi possivel curtir.'));
+    }
   }
 
-  List<FeedItem> _updateLike(List<FeedItem> items, int contentId, bool liked) {
+  Future<void> _onDeleteReview(
+    FeedReviewDeleteRequested event,
+    Emitter<FeedState> emit,
+  ) async {
+    final current = state;
+    if (current is! FeedLoaded) return;
+
+    try {
+      await _repository.deleteReview(event.reviewId);
+      emit(
+        current.copyWith(
+          items: _removeItem(current.items, event.reviewId, 'REVIEW'),
+          clearActionError: true,
+        ),
+      );
+    } catch (_) {
+      emit(
+        current.copyWith(actionError: 'Nao foi possivel excluir a avaliacao.'),
+      );
+    }
+  }
+
+  Future<void> _onDeletePost(
+    FeedPostDeleteRequested event,
+    Emitter<FeedState> emit,
+  ) async {
+    final current = state;
+    if (current is! FeedLoaded) return;
+
+    try {
+      await _repository.deletePost(event.postId);
+      emit(
+        current.copyWith(
+          items: _removeItem(current.items, event.postId, 'POST'),
+          clearActionError: true,
+        ),
+      );
+    } catch (_) {
+      emit(current.copyWith(actionError: 'Nao foi possivel excluir o post.'));
+    }
+  }
+
+  void _onCommentCountChanged(
+    FeedCommentCountChanged event,
+    Emitter<FeedState> emit,
+  ) {
+    final current = state;
+    if (current is! FeedLoaded) return;
+    emit(
+      current.copyWith(
+        items: _updateCommentCount(
+          current.items,
+          event.contentId,
+          event.contentType,
+          event.delta,
+        ),
+        clearActionError: true,
+      ),
+    );
+  }
+
+  List<FeedItem> _updateLike(
+    List<FeedItem> items,
+    int contentId,
+    String contentType,
+    bool liked,
+  ) {
     final delta = liked ? 1 : -1;
     return items.map((item) {
-      if (item.content.id != contentId) return item;
+      if (item.content.id != contentId || item.contentType != contentType) {
+        return item;
+      }
       return FeedItem(
         contentId: item.contentId,
         contentType: item.contentType,
@@ -104,5 +189,45 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
         ),
       );
     }).toList();
+  }
+
+  List<FeedItem> _updateCommentCount(
+    List<FeedItem> items,
+    int contentId,
+    String contentType,
+    int delta,
+  ) {
+    return items.map((item) {
+      if (item.content.id != contentId || item.contentType != contentType) {
+        return item;
+      }
+      return FeedItem(
+        contentId: item.contentId,
+        contentType: item.contentType,
+        authorId: item.authorId,
+        authorUsername: item.authorUsername,
+        authorAvatarUrl: item.authorAvatarUrl,
+        score: item.score,
+        createdAt: item.createdAt,
+        content: item.content.copyWith(
+          commentCount: (item.content.commentCount + delta)
+              .clamp(0, 1 << 31)
+              .toInt(),
+        ),
+      );
+    }).toList();
+  }
+
+  List<FeedItem> _removeItem(
+    List<FeedItem> items,
+    int contentId,
+    String contentType,
+  ) {
+    return items
+        .where(
+          (item) =>
+              item.content.id != contentId || item.contentType != contentType,
+        )
+        .toList();
   }
 }

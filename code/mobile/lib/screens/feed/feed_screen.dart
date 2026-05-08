@@ -7,6 +7,7 @@ import 'package:biblioo/features/feed/domain/feed_item.dart';
 import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
 import 'package:biblioo/features/notification/bloc/notification_event.dart';
 import 'package:biblioo/features/notification/bloc/notification_state.dart';
+import 'package:biblioo/screens/feed/widgets/feed_comments_sheet.dart';
 import 'package:biblioo/utils/cooldown_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -81,83 +82,94 @@ class _FeedScreenState extends State<FeedScreen> {
 
     final currentUserId = authState.session.user.id;
 
-    return Scaffold(
-      body: CooldownRefreshIndicator(
-        keyId: 'feed',
-        onRefresh: _refresh,
-        child: RefreshIndicator(
+    return BlocListener<FeedBloc, FeedState>(
+      listener: (context, state) {
+        if (state is FeedLoaded && state.actionError != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.actionError!)));
+        }
+      },
+      child: Scaffold(
+        body: CooldownRefreshIndicator(
+          keyId: 'feed',
           onRefresh: _refresh,
-          child: CustomScrollView(
-            controller: _scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverAppBar(
-                floating: true,
-                snap: true,
-                title: const Text('Feed'),
-                actions: const [_NotificationBellButton()],
-                bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(56),
-                  child: _SearchBar(onTap: () => context.push('/search')),
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  floating: true,
+                  snap: true,
+                  title: const Text('Feed'),
+                  actions: const [_NotificationBellButton()],
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(56),
+                    child: _SearchBar(onTap: () => context.push('/search')),
+                  ),
                 ),
-              ),
-              BlocBuilder<FeedBloc, FeedState>(
-                builder: (context, state) {
-                  if (state is FeedInitial || state is FeedLoading) {
-                    return const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
+                BlocBuilder<FeedBloc, FeedState>(
+                  builder: (context, state) {
+                    if (state is FeedInitial || state is FeedLoading) {
+                      return const SliverFillRemaining(
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
 
-                  if (state is FeedError) {
-                    return SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _FeedError(
-                        message: state.message,
-                        onRetry: _loadFeed,
-                      ),
-                    );
-                  }
+                    if (state is FeedError) {
+                      return SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _FeedError(
+                          message: state.message,
+                          onRetry: _loadFeed,
+                        ),
+                      );
+                    }
 
-                  final loaded = state as FeedLoaded;
-                  if (loaded.items.isEmpty) {
-                    return const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _EmptyFeed(),
-                    );
-                  }
+                    final loaded = state as FeedLoaded;
+                    if (loaded.items.isEmpty) {
+                      return const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _EmptyFeed(),
+                      );
+                    }
 
-                  return SliverPadding(
-                    padding: const EdgeInsets.all(16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          if (index == loaded.items.length) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              child: Center(child: CircularProgressIndicator()),
+                    return SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            if (index == loaded.items.length) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                            return _FeedItemCard(
+                              item: loaded.items[index],
+                              currentUserId: currentUserId,
                             );
-                          }
-                          return _FeedItemCard(
-                            item: loaded.items[index],
-                            currentUserId: currentUserId,
-                          );
-                        },
-                        childCount:
-                            loaded.items.length +
-                            (loaded.isLoadingMore ? 1 : 0),
+                          },
+                          childCount:
+                              loaded.items.length +
+                              (loaded.isLoadingMore ? 1 : 0),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-            ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-      floatingActionButton: _FeedFab(
-        onCreatePost: _openCreatePost,
-        onRateBook: () => context.push('/search'),
+        floatingActionButton: _FeedFab(
+          onCreatePost: _openCreatePost,
+          onRateBook: () => context.push('/search'),
+        ),
       ),
     );
   }
@@ -443,6 +455,7 @@ class _ReviewPostCard extends StatelessWidget {
     final theme = Theme.of(context);
     final content = item.content;
     final author = item.authorUsername ?? 'Leitor';
+    final isOwn = content.userId == currentUserId;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -455,6 +468,20 @@ class _ReviewPostCard extends StatelessWidget {
               author: author,
               avatarUrl: item.authorAvatarUrl,
               createdAt: content.createdAt ?? item.createdAt,
+              trailing: isOwn
+                  ? _FeedItemMenu(
+                      deleteLabel: 'Excluir avaliacao',
+                      onDelete: () => _confirmDelete(
+                        context: context,
+                        title: 'Excluir avaliacao?',
+                        message:
+                            'Esta avaliacao sera removida do feed e do livro.',
+                        onConfirm: () => context.read<FeedBloc>().add(
+                          FeedReviewDeleteRequested(reviewId: content.id),
+                        ),
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             if (content.bookId != null)
@@ -487,7 +514,12 @@ class _ReviewPostCard extends StatelessWidget {
                 _ActionButton(
                   icon: Icons.chat_bubble_outline,
                   label: '${content.commentCount}',
-                  onTap: null,
+                  onTap: () => _openComments(
+                    context,
+                    contentId: content.id,
+                    contentType: 'REVIEW',
+                    currentUserId: currentUserId,
+                  ),
                 ),
               ],
             ),
@@ -516,6 +548,7 @@ class _TextPostCardState extends State<_TextPostCard> {
     final theme = Theme.of(context);
     final content = widget.item.content;
     final hiddenBySpoiler = content.hasSpoiler && !_spoilerRevealed;
+    final isOwn = content.userId == widget.currentUserId;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -528,6 +561,20 @@ class _TextPostCardState extends State<_TextPostCard> {
               author: widget.item.authorUsername ?? 'Leitor',
               avatarUrl: widget.item.authorAvatarUrl,
               createdAt: content.createdAt ?? widget.item.createdAt,
+              trailing: isOwn
+                  ? _FeedItemMenu(
+                      deleteLabel: 'Excluir post',
+                      onDelete: () => _confirmDelete(
+                        context: context,
+                        title: 'Excluir post?',
+                        message:
+                            'O post sera removido do feed. Comentarios vinculados tambem serao removidos.',
+                        onConfirm: () => context.read<FeedBloc>().add(
+                          FeedPostDeleteRequested(postId: content.id),
+                        ),
+                      ),
+                    )
+                  : null,
             ),
             if (hiddenBySpoiler) ...[
               const SizedBox(height: 10),
@@ -535,6 +582,14 @@ class _TextPostCardState extends State<_TextPostCard> {
                 onReveal: () => setState(() => _spoilerRevealed = true),
               ),
             ] else ...[
+              if (content.bookId != null) ...[
+                const SizedBox(height: 10),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => context.push('/book/${content.bookId}'),
+                  child: _BookReviewSummary(content: content),
+                ),
+              ],
               if (content.text.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text(content.text, style: theme.textTheme.bodyMedium),
@@ -575,7 +630,12 @@ class _TextPostCardState extends State<_TextPostCard> {
                 _ActionButton(
                   icon: Icons.chat_bubble_outline,
                   label: '${content.commentCount}',
-                  onTap: null,
+                  onTap: () => _openComments(
+                    context,
+                    contentId: content.id,
+                    contentType: 'POST',
+                    currentUserId: widget.currentUserId,
+                  ),
                 ),
               ],
             ),
@@ -654,8 +714,14 @@ class _AuthorRow extends StatelessWidget {
   final String author;
   final String? avatarUrl;
   final DateTime? createdAt;
+  final Widget? trailing;
 
-  const _AuthorRow({required this.author, this.avatarUrl, this.createdAt});
+  const _AuthorRow({
+    required this.author,
+    this.avatarUrl,
+    this.createdAt,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -694,6 +760,7 @@ class _AuthorRow extends StatelessWidget {
             ],
           ),
         ),
+        ?trailing,
       ],
     );
   }
@@ -743,13 +810,48 @@ class _BookReviewSummary extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                const SizedBox(height: 4),
-                _RatingStars(rating: content.rating ?? 0),
+                if (content.rating != null) ...[
+                  const SizedBox(height: 4),
+                  _RatingStars(rating: content.rating!),
+                ],
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FeedItemMenu extends StatelessWidget {
+  final String deleteLabel;
+  final VoidCallback onDelete;
+
+  const _FeedItemMenu({required this.deleteLabel, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: 'Mais opcoes',
+      onSelected: (value) {
+        if (value == 'delete') onDelete();
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(
+                Icons.delete_outline,
+                size: 18,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(width: 8),
+              Text(deleteLabel),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -932,6 +1034,56 @@ class _EmptyFeed extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Future<void> _openComments(
+  BuildContext context, {
+  required int contentId,
+  required String contentType,
+  required int currentUserId,
+}) {
+  return showFeedCommentsSheet(
+    context: context,
+    contentId: contentId,
+    contentType: contentType,
+    currentUserId: currentUserId,
+    onCommentCountDelta: (delta) => context.read<FeedBloc>().add(
+      FeedCommentCountChanged(
+        contentId: contentId,
+        contentType: contentType,
+        delta: delta,
+      ),
+    ),
+  );
+}
+
+Future<void> _confirmDelete({
+  required BuildContext context,
+  required String title,
+  required String message,
+  required VoidCallback onConfirm,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('Excluir'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed == true && context.mounted) {
+    onConfirm();
   }
 }
 

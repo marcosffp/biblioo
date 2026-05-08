@@ -59,8 +59,7 @@ class _BookScreenState extends State<BookScreen> {
     final state = context.read<ShelfBloc>().state;
     if (state is ShelfItemsLoaded) {
       try {
-        final item =
-            state.items.firstWhere((it) => it.bookId == widget.bookId);
+        final item = state.items.firstWhere((it) => it.bookId == widget.bookId);
         setState(() {
           _shelfItem = item;
           _shelfId = state.shelfId;
@@ -118,134 +117,134 @@ class _BookScreenState extends State<BookScreen> {
         }
       },
       child: Scaffold(
-      body: FutureBuilder<Book>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        body: FutureBuilder<Book>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.wifi_off_rounded,
-                      size: 64,
-                      color: theme.colorScheme.error.withValues(alpha: 0.7),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Não foi possível carregar este livro.',
-                      style: theme.textTheme.titleMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Verifique sua conexão e tente novamente.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _reload,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('Tentar novamente'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          final book = snapshot.data;
-          if (book == null) {
-            return const SizedBox.shrink();
-          }
-
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar(pinned: true, title: const Text('Livro')),
-              SliverToBoxAdapter(
+            if (snapshot.hasError) {
+              return Center(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _Header(book: book),
-                      const SizedBox(height: 16),
-                      _MetadataRow(book: book),
-                      const SizedBox(height: 20),
-                      if (book.description != null &&
-                          book.description!.trim().isNotEmpty)
-                        _Section(
-                          title: 'Descrição',
-                          child: Text(
-                            book.description!,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                      if (book.description != null &&
-                          book.description!.trim().isNotEmpty)
-                        const SizedBox(height: 20),
-                      _Section(
-                        title: 'Detalhes',
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            _InfoChip(
-                              icon: Icons.menu_book_outlined,
-                              label: book.pageCount != null
-                                  ? '${book.pageCount} páginas'
-                                  : 'Páginas não informadas',
-                            ),
-                            _InfoChip(
-                              icon: Icons.people_outline,
-                              label: book.readerCount != null
-                                  ? '${book.readerCount} leitores'
-                                  : 'Leitores não informados',
-                            ),
-                          ],
-                        ),
+                      Icon(
+                        Icons.wifi_off_rounded,
+                        size: 64,
+                        color: theme.colorScheme.error.withValues(alpha: 0.7),
                       ),
-                      if (_shelfItem != null && _shelfId != null) ...[
-                        const SizedBox(height: 20),
-                        _Section(
-                          title: 'Progresso de leitura',
-                          child: _ProgressSection(
-                            shelfId: _shelfId!,
-                            item: _shelfItem!,
-                          ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Não foi possível carregar este livro.',
+                        style: theme.textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Verifique sua conexão e tente novamente.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                      ],
-                      const SizedBox(height: 20),
-                      BlocBuilder<ReviewBloc, ReviewState>(
-                        builder: (context, reviewState) {
-                          final review = _reviewFromState(reviewState);
-                          return _Section(
-                            title: 'Sua avaliacao',
-                            child: _ReviewSection(
-                              state: reviewState,
-                              review: review,
-                              onWrite: () => _showReviewSheet(book, review),
-                            ),
-                          );
-                        },
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: _reload,
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Tentar novamente'),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
-          );
-        },
-      ),
+              );
+            }
+
+            final book = snapshot.data;
+            if (book == null) {
+              return const SizedBox.shrink();
+            }
+
+            return CustomScrollView(
+              slivers: [
+                SliverAppBar(pinned: true, title: const Text('Livro')),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _Header(book: book),
+                        const SizedBox(height: 16),
+                        _MetadataRow(book: book),
+                        const SizedBox(height: 20),
+                        if (book.description != null &&
+                            book.description!.trim().isNotEmpty)
+                          _Section(
+                            title: 'Descrição',
+                            child: Text(
+                              book.description!,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        if (book.description != null &&
+                            book.description!.trim().isNotEmpty)
+                          const SizedBox(height: 20),
+                        _Section(
+                          title: 'Detalhes',
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              _InfoChip(
+                                icon: Icons.menu_book_outlined,
+                                label: book.pageCount != null
+                                    ? '${book.pageCount} páginas'
+                                    : 'Páginas não informadas',
+                              ),
+                              _InfoChip(
+                                icon: Icons.people_outline,
+                                label: book.readerCount != null
+                                    ? '${book.readerCount} leitores'
+                                    : 'Leitores não informados',
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_shelfItem != null && _shelfId != null) ...[
+                          const SizedBox(height: 20),
+                          _Section(
+                            title: 'Progresso de leitura',
+                            child: _ProgressSection(
+                              shelfId: _shelfId!,
+                              item: _shelfItem!,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        BlocBuilder<ReviewBloc, ReviewState>(
+                          builder: (context, reviewState) {
+                            final review = _reviewFromState(reviewState);
+                            return _Section(
+                              title: 'Sua avaliacao',
+                              child: _ReviewSection(
+                                state: reviewState,
+                                review: review,
+                                onWrite: () => _showReviewSheet(book, review),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -477,7 +476,7 @@ class _ReviewSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Registre sua nota e comentario para este livro.',
+            'Registre sua nota para este livro. A descricao e opcional.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -507,8 +506,10 @@ class _ReviewSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Text(review!.text, style: theme.textTheme.bodyMedium),
+        if (review!.text.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(review!.text, style: theme.textTheme.bodyMedium),
+        ],
         const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: onWrite,
@@ -554,13 +555,9 @@ class _ReviewSheetState extends State<_ReviewSheet> {
       setState(() => _validationError = 'Selecione uma nota de 1 a 5.');
       return;
     }
-    if (text.isEmpty) {
-      setState(() => _validationError = 'Escreva um comentario.');
-      return;
-    }
     if (text.length > 2000) {
       setState(
-        () => _validationError = 'O comentario deve ter ate 2000 caracteres.',
+        () => _validationError = 'A descricao deve ter ate 2000 caracteres.',
       );
       return;
     }
@@ -571,7 +568,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
         reviewId: widget.review?.id,
         bookId: widget.book.id,
         rating: _rating,
-        text: text,
+        text: text.isEmpty ? null : text,
       ),
     );
   }
@@ -660,7 +657,8 @@ class _ReviewSheetState extends State<_ReviewSheet> {
                   maxLines: 5,
                   maxLength: 2000,
                   decoration: const InputDecoration(
-                    hintText: 'Escreva seu comentario sobre a leitura...',
+                    labelText: 'Descricao (opcional)',
+                    hintText: 'O que voce achou do livro?',
                   ),
                   onChanged: (_) {
                     if (_validationError != null) {
@@ -737,11 +735,13 @@ class _ProgressSectionState extends State<_ProgressSection> {
 
   void _save(BuildContext context) {
     setState(() => _awaitingProgressSave = true);
-    context.read<ShelfBloc>().add(ShelfItemProgressUpdated(
-      shelfId: widget.shelfId,
-      itemId: widget.item.id,
-      currentPage: _currentPage,
-    ));
+    context.read<ShelfBloc>().add(
+      ShelfItemProgressUpdated(
+        shelfId: widget.shelfId,
+        itemId: widget.item.id,
+        currentPage: _currentPage,
+      ),
+    );
   }
 
   @override
@@ -805,10 +805,12 @@ class _ProgressSectionState extends State<_ProgressSection> {
               child: LinearProgressIndicator(
                 value: _progressFraction,
                 minHeight: 8,
-                backgroundColor:
-                    theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-                valueColor:
-                    AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                backgroundColor: theme.colorScheme.primaryContainer.withValues(
+                  alpha: 0.4,
+                ),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  theme.colorScheme.primary,
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -818,9 +820,7 @@ class _ProgressSectionState extends State<_ProgressSection> {
                 IconButton.filled(
                   onPressed: _awaitingProgressSave ? null : _decrement,
                   icon: const Icon(Icons.remove, size: 18),
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(40, 40),
-                  ),
+                  style: IconButton.styleFrom(minimumSize: const Size(40, 40)),
                 ),
                 const SizedBox(width: 16),
                 Text(
@@ -833,9 +833,7 @@ class _ProgressSectionState extends State<_ProgressSection> {
                 IconButton.filled(
                   onPressed: _awaitingProgressSave ? null : _increment,
                   icon: const Icon(Icons.add, size: 18),
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(40, 40),
-                  ),
+                  style: IconButton.styleFrom(minimumSize: const Size(40, 40)),
                 ),
               ],
             ),

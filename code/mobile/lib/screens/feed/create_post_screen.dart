@@ -1,5 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:biblioo/features/book/bloc/book_bloc.dart';
+import 'package:biblioo/features/book/bloc/book_event.dart';
+import 'package:biblioo/features/book/bloc/book_state.dart';
+import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/feed/bloc/post_bloc.dart';
 import 'package:biblioo/features/feed/bloc/post_event.dart';
 import 'package:biblioo/features/feed/bloc/post_state.dart';
@@ -17,10 +21,12 @@ class CreatePostScreen extends StatefulWidget {
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _textController = TextEditingController();
   final _tagController = TextEditingController();
+  final _bookQueryController = TextEditingController();
   final _imagePicker = ImagePicker();
 
   final List<_PickedImage> _images = [];
   _PickedImage? _gif;
+  Book? _selectedBook;
   final List<String> _tags = [];
   bool _hasSpoiler = false;
 
@@ -33,6 +39,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   void dispose() {
     _textController.dispose();
     _tagController.dispose();
+    _bookQueryController.dispose();
     super.dispose();
   }
 
@@ -48,7 +55,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         continue;
       }
       if (mounted) {
-        setState(() => _images.add(_PickedImage(bytes: bytes, name: file.name)));
+        setState(
+          () => _images.add(_PickedImage(bytes: bytes, name: file.name)),
+        );
       }
     }
     if (mounted && skipped > 0) {
@@ -97,6 +106,22 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   void _removeTag(String tag) => setState(() => _tags.remove(tag));
 
+  void _selectBook(Book book) {
+    setState(() {
+      _selectedBook = book;
+      _bookQueryController.text = book.title;
+    });
+    context.read<BookBloc>().add(BookSearchCleared());
+  }
+
+  void _clearSelectedBook() {
+    setState(() {
+      _selectedBook = null;
+      _bookQueryController.clear();
+    });
+    context.read<BookBloc>().add(BookSearchCleared());
+  }
+
   bool get _canSubmit =>
       _textController.text.trim().isNotEmpty &&
       _textController.text.length <= _maxChars;
@@ -106,6 +131,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     context.read<PostBloc>().add(
       PostCreateRequested(
         text: _textController.text.trim(),
+        bookId: _selectedBook?.id,
         tags: List.unmodifiable(_tags),
         hasSpoiler: _hasSpoiler,
         images: _images.map((i) => i.bytes).toList(),
@@ -123,9 +149,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         if (state is PostCreateSuccess) {
           Navigator.of(context).pop(true);
         } else if (state is PostCreateError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
         }
       },
       child: Scaffold(
@@ -171,6 +197,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 16),
+              _BookLinkSelector(
+                controller: _bookQueryController,
+                selectedBook: _selectedBook,
+                onQueryChanged: (value) {
+                  if (_selectedBook != null && value != _selectedBook!.title) {
+                    setState(() => _selectedBook = null);
+                  }
+                  context.read<BookBloc>().add(BookSearchRequested(value));
+                },
+                onSelect: _selectBook,
+                onClear: _clearSelectedBook,
+              ),
+              const SizedBox(height: 16),
               _MediaRow(
                 imageCount: _images.length,
                 maxImages: _maxImages,
@@ -183,10 +222,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
               if (_images.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                _ImagePreviewRow(
-                  images: _images,
-                  onRemove: _removeImage,
-                ),
+                _ImagePreviewRow(images: _images, onRemove: _removeImage),
               ],
               if (_gif != null) ...[
                 const SizedBox(height: 12),
@@ -240,7 +276,9 @@ class _TextField extends StatelessWidget {
         Text(
           '$length / $maxChars',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: overLimit ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+            color: overLimit
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -310,6 +348,187 @@ class _MediaRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _BookLinkSelector extends StatelessWidget {
+  final TextEditingController controller;
+  final Book? selectedBook;
+  final ValueChanged<String> onQueryChanged;
+  final ValueChanged<Book> onSelect;
+  final VoidCallback onClear;
+
+  const _BookLinkSelector({
+    required this.controller,
+    required this.selectedBook,
+    required this.onQueryChanged,
+    required this.onSelect,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Livro vinculado (opcional)',
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          onChanged: onQueryChanged,
+          decoration: InputDecoration(
+            hintText: 'Buscar livro para mencionar no post',
+            prefixIcon: const Icon(Icons.menu_book_outlined),
+            suffixIcon: selectedBook != null
+                ? IconButton(
+                    tooltip: 'Remover livro',
+                    onPressed: onClear,
+                    icon: const Icon(Icons.close),
+                  )
+                : null,
+            border: const OutlineInputBorder(),
+            isDense: true,
+          ),
+        ),
+        if (selectedBook != null) ...[
+          const SizedBox(height: 8),
+          _SelectedBookChip(book: selectedBook!, onClear: onClear),
+        ] else
+          BlocBuilder<BookBloc, BookState>(
+            builder: (context, state) {
+              if (state is BookLoading) {
+                return const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: LinearProgressIndicator(),
+                );
+              }
+              if (state is! BookLoaded) return const SizedBox.shrink();
+              final books = state.books.take(4).toList();
+              if (books.isEmpty) return const SizedBox.shrink();
+              return Card(
+                margin: const EdgeInsets.only(top: 8),
+                child: Column(
+                  children: books
+                      .map(
+                        (book) => ListTile(
+                          dense: true,
+                          leading: _SmallBookCover(url: book.coverUrl),
+                          title: Text(
+                            book.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            book.authorsText.isEmpty
+                                ? 'Autor desconhecido'
+                                : book.authorsText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => onSelect(book),
+                        ),
+                      )
+                      .toList(),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+class _SelectedBookChip extends StatelessWidget {
+  final Book book;
+  final VoidCallback onClear;
+
+  const _SelectedBookChip({required this.book, required this.onClear});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          _SmallBookCover(url: book.coverUrl),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  book.title,
+                  style: theme.textTheme.labelLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (book.authorsText.isNotEmpty)
+                  Text(
+                    book.authorsText,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Remover livro',
+            onPressed: onClear,
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallBookCover extends StatelessWidget {
+  final String? url;
+
+  const _SmallBookCover({this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (url != null && url!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.network(
+          url!,
+          width: 32,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _placeholder(theme),
+        ),
+      );
+    }
+    return _placeholder(theme);
+  }
+
+  Widget _placeholder(ThemeData theme) {
+    return Container(
+      width: 32,
+      height: 44,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Icon(Icons.menu_book, color: theme.colorScheme.primary, size: 18),
     );
   }
 }
@@ -390,7 +609,11 @@ class _ImagePreviewRow extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     padding: const EdgeInsets.all(2),
-                    child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    child: const Icon(
+                      Icons.close,
+                      size: 14,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),

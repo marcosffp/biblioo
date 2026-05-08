@@ -11,13 +11,13 @@ class ReviewSaveRequested extends ReviewEvent {
   final int? reviewId;
   final int bookId;
   final int rating;
-  final String text;
+  final String? text;
 
   ReviewSaveRequested({
     this.reviewId,
     required this.bookId,
     required this.rating,
-    required this.text,
+    this.text,
   });
 }
 
