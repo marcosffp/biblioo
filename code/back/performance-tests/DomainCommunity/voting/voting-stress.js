@@ -41,7 +41,10 @@ export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
   // 1. Owner cria pool de comunidades
-  const ownerTs    = Date.now();
+  // Math.floor(Date.now() / 1000) gera timestamp em segundos (10 dígitos).
+  // Necessário porque `stressvoting_owner_` (19 chars) + 13 dígitos ms = 32 chars,
+  // ultrapassando o limite de 30 do campo username e derrubando todo o setup.
+  const ownerTs    = Math.floor(Date.now() / 1000);
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
 
   http.post(`${CONFIG.base}/auth/register`, JSON.stringify({
@@ -94,18 +97,27 @@ export function setup() {
 }
 
 export default function (data) {
-  if (!data.publishedVotings.length) return;
+  if (!data.publishedVotings || !data.publishedVotings.length) {
+    console.warn('publishedVotings vazio — setup não conseguiu publicar nenhuma votação');
+    return;
+  }
 
-  const user = randomItem(data.users);
+  // Seleção determinística por __VU: cada VU sempre usa o mesmo usuário e a mesma
+  // opção. Com lock pessimista no servidor, VUs que compartilham usuário serializam
+  // corretamente (voto / desvoto alternados) e ambos retornam 200.
+  const userIdx = (__VU - 1) % data.users.length;
+  const user    = data.users[userIdx];
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${user.accessToken}` };
-  
-  // Lê e vota
-  const voting = randomItem(data.publishedVotings);
-  
-  const getRes = http.get(`${CONFIG.base}/communities/${voting.commId}/votings/${voting.votingId}`, { headers });
+
+  const voting = data.publishedVotings[(__VU - 1) % data.publishedVotings.length];
+
+  const getRes = http.get(
+    `${CONFIG.base}/communities/${voting.commId}/votings/${voting.votingId}`,
+    { headers }
+  );
   check(getRes, { 'GET /votings/{id} 200': (r) => r.status === 200 });
 
-  const optId = randomItem(voting.options).id;
+  const optId = voting.options[userIdx % voting.options.length].id;
   const voteRes = http.post(
     `${CONFIG.base}/communities/${voting.commId}/votings/${voting.votingId}/vote`,
     JSON.stringify({ optionId: optId }),

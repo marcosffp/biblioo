@@ -5,6 +5,7 @@ import com.biblioo.community.domain.exception.CommunityBusinessException;
 import com.biblioo.community.domain.model.CommunityMessage;
 import com.biblioo.community.domain.model.CommunityRole;
 import com.biblioo.community.domain.model.MessageReaction;
+import com.biblioo.community.domain.model.MessageType;
 import com.biblioo.community.domain.model.ReactionType;
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -87,6 +89,21 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   @EventListener
   public void handleMessageReaction(MessageReactionEvent event) {
     broadcastPort.broadcastReaction(event.communityId(), event.messageId(), event.newCount());
+  }
+
+  // ── Mensagem de sistema ───────────────────────────────────────────────────
+
+  @Override
+  @org.springframework.transaction.annotation.Transactional
+  public void createSystemMessage(Long communityId, Long userId, MessageType type) {
+    CommunityMessage message =
+        CommunityMessage.builder()
+            .communityId(communityId)
+            .authorId(userId)
+            .type(type)
+            .build();
+    CommunityMessage saved = messageRepository.save(message);
+    eventPublisher.publishEvent(new MessageSentEvent(saved));
   }
 
   // ── Upload de mídia ───────────────────────────────────────────────────────
@@ -296,24 +313,42 @@ public MessageMediaUploadResponse uploadMessageMedia(
 
   @Override
   @Transactional(readOnly = true)
-  public List<CommunityMessage> getRecentMessages(Long communityId) {
+  public List<CommunityMessage> getRecentMessages(Long communityId, Long userId) {
+    Optional<LocalDateTime> joinedAt = memberRepository.findJoinedAt(communityId, userId);
+
     List<CommunityMessage> cached = cachePort.getRecentMessages(communityId);
     if (!cached.isEmpty()) {
-      return cached;
+      if (joinedAt.isEmpty()) return cached;
+      LocalDateTime joined = joinedAt.get();
+      List<CommunityMessage> filtered =
+          cached.stream().filter(m -> !m.getCreatedAt().isBefore(joined)).toList();
+      if (!filtered.isEmpty()) return filtered;
+      // todo o cache é anterior ao join — busca no banco com filtro
     }
 
-    List<CommunityMessage> messages =
-        messageRepository.findRecentByCommunityId(communityId, RECENT_MESSAGES_LIMIT);
+    if (joinedAt.isEmpty()) {
+      List<CommunityMessage> messages =
+          messageRepository.findRecentByCommunityId(communityId, RECENT_MESSAGES_LIMIT);
+      messages.forEach(m -> cachePort.pushMessage(communityId, m));
+      return messages;
+    }
 
-    messages.forEach(m -> cachePort.pushMessage(communityId, m));
-    return messages;
+    return messageRepository.findRecentByCommunityIdAndJoinedAt(
+        communityId, joinedAt.get(), RECENT_MESSAGES_LIMIT);
   }
 
   @Override
   @Transactional(readOnly = true)
-  public List<CommunityMessage> getMessagesBefore(Long communityId, Long beforeId, int limit) {
+  public List<CommunityMessage> getMessagesBefore(
+      Long communityId, Long beforeId, int limit, Long userId) {
     int safeLimit = Math.min(limit, 100);
-    return messageRepository.findByCommunityIdBeforeId(communityId, beforeId, safeLimit);
+    Optional<LocalDateTime> joinedAt = memberRepository.findJoinedAt(communityId, userId);
+
+    if (joinedAt.isEmpty()) {
+      return messageRepository.findByCommunityIdBeforeId(communityId, beforeId, safeLimit);
+    }
+    return messageRepository.findByCommunityIdBeforeIdAndJoinedAt(
+        communityId, beforeId, joinedAt.get(), safeLimit);
   }
 
   @Override

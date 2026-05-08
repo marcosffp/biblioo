@@ -112,6 +112,9 @@ public class CacheConfig implements CachingConfigurer {
         //                   5min mantidos.
         .withCacheConfiguration("rec-sa",  base.entryTtl(Duration.ofMinutes(5)))
         .withCacheConfiguration("rec-rwi", base.entryTtl(Duration.ofMinutes(5)))
+        // trending — recalculado pelo scheduler a cada 15min; TTL de 15min como fallback.
+        .withCacheConfiguration("trending-communities", base.entryTtl(Duration.ofMinutes(15)))
+        .withCacheConfiguration("trending-books",       base.entryTtl(Duration.ofMinutes(15)))
         .build();
   }
 

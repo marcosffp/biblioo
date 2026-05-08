@@ -3,6 +3,7 @@ package com.biblioo.community.infrastructure.persistence;
 import com.biblioo.community.domain.model.CommunityMember;
 import com.biblioo.community.domain.model.CommunityMemberId;
 import com.biblioo.community.domain.model.CommunityRole;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,11 @@ public interface CommunityMemberRepository
       "SELECT cm.role FROM CommunityMember cm "
           + "WHERE cm.communityId = :cid AND cm.userId = :uid")
   Optional<CommunityRole> findRole(@Param("cid") Long communityId, @Param("uid") Long userId);
+
+  @Query(
+      "SELECT cm.joinedAt FROM CommunityMember cm "
+          + "WHERE cm.communityId = :cid AND cm.userId = :uid")
+  Optional<LocalDateTime> findJoinedAt(@Param("cid") Long communityId, @Param("uid") Long userId);
 
   @Query(
       "SELECT cm FROM CommunityMember cm " + "WHERE cm.communityId = :cid ORDER BY cm.joinedAt ASC")

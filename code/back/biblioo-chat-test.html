@@ -302,10 +302,12 @@ function connectWS() {
         log('warn', '✏️  ' + ev.eventType + ': id=' + ev.data?.id);
         handleEvent(ev);
       });
-      stompClient.subscribe(`/topic/community.${communityId}.reactions`, frame => {
+      stompClient.subscribe(`/topic/community.${communityId}.typing`, frame => {
         const ev = JSON.parse(frame.body);
-        log('info', '❤️  REACTION: id=' + ev.data?.id + ' hearts=' + ev.data?.heartCount);
-        handleEvent(ev);
+        if (String(ev.data?.userId) !== String(userId)) {
+          log('info', '✍️  TYPING: user=' + ev.data?.userId);
+          showTypingIndicator(ev.data?.userId, ev.data?.avatarUrl);
+        }
       });
       stompClient.subscribe('/user/queue/errors', frame => {
         const ev = JSON.parse(frame.body);
@@ -329,6 +331,7 @@ function setStatus(text, online) {
 // ── Event handler ──────────────────────────────────────────────────────────
 function handleEvent(ev) {
   const data = ev.data;
+  if (!data) return;
   switch (ev.eventType) {
     case 'MESSAGE_CREATED': {
       let confirmed = null;
@@ -372,8 +375,8 @@ function handleEvent(ev) {
         entry.element.querySelector('.actions')?.remove();
       }
       break;
-    case 'REACTION_UPDATED':
-      if (messagesMap[data.id]) {
+    default:
+      if (data.heartCount !== undefined && messagesMap[data.id]) {
         const rc = messagesMap[data.id].element.querySelector('.heart-count');
         if (rc) rc.textContent = '❤️ ' + data.heartCount;
       }
@@ -457,6 +460,34 @@ function updateMessageEl(el, data) {
   if (body) { body.style.display = ''; body.textContent = data.content || ''; }
   el.querySelector('.edited')?.remove();
   el.insertAdjacentHTML('beforeend', '<div class="edited">(editado)</div>');
+}
+
+function appendLog(type, text) {
+  const el = document.createElement('div');
+  el.className = 'log ' + type;
+  el.textContent = text;
+  const la = document.getElementById('log-area');
+  la.appendChild(el);
+  la.scrollTop = la.scrollHeight;
+}
+function log(type, text) {
+  console.log(text);
+  appendLog(type, text);
+}
+
+let typingTimers = {};
+function showTypingIndicator(uid, avatar) {
+  let el = document.getElementById('typing-' + uid);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'typing-' + uid;
+    el.className = 'typing-indicator';
+    el.innerHTML = `<span>User ${uid} está digitando...</span>`;
+    document.getElementById('messages').appendChild(el);
+    scrollBottom();
+  }
+  clearTimeout(typingTimers[uid]);
+  typingTimers[uid] = setTimeout(() => { el.remove(); delete typingTimers[uid]; }, 3000);
 }
 
 function hideEmptyState() { document.getElementById('empty-state')?.remove(); }
@@ -640,6 +671,9 @@ async function sendMessage() {
 
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  else if (stompClient && stompClient.connected) {
+     stompClient.publish({ destination: `/app/community/${communityId}/typing` });
+  }
 }
 
 // ── Reply ──────────────────────────────────────────────────────────────────

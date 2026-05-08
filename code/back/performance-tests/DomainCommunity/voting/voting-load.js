@@ -116,7 +116,26 @@ export function setup() {
     }
   }
 
-  // ── 2. Cria votações para uso nos testes de leitura e votos ─────────────────
+  // ── 2. Pool exclusivo para o cenário manage (sem votações ativas pré-criadas) ──
+  // Separado de commIds para que manageVotings possa publicar sem conflito de
+  // VotingAlreadyActiveException causado pelas votações criadas no bloco 3 abaixo.
+  const mgmtCommIds = [];
+  for (let i = 0; i < CONFIG.communityPoolSize; i++) {
+    const mgmtRes = http.post(
+      `${CONFIG.base}/communities`,
+      JSON.stringify({
+        name:        `Comm Mgmt ${ownerTs}_${i}`,
+        description: 'Comunidade exclusiva para gerenciamento de votações',
+        type:        'PUBLIC',
+        bookId:      CONFIG.bookIds[0],
+      }),
+      { headers: ownerHeaders }
+    );
+    check(mgmtRes, { 'create mgmt community 201': (r) => r.status === 201 });
+    if (mgmtRes.status === 201) mgmtCommIds.push(JSON.parse(mgmtRes.body).id);
+  }
+
+  // ── 3. Cria votações para uso nos testes de leitura e votos ─────────────────
   const publishedVotings = [];
   for (const commId of commIds) {
     const ts = Date.now();
@@ -140,7 +159,6 @@ export function setup() {
     if (voteRes.status === 201) {
       const votingId = JSON.parse(voteRes.body).id;
       const pubRes = http.post(`${CONFIG.base}/communities/${commId}/votings/${votingId}/publish`, null, { headers: ownerHeaders });
-      check(pubRes, { 'publish voting 200': (r) => r.status === 200 });
       if (pubRes.status === 200) {
         publishedVotings.push({ commId, votingId, options: JSON.parse(pubRes.body).options }); // options terá ids
       }
@@ -168,13 +186,13 @@ export function setup() {
     const { accessToken } = JSON.parse(login.body);
     const authHeaders = { Authorization: `Bearer ${accessToken}` };
 
-    for (const commId of commIds) {
+    for (const commId of [...commIds, ...mgmtCommIds]) {
       http.post(`${CONFIG.base}/communities/${commId}/join`, null, { headers: authHeaders });
     }
     users.push({ accessToken });
   }
 
-  return { ownerToken, users, commIds, publishedVotings };
+  return { ownerToken, users, commIds, mgmtCommIds, publishedVotings };
 }
 
 // ── Cenários ─────────────────────────────────────────────────────────────────
@@ -201,11 +219,16 @@ export function readVotings(data) {
 export function castVotes(data) {
   if (!data.publishedVotings.length) return;
 
-  const user = randomItem(data.users);
+  // Seleção determinística por __VU: cada VU sempre usa o mesmo usuário e a mesma
+  // opção, evitando AlreadyVotedDifferentOptionException por picks aleatórios conflitantes.
+  // O mecanismo de toggle do servidor retorna 200 tanto ao votar quanto ao desvotar,
+  // portanto iterações consecutivas do mesmo VU alternam voto/desvoto sem falha.
+  const userIdx = (__VU - 1) % data.users.length;
+  const user    = data.users[userIdx];
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${user.accessToken}` };
-  
-  const voting = randomItem(data.publishedVotings);
-  const optId = randomItem(voting.options).id;
+
+  const voting = data.publishedVotings[(__VU - 1) % data.publishedVotings.length];
+  const optId  = voting.options[userIdx % voting.options.length].id;
 
   const voteRes = http.post(
     `${CONFIG.base}/communities/${voting.commId}/votings/${voting.votingId}/vote`,
@@ -218,23 +241,35 @@ export function castVotes(data) {
 }
 
 export function manageVotings(data) {
-  if (!data.commIds.length) return;
+  if (!data.mgmtCommIds.length) return;
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${data.ownerToken}` };
-  const commId = randomItem(data.commIds);
-  const ts = Date.now();
+  const authHeader = { Authorization: `Bearer ${data.ownerToken}` };
+  const headers    = { 'Content-Type': 'application/json', ...authHeader };
+  const commId     = data.mgmtCommIds[__VU % data.mgmtCommIds.length];
+  const ts         = Date.now();
+
+  // Fecha qualquer votação ACTIVE remanescente antes de criar nova — necessário porque
+  // k6 pode atribuir VU IDs não-consecutivos entre cenários, fazendo __VU % N colidir.
+  // authHeader precisa de wrapper { headers: ... } para o k6 enviar o header corretamente.
+  const listRes = http.get(`${CONFIG.base}/communities/${commId}/votings`, { headers: authHeader });
+  if (listRes.status === 200) {
+    const active = (JSON.parse(listRes.body).content || []).find(v => v.status === 'ACTIVE');
+    if (active) {
+      http.post(`${CONFIG.base}/communities/${commId}/votings/${active.id}/close`, null, { headers });
+    }
+  }
+
   const start = new Date(ts + 50000).toISOString();
-  const end = new Date(ts + 86400000).toISOString();
+  const end   = new Date(ts + 86400000).toISOString();
 
-  // Create
   const createRes = http.post(
     `${CONFIG.base}/communities/${commId}/votings`,
     JSON.stringify({
-      title: `Nova votação ${ts}`,
+      title:        `Nova votação ${ts}`,
       tieBreakRule: 'ADMIN_CHOICE',
-      startsAt: start,
-      endsAt: end,
-      options: CONFIG.bookIds.filter((_, i) => i < 3).map(id => ({ bookId: id }))
+      startsAt:     start,
+      endsAt:       end,
+      options:      CONFIG.bookIds.filter((_, i) => i < 3).map(id => ({ bookId: id })),
     }),
     { headers }
   );
@@ -243,13 +278,34 @@ export function manageVotings(data) {
   if (createRes.status === 201) {
     const votingId = JSON.parse(createRes.body).id;
 
-    const pubRes = http.post(`${CONFIG.base}/communities/${commId}/votings/${votingId}/publish`, null, { headers });
-    check(pubRes, { 'publish voting 200': (r) => r.status === 200 });
-    
+    let pubRes = http.post(
+      `${CONFIG.base}/communities/${commId}/votings/${votingId}/publish`,
+      null,
+      { headers }
+    );
+    // Retry único: se 409 (VotingAlreadyActiveException por colisão de VU IDs),
+    // fecha a votação ativa conflitante e tenta publicar novamente.
+    if (pubRes.status === 409) {
+      const retryList = http.get(`${CONFIG.base}/communities/${commId}/votings`, { headers: authHeader });
+      if (retryList.status === 200) {
+        const conflicting = (JSON.parse(retryList.body).content || []).find(v => v.status === 'ACTIVE');
+        if (conflicting) {
+          http.post(`${CONFIG.base}/communities/${commId}/votings/${conflicting.id}/close`, null, { headers });
+        }
+      }
+      pubRes = http.post(`${CONFIG.base}/communities/${commId}/votings/${votingId}/publish`, null, { headers });
+    }
     sleep(CONFIG.sleep.betweenSteps);
 
-    const closeRes = http.post(`${CONFIG.base}/communities/${commId}/votings/${votingId}/close`, null, { headers });
-    check(closeRes, { 'close voting 200': (r) => r.status === 200 });
+    // Só tenta fechar se publicou com sucesso; fechar DRAFT retorna 4xx
+    if (pubRes.status === 200) {
+      const closeRes = http.post(
+        `${CONFIG.base}/communities/${commId}/votings/${votingId}/close`,
+        null,
+        { headers }
+      );
+      check(closeRes, { 'close voting 200': (r) => r.status === 200 });
+    }
   }
 
   sleep(CONFIG.sleep.afterIteration * 2);

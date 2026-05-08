@@ -3,6 +3,7 @@ package com.biblioo.community.domain.service;
 import com.biblioo.community.domain.exception.CommunityAccessDeniedException;
 import com.biblioo.community.domain.exception.CommunityBusinessException;
 import com.biblioo.community.domain.model.*;
+import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.domain.port.in.CommunityUseCase;
 import com.biblioo.community.domain.port.out.CommunityBookLookupPort;
 import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
@@ -32,6 +33,7 @@ public class CommunityService implements CommunityUseCase {
   private final CommunityUserLookupPort userLookup;
   private final CommunityBookLookupPort bookLookup;
   private final CommunityEventPublisherPort eventPublisher;
+  private final CommunityMessageUseCase messageUseCase;
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
@@ -145,6 +147,7 @@ public class CommunityService implements CommunityUseCase {
     }
 
     addMember(communityId, userId, CommunityRole.MEMBER);
+    messageUseCase.createSystemMessage(communityId, userId, MessageType.MEMBER_JOINED);
     eventPublisher.publishMemberJoinedForTrending(userId, community.getBookId());
   }
 
@@ -167,6 +170,7 @@ public class CommunityService implements CommunityUseCase {
     memberRepository.removeMember(communityId, userId);
     communityRepository.decrementMemberCount(communityId);
     membershipCache.evict(communityId, userId);
+    messageUseCase.createSystemMessage(communityId, userId, MessageType.MEMBER_LEFT);
   }
 
   @Override
@@ -234,6 +238,7 @@ public class CommunityService implements CommunityUseCase {
     memberRepository.removeMember(communityId, targetUserId);
     communityRepository.decrementMemberCount(communityId);
     membershipCache.evict(communityId, targetUserId);
+    messageUseCase.createSystemMessage(communityId, targetUserId, MessageType.MEMBER_LEFT);
   }
 
   @Override
@@ -357,6 +362,7 @@ public class CommunityService implements CommunityUseCase {
     inviteRepository.save(invite);
 
     addMember(invite.getCommunityId(), userId, CommunityRole.MEMBER);
+    messageUseCase.createSystemMessage(invite.getCommunityId(), userId, MessageType.MEMBER_JOINED);
     eventPublisher.publishMemberJoinedForTrending(userId, community.getBookId());
   }
 
@@ -452,6 +458,8 @@ public class CommunityService implements CommunityUseCase {
     joinRequestRepository.save(request);
 
     addMember(request.getCommunityId(), request.getUserId(), CommunityRole.MEMBER);
+    messageUseCase.createSystemMessage(
+        request.getCommunityId(), request.getUserId(), MessageType.MEMBER_JOINED);
 
     eventPublisher.publishJoinRequestApproved(
         request.getCommunityId(), community.getName(), request.getUserId());
@@ -532,6 +540,7 @@ public class CommunityService implements CommunityUseCase {
     }
 
     addMember(community.getId(), userId, CommunityRole.MEMBER);
+    messageUseCase.createSystemMessage(community.getId(), userId, MessageType.MEMBER_JOINED);
     eventPublisher.publishMemberJoinedForTrending(userId, community.getBookId());
   }
 

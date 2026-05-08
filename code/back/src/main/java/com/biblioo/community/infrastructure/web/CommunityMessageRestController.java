@@ -40,12 +40,14 @@ public class CommunityMessageRestController {
       @RequestParam(defaultValue = "50") int limit,
       @AuthenticationPrincipal UserDetails principal) {
 
+    Long userId = Long.parseLong(principal.getUsername());
     List<MessageResponse> messages;
     if (before != null) {
       messages =
-          mapper.toResponseList(messageUseCase.getMessagesBefore(communityId, before, limit));
+          mapper.toResponseList(
+              messageUseCase.getMessagesBefore(communityId, before, limit, userId));
     } else {
-      messages = mapper.toResponseList(messageUseCase.getRecentMessages(communityId));
+      messages = mapper.toResponseList(messageUseCase.getRecentMessages(communityId, userId));
     }
     return ResponseEntity.ok(messages);
   }

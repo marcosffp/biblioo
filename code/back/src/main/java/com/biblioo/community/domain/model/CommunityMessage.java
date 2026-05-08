@@ -60,6 +60,11 @@ public class CommunityMessage {
   @Builder.Default
   private boolean hasSpoiler = false;
 
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  @Builder.Default
+  private MessageType type = MessageType.USER;
+
   @Column(name = "client_message_id", length = 36)
   private String clientMessageId;
 

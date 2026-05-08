@@ -2,12 +2,15 @@ package com.biblioo.community.infrastructure.web;
 
 import com.biblioo.community.domain.exception.CommunityAccessDeniedException;
 import com.biblioo.community.domain.exception.CommunityBusinessException;
+import com.biblioo.community.domain.model.MessageType;
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.infrastructure.dto.EditMessageRequest;
 import com.biblioo.community.infrastructure.dto.MessageEventPayload;
 import com.biblioo.community.infrastructure.dto.MessageResponse;
 import com.biblioo.community.infrastructure.dto.ReactMessageRequest;
 import com.biblioo.community.infrastructure.dto.SendMessageRequest;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -23,11 +26,13 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "Community Messaging", description = "Endpoints para envio, edição, exclusão e reação de mensagens em comunidades.")
 public class CommunityMessageController {
 
   private final CommunityMessageUseCase messageUseCase;
 
   @MessageMapping("/community/{communityId}/send")
+  @Tag(name = "Send Message", description = "Envia uma nova mensagem para uma comunidade.")
   public void sendMessage(
       @DestinationVariable Long communityId,
       @Valid @Payload SendMessageRequest request,
@@ -46,6 +51,7 @@ public class CommunityMessageController {
   }
 
   @MessageMapping("/community/{communityId}/messages/{messageId}/edit")
+  @Tag(name = "Edit Message", description = "Edita uma mensagem existente em uma comunidade.")
   public void editMessage(
       @DestinationVariable Long communityId,
       @DestinationVariable Long messageId,
@@ -56,6 +62,7 @@ public class CommunityMessageController {
   }
 
   @MessageMapping("/community/{communityId}/messages/{messageId}/delete")
+  @Tag(name = "Delete Message", description = "Exclui uma mensagem existente em uma comunidade.")
   public void deleteMessage(
       @DestinationVariable Long communityId,
       @DestinationVariable Long messageId,
@@ -65,6 +72,7 @@ public class CommunityMessageController {
   }
 
   @MessageMapping("/community/{communityId}/messages/{messageId}/react")
+  @Tag(name = "React to Message", description = "Adiciona ou remove uma reação (ex.: ❤️) a uma mensagem em uma comunidade.")
   public void react(
       @DestinationVariable Long communityId,
       @DestinationVariable Long messageId,
@@ -75,12 +83,14 @@ public class CommunityMessageController {
   }
 
   @MessageMapping("/community/{communityId}/typing")
+  @Tag(name = "Typing Indicator", description = "Notifica que um usuário está digitando em uma comunidade.")
   public void typing(@DestinationVariable Long communityId, Principal principal) {
     messageUseCase.notifyTyping(communityId, userId(principal));
   }
 
   @MessageExceptionHandler({CommunityBusinessException.class, CommunityAccessDeniedException.class})
   @SendToUser("/queue/errors")
+  @Tag(name = "Error Handling", description = "Lida com erros de domínio nas operações de mensagens.")
   public MessageEventPayload handleDomainError(Exception ex) {
     MessageResponse error =
         new MessageResponse(
@@ -96,6 +106,7 @@ public class CommunityMessageController {
             false,
             0,
             false,
+            MessageType.USER,
             LocalDateTime.now(),
             null);
     return new MessageEventPayload("ERROR", error);

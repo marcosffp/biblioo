@@ -40,7 +40,8 @@ class CommunityConfig {
       CommunityJoinRequestRepository joinRequestRepository,
       CommunityUserLookupPort userLookup,
       CommunityBookLookupPort bookLookup,
-      CommunityEventPublisherPort eventPublisher) {
+      CommunityEventPublisherPort eventPublisher,
+      CommunityMessageUseCase messageUseCase) {
     return new CommunityService(
         communityRepository,
         memberRepository,
@@ -49,7 +50,8 @@ class CommunityConfig {
         joinRequestRepository,
         userLookup,
         bookLookup,
-        eventPublisher);
+        eventPublisher,
+        messageUseCase);
   }
 
   @Bean

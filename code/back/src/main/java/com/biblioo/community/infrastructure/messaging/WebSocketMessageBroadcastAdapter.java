@@ -1,6 +1,7 @@
 package com.biblioo.community.infrastructure.messaging;
 
 import com.biblioo.community.domain.model.CommunityMessage;
+import com.biblioo.community.domain.model.MessageType;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.infrastructure.dto.CommunityBroadcastEnvelope;
 import com.biblioo.community.infrastructure.dto.MessageEventPayload;
@@ -62,6 +63,7 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
             false,
             0,
             true,
+            MessageType.USER,
             LocalDateTime.now(),
             null);
     MessageEventPayload event =
@@ -85,6 +87,7 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
             false,
             newHeartCount,
             false,
+            MessageType.USER,
             null,
             null);
     MessageEventPayload event =

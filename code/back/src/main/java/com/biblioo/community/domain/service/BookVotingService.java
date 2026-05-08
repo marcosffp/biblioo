@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -111,7 +112,7 @@ public class BookVotingService implements BookVotingUseCase {
   // ── Membro: votar / desfazer voto ─────────────────────────────────────────
 
   @Override
-  @Transactional
+  @Transactional(isolation = Isolation.READ_COMMITTED)
   public VotingResponse castVote(Long userId, Long communityId, Long votingId, Long optionId) {
     if (!memberRepository.isMember(communityId, userId)) {
       throw new CommunityAccessDeniedException("Apenas membros podem votar.");

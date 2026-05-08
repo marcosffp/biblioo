@@ -1,5 +1,6 @@
 package com.biblioo.community.infrastructure.dto;
 
+import com.biblioo.community.domain.model.MessageType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -17,5 +18,6 @@ public record MessageResponse(
     boolean hasSpoiler,
     int heartCount,
     boolean deleted,
+    MessageType type,
     LocalDateTime createdAt,
     LocalDateTime editedAt) {}

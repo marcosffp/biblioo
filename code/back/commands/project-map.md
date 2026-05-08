@@ -15,6 +15,7 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 | `notification` | `com.biblioo.notification` | SSE web + FCM mobile, histórico |
 | `recommendation` | `com.biblioo.recommendation` | 6 trilhos de recomendação via Neo4j/Redis/MySQL |
 | `share` | `com.biblioo.share` | Geração de cards PNG para compartilhamento (DNA Literário) |
+| `trending` | `com.biblioo.trending` | Top 10 comunidades e livros do momento; scoring por janela de 48h com decaimento temporal |
 | `infrastructure` | `com.biblioo.infrastructure` | Config global, RabbitMQ, segurança, exceções |
 
 ---
@@ -180,6 +181,28 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 **Outbox:** `OutboxEvent` (@Entity) + `OutboxEventService` → publicação transacional confiável
 
 **Config:** `CacheConfig` → Redis+Retry · `OpenSearchConfig` → cliente OS · `CloudinaryConfig` → SDK · `OpenApiConfig` → Swagger JWT · `WebConfig` → CORS global · `RateLimitingFilter` → Bucket4j
+
+---
+
+## trending
+
+**Contratos (port/in):** `TrendingUseCase` getTopCommunities/getTopBooks
+
+**Modelos de domínio:** `TrendingCommunityItem` (record) · `TrendingBookItem` (record)
+
+**Port out:** `TrendingComputePort` (interface de computação)
+
+**Serviço:** `TrendingService` (orchestração + `@Cacheable`) · `TrendingComputeService` (infrastructure — SQL via `NamedParameterJdbcTemplate`, janela 48h, decaimento linear, fórmula: 70% absoluto + 30% engajamento para comunidades)
+
+**Controller:** `TrendingController /trending` → GET /communities · GET /books
+
+**DTOs:** `TrendingCommunityResponse` · `TrendingBookResponse` (ambos com campo `reason` explicando a tendência)
+
+**Config:** `TrendingScheduler` → `@Scheduled` a cada 15 min — invalida cache e pré-aquece
+
+**Cache:** `trending-communities` TTL 15 min · `trending-books` TTL 15 min (em `CacheConfig`)
+
+**Testes K6:** `performance-tests/DomainTrending/trending/trending-{load|spike|stress}.js`
 
 ---
 
