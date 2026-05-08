@@ -710,12 +710,23 @@ class _ProgressSection extends StatefulWidget {
 
 class _ProgressSectionState extends State<_ProgressSection> {
   late int _currentPage;
+  late final TextEditingController _pageController;
+  late final FocusNode _pageFocusNode;
   bool _awaitingProgressSave = false;
 
   @override
   void initState() {
     super.initState();
     _currentPage = widget.item.currentPage ?? 0;
+    _pageController = TextEditingController(text: '$_currentPage');
+    _pageFocusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _pageFocusNode.dispose();
+    super.dispose();
   }
 
   int get _totalPages => widget.item.totalPages ?? 0;
@@ -723,23 +734,52 @@ class _ProgressSectionState extends State<_ProgressSection> {
       _totalPages > 0 ? (_currentPage / _totalPages).clamp(0.0, 1.0) : 0;
   int get _progressPercent => (_progressFraction * 100).round();
 
+  void _setPage(int page) {
+    final clamped = _totalPages > 0 ? page.clamp(0, _totalPages) : (page < 0 ? 0 : page);
+    setState(() => _currentPage = clamped);
+    final text = '$clamped';
+    if (_pageController.text != text) {
+      _pageController.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+  }
+
   void _decrement() {
-    if (_currentPage > 0) setState(() => _currentPage--);
+    if (_currentPage > 0) _setPage(_currentPage - 1);
   }
 
   void _increment() {
     if (_totalPages == 0 || _currentPage < _totalPages) {
-      setState(() => _currentPage++);
+      _setPage(_currentPage + 1);
     }
   }
 
+  void _onPageFieldChanged(String value) {
+    final parsed = int.tryParse(value.trim());
+    if (parsed == null) return;
+    final clamped = _totalPages > 0 ? parsed.clamp(0, _totalPages) : (parsed < 0 ? 0 : parsed);
+    setState(() => _currentPage = clamped);
+  }
+
   void _save(BuildContext context) {
+    _pageFocusNode.unfocus();
+    final parsed = int.tryParse(_pageController.text.trim());
+    if (parsed == null || parsed < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informe uma página válida.')),
+      );
+      return;
+    }
+    final clamped = _totalPages > 0 ? parsed.clamp(0, _totalPages) : parsed;
+    _setPage(clamped);
     setState(() => _awaitingProgressSave = true);
     context.read<ShelfBloc>().add(
       ShelfItemProgressUpdated(
         shelfId: widget.shelfId,
         itemId: widget.item.id,
-        currentPage: _currentPage,
+        currentPage: clamped,
       ),
     );
   }
@@ -753,22 +793,8 @@ class _ProgressSectionState extends State<_ProgressSection> {
         if (!_awaitingProgressSave) return;
         if (state is ShelfProgressUpdateSuccess) {
           setState(() => _awaitingProgressSave = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Progresso salvo!'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: theme.colorScheme.primary,
-            ),
-          );
         } else if (state is ShelfError) {
           setState(() => _awaitingProgressSave = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: theme.colorScheme.error,
-            ),
-          );
         }
       },
       child: Container(
@@ -816,6 +842,7 @@ class _ProgressSectionState extends State<_ProgressSection> {
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 IconButton.filled(
                   onPressed: _awaitingProgressSave ? null : _decrement,
@@ -823,10 +850,30 @@ class _ProgressSectionState extends State<_ProgressSection> {
                   style: IconButton.styleFrom(minimumSize: const Size(40, 40)),
                 ),
                 const SizedBox(width: 16),
-                Text(
-                  '$_currentPage',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                SizedBox(
+                  width: 96,
+                  child: TextField(
+                    controller: _pageController,
+                    focusNode: _pageFocusNode,
+                    enabled: !_awaitingProgressSave,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 8,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      suffixText: _totalPages > 0 ? '/ $_totalPages' : null,
+                    ),
+                    onChanged: _onPageFieldChanged,
+                    onSubmitted: (_) => _save(context),
                   ),
                 ),
                 const SizedBox(width: 16),
