@@ -11,12 +11,14 @@ class FeedLoaded extends FeedState {
   final String? nextCursor;
   final bool hasMore;
   final bool isLoadingMore;
+  final String? actionError;
 
   FeedLoaded({
     required this.items,
     this.nextCursor,
     required this.hasMore,
     this.isLoadingMore = false,
+    this.actionError,
   });
 
   FeedLoaded copyWith({
@@ -24,12 +26,15 @@ class FeedLoaded extends FeedState {
     String? nextCursor,
     bool? hasMore,
     bool? isLoadingMore,
+    String? actionError,
+    bool clearActionError = false,
   }) {
     return FeedLoaded(
       items: items ?? this.items,
       nextCursor: nextCursor ?? this.nextCursor,
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      actionError: clearActionError ? null : actionError ?? this.actionError,
     );
   }
 }

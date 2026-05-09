@@ -539,13 +539,15 @@ class _ShelfDetailScreenContentState extends State<ShelfDetailScreenContent> {
       body: BlocConsumer<ShelfBloc, ShelfState>(
         listener: (context, state) {
           if (state is ShelfMutationSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: theme.colorScheme.primary,
-              ),
-            );
+            if (ModalRoute.of(context)?.isCurrent ?? false) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: theme.colorScheme.primary,
+                ),
+              );
+            }
             // Recarrega itens após mutação (status, add, remove, etc.)
             context.read<ShelfBloc>().add(
               ShelfItemsLoadRequested(widget.shelf.id),
@@ -563,6 +565,7 @@ class _ShelfDetailScreenContentState extends State<ShelfDetailScreenContent> {
             // completos (currentPage/totalPages) vindos do servidor.
           }
           if (state is ShelfError) {
+            if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),

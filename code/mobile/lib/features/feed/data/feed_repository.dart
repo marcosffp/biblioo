@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:biblioo/features/feed/domain/comment.dart';
 import 'package:biblioo/features/feed/domain/feed_item.dart';
 import 'package:biblioo/features/feed/domain/post.dart';
 import 'package:biblioo/features/feed/domain/review.dart';
@@ -60,7 +61,7 @@ class FeedRepository {
     int? reviewId,
     required int bookId,
     required int rating,
-    required String text,
+    String? text,
   }) async {
     final review = reviewId == null
         ? await _remote.createReview(bookId: bookId, rating: rating, text: text)
@@ -76,10 +77,15 @@ class FeedRepository {
     return _remote.toggleReviewLike(reviewId);
   }
 
+  Future<void> deleteReview(int reviewId) {
+    return _remote.deleteReview(reviewId);
+  }
+
   // ── posts ────────────────────────────────────────────────────────────────
 
   Future<Post> createPost({
     required String text,
+    int? bookId,
     List<String> tags = const [],
     bool hasSpoiler = false,
     List<Uint8List> images = const [],
@@ -89,6 +95,7 @@ class FeedRepository {
   }) async {
     final model = await _remote.createPost(
       text: text,
+      bookId: bookId,
       tags: tags,
       hasSpoiler: hasSpoiler,
       images: images,
@@ -101,6 +108,63 @@ class FeedRepository {
 
   Future<bool> togglePostLike(int postId) {
     return _remote.togglePostLike(postId);
+  }
+
+  Future<void> deletePost(int postId) {
+    return _remote.deletePost(postId);
+  }
+
+  Future<FeedCommentPage> getComments({
+    required int contentId,
+    required String contentType,
+    int page = 0,
+  }) async {
+    final model = await _remote.getComments(
+      contentId: contentId,
+      contentType: contentType,
+      page: page,
+    );
+    return model.toEntity();
+  }
+
+  Future<FeedComment> createComment({
+    required int contentId,
+    required String contentType,
+    required String text,
+  }) async {
+    final model = await _remote.createComment(
+      contentId: contentId,
+      contentType: contentType,
+      text: text,
+    );
+    return model.toEntity();
+  }
+
+  Future<void> deleteComment(int commentId) {
+    return _remote.deleteComment(commentId);
+  }
+
+  Future<bool> toggleCommentLike(int commentId) {
+    return _remote.toggleCommentLike(commentId);
+  }
+
+  Future<FeedCommentPage> getCommentReplies(
+    int commentId, {
+    int page = 0,
+  }) async {
+    final model = await _remote.getCommentReplies(commentId, page: page);
+    return model.toEntity();
+  }
+
+  Future<FeedComment> createCommentReply({
+    required int commentId,
+    required String text,
+  }) async {
+    final model = await _remote.createCommentReply(
+      commentId: commentId,
+      text: text,
+    );
+    return model.toEntity();
   }
 }
 

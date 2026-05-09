@@ -4,6 +4,7 @@ abstract class PostEvent {}
 
 class PostCreateRequested extends PostEvent {
   final String text;
+  final int? bookId;
   final List<String> tags;
   final bool hasSpoiler;
   final List<Uint8List> images;
@@ -13,6 +14,7 @@ class PostCreateRequested extends PostEvent {
 
   PostCreateRequested({
     required this.text,
+    this.bookId,
     this.tags = const [],
     this.hasSpoiler = false,
     this.images = const [],

@@ -19,6 +19,7 @@ class PostBloc extends Bloc<PostEvent, PostState> {
     try {
       final post = await _repository.createPost(
         text: event.text,
+        bookId: event.bookId,
         tags: event.tags,
         hasSpoiler: event.hasSpoiler,
         images: event.images,

@@ -36,16 +36,19 @@ class _ShelfTabState extends State<ShelfTab>
     return BlocConsumer<ShelfBloc, ShelfState>(
       listener: (context, state) {
         if (state is ShelfMutationSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-            ),
-          );
+          if (ModalRoute.of(context)?.isCurrent ?? false) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+              ),
+            );
+          }
           context.read<ShelfBloc>().add(ShelfLoadRequested());
         }
         if (state is ShelfError) {
+          if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),

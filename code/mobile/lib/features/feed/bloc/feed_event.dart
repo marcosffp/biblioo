@@ -24,3 +24,27 @@ class FeedPostLikeToggled extends FeedEvent {
 
   FeedPostLikeToggled({required this.postId});
 }
+
+class FeedReviewDeleteRequested extends FeedEvent {
+  final int reviewId;
+
+  FeedReviewDeleteRequested({required this.reviewId});
+}
+
+class FeedPostDeleteRequested extends FeedEvent {
+  final int postId;
+
+  FeedPostDeleteRequested({required this.postId});
+}
+
+class FeedCommentCountChanged extends FeedEvent {
+  final int contentId;
+  final String contentType;
+  final int delta;
+
+  FeedCommentCountChanged({
+    required this.contentId,
+    required this.contentType,
+    required this.delta,
+  });
+}
