@@ -87,29 +87,11 @@ public class CacheConfig implements CachingConfigurer {
         .withCacheConfiguration("collection-detail", base.entryTtl(Duration.ofHours(1)))
         // community
         .withCacheConfiguration("community-membership", base.entryTtl(Duration.ofMinutes(2)))
-        // recommendation — TTLs calibrados por volatilidade × pressão de pico
-        //
-        // rec-byr:  antes 60s — expirava durante o spike (warm-up + 60s = meio do pico).
-        //           Aumentado para 5min: resultado muda apenas quando o usuário termina um livro
-        //           (evento raro), não a cada request. O @CacheEvict no compute() invalida
-        //           imediatamente quando há novo dado real.
+        // recommendation
         .withCacheConfiguration("rec-byr", base.entryTtl(Duration.ofMinutes(5)))
-        //
-        // rec-fgn:  antes 2min — razoável, mantido.
         .withCacheConfiguration("rec-fgn", base.entryTtl(Duration.ofMinutes(5)))
-        //
-        // rec-tic:  trending decai continuamente; TTL curto faz sentido.
-        //           3min mantido — score orgânico muda com eventos de comunidade.
         .withCacheConfiguration("rec-tic", base.entryTtl(Duration.ofMinutes(3)))
-        //
-        // rec-cs:   novo — CatalogSurprise agora usa @Cacheable.
-        //           TTL de 2min: curto o suficiente para variar o sample entre sessões
-        //           distintas, longo o suficiente para absorver picos de concorrência.
-        //           O @CacheEvict em updateBanditState() invalida quando há interação real.
         .withCacheConfiguration("rec-cs",  base.entryTtl(Duration.ofMinutes(2)))
-        //
-        // rec-sa / rec-rwi: collaborative filtering e spaced repetition raramente mudam;
-        //                   5min mantidos.
         .withCacheConfiguration("rec-sa",  base.entryTtl(Duration.ofMinutes(5)))
         .withCacheConfiguration("rec-rwi", base.entryTtl(Duration.ofMinutes(5)))
         // trending — recalculado pelo scheduler a cada 15min; TTL de 15min como fallback.
@@ -164,8 +146,9 @@ public class CacheConfig implements CachingConfigurer {
     };
   }
 
-  @Bean
-  RetryTemplate retryTemplate() {
+  // Renomeado de retryTemplate para evitar conflito com o bean retryTemplate do Spring AI
+  @Bean("cacheRetryTemplate")
+  RetryTemplate cacheRetryTemplate() {
     return RetryTemplate.builder()
         .maxAttempts(3)
         .exponentialBackoff(300, 2, 3_000)

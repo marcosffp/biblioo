@@ -56,7 +56,8 @@ Acessos: API `:8080` · Swagger `:8080/swagger-ui.html` · Grafana `:3001` · Pr
 `FIREBASE_SERVICE_ACCOUNT_BASE64` ·
 `SENDGRID_API_KEY` · `SENDGRID_FROM_EMAIL` ·
 `FRONTEND_URL` ·
-`APP_WEBSOCKET_ALLOWED_ORIGINS`
+`APP_WEBSOCKET_ALLOWED_ORIGINS` ·
+`GEMINI_API_KEY` (Google AI Studio — https://aistudio.google.com/app/apikey)
 
 **Nunca versionar `.env` em produção.**
 

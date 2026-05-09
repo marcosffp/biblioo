@@ -59,6 +59,28 @@ CREATE INDEX IF NOT EXISTS idx_dna_event_log_event_id ON dna_event_log (event_id
 ALTER TABLE literary_dna ADD COLUMN IF NOT EXISTS total_pages_read INT NOT NULL DEFAULT 0;
 ALTER TABLE literary_dna ADD COLUMN IF NOT EXISTS pages_by_year_json TEXT NULL;
 
+-- Assistente Bibo: conversas persistidas (fallback quando Redis expira)
+CREATE TABLE IF NOT EXISTS assistant_conversation (
+    id           VARCHAR(36)   PRIMARY KEY,
+    user_id      BIGINT        NOT NULL,
+    title        VARCHAR(100)  NOT NULL,
+    history_json MEDIUMTEXT    NOT NULL,
+    created_at   DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at   DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    INDEX idx_conv_user_updated (user_id, updated_at DESC)
+);
+
+-- Assistente Bibo: log de auditoria de ações executadas pelo agente
+CREATE TABLE IF NOT EXISTS assistant_action_log (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT          NOT NULL,
+    conversation_id VARCHAR(36)     NOT NULL,
+    tool_name       VARCHAR(100)    NOT NULL,
+    params_json     TEXT,
+    result_summary  VARCHAR(500),
+    created_at      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    INDEX idx_assistant_log_user (user_id),
+    INDEX idx_assistant_log_conv (conversation_id)
 -- Sistema de Votação de Livros
 CREATE TABLE IF NOT EXISTS community_votings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

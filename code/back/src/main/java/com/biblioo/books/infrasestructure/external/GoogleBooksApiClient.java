@@ -5,6 +5,7 @@ import com.biblioo.books.infrasestructure.external.GoogleBooksModels.VolumeItem;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,8 @@ public class GoogleBooksApiClient {
   private final RetryTemplate retryTemplate;
 
   public GoogleBooksApiClient(
-      @Value("${google.books.api-key}") String apiKey, RetryTemplate retryTemplate) {
+      @Value("${google.books.api-key}") String apiKey,
+      @Qualifier("cacheRetryTemplate") RetryTemplate retryTemplate) {
     this.apiKey = apiKey;
     this.retryTemplate = retryTemplate;
     this.restClient =

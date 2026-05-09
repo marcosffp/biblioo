@@ -19,7 +19,20 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <spotless.version>2.44.4</spotless.version>
         <googleformat.version>1.35.0</googleformat.version>
+        <spring-ai.version>2.0.0-M5</spring-ai.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 
     <dependencies>
@@ -267,8 +280,25 @@
             <artifactId>google-api-client</artifactId>
             <version>2.2.0</version>
         </dependency>
+
+        <!-- Spring AI — Assistente Bibo (Google Gemini via GenAI API) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-google-genai</artifactId>
+        </dependency>
     </dependencies>
 
+
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

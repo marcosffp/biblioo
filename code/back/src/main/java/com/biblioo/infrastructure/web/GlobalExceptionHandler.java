@@ -36,6 +36,21 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+  // ── Assistente Bibo ────────────────────────────────────────────────────────
+
+  @ExceptionHandler(com.biblioo.assistant.domain.exception.AssistantRateLimitException.class)
+  ResponseEntity<ErrorResponse> handleAssistantRateLimit(
+      com.biblioo.assistant.domain.exception.AssistantRateLimitException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.assistant.domain.exception.AssistantException.class)
+  ResponseEntity<ErrorResponse> handleAssistant(
+      com.biblioo.assistant.domain.exception.AssistantException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
+  }
+
   // ── DNA Literário ─────────────────────────────────────────────────────────
 
   @ExceptionHandler(DnaInFormationException.class)
@@ -261,10 +276,10 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
   }
 
   @ExceptionHandler(GoogleAccountNeedsPasswordException.class)
-ResponseEntity<ErrorResponse> handleGoogleAccountNeedsPassword(
-    GoogleAccountNeedsPasswordException ex, HttpServletRequest request) {
-  return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
-}
+  ResponseEntity<ErrorResponse> handleGoogleAccountNeedsPassword(
+      GoogleAccountNeedsPasswordException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+  }
 
   // ── Helper ────────────────────────────────────────────────────────────────
 
