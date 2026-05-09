@@ -3,8 +3,10 @@ package com.biblioo.feed.infrastructure.web;
 import com.biblioo.feed.domain.exception.CommentBusinessException;
 import com.biblioo.feed.domain.model.Comment;
 import com.biblioo.feed.domain.port.in.CommentUseCase;
+import com.biblioo.feed.domain.service.LikeStatusResolver;
 import com.biblioo.feed.infrastructure.dto.comment.CommentBasicResponse;
 import com.biblioo.feed.infrastructure.dto.comment.CommentResponse;
+import com.biblioo.feed.infrastructure.dto.like.LikeResponse;
 import com.biblioo.feed.infrastructure.dto.mapper.CommentMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -43,14 +45,17 @@ public class CommentController {
   private final CommentUseCase commentUseCase;
   private final CommentMapper commentMapper;
   private final CommentEnricher commentEnricher;
+  private final LikeStatusResolver likeStatusResolver;
 
   public CommentController(
       CommentUseCase commentUseCase,
       CommentMapper commentMapper,
-      CommentEnricher commentEnricher) {
+      CommentEnricher commentEnricher,
+      LikeStatusResolver likeStatusResolver) {
     this.commentUseCase = commentUseCase;
     this.commentMapper = commentMapper;
     this.commentEnricher = commentEnricher;
+    this.likeStatusResolver = likeStatusResolver;
   }
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -128,12 +133,15 @@ public class CommentController {
       summary = "Lista comentários de uma avaliação",
       description = "Retorna os comentários paginados da avaliação, ordenados do mais recente.")
   public ResponseEntity<Page<CommentBasicResponse>> getComments(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId,
       @PageableDefault(size = 20) Pageable pageable) {
 
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     return ResponseEntity.ok(
         commentEnricher.enrich(
-            commentUseCase.getComments(reviewId, pageable).map(commentMapper::toBasicResponse)));
+            commentUseCase.getComments(reviewId, pageable).map(commentMapper::toBasicResponse),
+            viewerId));
   }
 
   @GetMapping("/{commentId}")
@@ -141,9 +149,26 @@ public class CommentController {
       summary = "Obtém um comentário por ID",
       description = "Retorna os detalhes completos de um comentário específico.")
   public ResponseEntity<CommentResponse> getComment(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do comentário", example = "1") @PathVariable Long commentId) {
 
-    return ResponseEntity.ok(commentMapper.toResponse(commentUseCase.getCommentById(commentId)));
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
+    Comment comment = commentUseCase.getCommentById(commentId);
+    return ResponseEntity.ok(
+        commentMapper.toResponse(comment).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, commentId)));
+  }
+
+  @PostMapping("/{commentId}/like")
+  @Operation(
+      summary = "Curtir / descurtir um comentário",
+      description = "Adiciona uma curtida se ainda não curtida; remove se já curtida.")
+  public ResponseEntity<LikeResponse> likeComment(
+      @AuthenticationPrincipal UserDetails principal,
+      @Parameter(description = "ID do comentário", example = "1") @PathVariable Long commentId) {
+
+    Long userId = Long.parseLong(principal.getUsername());
+    boolean liked = commentUseCase.likeComment(userId, commentId);
+    return ResponseEntity.ok(new LikeResponse(liked));
   }
 
   private String sanitize(String html) {

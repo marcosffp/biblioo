@@ -7,4 +7,10 @@ public record ReviewResponse(
     String text,
     Integer rating,
     Integer commentCount,
-    Integer likeCount) {}
+    Integer likeCount,
+    boolean likedByCurrentUser) {
+
+  public ReviewResponse copyWithLikeStatus(boolean liked) {
+    return new ReviewResponse(id, userId, bookId, text, rating, commentCount, likeCount, liked);
+  }
+}

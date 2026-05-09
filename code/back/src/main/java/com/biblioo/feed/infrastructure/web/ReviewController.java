@@ -3,6 +3,7 @@ package com.biblioo.feed.infrastructure.web;
 import com.biblioo.feed.domain.exception.ReviewBusinessException;
 import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
+import com.biblioo.feed.domain.service.LikeStatusResolver;
 import com.biblioo.feed.infrastructure.dto.like.LikeResponse;
 import com.biblioo.feed.infrastructure.dto.mapper.ReviewMapper;
 import com.biblioo.feed.infrastructure.dto.review.ReviewBasicResponse;
@@ -10,6 +11,8 @@ import com.biblioo.feed.infrastructure.dto.review.ReviewResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
+import java.util.Set;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.springframework.data.domain.Page;
@@ -35,10 +38,15 @@ public class ReviewController {
 
   private final ReviewUseCase reviewUseCase;
   private final ReviewMapper reviewMapper;
+  private final LikeStatusResolver likeStatusResolver;
 
-  public ReviewController(ReviewUseCase reviewUseCase, ReviewMapper reviewMapper) {
+  public ReviewController(
+      ReviewUseCase reviewUseCase,
+      ReviewMapper reviewMapper,
+      LikeStatusResolver likeStatusResolver) {
     this.reviewUseCase = reviewUseCase;
     this.reviewMapper = reviewMapper;
+    this.likeStatusResolver = likeStatusResolver;
   }
 
   @PostMapping
@@ -106,9 +114,13 @@ public class ReviewController {
   @GetMapping("/{reviewId}")
   @Operation(summary = "Obtém uma avaliação por ID")
   public ResponseEntity<ReviewResponse> getReview(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
 
-    return ResponseEntity.ok(reviewMapper.toResponse(reviewUseCase.getReviewById(reviewId)));
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
+    Review review = reviewUseCase.getReviewById(reviewId);
+    return ResponseEntity.ok(
+        reviewMapper.toResponse(review).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, reviewId)));
   }
 
   @GetMapping("/{reviewId}/basic")
@@ -122,11 +134,16 @@ public class ReviewController {
   @GetMapping("/user/{userId}")
   @Operation(summary = "Lista avaliações de um usuário")
   public ResponseEntity<Page<ReviewResponse>> getUserReviews(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
       @PageableDefault(size = 10) Pageable pageable) {
 
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
+    Page<Review> reviews = reviewUseCase.getRecentReviewsByUserId(userId, pageable);
+    List<Long> ids = reviews.getContent().stream().map(Review::getId).toList();
+    Set<Long> likedIds = likeStatusResolver.resolve(viewerId, ids);
     return ResponseEntity.ok(
-        reviewUseCase.getRecentReviewsByUserId(userId, pageable).map(reviewMapper::toResponse));
+        reviews.map(r -> reviewMapper.toResponse(r).copyWithLikeStatus(likedIds.contains(r.getId()))));
   }
 
   @GetMapping("/user/{userId}/basic")

@@ -1,12 +1,18 @@
 package com.biblioo.user.infrastructure.auth;
 
-import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
+import java.text.Normalizer;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.biblioo.user.domain.exception.GoogleAccountNeedsPasswordException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
 import com.biblioo.user.domain.exception.RegistrationConflictException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
-import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
 import com.biblioo.user.domain.model.AuthResult;
 import com.biblioo.user.domain.model.GoogleUserInfo;
 import com.biblioo.user.domain.model.RefreshToken;
@@ -17,12 +23,6 @@ import com.biblioo.user.infrastructure.async.TokenCleanupAdapter;
 import com.biblioo.user.infrastructure.persistence.RefreshTokenRepository;
 import com.biblioo.user.infrastructure.persistence.UserRepository;
 import com.biblioo.user.infrastructure.security.JwtService;
-import java.text.Normalizer;
-import java.time.LocalDateTime;
-import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 
 public class AuthServiceImpl implements AuthUseCase {
 

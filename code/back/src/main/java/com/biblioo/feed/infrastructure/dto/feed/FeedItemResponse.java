@@ -31,7 +31,8 @@ public record FeedItemResponse(
       Integer rating,
       String bookTitle,
       String bookCoverUrl,
-      List<String> bookAuthors) {}
+      List<String> bookAuthors,
+      boolean likedByCurrentUser) {}
 
   public static FeedItemResponse from(
       FeedItem item,
@@ -40,7 +41,8 @@ public record FeedItemResponse(
       String authorAvatarUrl,
       String bookTitle,
       String bookCoverUrl,
-      List<String> bookAuthors) {
+      List<String> bookAuthors,
+      boolean likedByCurrentUser) {
     var embedded =
         new EmbeddedContentResponse(
             review.getId(),
@@ -57,7 +59,8 @@ public record FeedItemResponse(
             review.getRating(),
             bookTitle,
             bookCoverUrl,
-            bookAuthors);
+            bookAuthors,
+            likedByCurrentUser);
     return new FeedItemResponse(
         item.getContentId(),
         item.getContentType(),
@@ -70,7 +73,11 @@ public record FeedItemResponse(
   }
 
   public static FeedItemResponse from(
-      FeedItem item, FeedPost post, String authorUsername, String authorAvatarUrl) {
+      FeedItem item,
+      FeedPost post,
+      String authorUsername,
+      String authorAvatarUrl,
+      boolean likedByCurrentUser) {
     var embedded =
         new EmbeddedContentResponse(
             post.getId(),
@@ -87,7 +94,8 @@ public record FeedItemResponse(
             null,
             null,
             null,
-            null);
+            null,
+            likedByCurrentUser);
     return new FeedItemResponse(
         item.getContentId(),
         item.getContentType(),

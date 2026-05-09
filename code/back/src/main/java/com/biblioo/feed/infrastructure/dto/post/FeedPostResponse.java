@@ -15,4 +15,12 @@ public record FeedPostResponse(
     Integer commentCount,
     Integer likeCount,
     LocalDateTime createdAt,
-    LocalDateTime updatedAt) {}
+    LocalDateTime updatedAt,
+    boolean likedByCurrentUser) {
+
+  public FeedPostResponse copyWithLikeStatus(boolean liked) {
+    return new FeedPostResponse(
+        id, userId, bookId, text, images, gifUrl, tags, hasSpoiler,
+        commentCount, likeCount, createdAt, updatedAt, liked);
+  }
+}

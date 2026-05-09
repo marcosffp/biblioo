@@ -57,11 +57,14 @@ public class CommentInteractionController {
   @GetMapping("/{commentId}/replies")
   @Operation(summary = "Lista respostas de um comentário")
   public ResponseEntity<Page<CommentBasicResponse>> getReplies(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do comentário pai") @PathVariable Long commentId,
       @PageableDefault(size = 10) Pageable pageable) {
+    Long userId = Long.parseLong(principal.getUsername());
     return ResponseEntity.ok(
         commentEnricher.enrich(
-            commentUseCase.getComments(commentId, pageable).map(commentMapper::toBasicResponse)));
+            commentUseCase.getComments(commentId, pageable).map(commentMapper::toBasicResponse),
+            userId));
   }
 
   @DeleteMapping("/{commentId}")

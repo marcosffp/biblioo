@@ -11,4 +11,5 @@ public record CommentBasicResponse(
     LocalDateTime createdAt,
     String authorUsername,
     String authorAvatarUrl,
-    boolean deleted) {}
+    boolean deleted,
+    boolean likedByCurrentUser) {}

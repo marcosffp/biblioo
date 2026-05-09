@@ -5,6 +5,7 @@ import com.biblioo.feed.domain.model.Comment;
 import com.biblioo.feed.domain.model.FeedPost;
 import com.biblioo.feed.domain.port.in.CommentUseCase;
 import com.biblioo.feed.domain.port.in.FeedPostUseCase;
+import com.biblioo.feed.domain.service.LikeStatusResolver;
 import com.biblioo.feed.infrastructure.dto.comment.CommentBasicResponse;
 import com.biblioo.feed.infrastructure.dto.comment.CommentResponse;
 import com.biblioo.feed.infrastructure.dto.like.LikeResponse;
@@ -18,6 +19,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.apache.tika.Tika;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
@@ -51,18 +53,21 @@ public class FeedPostController {
   private final CommentUseCase commentUseCase;
   private final CommentMapper commentMapper;
   private final CommentEnricher commentEnricher;
+  private final LikeStatusResolver likeStatusResolver;
 
   public FeedPostController(
       FeedPostUseCase feedPostUseCase,
       FeedPostMapper feedPostMapper,
       CommentUseCase commentUseCase,
       CommentMapper commentMapper,
-      CommentEnricher commentEnricher) {
+      CommentEnricher commentEnricher,
+      LikeStatusResolver likeStatusResolver) {
     this.feedPostUseCase = feedPostUseCase;
     this.feedPostMapper = feedPostMapper;
     this.commentUseCase = commentUseCase;
     this.commentMapper = commentMapper;
     this.commentEnricher = commentEnricher;
+    this.likeStatusResolver = likeStatusResolver;
   }
 
   // ── CRUD do Post ────────────────────────────────────────────────────────────
@@ -133,8 +138,12 @@ public class FeedPostController {
 
   @GetMapping("/{postId}")
   @Operation(summary = "Retorna um post por ID")
-  public ResponseEntity<FeedPostResponse> getPost(@PathVariable Long postId) {
-    return ResponseEntity.ok(feedPostMapper.toResponse(feedPostUseCase.getPostById(postId)));
+  public ResponseEntity<FeedPostResponse> getPost(
+      @AuthenticationPrincipal UserDetails principal, @PathVariable Long postId) {
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
+    FeedPost post = feedPostUseCase.getPostById(postId);
+    return ResponseEntity.ok(
+        feedPostMapper.toResponse(post).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, postId)));
   }
 
   @GetMapping("/{postId}/basic")
@@ -146,9 +155,15 @@ public class FeedPostController {
   @GetMapping("/user/{userId}")
   @Operation(summary = "Lista posts recentes de um usuário")
   public ResponseEntity<Page<FeedPostResponse>> getUserPosts(
-      @PathVariable Long userId, @PageableDefault(size = 10) Pageable pageable) {
+      @AuthenticationPrincipal UserDetails principal,
+      @PathVariable Long userId,
+      @PageableDefault(size = 10) Pageable pageable) {
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
+    Page<FeedPost> posts = feedPostUseCase.getRecentPostsByUserId(userId, pageable);
+    List<Long> ids = posts.getContent().stream().map(FeedPost::getId).toList();
+    Set<Long> likedIds = likeStatusResolver.resolve(viewerId, ids);
     return ResponseEntity.ok(
-        feedPostUseCase.getRecentPostsByUserId(userId, pageable).map(feedPostMapper::toResponse));
+        posts.map(p -> feedPostMapper.toResponse(p).copyWithLikeStatus(likedIds.contains(p.getId()))));
   }
 
   @PostMapping("/{postId}/like")
@@ -184,10 +199,14 @@ public class FeedPostController {
   @GetMapping("/{postId}/comments")
   @Operation(summary = "Lista comentários de um post")
   public ResponseEntity<Page<CommentBasicResponse>> getComments(
-      @PathVariable Long postId, @PageableDefault(size = 20) Pageable pageable) {
+      @AuthenticationPrincipal UserDetails principal,
+      @PathVariable Long postId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     return ResponseEntity.ok(
         commentEnricher.enrich(
-            commentUseCase.getComments(postId, pageable).map(commentMapper::toBasicResponse)));
+            commentUseCase.getComments(postId, pageable).map(commentMapper::toBasicResponse),
+            viewerId));
   }
 
   @PutMapping(value = "/{postId}/comments/{commentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -219,8 +238,22 @@ public class FeedPostController {
 
   @GetMapping("/{postId}/comments/{commentId}")
   @Operation(summary = "Retorna um comentário por ID")
-  public ResponseEntity<CommentResponse> getComment(@PathVariable Long commentId) {
-    return ResponseEntity.ok(commentMapper.toResponse(commentUseCase.getCommentById(commentId)));
+  public ResponseEntity<CommentResponse> getComment(
+      @AuthenticationPrincipal UserDetails principal, @PathVariable Long commentId) {
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
+    Comment comment = commentUseCase.getCommentById(commentId);
+    return ResponseEntity.ok(
+        commentMapper.toResponse(comment).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, commentId)));
+  }
+
+  @PostMapping("/{postId}/comments/{commentId}/like")
+  @Operation(summary = "Curtir / descurtir um comentário de post")
+  public ResponseEntity<LikeResponse> likeComment(
+      @AuthenticationPrincipal UserDetails principal,
+      @Parameter(description = "ID do comentário") @PathVariable Long commentId) {
+    Long userId = Long.parseLong(principal.getUsername());
+    boolean liked = commentUseCase.likeComment(userId, commentId);
+    return ResponseEntity.ok(new LikeResponse(liked));
   }
 
   // ── helpers ─────────────────────────────────────────────────────────────────

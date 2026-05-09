@@ -8,15 +8,16 @@ import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.FeedUseCase;
 import com.biblioo.feed.domain.port.out.BookPort;
 import com.biblioo.feed.domain.port.out.UserPort;
+import com.biblioo.feed.domain.service.LikeStatusResolver;
 import com.biblioo.feed.infrastructure.dto.feed.FeedItemResponse;
 import com.biblioo.feed.infrastructure.dto.feed.FeedPageResponse;
 import com.biblioo.feed.infrastructure.persistence.FeedPostRepository;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
 import com.biblioo.user.domain.model.User;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,15 +43,17 @@ public class FeedController {
   private final FeedPostRepository feedPostRepository;
   private final UserPort userPort;
   private final BookPort bookPort;
+  private final LikeStatusResolver likeStatusResolver;
 
   @GetMapping
   @Operation(summary = "Retorna o feed do usuário com paginação por cursor")
   public ResponseEntity<FeedPageResponse> getFeed(
-     @AuthenticationPrincipal UserDetails principal,
+      @AuthenticationPrincipal UserDetails principal,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int size) {
 
-    FeedSlice slice = feedUseCase.getFeed(extractUserId(principal), cursor, Math.min(size, 50));
+    Long viewerId = extractUserId(principal);
+    FeedSlice slice = feedUseCase.getFeed(viewerId, cursor, Math.min(size, 50));
 
     Set<Long> reviewIds =
         slice.items().stream()
@@ -104,6 +107,11 @@ public class FeedController {
             : bookPort.getBooksByIds(bookIds).stream()
                 .collect(Collectors.toMap(Book::getId, Function.identity()));
 
+    // Batch: verifica curtidas do usuário sobre todos os conteúdos da página em uma única query
+    Set<Long> allContentIds = new HashSet<>(reviewIds);
+    allContentIds.addAll(postIds);
+    Set<Long> likedIds = likeStatusResolver.resolve(viewerId, allContentIds);
+
     List<FeedItemResponse> items = new ArrayList<>();
     for (FeedItem item : slice.items()) {
       User author = userMap.get(item.getAuthorId());
@@ -122,11 +130,12 @@ public class FeedController {
                 authorAvatarUrl,
                 book != null ? book.getTitle() : null,
                 book != null ? book.getCoverUrl() : null,
-                book != null ? book.getAuthors() : null));
+                book != null ? book.getAuthors() : null,
+                likedIds.contains(r.getId())));
       } else if ("POST".equals(item.getContentType())) {
         FeedPost p = postMap.get(item.getContentId());
         if (p == null) continue;
-        items.add(FeedItemResponse.from(item, p, authorUsername, authorAvatarUrl));
+        items.add(FeedItemResponse.from(item, p, authorUsername, authorAvatarUrl, likedIds.contains(p.getId())));
       }
     }
 
@@ -142,7 +151,7 @@ public class FeedController {
     return ResponseEntity.ok(Map.of("newItems", count));
   }
 
-    private Long extractUserId(UserDetails principal) {
+  private Long extractUserId(UserDetails principal) {
     return Long.parseLong(principal.getUsername());
   }
 }

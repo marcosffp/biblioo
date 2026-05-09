@@ -77,6 +77,8 @@ description: "Consulte ANTES de procurar qualquer arquivo, classe ou configuraç
 
 **Cache:** `FeedCacheService` → Redis feed por usuário
 
+**Web helpers:** `CommentEnricher` → batch-load autores + like status para listas de comentários · `LikeStatusResolver` → batch query `findLikedContentIds` e `isLiked`; resolve status de curtida do usuário atual para qualquer coleção de content IDs; injetado em controllers e CommentEnricher
+
 ---
 
 ## community

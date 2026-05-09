@@ -13,4 +13,11 @@ public record CommentResponse(
     List<String> tags,
     Boolean hasSpoiler,
     Integer likeCount,
-    LocalDateTime createdAt) {}
+    LocalDateTime createdAt,
+    boolean likedByCurrentUser) {
+
+  public CommentResponse copyWithLikeStatus(boolean liked) {
+    return new CommentResponse(
+        id, userId, parentId, text, images, gifUrl, tags, hasSpoiler, likeCount, createdAt, liked);
+  }
+}
