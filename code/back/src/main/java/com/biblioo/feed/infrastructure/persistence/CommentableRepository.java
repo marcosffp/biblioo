@@ -21,4 +21,10 @@ public interface CommentableRepository extends JpaRepository<Commentable, Long> 
   @Query(
       "UPDATE Commentable c SET c.commentCount = c.commentCount - 1 WHERE c.id = :id AND c.commentCount > 0")
   int decrementCommentCount(@Param("id") Long id);
+
+  @Modifying
+  @Query(
+      "UPDATE Commentable c SET c.commentCount = c.commentCount - :count"
+          + " WHERE c.id = :id AND c.commentCount >= :count")
+  int decrementCommentCountBy(@Param("id") Long id, @Param("count") int count);
 }

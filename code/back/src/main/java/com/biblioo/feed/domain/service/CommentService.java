@@ -148,7 +148,9 @@ public class CommentService implements CommentUseCase {
     int rowsDeleted = commentRepository.softDeleteComment(commentId, userId);
 
     if (rowsDeleted > 0) {
-      commentableRepository.decrementCommentCount(comment.getParentId());
+      int childrenDeleted = commentRepository.softDeleteAllByParentId(commentId);
+      Long rootId = findRootCommentableId(comment.getParentId());
+      commentableRepository.decrementCommentCountBy(rootId, 1 + childrenDeleted);
       var urlsToDelete = new ArrayList<String>();
       if (comment.getImages() != null) urlsToDelete.addAll(comment.getImages());
       if (comment.getGifUrl() != null && !comment.getGifUrl().isEmpty()) {
@@ -209,7 +211,22 @@ public class CommentService implements CommentUseCase {
         .orElseThrow(() -> new CommentBusinessException("Comentário não encontrado."));
 
     var reply = Comment.builder().userId(userId).parentId(commentId).text(text).build();
-    return commentRepository.saveAndFlush(reply);
+    var savedReply = commentRepository.saveAndFlush(reply);
+    commentableRepository.incrementCommentCount(findRootCommentableId(commentId));
+    return savedReply;
+  }
+
+  private Long findRootCommentableId(Long parentId) {
+    Long current = parentId;
+    while (commentRepository.existsById(current)) {
+      current =
+          commentRepository
+              .findById(current)
+              .orElseThrow(
+                  () -> new CommentBusinessException("Hierarquia de comentários inválida."))
+              .getParentId();
+    }
+    return current;
   }
 
   private List<String> uploadImages(List<byte[]> images, String referenceId) {
