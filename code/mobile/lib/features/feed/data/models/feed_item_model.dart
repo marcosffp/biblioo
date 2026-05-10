@@ -84,6 +84,7 @@ class FeedContentModel {
   final String? bookTitle;
   final String? bookCoverUrl;
   final List<String> bookAuthors;
+  final bool likedByCurrentUser;
 
   const FeedContentModel({
     required this.id,
@@ -101,6 +102,7 @@ class FeedContentModel {
     this.bookTitle,
     this.bookCoverUrl,
     required this.bookAuthors,
+    required this.likedByCurrentUser,
   });
 
   factory FeedContentModel.fromJson(Map<String, dynamic> json) {
@@ -120,6 +122,7 @@ class FeedContentModel {
       bookTitle: json['bookTitle'] as String?,
       bookCoverUrl: json['bookCoverUrl'] as String?,
       bookAuthors: _stringList(json['bookAuthors']),
+      likedByCurrentUser: (json['likedByCurrentUser'] as bool?) ?? false,
     );
   }
 
@@ -140,6 +143,7 @@ class FeedContentModel {
       'bookTitle': bookTitle,
       'bookCoverUrl': bookCoverUrl,
       'bookAuthors': bookAuthors,
+      'likedByCurrentUser': likedByCurrentUser,
     };
   }
 
@@ -160,6 +164,7 @@ class FeedContentModel {
       bookTitle: bookTitle,
       bookCoverUrl: bookCoverUrl,
       bookAuthors: bookAuthors,
+      likedByCurrentUser: likedByCurrentUser,
     );
   }
 

@@ -7,6 +7,7 @@ class FeedComment {
   final String? authorUsername;
   final String? authorAvatarUrl;
   final bool deleted;
+  final bool likedByCurrentUser;
 
   const FeedComment({
     required this.id,
@@ -17,9 +18,15 @@ class FeedComment {
     this.authorUsername,
     this.authorAvatarUrl,
     required this.deleted,
+    required this.likedByCurrentUser,
   });
 
-  FeedComment copyWith({String? text, int? likeCount, bool? deleted}) {
+  FeedComment copyWith({
+    String? text,
+    int? likeCount,
+    bool? deleted,
+    bool? likedByCurrentUser,
+  }) {
     return FeedComment(
       id: id,
       userId: userId,
@@ -29,6 +36,7 @@ class FeedComment {
       authorUsername: authorUsername,
       authorAvatarUrl: authorAvatarUrl,
       deleted: deleted ?? this.deleted,
+      likedByCurrentUser: likedByCurrentUser ?? this.likedByCurrentUser,
     );
   }
 }

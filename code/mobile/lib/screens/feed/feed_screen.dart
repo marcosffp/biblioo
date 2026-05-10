@@ -502,8 +502,11 @@ class _ReviewPostCard extends StatelessWidget {
             Row(
               children: [
                 _ActionButton(
-                  icon: Icons.favorite_border,
+                  icon: content.likedByCurrentUser
+                      ? Icons.favorite
+                      : Icons.favorite_border,
                   label: '${content.likeCount}',
+                  color: content.likedByCurrentUser ? Colors.red : null,
                   onTap: content.userId == currentUserId
                       ? null
                       : () => context.read<FeedBloc>().add(
@@ -618,8 +621,11 @@ class _TextPostCardState extends State<_TextPostCard> {
             Row(
               children: [
                 _ActionButton(
-                  icon: Icons.favorite_border,
+                  icon: content.likedByCurrentUser
+                      ? Icons.favorite
+                      : Icons.favorite_border,
                   label: '${content.likeCount}',
+                  color: content.likedByCurrentUser ? Colors.red : null,
                   onTap: content.userId == widget.currentUserId
                       ? null
                       : () => context.read<FeedBloc>().add(
@@ -946,12 +952,19 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
+  final Color? color;
 
-  const _ActionButton({required this.icon, required this.label, this.onTap});
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final resolvedColor = color ?? theme.colorScheme.onSurfaceVariant;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
@@ -959,9 +972,12 @@ class _ActionButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+            Icon(icon, size: 18, color: resolvedColor),
             const SizedBox(width: 4),
-            Text(label, style: theme.textTheme.bodySmall),
+            Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(color: resolvedColor),
+            ),
           ],
         ),
       ),
