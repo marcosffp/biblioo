@@ -186,6 +186,7 @@ class FeedBloc extends Bloc<FeedEvent, FeedState> {
         createdAt: item.createdAt,
         content: item.content.copyWith(
           likeCount: (item.content.likeCount + delta).clamp(0, 1 << 31).toInt(),
+          likedByCurrentUser: liked,
         ),
       );
     }).toList();

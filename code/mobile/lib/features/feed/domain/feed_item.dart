@@ -38,6 +38,7 @@ class FeedContent {
   final String? bookTitle;
   final String? bookCoverUrl;
   final List<String> bookAuthors;
+  final bool likedByCurrentUser;
 
   const FeedContent({
     required this.id,
@@ -55,9 +56,14 @@ class FeedContent {
     this.bookTitle,
     this.bookCoverUrl,
     required this.bookAuthors,
+    required this.likedByCurrentUser,
   });
 
-  FeedContent copyWith({int? likeCount, int? commentCount}) {
+  FeedContent copyWith({
+    int? likeCount,
+    int? commentCount,
+    bool? likedByCurrentUser,
+  }) {
     return FeedContent(
       id: id,
       userId: userId,
@@ -74,6 +80,7 @@ class FeedContent {
       bookTitle: bookTitle,
       bookCoverUrl: bookCoverUrl,
       bookAuthors: bookAuthors,
+      likedByCurrentUser: likedByCurrentUser ?? this.likedByCurrentUser,
     );
   }
 }

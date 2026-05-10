@@ -148,9 +148,8 @@ public class CommentService implements CommentUseCase {
     int rowsDeleted = commentRepository.softDeleteComment(commentId, userId);
 
     if (rowsDeleted > 0) {
-      int childrenDeleted = commentRepository.softDeleteAllByParentId(commentId);
       Long rootId = findRootCommentableId(comment.getParentId());
-      commentableRepository.decrementCommentCountBy(rootId, 1 + childrenDeleted);
+      commentableRepository.decrementCommentCountBy(rootId, 1);
       var urlsToDelete = new ArrayList<String>();
       if (comment.getImages() != null) urlsToDelete.addAll(comment.getImages());
       if (comment.getGifUrl() != null && !comment.getGifUrl().isEmpty()) {

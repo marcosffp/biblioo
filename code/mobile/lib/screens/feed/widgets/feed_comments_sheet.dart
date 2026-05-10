@@ -412,10 +412,13 @@ class _CommentTileState extends State<_CommentTile> {
                       spacing: 12,
                       children: [
                         _InlineAction(
-                          icon: Icons.favorite_border,
+                          icon: comment.likedByCurrentUser
+                              ? Icons.favorite
+                              : Icons.favorite_border,
                           label: comment.likeCount > 0
                               ? 'Curtir (${comment.likeCount})'
                               : 'Curtir',
+                          color: comment.likedByCurrentUser ? Colors.red : null,
                           onTap: _toggleLike,
                         ),
                         _InlineAction(
@@ -585,10 +588,13 @@ class _ReplyTile extends StatelessWidget {
                   spacing: 12,
                   children: [
                     _InlineAction(
-                      icon: Icons.favorite_border,
+                      icon: reply.likedByCurrentUser
+                          ? Icons.favorite
+                          : Icons.favorite_border,
                       label: reply.likeCount > 0
                           ? 'Curtir (${reply.likeCount})'
                           : 'Curtir',
+                      color: reply.likedByCurrentUser ? Colors.red : null,
                       onTap: () => context.read<FeedCommentsBloc>().add(
                         FeedCommentLikeToggled(reply.id),
                       ),

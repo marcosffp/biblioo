@@ -9,6 +9,7 @@ class FeedCommentModel {
   final String? authorUsername;
   final String? authorAvatarUrl;
   final bool deleted;
+  final bool likedByCurrentUser;
 
   const FeedCommentModel({
     required this.id,
@@ -19,6 +20,7 @@ class FeedCommentModel {
     this.authorUsername,
     this.authorAvatarUrl,
     required this.deleted,
+    required this.likedByCurrentUser,
   });
 
   factory FeedCommentModel.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,7 @@ class FeedCommentModel {
       authorUsername: json['authorUsername'] as String?,
       authorAvatarUrl: json['authorAvatarUrl'] as String?,
       deleted: (json['deleted'] as bool?) ?? false,
+      likedByCurrentUser: (json['likedByCurrentUser'] as bool?) ?? false,
     );
   }
 
@@ -44,6 +47,7 @@ class FeedCommentModel {
       authorUsername: authorUsername,
       authorAvatarUrl: authorAvatarUrl,
       deleted: deleted,
+      likedByCurrentUser: likedByCurrentUser,
     );
   }
 

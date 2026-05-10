@@ -139,6 +139,7 @@ class FeedCommentsBloc extends Bloc<FeedCommentsEvent, FeedCommentsState> {
       emit(
         current.copyWith(
           repliesByCommentId: nextReplies,
+          commentCountDelta: 1,
           clearActionError: true,
         ),
       );
@@ -187,6 +188,7 @@ class FeedCommentsBloc extends Bloc<FeedCommentsEvent, FeedCommentsState> {
       emit(
         current.copyWith(
           repliesByCommentId: nextReplies,
+          commentCountDelta: -1,
           clearActionError: true,
         ),
       );
@@ -325,6 +327,7 @@ class FeedCommentsBloc extends Bloc<FeedCommentsEvent, FeedCommentsState> {
                   likeCount: (comment.likeCount + delta)
                       .clamp(0, 1 << 31)
                       .toInt(),
+                  likedByCurrentUser: liked,
                 )
               : comment,
         )
