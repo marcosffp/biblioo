@@ -6,6 +6,7 @@ import com.biblioo.dna.domain.exception.DnaInFormationException;
 import com.biblioo.feed.domain.exception.FeedPostBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
+import com.biblioo.user.domain.exception.EmailRegisteredWithPasswordException;
 import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
 import com.biblioo.user.domain.exception.GoogleAccountNeedsPasswordException;
 import com.biblioo.user.domain.exception.GoogleAuthException;
@@ -272,6 +273,12 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
   ResponseEntity<ErrorResponse> handleGoogleAccountNeedsPassword(
       GoogleAccountNeedsPasswordException ex, HttpServletRequest request) {
     return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(EmailRegisteredWithPasswordException.class)
+  ResponseEntity<ErrorResponse> handleEmailRegisteredWithPassword(
+      EmailRegisteredWithPasswordException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
 
