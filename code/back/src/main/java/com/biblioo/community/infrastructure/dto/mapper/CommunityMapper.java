@@ -1,9 +1,10 @@
 package com.biblioo.community.infrastructure.dto.mapper;
 
 import com.biblioo.community.domain.model.Community;
-import com.biblioo.community.domain.model.CommunityRole;
-import com.biblioo.community.infrastructure.dto.CommunityDetailResponse;
-import com.biblioo.community.infrastructure.dto.CommunityResponse;
+import com.biblioo.community.domain.model.enumeration.CommunityRole;
+import com.biblioo.community.infrastructure.dto.community.CommunityDetailResponse;
+import com.biblioo.community.infrastructure.dto.community.CommunityResponse;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

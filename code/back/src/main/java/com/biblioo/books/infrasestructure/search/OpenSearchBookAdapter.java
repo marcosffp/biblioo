@@ -128,7 +128,6 @@ public class OpenSearchBookAdapter {
           IndexRequest.of(
               ir -> ir.index(INDEX_NAME).id(String.valueOf(book.getId())).document(doc));
       client.index(request);
-      log.debug("Livro indexado no OpenSearch. isbn={}", book.getIsbn());
     } catch (IOException e) {
       log.error(
           "Falha ao indexar livro no OpenSearch. isbn={}. O dado permanece no MySQL. Causa: {}",
@@ -160,8 +159,6 @@ public class OpenSearchBookAdapter {
       if (response.errors()) {
         log.warn(
             "Alguns livros não foram indexados durante o indexAll. Verifique os logs do OpenSearch.");
-      } else {
-        log.info("indexAll concluído. {} livros indexados.", books.size());
       }
     } catch (IOException e) {
       log.error(
@@ -192,17 +189,14 @@ public class OpenSearchBookAdapter {
     try {
       BooleanResponse exists = client.indices().exists(e -> e.index(INDEX_NAME));
       if (!exists.value()) {
-        log.info("Índice {} não encontrado. Criando índice...", INDEX_NAME);
         client.indices().create(c -> c.index(INDEX_NAME));
       }
 
       long indexed = count();
       if (indexed > 0) {
-        log.info("OpenSearch já contêm {} livros. Bootstrap ignorado.", indexed);
         return;
       }
 
-      log.info("Índice OpenSearch vazio. Iniciando bootstrap a partir do banco de dados...");
       indexAll(repository.findAll());
 
     } catch (Exception e) {

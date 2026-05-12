@@ -31,11 +31,6 @@ public class NotificationConsumer {
     MDC.put("trail", "NOTIFICATION");
 
     try {
-      log.info(
-          "[Notification-Consumer] Processando event_id={} type={}",
-          eventId,
-          message.getEventType());
-
       JsonNode payload = message.getPayload();
 
       switch (message.getEventType()) {
@@ -50,7 +45,6 @@ public class NotificationConsumer {
                 message.getEventType());
       }
 
-      log.info("[Notification-Consumer] Concluído event_id={}", eventId);
 
     } catch (Exception ex) {
       log.error(

@@ -33,7 +33,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT t FROM RefreshToken t WHERE t.token = :token")
   Optional<RefreshToken> findByTokenForUpdate(@Param("token") String token);
-  /** Atalho que injeta o timestamp atual — use em chamadas de limpeza rotineiras. */
   default void deleteExpiredOrUsed(Long userId) {
     deleteExpiredOrUsedByUserId(userId, LocalDateTime.now());
   }

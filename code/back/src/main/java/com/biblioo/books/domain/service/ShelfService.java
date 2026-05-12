@@ -129,10 +129,6 @@ public class ShelfService implements ShelfUseCase {
             : 0;
     int progressPercent = statusToSet == ReadingStatus.COMPLETED ? 100 : 0;
 
-    // Check for any existing row, including soft-deleted ones.
-    // existsByShelfIdAndBookId is filtered by @SQLRestriction (deleted_at IS NULL) — it misses
-    // soft-deleted rows. A subsequent INSERT then violates the unique constraint uk_shelf_book.
-    // Instead, look up the row regardless of deletion state and reactivate if soft-deleted.
     ShelfItem savedItem =
         shelfItemRepository
             .findByShelfIdAndBookIdIncludingDeleted(shelfId, bookId)
@@ -141,7 +137,6 @@ public class ShelfService implements ShelfUseCase {
                   if (existing.getDeletedAt() == null) {
                     throw new ShelfBusinessException("O livro já está nesta estante.");
                   }
-                  // Reactivate the soft-deleted row in-place to avoid uk_shelf_book violation
                   existing.setDeletedAt(null);
                   existing.setStatus(statusToSet);
                   existing.setTotalPages(totalPages);

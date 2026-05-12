@@ -42,7 +42,6 @@ protected void doFilterInternal(
 
   Long userId = jwtService.extractUserId(token);
   if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-    // Token já foi validado criptograficamente — nenhuma consulta ao banco necessária
     UserDetails userDetails = userDetailsService.loadUserByUsername(userId.toString());
     UsernamePasswordAuthenticationToken auth =
         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

@@ -54,7 +54,6 @@ public class ShareCardDataService {
     int totalPages = computeTotalPages(userId, allHistory);
 
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-      // busca título + coverUrl de cada livro em paralelo (1 chamada por livro)
       var infoFutures =
           selectedBooks.stream()
               .map(
@@ -83,7 +82,6 @@ public class ShareCardDataService {
                   })
               .toList();
 
-      // baixa as capas das 3 primeiras em paralelo
       int maxCovers = Math.min(3, selectedBooks.size());
       var coverFutures =
           IntStream.range(0, maxCovers)
@@ -158,9 +156,7 @@ public class ShareCardDataService {
     }
   }
 
-  /**
-   * Prioridade: avaliados (nota desc) → completados com data → completados sem data → demais
-   */
+
   private List<BookReadingRecord> selectDisplayBooks(
       List<BookReadingRecord> allHistory, List<ReviewRecord> reviews) {
     var historyByBook =
@@ -210,9 +206,7 @@ public class ShareCardDataService {
     return result;
   }
 
-  /**
-   * Usa temas do DNA se disponíveis; caso contrário deriva do histórico por frequência e nota.
-   */
+
   private List<Map<String, Object>> getThemesForCard(
       LiteraryDna dna, List<BookReadingRecord> allHistory, List<ReviewRecord> reviews) {
     List<Map<String, Object>> dnaThemes = parseThemes(dna.getCentralThemesJson());

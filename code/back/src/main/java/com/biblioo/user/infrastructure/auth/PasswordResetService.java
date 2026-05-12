@@ -59,7 +59,6 @@ public class PasswordResetService implements PasswordResetUseCase {
 @Override
 @Transactional
 public PasswordResetResponse requestPasswordReset(String email, String clientType) {
-  log.info("[PasswordReset] Iniciando solicitação email={} clientType={}", email, clientType);
 
   Optional<User> userOpt = userRepo.findByEmail(email);
 
@@ -70,11 +69,9 @@ public PasswordResetResponse requestPasswordReset(String email, String clientTyp
   }
 
   User user = userOpt.get();
-  log.info("[PasswordReset] Usuário encontrado userId={} googleId={}", user.getId(), user.getGoogleId());
 
   LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
   long recentCount = resetTokenRepo.countRecentRequests(user.getId(), oneHourAgo);
-  log.info("[PasswordReset] Solicitações recentes userId={} count={} max={}", user.getId(), recentCount, MAX_REQUESTS_PER_HOUR);
   if (recentCount >= MAX_REQUESTS_PER_HOUR) {
     log.warn("[PasswordReset] Rate limit atingido userId={}", user.getId());
     throw new PasswordResetRateLimitException();
@@ -86,13 +83,10 @@ public PasswordResetResponse requestPasswordReset(String email, String clientTyp
   resetToken.setUserId(user.getId());
   resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(TOKEN_EXPIRATION_MINUTES));
   resetTokenRepo.save(resetToken);
-  log.info("[PasswordReset] Token salvo userId={} expiresAt={}", user.getId(), resetToken.getExpiresAt());
 
   String resetLink = buildResetLink(clientType, rawToken);
-  log.info("[PasswordReset] Enviando email userId={} clientType={} resetLink={}", user.getId(), clientType, resetLink);
   emailPort.sendPasswordResetEmail(user.getEmail(), user.getUsername(), resetLink);
 
-  log.info("[PasswordReset] Solicitação concluída userId={}", user.getId());
   return new PasswordResetResponse(
       "Se o e-mail estiver cadastrado, você receberá um link em breve.");
 }
@@ -128,7 +122,6 @@ private String buildResetLink(String clientType, String token) {
             .findById(resetToken.getUserId())
             .orElseThrow(() -> new UserNotFoundException(resetToken.getUserId()));
 
-    // RN-12: salvar nova senha com hash, invalidar token, encerrar sessões
     user.setPasswordHash(passwordEncoder.encode(newPassword));
     userRepo.save(user);
 
@@ -137,10 +130,8 @@ private String buildResetLink(String clientType, String token) {
 
     refreshTokenRepo.deleteAllByUserId(user.getId());
 
-    // RN-13: confirmação por e-mail
     emailPort.sendPasswordChangedConfirmation(user.getEmail(), user.getUsername());
 
-    log.info("Senha redefinida com sucesso userId={}", user.getId());
   }
 
   @Override
@@ -156,6 +147,5 @@ private String buildResetLink(String clientType, String token) {
     user.setPasswordHash(passwordEncoder.encode(newPassword));
     userRepo.save(user);
 
-    log.info("Senha criada com sucesso userId={}", userId);
   }
 }

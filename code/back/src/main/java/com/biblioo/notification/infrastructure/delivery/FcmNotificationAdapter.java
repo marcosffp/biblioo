@@ -47,10 +47,6 @@ public class FcmNotificationAdapter implements NotificationDeliveryPort {
               .build();
 
       FirebaseMessaging.getInstance().send(message);
-      log.info(
-          "[FCM] Notificação enviada para token={} type={}",
-          token.substring(0, 10) + "...",
-          notification.getType());
 
     } catch (Exception e) {
       log.warn("[FCM] Falha ao enviar para token: {}", e.getMessage());

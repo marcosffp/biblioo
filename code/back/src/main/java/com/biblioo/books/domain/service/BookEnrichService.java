@@ -17,14 +17,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BookEnrichService {
 
@@ -38,10 +39,6 @@ public class BookEnrichService {
 
   public List<Book> enrichSync(String query) {
     var externalBooks = external.search(query);
-    // List.of() retorna classe final interna da JDK (ImmutableCollections$List0) que Jackson
-    // serializa como [] sem wrapper de tipo — quebra o cache Redis na leitura.
-    // new ArrayList<>() garante java.util.ArrayList, que Jackson serializa corretamente
-    // como ["java.util.ArrayList", []].
     if (externalBooks.isEmpty()) return new ArrayList<>();
     var saved = persistNewBooks(externalBooks);
     return saved.isEmpty() ? new ArrayList<>(externalBooks) : new ArrayList<>(saved);
@@ -53,8 +50,7 @@ public class BookEnrichService {
       var externalBooks = external.search(query);
       persistNewBooks(externalBooks);
     } catch (Exception e) {
-      log.debug(
-          "Enriquecimento assíncrono falhou para query='{}'. Causa: {}", query, e.getMessage());
+      log.warn("Enriquecimento assíncrono falhou para query='" + query + "'. Causa: " + e.getMessage());
     }
     return CompletableFuture.completedFuture(null);
   }
@@ -66,8 +62,6 @@ public class BookEnrichService {
     resolveCategories(newBooks);
     try {
       var saved = repository.saveAll(newBooks);
-      // After saveAll, Hibernate replaces the authors List with a PersistentBag.
-      // Convert to plain ArrayList so Redis can deserialize without a Hibernate session.
       saved.forEach(
           b -> {
             if (b.getAuthors() != null) {
@@ -77,13 +71,7 @@ public class BookEnrichService {
       CompletableFuture.runAsync(() -> search.indexAll(saved), bookEnrichExecutor);
       return saved;
     } catch (DataIntegrityViolationException e) {
-      // Inserção concorrente: outra thread salvou os mesmos ISBNs entre o filterExisting e o
-      // saveAll.
-      // Com sync=true no @Cacheable isso raramente ocorre, mas mantemos como defesa de
-      // profundidade.
-      log.debug(
-          "Inserção concorrente detectada. Livros já foram salvos por outra thread. Causa: {}",
-          e.getMessage());
+      log.warn("Inserção concorrente detectada. Livros já foram salvos por outra thread. Causa: {}", e.getMessage());
       return List.of();
     }
   }

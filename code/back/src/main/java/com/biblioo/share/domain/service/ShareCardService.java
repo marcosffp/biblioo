@@ -27,11 +27,9 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ShareCardService implements ShareCardUseCase {
 
-  // ─── Canvas ────────────────────────────────────────────────────────────────
   private static final int SCALE = 3;
   private static final int W = 320 * SCALE;
 
-  // ─── Layout ───────────────────────────────────────────────────────────────
   private static final int HEADER_H = 190 * SCALE;
   private static final int PAD_X = 16 * SCALE;
   private static final int PAD_Y = 12 * SCALE;
@@ -41,7 +39,6 @@ public class ShareCardService implements ShareCardUseCase {
   private static final int SIDE_COVER_H = 104 * SCALE;
   private static final int LOGO_H = 18 * SCALE;
 
-  // ─── Paleta Biblioo ───────────────────────────────────────────────────────
   private static final Color C_BG = new Color(0x121212);
   private static final Color C_BODY = new Color(0x181818);
   private static final Color C_BRAND_500 = new Color(0x3FC3A7);
@@ -51,7 +48,6 @@ public class ShareCardService implements ShareCardUseCase {
   private static final Color C_TEXT_SEC = new Color(255, 255, 255, 102);
   private static final Color C_HDR_SEC = new Color(255, 255, 255, 180);
 
-  // ─── Fontes ───────────────────────────────────────────────────────────────
   private static final Font F_DATE = new Font(Font.SANS_SERIF, Font.PLAIN, 11 * SCALE);
   private static final Font F_LABEL = new Font(Font.SANS_SERIF, Font.BOLD, 9 * SCALE);
   private static final Font F_USER = new Font(Font.SANS_SERIF, Font.PLAIN, 12 * SCALE);
@@ -289,7 +285,6 @@ public class ShareCardService implements ShareCardUseCase {
     int cW = W - PAD_X * 2;
     int y = HEADER_H + PAD_Y;
 
-    // username (esquerda) e label DNA (direita)
     g.setFont(F_USER);
     g.setColor(C_TEXT_SEC);
     FontMetrics fmu = g.getFontMetrics();
@@ -309,7 +304,6 @@ public class ShareCardService implements ShareCardUseCase {
     }
     y += Math.max(fmu.getHeight(), fml.getHeight()) + 6 * SCALE;
 
-    // arquétipo
     String arch =
         computed && data.dna().getDominantArchetype() != null
             ? data.dna().getDominantArchetype().getLabel()
@@ -328,7 +322,6 @@ public class ShareCardService implements ShareCardUseCase {
       y += fma.getHeight() + 6 * SCALE;
     }
 
-    // complexidade
     String complexity =
         computed && data.dna().getComplexityLabel() != null
             ? data.dna().getComplexityLabel()
@@ -343,7 +336,6 @@ public class ShareCardService implements ShareCardUseCase {
     g.drawString(complexity, x + dotD + 6 * SCALE, y + fmc.getAscent());
     y += fmc.getHeight() + 8 * SCALE;
 
-    // stats: "N livros lidos · P páginas"
     int booksRead = data.dna().getBooksReadCount() != null ? data.dna().getBooksReadCount() : 0;
     g.setFont(F_STATS_INLINE_B);
     FontMetrics fmInB = g.getFontMetrics();
@@ -381,7 +373,6 @@ public class ShareCardService implements ShareCardUseCase {
 
     y += fmInB.getHeight() + 10 * SCALE;
 
-    // grid 2 colunas: gêneros | livros
     int gapCol = 16 * SCALE;
     int colW1 = (int) ((cW - gapCol) * 0.4);
     int colW2 = cW - gapCol - colW1;
@@ -446,7 +437,6 @@ public class ShareCardService implements ShareCardUseCase {
     }
   }
 
-  // ─── Utilitários de rendering ─────────────────────────────────────────────
 
   private String truncate(String text, FontMetrics fm, int maxW) {
     if (fm.stringWidth(text) <= maxW) return text;

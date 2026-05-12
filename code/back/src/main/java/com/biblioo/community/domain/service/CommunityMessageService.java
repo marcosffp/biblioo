@@ -3,16 +3,16 @@ package com.biblioo.community.domain.service;
 import com.biblioo.community.domain.exception.CommunityAccessDeniedException;
 import com.biblioo.community.domain.exception.CommunityBusinessException;
 import com.biblioo.community.domain.model.CommunityMessage;
-import com.biblioo.community.domain.model.CommunityRole;
 import com.biblioo.community.domain.model.MessageReaction;
-import com.biblioo.community.domain.model.MessageType;
-import com.biblioo.community.domain.model.ReactionType;
+import com.biblioo.community.domain.model.enumeration.CommunityRole;
+import com.biblioo.community.domain.model.enumeration.MessageType;
+import com.biblioo.community.domain.model.enumeration.ReactionType;
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.domain.port.out.MessageCachePort;
-import com.biblioo.community.infrastructure.dto.MessageMediaUploadResponse;
 import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
 import com.biblioo.community.domain.port.out.TypingUserPort;
+import com.biblioo.community.infrastructure.dto.message.MessageMediaUploadResponse;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMembershipCache;
 import com.biblioo.community.infrastructure.persistence.CommunityMessageRepository;
@@ -67,6 +67,7 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   public record MessageEditedEvent(CommunityMessage message) {}
   public record MessageDeletedEvent(Long communityId, Long messageId) {}
   public record MessageReactionEvent(Long communityId, Long messageId, int newCount) {}
+  private record ReactionStatus(Long communityId, Long messageId, int newCount) {}
 
   @EventListener
   public void handleMessageSent(MessageSentEvent event) {
@@ -91,10 +92,9 @@ public class CommunityMessageService implements CommunityMessageUseCase {
     broadcastPort.broadcastReaction(event.communityId(), event.messageId(), event.newCount());
   }
 
-  // ── Mensagem de sistema ───────────────────────────────────────────────────
 
   @Override
-  @org.springframework.transaction.annotation.Transactional
+  @Transactional
   public void createSystemMessage(Long communityId, Long userId, MessageType type) {
     CommunityMessage message =
         CommunityMessage.builder()
@@ -106,26 +106,22 @@ public class CommunityMessageService implements CommunityMessageUseCase {
     eventPublisher.publishEvent(new MessageSentEvent(saved));
   }
 
-  // ── Upload de mídia ───────────────────────────────────────────────────────
 
 @Override
 public MessageMediaUploadResponse uploadMessageMedia(
     Long communityId, Long userId, List<byte[]> images, byte[] gif) {
 
-  // 1. Verifica membership — abre conexão, fecha conexão, pronto
   if (!membershipCache.isMember(communityId, userId)) {
     throw new CommunityAccessDeniedException("Apenas membros podem enviar mídia.");
   }
 
-  // 2. Neste ponto, NENHUMA conexão está aberta.
-  // O .join() abaixo bloqueia a thread HTTP, mas sem sessão Hibernate ativa.
   List<String> imageUrls = new ArrayList<>();
   if (images != null && !images.isEmpty()) {
     images.stream()
         .map(bytes -> feedImagePort.uploadImage(
             bytes, "community-" + communityId, UUID.randomUUID().toString()))
-        .toList()                          // dispara todos os uploads em paralelo
-        .forEach(f -> imageUrls.add(f.join())); // só então aguarda
+        .toList()                          
+        .forEach(f -> imageUrls.add(f.join()));
   }
 
   String gifUrl = null;
@@ -138,7 +134,6 @@ public MessageMediaUploadResponse uploadMessageMedia(
   return new MessageMediaUploadResponse(imageUrls, gifUrl);
 }
 
-  // ── Send ─────────────────────────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -155,8 +150,6 @@ public MessageMediaUploadResponse uploadMessageMedia(
 
     CommunityMessage savedMessage = transactionTemplate.execute(status -> {
       boolean member = membershipCache.isMember(communityId, authorId);
-      log.debug(
-          "isMember check — communityId={}, authorId={}, result={}", communityId, authorId, member);
       if (!member) {
         throw new CommunityAccessDeniedException("Apenas membros podem enviar mensagens.");
       }
@@ -309,7 +302,6 @@ public MessageMediaUploadResponse uploadMessageMedia(
         new MessageReactionEvent(result.communityId(), result.messageId(), result.newCount()));
   }
 
-  private record ReactionStatus(Long communityId, Long messageId, int newCount) {}
 
   @Override
   @Transactional(readOnly = true)
@@ -323,7 +315,6 @@ public MessageMediaUploadResponse uploadMessageMedia(
       List<CommunityMessage> filtered =
           cached.stream().filter(m -> !m.getCreatedAt().isBefore(joined)).toList();
       if (!filtered.isEmpty()) return filtered;
-      // todo o cache é anterior ao join — busca no banco com filtro
     }
 
     if (joinedAt.isEmpty()) {

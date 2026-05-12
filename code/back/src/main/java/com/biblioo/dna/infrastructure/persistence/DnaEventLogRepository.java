@@ -25,6 +25,5 @@ public class DnaEventLogRepository {
       log.warn("[DnaEventLog] Race condition em event_id={}, descartando", eventId);
       throw new DnaEventDuplicateException(eventId);
     }
-    log.debug("[DnaEventLog] Evento registrado event_id={}", eventId);
   }
 }

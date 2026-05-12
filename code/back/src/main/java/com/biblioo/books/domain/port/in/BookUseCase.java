@@ -1,11 +1,12 @@
 package com.biblioo.books.domain.port.in;
 
 import com.biblioo.books.domain.model.Book;
-import com.biblioo.books.domain.model.BookSearchResultDTO;
+import com.biblioo.books.infrasestructure.dto.book.BookSearchResult;
+
 import java.util.List;
 
 public interface BookUseCase {
-  List<BookSearchResultDTO> search(String query);
+  List<BookSearchResult> search(String query);
 
   Book getById(Long id);
 

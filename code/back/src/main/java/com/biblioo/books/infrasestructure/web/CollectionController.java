@@ -4,9 +4,9 @@ import com.biblioo.books.domain.model.Collection;
 import com.biblioo.books.domain.model.Shelf;
 import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.BookUseCase;
+import com.biblioo.books.domain.port.in.CollectionStatsUseCase;
 import com.biblioo.books.domain.port.in.CollectionUseCase;
 import com.biblioo.books.domain.port.in.ShelfUseCase;
-import com.biblioo.books.domain.service.CollectionStatsService;
 import com.biblioo.books.infrasestructure.dto.collection.AddShelfToCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionStatisticsResponse;
@@ -47,8 +47,8 @@ public class CollectionController {
   private final CollectionUseCase collectionUseCase;
   private final ShelfUseCase shelfUseCase;
   private final BookUseCase bookUseCase;
-  private final CollectionStatsService statsService;
   private final CollectionMapper mapper;
+  private final CollectionStatsUseCase collectionStatsUseCase;
 
   @GetMapping
   @Operation(
@@ -84,7 +84,7 @@ public class CollectionController {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(col, previews, statsService.computeStats(col)));
+    return ResponseEntity.ok(mapper.toResponse(col, previews, collectionStatsUseCase.computeStats(col)));
   }
 
   @GetMapping("/user/{userId}")
@@ -119,7 +119,7 @@ public class CollectionController {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(col, previews, statsService.computeStats(col)));
+    return ResponseEntity.ok(mapper.toResponse(col, previews, collectionStatsUseCase.computeStats(col)));
   }
 
   @PostMapping
@@ -211,44 +211,8 @@ public class CollectionController {
       @Parameter(description = "ID da coleção", example = "1") @PathVariable Long collectionId) {
 
     Long userId = currentUserId(principal);
-    Collection col = collectionUseCase.getCollection(userId, collectionId);
-
-    int totalBooks = 0;
-    int booksCompleted = 0;
-    int booksReading = 0;
-    int booksRereading = 0;
-    int booksWantToRead = 0;
-    int booksAbandoned = 0;
-    int totalPages = 0;
-    int pagesRead = 0;
-
-    for (Shelf shelf : col.getShelves()) {
-      List<ShelfItem> items = loadItemsSafely(userId, shelf.getId());
-      for (ShelfItem item : items) {
-        totalBooks++;
-        switch (item.getStatus()) {
-          case COMPLETED -> booksCompleted++;
-          case READING -> booksReading++;
-          case REREADING -> booksRereading++;
-          case WANT_TO_READ -> booksWantToRead++;
-          case ABANDONED -> booksAbandoned++;
-        }
-        if (item.getTotalPages() != null) totalPages += item.getTotalPages();
-        if (item.getCurrentPage() != null) pagesRead += item.getCurrentPage();
-      }
-    }
-
-    return ResponseEntity.ok(
-        new CollectionStatisticsResponse(
-            collectionId,
-            totalBooks,
-            booksCompleted,
-            booksReading,
-            booksRereading,
-            booksWantToRead,
-            booksAbandoned,
-            totalPages,
-            pagesRead));
+       return ResponseEntity.ok(
+        collectionStatsUseCase.computeStatistics(userId, collectionId));
   }
 
   @DeleteMapping("/{collectionId}")

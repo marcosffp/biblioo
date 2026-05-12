@@ -2,9 +2,9 @@ package com.biblioo.books.domain.service;
 
 import com.biblioo.books.domain.exception.BookNotFoundException;
 import com.biblioo.books.domain.model.Book;
-import com.biblioo.books.domain.model.BookSearchResultDTO;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.infrasestructure.config.BookQueryHelper;
+import com.biblioo.books.infrasestructure.dto.book.BookSearchResult;
 import com.biblioo.books.infrasestructure.persistence.BookRepository;
 import com.biblioo.books.infrasestructure.search.OpenSearchBookAdapter;
 import java.time.Duration;
@@ -45,14 +45,12 @@ public class BookService implements BookUseCase {
   private static final String BOOK_DETAIL_KEY_PREFIX = "biblioo:book-detail::";
   private static final Duration BOOK_DETAIL_TTL = Duration.ofHours(1);
 
-  // Deduplication de requests simultâneos para a mesma query.
-  // putIfAbsent garante que apenas a primeira thread executa doSearch;
-  // as demais aguardam o mesmo CompletableFuture na thread HTTP (classloader correto).
-  private final ConcurrentHashMap<String, CompletableFuture<List<BookSearchResultDTO>>> inFlight =
+
+  private final ConcurrentHashMap<String, CompletableFuture<List<BookSearchResult>>> inFlight =
       new ConcurrentHashMap<>();
 
   @Override
-  public List<BookSearchResultDTO> search(String query) {
+  public List<BookSearchResult> search(String query) {
     String key = query.strip().toLowerCase();
     Cache cache = cacheManager.getCache("book-search");
 
@@ -61,9 +59,6 @@ public class BookService implements BookUseCase {
       try {
         hit = cache.get(key);
       } catch (Exception e) {
-        // Entrada corrompida (formato legado, PersistentBag serializado ou incompatibilidade de
-        // classloader). cache.get() manual não passa pelo CacheErrorHandler do Spring, por isso
-        // capturamos aqui e evictamos para garantir que a próxima chamada refaça a busca.
         log.warn(
             "Cache GET corrompido para book-search key='{}'. Evictando e tratando como miss. Causa: {}",
             key,
@@ -77,17 +72,16 @@ public class BookService implements BookUseCase {
       if (hit != null) {
         try {
           @SuppressWarnings("unchecked")
-          List<BookSearchResultDTO> cached = (List<BookSearchResultDTO>) hit.get();
+          List<BookSearchResult> cached = (List<BookSearchResult>) hit.get();
           return cached != null ? cached : List.of();
         } catch (ClassCastException e) {
-          // DevTools RestartClassLoader: entrada stale do classloader anterior — evicta e recalcula.
           cache.evict(key);
         }
       }
     }
 
-    CompletableFuture<List<BookSearchResultDTO>> myFuture = new CompletableFuture<>();
-    CompletableFuture<List<BookSearchResultDTO>> existing = inFlight.putIfAbsent(key, myFuture);
+    CompletableFuture<List<BookSearchResult>> myFuture = new CompletableFuture<>();
+    CompletableFuture<List<BookSearchResult>> existing = inFlight.putIfAbsent(key, myFuture);
 
     if (existing != null) {
       try {
@@ -99,7 +93,7 @@ public class BookService implements BookUseCase {
     }
 
     try {
-      List<BookSearchResultDTO> result = doSearch(key);
+      List<BookSearchResult> result = doSearch(key);
       myFuture.complete(result);
       if (!result.isEmpty() && cache != null) {
         cache.put(key, result);
@@ -114,7 +108,7 @@ public class BookService implements BookUseCase {
     }
   }
 
-  private List<BookSearchResultDTO> doSearch(String query) {
+  private List<BookSearchResult> doSearch(String query) {
     var futureLocal =
         CompletableFuture.supplyAsync(() -> search.search(query), bookEnrichExecutor)
             .exceptionally(
@@ -144,8 +138,8 @@ public class BookService implements BookUseCase {
     }
   }
 
-  private BookSearchResultDTO toSearchResult(Book book) {
-    return BookSearchResultDTO.builder()
+  private BookSearchResult toSearchResult(Book book) {
+    return BookSearchResult.builder()
         .id(book.getId())
         .title(book.getTitle())
         .authors(book.getAuthors() != null ? new ArrayList<>(book.getAuthors()) : new ArrayList<>())
@@ -189,7 +183,6 @@ public class BookService implements BookUseCase {
         bookCacheTemplate.opsForValue().set(BOOK_DETAIL_KEY_PREFIX + book.getId(), book, BOOK_DETAIL_TTL);
         result.put(book.getId(), book);
       }
-      log.debug("[Book] MGET: {} hits, {} DB misses", ids.size() - missingIds.size(), missingIds.size());
     }
 
     return ids.stream().map(result::get).filter(java.util.Objects::nonNull).toList();

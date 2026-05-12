@@ -41,7 +41,6 @@ public class DiceRollService implements DiceRollUseCase {
     List<Long> pool = new ArrayList<>(seen);
 
     if (pool.isEmpty()) {
-      log.info("[DiceRoll] Pool vazio para userId={}, usando fallback global", userId);
       pool = fallbackService.getPopularBookIds(fallbackPoolSize);
     }
 
@@ -51,7 +50,6 @@ public class DiceRollService implements DiceRollUseCase {
     }
 
     Long rolled = pool.get(random.nextInt(pool.size()));
-    log.info("[DiceRoll] userId={} sorteou bookId={} de pool com {} candidatos", userId, rolled, pool.size());
     return new DiceRollResult(rolled);
   }
 

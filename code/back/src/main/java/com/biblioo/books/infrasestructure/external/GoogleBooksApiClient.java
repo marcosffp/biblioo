@@ -34,10 +34,6 @@ public class GoogleBooksApiClient {
   public List<VolumeItem> fetch(String queryString) {
     return retryTemplate.execute(
         ctx -> {
-          if (ctx.getRetryCount() > 0) {
-            log.debug(
-                "Retentativa {} para Google Books. query='{}'", ctx.getRetryCount(), queryString);
-          }
           GoogleBooksResponse response =
               restClient
                   .get()

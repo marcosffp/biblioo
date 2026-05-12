@@ -48,7 +48,6 @@ public class CloudinaryStorageAdapter implements ProfileImagePort, FeedImagePort
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
           }
         } catch (Exception e) {
-          // Ignores the exception and continues deleting the rest
         }
       }
     }

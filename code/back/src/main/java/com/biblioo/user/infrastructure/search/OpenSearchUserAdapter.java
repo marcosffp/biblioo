@@ -68,7 +68,6 @@ public class OpenSearchUserAdapter implements UserSearchPort {
         return indexedUsers;
       }
 
-      log.info("User search sem resultados no OpenSearch para term='{}'. Aplicando fallback em MySQL.", term);
       return userRepository.findByUsernamePrefix(term, PageRequest.of(safePage, safeSize));
 
     } catch (IOException e) {
@@ -96,7 +95,6 @@ public class OpenSearchUserAdapter implements UserSearchPort {
           IndexRequest.of(
               ir -> ir.index(INDEX_NAME).id(String.valueOf(user.getId())).document(doc));
       client.index(request);
-      log.debug("Usuário indexado no OpenSearch. id={}", user.getId());
     } catch (IOException e) {
       log.error(
           "Falha ao indexar usuário no OpenSearch. id={}. Dado permanece no MySQL. Causa: {}",
@@ -110,7 +108,6 @@ public class OpenSearchUserAdapter implements UserSearchPort {
     try {
       var request = DeleteRequest.of(dr -> dr.index(INDEX_NAME).id(String.valueOf(userId)));
       client.delete(request);
-      log.debug("Usuário removido do índice OpenSearch. id={}", userId);
     } catch (IOException e) {
       log.error("Falha ao remover usuário do OpenSearch. id={}. Causa: {}", userId, e.getMessage());
     }
@@ -122,19 +119,15 @@ public class OpenSearchUserAdapter implements UserSearchPort {
     try {
       BooleanResponse exists = client.indices().exists(e -> e.index(INDEX_NAME));
       if (!exists.value()) {
-        log.info("Índice {} não encontrado. Criando...", INDEX_NAME);
         client.indices().create(c -> c.index(INDEX_NAME));
       }
 
       long count = client.count(c -> c.index(INDEX_NAME)).count();
       if (count > 0) {
-        log.info("Índice users já contém {} documentos. Bootstrap ignorado.", count);
         return;
       }
 
-      log.info("Índice users vazio. Iniciando bootstrap a partir do banco...");
       userRepository.findAll().forEach(this::index);
-      log.info("Bootstrap do índice users concluído.");
 
     } catch (Exception e) {
       log.error(

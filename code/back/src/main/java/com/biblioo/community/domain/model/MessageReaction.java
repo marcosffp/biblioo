@@ -2,6 +2,9 @@ package com.biblioo.community.domain.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
+import com.biblioo.community.domain.model.enumeration.ReactionType;
+
 import lombok.*;
 
 @Entity

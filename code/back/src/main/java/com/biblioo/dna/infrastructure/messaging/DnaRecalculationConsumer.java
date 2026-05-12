@@ -29,13 +29,11 @@ public class DnaRecalculationConsumer {
     MDC.put("event_id", eventId);
     try {
       if (eventLogRepository.existsByEventId(eventId)) {
-        log.info("{} Evento duplicado event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
       Long userId = extractUserId(message);
       if (userId == null) {
-        log.warn("{} userId não encontrado no evento event_id={}", LOG_PREFIX, eventId);
         return;
       }
 
@@ -46,13 +44,10 @@ public class DnaRecalculationConsumer {
             userId,
             objectMapper.writeValueAsString(message.getPayload()));
       } catch (DnaEventDuplicateException ex) {
-        log.info("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
-      log.info("{} Recalculando DNA para userId={} event_id={}", LOG_PREFIX, userId, eventId);
       literaryDnaUseCase.triggerRecalculation(userId);
-      log.info("{} DNA recalculado userId={} event_id={}", LOG_PREFIX, userId, eventId);
 
     } catch (Exception ex) {
       log.error("{} Falha event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);

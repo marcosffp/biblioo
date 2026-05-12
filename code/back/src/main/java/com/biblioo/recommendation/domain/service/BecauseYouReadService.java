@@ -47,10 +47,6 @@ public class BecauseYouReadService {
     List<BookScore> candidates = computeWithFallback(userId, bookId);
 
     if (candidates.isEmpty()) {
-      log.info(
-          "[BYR] Nenhum candidato para user={} book={}, mantendo resultado anterior",
-          userId,
-          bookId);
       return;
     }
 
@@ -58,12 +54,6 @@ public class BecauseYouReadService {
 
     resultRepository.upsertByr(userId, processed, seedBookTitle);
 
-    log.info(
-        "[BYR] {} recomendações persistidas para user={} seedBook='{}' source={}",
-        processed.size(),
-        userId,
-        seedBookTitle,
-        processed.isEmpty() ? "none" : processed.get(0).getSource());
   }
 
   @Cacheable(value = "rec-byr", key = "#userId")
@@ -77,8 +67,7 @@ public class BecauseYouReadService {
       if (!graphResults.isEmpty()) {
         return graphResults;
       }
-      log.info(
-          "[BYR] Grafo retornou vazio para user={} book={}, tentando fallback SQL", userId, bookId);
+
       return computeService.compute(userId, bookId);
     } catch (Exception ex) {
       log.warn(

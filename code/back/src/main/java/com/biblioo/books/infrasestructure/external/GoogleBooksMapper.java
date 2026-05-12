@@ -96,7 +96,6 @@ public class GoogleBooksMapper {
     try {
       return LocalDate.parse(raw.trim(), FLEXIBLE_DATE);
     } catch (Exception e) {
-      log.debug("publishedDate ignorada — formato inesperado: '{}'", raw);
       return null;
     }
   }

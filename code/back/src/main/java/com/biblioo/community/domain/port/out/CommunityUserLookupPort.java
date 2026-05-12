@@ -1,8 +1,9 @@
 package com.biblioo.community.domain.port.out;
 
-import com.biblioo.community.domain.model.CommunityUserSummary;
 import java.util.List;
 import java.util.Map;
+
+import com.biblioo.community.infrastructure.dto.community.CommunityUserSummary;
 
 public interface CommunityUserLookupPort {
   boolean existsById(Long userId);

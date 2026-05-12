@@ -2,10 +2,10 @@ package com.biblioo.feed.domain.service;
 
 import com.biblioo.feed.domain.model.FeedItem;
 import com.biblioo.feed.domain.model.FeedPost;
-import com.biblioo.feed.domain.model.FeedSlice;
 import com.biblioo.feed.domain.port.in.FeedUseCase;
 import com.biblioo.feed.domain.port.out.FeedCachePort;
 import com.biblioo.feed.domain.port.out.FollowerQueryPort;
+import com.biblioo.feed.infrastructure.dto.feed.FeedSlice;
 import com.biblioo.feed.infrastructure.persistence.FeedItemRepository;
 import com.biblioo.feed.infrastructure.persistence.FeedPostRepository;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;

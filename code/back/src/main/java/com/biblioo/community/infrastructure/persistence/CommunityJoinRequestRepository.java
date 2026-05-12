@@ -1,7 +1,8 @@
 package com.biblioo.community.infrastructure.persistence;
 
 import com.biblioo.community.domain.model.CommunityJoinRequest;
-import com.biblioo.community.domain.model.JoinRequestStatus;
+import com.biblioo.community.domain.model.enumeration.JoinRequestStatus;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

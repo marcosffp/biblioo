@@ -21,14 +21,12 @@ public class TrendingService implements TrendingUseCase {
   @Override
   @Cacheable(cacheNames = "trending-communities")
   public List<TrendingCommunityItem> getTopCommunities() {
-    log.info("Calculando top 10 comunidades em tendência");
     return trendingComputePort.computeTopCommunities();
   }
 
   @Override
   @Cacheable(cacheNames = "trending-books")
   public List<TrendingBookItem> getTopBooks() {
-    log.info("Calculando top 10 livros em tendência");
     return trendingComputePort.computeTopBooks();
   }
 

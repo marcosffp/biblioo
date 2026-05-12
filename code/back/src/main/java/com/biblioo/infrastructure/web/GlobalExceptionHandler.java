@@ -36,7 +36,6 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  // ── Assistente Bibo ────────────────────────────────────────────────────────
 
   @ExceptionHandler(com.biblioo.assistant.domain.exception.AssistantRateLimitException.class)
   ResponseEntity<ErrorResponse> handleAssistantRateLimit(
@@ -51,7 +50,6 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
   }
 
-  // ── DNA Literário ─────────────────────────────────────────────────────────
 
   @ExceptionHandler(DnaInFormationException.class)
   ResponseEntity<ErrorResponse> handleDnaInFormation(
@@ -59,7 +57,6 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.valueOf(422), ex.getMessage(), request);
   }
 
-  // ── Community ─────────────────────────────────────────────────────────────
   @ExceptionHandler(com.biblioo.community.domain.exception.CommunityBusinessException.class)
   ResponseEntity<ErrorResponse> handleCommunityBusiness(
       com.biblioo.community.domain.exception.CommunityBusinessException ex,
@@ -88,7 +85,6 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
   }
 
-  // ── Feed / Reviews ────────────────────────────────────────────────────────
   @ExceptionHandler(com.biblioo.feed.domain.exception.ReviewBusinessException.class)
   ResponseEntity<ErrorResponse> handleReviewBusiness(
       com.biblioo.feed.domain.exception.ReviewBusinessException ex, HttpServletRequest request) {
@@ -101,7 +97,6 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
   }
 
-  // ── User ──────────────────────────────────────────────────────────────────
 
   @ExceptionHandler(UserNotFoundException.class)
   ResponseEntity<ErrorResponse> handleUserNotFound(
@@ -176,7 +171,6 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
-  // ── Books ─────────────────────────────────────────────────────────────────
 
   @ExceptionHandler(BookNotFoundException.class)
   ResponseEntity<ErrorResponse> handleBookNotFound(
@@ -190,7 +184,6 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
-  // ── Validação / Input ─────────────────────────────────────────────────────
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   ResponseEntity<ValidationErrorResponse> handleValidation(
@@ -281,7 +274,6 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
     return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
   }
 
-  // ── Helper ────────────────────────────────────────────────────────────────
 
   private ResponseEntity<ErrorResponse> buildError(
       HttpStatus status, String message, HttpServletRequest request) {
@@ -295,7 +287,6 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
                 request.getRequestURI()));
   }
 
-  // ── Response DTOs ─────────────────────────────────────────────────────────
 
   public record ErrorResponse(
       LocalDateTime timestamp, int status, String error, String message, String path) {}

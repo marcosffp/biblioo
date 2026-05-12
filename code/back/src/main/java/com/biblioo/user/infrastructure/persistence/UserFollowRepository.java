@@ -43,21 +43,18 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, UserFoll
   void updateStatusToAccepted(
       @Param("followerId") Long followerId, @Param("followedId") Long followedId);
 
-  /** Retorna os seguidores aceitos de :userId. */
   @Query(
       "SELECT u FROM User u WHERE u.id IN"
           + " (SELECT f.followerId FROM UserFollow f WHERE f.followedId = :userId"
           + " AND f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED)")
   List<User> findFollowerUsers(@Param("userId") Long userId, PageRequest pageable);
 
-  /** Retorna os usuários que :userId segue (apenas aceitos). */
   @Query(
       "SELECT u FROM User u WHERE u.id IN"
           + " (SELECT f.followedId FROM UserFollow f WHERE f.followerId = :userId"
           + " AND f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED)")
   List<User> findFollowingUsers(@Param("userId") Long userId, PageRequest pageable);
 
-  /** Retorna os usuários com solicitação pendente para :userId. */
   @Query(
       "SELECT u FROM User u WHERE u.id IN"
           + " (SELECT f.followerId FROM UserFollow f WHERE f.followedId = :userId"
@@ -75,7 +72,6 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, UserFoll
           + " AND f.status = com.biblioo.user.domain.model.FollowStatus.ACCEPTED")
   long countAcceptedFollowers(@Param("userId") Long userId);
 
-  /** Retorna IDs de seguidores aceitos de followedId com followerId > afterFollowerId (cursor batch). */
   @Query(
       "SELECT f.followerId FROM UserFollow f"
           + " WHERE f.followedId = :followedId"
@@ -87,7 +83,6 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, UserFoll
       @Param("afterFollowerId") Long afterFollowerId,
       org.springframework.data.domain.Pageable pageable);
 
-  /** Retorna IDs de usuários seguidos por userId cujo total de seguidores aceitos >= threshold. */
   @Query(
       "SELECT f1.followedId FROM UserFollow f1"
           + " WHERE f1.followerId = :userId"

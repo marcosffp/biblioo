@@ -22,7 +22,7 @@ public class CommunityMembershipCache {
     if (cache != null) {
       org.springframework.cache.Cache.ValueWrapper cached = cache.get(key);
       if (cached != null) {
-        return (Boolean) cached.get(); // cache hit — zero acesso ao banco
+        return (Boolean) cached.get();
       }
     }
 

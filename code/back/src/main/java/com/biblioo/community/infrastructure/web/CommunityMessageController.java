@@ -2,13 +2,13 @@ package com.biblioo.community.infrastructure.web;
 
 import com.biblioo.community.domain.exception.CommunityAccessDeniedException;
 import com.biblioo.community.domain.exception.CommunityBusinessException;
-import com.biblioo.community.domain.model.MessageType;
+import com.biblioo.community.domain.model.enumeration.MessageType;
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
-import com.biblioo.community.infrastructure.dto.EditMessageRequest;
-import com.biblioo.community.infrastructure.dto.MessageEventPayload;
-import com.biblioo.community.infrastructure.dto.MessageResponse;
-import com.biblioo.community.infrastructure.dto.ReactMessageRequest;
-import com.biblioo.community.infrastructure.dto.SendMessageRequest;
+import com.biblioo.community.infrastructure.dto.message.EditMessageRequest;
+import com.biblioo.community.infrastructure.dto.message.MessageEventPayload;
+import com.biblioo.community.infrastructure.dto.message.MessageResponse;
+import com.biblioo.community.infrastructure.dto.message.ReactMessageRequest;
+import com.biblioo.community.infrastructure.dto.message.SendMessageRequest;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

@@ -1,7 +1,8 @@
 package com.biblioo.community.infrastructure.dto.mapper;
 
 import com.biblioo.community.domain.model.CommunityMessage;
-import com.biblioo.community.infrastructure.dto.MessageResponse;
+import com.biblioo.community.infrastructure.dto.message.MessageResponse;
+
 import java.util.List;
 import java.util.Set;
 import org.mapstruct.Mapper;

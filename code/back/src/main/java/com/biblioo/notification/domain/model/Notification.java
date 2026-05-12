@@ -43,11 +43,9 @@ public class Notification {
   @Column(name = "actor_avatar_url", length = 1000)
   private String actorAvatarUrl;
 
-  /** ID da entidade relacionada (reviewId, commentId), nulo para eventos de follow. */
   @Column(name = "entity_id")
   private Long entityId;
 
-  /** Contexto adicional para notificacoes de comunidade. */
   @Column(name = "community_id")
   private Long communityId;
 

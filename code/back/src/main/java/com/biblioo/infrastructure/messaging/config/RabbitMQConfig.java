@@ -30,7 +30,6 @@ public class RabbitMQConfig {
   public static final String EVENT_BOOK_SHELF_REMOVED = "BOOK_SHELF_REMOVED";
   public static final String EVENT_BOOK_REVIEW_STATS = "BOOK_REVIEW_STATS";
 
-  // ── Notifications ────────────────────────────────────────────────────────────
   public static final String NOTIFICATION_QUEUE = "biblioo.notification";
   public static final String NOTIFICATION_DLQ = "biblioo.notification.dlq";
   public static final String NOTIFICATION_ROUTING_PATTERN = "notification.#";
@@ -43,7 +42,6 @@ public class RabbitMQConfig {
   public static final String EVENT_USER_FOLLOW_REQUESTED = "USER_FOLLOW_REQUESTED";
   public static final String EVENT_USER_FOLLOWED = "USER_FOLLOWED";
 
-  // Community events
   public static final String NOTIFICATION_COMMUNITY_INVITE_ROUTING_KEY =
       "notification.community.invite";
   public static final String NOTIFICATION_COMMUNITY_JOIN_REQUEST_ROUTING_KEY =
@@ -55,7 +53,6 @@ public class RabbitMQConfig {
   public static final String EVENT_COMMUNITY_JOIN_REQUEST = "COMMUNITY_JOIN_REQUEST";
   public static final String EVENT_COMMUNITY_JOIN_APPROVED = "COMMUNITY_JOIN_APPROVED";
 
-  // ── Community Messages (future FCM offline delivery) ─────────────────────────
   public static final String COMMUNITY_MESSAGE_QUEUE = "biblioo.community.message";
   public static final String COMMUNITY_MESSAGE_DLQ = "biblioo.community.message.dlq";
   public static final String COMMUNITY_MESSAGE_ROUTING_PATTERN = "community.message.#";
@@ -63,43 +60,33 @@ public class RabbitMQConfig {
   public static final String COMMUNITY_MESSAGE_DLQ_ROUTING_KEY = "community.message.dead";
   public static final String EVENT_COMMUNITY_MESSAGE_CREATED = "COMMUNITY_MESSAGE_CREATED";
 
-  // ── Community WebSocket Broadcast (cross-instance via AMQP fanout) ───────────
-  // Cada instância cria um AnonymousQueue exclusivo e efêmero. O FanoutExchange
-  // entrega para todas as instâncias; cada uma filtra a própria mensagem pelo
-  // header x-instance-id e entrega as demais ao SimpleBroker local.
+
   public static final String COMMUNITY_BROADCAST_EXCHANGE = "biblioo.community.broadcast";
 
-  // ── Recommendation T1 — BECAUSE_YOU_READ ────────────────────────────────────
   public static final String BYR_QUEUE = "rec.shelf.completed";
   public static final String BYR_DLQ = "rec.shelf.completed.dlq";
   public static final String BYR_DLQ_ROUTING_KEY = "rec.shelf.dead";
   public static final String SHELF_READING_COMPLETED_ROUTING_KEY = "shelf.reading.completed";
   public static final String EVENT_SHELF_READING_COMPLETED = "SHELF_READING_COMPLETED";
 
-  // ── Recommendation T2 — FAVORITE_GENRE_NOW ───────────────────────────────────
   public static final String FGN_QUEUE = "rec.favorite-genre-now.triggered";
   public static final String FGN_DLQ = "rec.favorite-genre-now.triggered.dlq";
   public static final String FGN_DLQ_ROUTING_KEY = "rec.favorite-genre-now.dead";
 
-  // ── Recommendation T4 — CATALOG_SURPRISE (Thompson Sampling) ────────────────
-  // Fila única com dois bindings: shelf.reading.completed (α++) e shelf.reading.abandoned (β++)
   public static final String CATALOG_SURPRISE_QUEUE = "trail.catalog-surprise.recompute.queue";
   public static final String CATALOG_SURPRISE_DLQ = "trail.catalog-surprise.recompute.dlq";
   public static final String CATALOG_SURPRISE_DLQ_ROUTING_KEY = "trail.catalog-surprise.dead";
   public static final String SHELF_READING_ABANDONED_ROUTING_KEY = "shelf.reading.abandoned";
   public static final String EVENT_SHELF_READING_ABANDONED = "SHELF_READING_ABANDONED";
 
-  // ── Recommendation T5 — SIMILAR_AUTHORS ──────────────────────────────────────
   public static final String SA_QUEUE = "rec.similar-authors.triggered";
   public static final String SA_DLQ = "rec.similar-authors.triggered.dlq";
   public static final String SA_DLQ_ROUTING_KEY = "rec.similar-authors.dead";
 
-  // ── Recommendation T6 — REREAD_WORTH_IT ──────────────────────────────────────
   public static final String RWI_QUEUE = "rec.reread-worth-it.triggered";
   public static final String RWI_DLQ = "rec.reread-worth-it.triggered.dlq";
   public static final String RWI_DLQ_ROUTING_KEY = "rec.reread-worth-it.dead";
 
-  // ── Recommendation T3 — TRENDING_IN_COMMUNITIES ──────────────────────────────
   public static final String TIC_MESSAGE_QUEUE = "rec.trending-in-communities.message";
   public static final String TIC_MESSAGE_DLQ = "rec.trending-in-communities.message.dlq";
   public static final String TIC_MESSAGE_DLQ_ROUTING_KEY = "rec.trending-in-communities.message.dead";
@@ -209,7 +196,6 @@ public class RabbitMQConfig {
 
   @Bean
   Binding fgnBinding(Queue fgnQueue, TopicExchange mainExchange) {
-    // Mesmo routing key do T1 — cada fila recebe uma cópia independente do evento
     return BindingBuilder.bind(fgnQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
   }
 
@@ -264,7 +250,6 @@ public class RabbitMQConfig {
     return factory;
   }
 
-  // ── Feed Fan-out ─────────────────────────────────────────────────────────────
   public static final String FEED_FANOUT_QUEUE = "biblioo.feed.fanout";
   public static final String FEED_FANOUT_DLQ = "biblioo.feed.fanout.dlq";
   public static final String FEED_FANOUT_ROUTING_KEY = "feed.fanout.review";
@@ -278,7 +263,6 @@ public class RabbitMQConfig {
   public static final String FEED_BACKFILL_DLQ = "biblioo.feed.follow.backfill.dlq";
   public static final String FEED_BACKFILL_DLQ_ROUTING_KEY = "feed.backfill.dead";
 
-  // ── Recommendation T4 — CATALOG_SURPRISE beans ──────────────────────────────
 
   @Bean
   Queue catalogSurpriseQueue() {
@@ -295,7 +279,6 @@ public class RabbitMQConfig {
 
   @Bean
   Binding catalogSurpriseCompletedBinding(Queue catalogSurpriseQueue, TopicExchange mainExchange) {
-    // Recebe cópia independente do shelf.reading.completed → α++ no bandit
     return BindingBuilder.bind(catalogSurpriseQueue)
         .to(mainExchange)
         .with(SHELF_READING_COMPLETED_ROUTING_KEY);
@@ -303,7 +286,6 @@ public class RabbitMQConfig {
 
   @Bean
   Binding catalogSurpriseAbandonedBinding(Queue catalogSurpriseQueue, TopicExchange mainExchange) {
-    // Recebe eventos de livro abandonado → β++ no bandit
     return BindingBuilder.bind(catalogSurpriseQueue)
         .to(mainExchange)
         .with(SHELF_READING_ABANDONED_ROUTING_KEY);
@@ -316,7 +298,6 @@ public class RabbitMQConfig {
         .with(CATALOG_SURPRISE_DLQ_ROUTING_KEY);
   }
 
-  // ── Recommendation T3 — TRENDING_IN_COMMUNITIES beans ───────────────────────
 
   @Bean
   Queue ticMessageQueue() {
@@ -402,7 +383,6 @@ public class RabbitMQConfig {
 
   @Bean
   Binding feedBackfillBinding(Queue feedBackfillQueue, TopicExchange mainExchange) {
-    // Recebe cópia independente do mesmo evento de follow aceito que a fila de notificações
     return BindingBuilder.bind(feedBackfillQueue)
         .to(mainExchange)
         .with(NOTIFICATION_FOLLOWED_ROUTING_KEY);
@@ -413,7 +393,6 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(feedBackfillDlq).to(dlxExchange).with(FEED_BACKFILL_DLQ_ROUTING_KEY);
   }
 
-  // ── Recommendation T5 — SIMILAR_AUTHORS beans ───────────────────────────────
 
   @Bean
   Queue saQueue() {
@@ -430,7 +409,6 @@ public class RabbitMQConfig {
 
   @Bean
   Binding saBinding(Queue saQueue, TopicExchange mainExchange) {
-    // Cópia independente do shelf.reading.completed — mesmo routing key do T1/T2/RWI
     return BindingBuilder.bind(saQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
   }
 
@@ -439,7 +417,6 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(saDlq).to(dlxExchange).with(SA_DLQ_ROUTING_KEY);
   }
 
-  // ── Recommendation T6 — REREAD_WORTH_IT beans ───────────────────────────────
 
   @Bean
   Queue rwiQueue() {
@@ -456,7 +433,6 @@ public class RabbitMQConfig {
 
   @Bean
   Binding rwiBinding(Queue rwiQueue, TopicExchange mainExchange) {
-    // Cópia independente do shelf.reading.completed — mesmo routing key do T1/T2
     return BindingBuilder.bind(rwiQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
   }
 
@@ -465,14 +441,12 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(rwiDlq).to(dlxExchange).with(RWI_DLQ_ROUTING_KEY);
   }
 
-  // ── DNA Literário ────────────────────────────────────────────────────────────
   public static final String DNA_RECALC_QUEUE = "biblioo.dna.recalculation";
   public static final String DNA_RECALC_DLQ = "biblioo.dna.recalculation.dlq";
   public static final String DNA_RECALC_DLQ_ROUTING_KEY = "dna.recalculation.dead";
   public static final String REVIEW_RATING_UPDATED_ROUTING_KEY = "feed.review.rating.updated";
   public static final String EVENT_REVIEW_RATING_UPDATED = "REVIEW_RATING_UPDATED";
 
-  // ── Email (SendGrid via RabbitMQ) ────────────────────────────────────────────
   public static final String EMAIL_QUEUE = "biblioo.email";
   public static final String EMAIL_DLQ = "biblioo.email.dlq";
   public static final String EMAIL_ROUTING_PATTERN = "email.#";
@@ -516,7 +490,6 @@ public class RabbitMQConfig {
     return factory;
   }
 
-  // ── DNA Literário beans ──────────────────────────────────────────────────────
 
   @Bean
   Queue dnaRecalcQueue() {
@@ -557,7 +530,6 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(dnaRecalcDlq).to(dlxExchange).with(DNA_RECALC_DLQ_ROUTING_KEY);
   }
 
-  // ── Community WebSocket Broadcast beans ─────────────────────────────────────
 
   @Bean
   FanoutExchange communityBroadcastExchange() {
@@ -566,7 +538,6 @@ public class RabbitMQConfig {
 
   @Bean
   Queue communityBroadcastQueue() {
-    // Nome único por instância, auto-deletado quando a instância desconecta do RabbitMQ.
     return new AnonymousQueue();
   }
 

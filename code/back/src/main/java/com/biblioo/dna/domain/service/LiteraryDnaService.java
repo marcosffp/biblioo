@@ -51,17 +51,13 @@ public class LiteraryDnaService implements LiteraryDnaUseCase {
       dna.setStatus(DnaStatus.IN_FORMATION);
       dna.setBooksReadCount(completedCount);
       literaryDnaRepository.save(dna);
-      log.info("[DNA] Usuário {} — DNA em formação ({}/{})", userId, completedCount,
-          DnaCalculationService.MIN_BOOKS_REQUIRED);
       return;
     }
 
     DnaResult result = calculationService.calculate(history, reviews);
     applyResult(dna, result);
     literaryDnaRepository.save(dna);
-    log.info(
-        "[DNA] Recalculado para usuário={} livros={} arquétipo={}",
-        userId, result.booksReadCount(), result.dominantArchetype());
+
   }
 
 

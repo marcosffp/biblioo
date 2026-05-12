@@ -5,6 +5,10 @@ import com.biblioo.books.domain.model.Collection;
 import com.biblioo.books.domain.model.ReadingStatus;
 import com.biblioo.books.domain.model.Shelf;
 import com.biblioo.books.domain.model.ShelfItem;
+import com.biblioo.books.domain.port.in.CollectionStatsUseCase;
+import com.biblioo.books.domain.port.in.CollectionUseCase;
+import com.biblioo.books.domain.port.in.ShelfUseCase;
+import com.biblioo.books.infrasestructure.dto.collection.CollectionStatisticsResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionStatsResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionStatsResponse.GenreStats;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionStatsResponse.ProgressStats;
@@ -21,13 +25,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class CollectionStatsService {
+public class CollectionStatsService implements CollectionStatsUseCase {
 
   private static final int TOP_GENRES = 3;
 
   private final ShelfItemRepository shelfItemRepository;
   private final BookRepository bookRepository;
+  private final ShelfUseCase shelfUseCase;
+  private final CollectionUseCase collectionUseCase;
 
+  @Override
   @Transactional(readOnly = true)
   public CollectionStatsResponse computeStats(Collection collection) {
     List<Shelf> shelves = collection.getShelves();
@@ -49,6 +56,44 @@ public class CollectionStatsService {
 
     return new CollectionStatsResponse(
         computeProgress(items), computeTopGenres(books), computeAverageRating(books));
+  }
+
+    @Override
+  @Transactional(readOnly = true)
+  public CollectionStatisticsResponse computeStatistics(Long userId, Long collectionId) {
+    Collection col = collectionUseCase.getCollection(userId, collectionId);
+
+    int totalBooks = 0, booksCompleted = 0, booksReading = 0;
+    int booksRereading = 0, booksWantToRead = 0, booksAbandoned = 0;
+    int totalPages = 0, pagesRead = 0;
+
+    for (Shelf shelf : col.getShelves()) {
+      List<ShelfItem> items = loadItemsSafely(userId, shelf.getId());
+      for (ShelfItem item : items) {
+        totalBooks++;
+        switch (item.getStatus()) {
+          case COMPLETED    -> booksCompleted++;
+          case READING      -> booksReading++;
+          case REREADING    -> booksRereading++;
+          case WANT_TO_READ -> booksWantToRead++;
+          case ABANDONED    -> booksAbandoned++;
+        }
+        if (item.getTotalPages()   != null) totalPages += item.getTotalPages();
+        if (item.getCurrentPage()  != null) pagesRead  += item.getCurrentPage();
+      }
+    }
+
+    return new CollectionStatisticsResponse(
+        collectionId, totalBooks, booksCompleted, booksReading,
+        booksRereading, booksWantToRead, booksAbandoned, totalPages, pagesRead);
+  }
+
+    private List<ShelfItem> loadItemsSafely(Long userId, Long shelfId) {
+    try {
+      return shelfUseCase.listShelfItems(userId, shelfId);
+    } catch (Exception e) {
+      return List.of();
+    }
   }
 
   private ProgressStats computeProgress(List<ShelfItem> items) {

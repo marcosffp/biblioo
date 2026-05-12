@@ -134,11 +134,7 @@ public AuthResult refresh(String refreshToken) {
     return result;
   }
 
-  /**
-   * Tenta criar/vincular o usuário Google. Em caso de colisão de username por race condition,
-   * descarta a transação interna (REQUIRES_NEW em GoogleUserFactory), verifica se outro thread já
-   * criou o usuário e, se não, reexecuta com username de fallback baseado em UUID.
-   */
+
   private User createOrLink(GoogleUserInfo googleUser) {
     try {
       return googleUserFactory.findOrCreate(googleUser, generateUniqueUsername(googleUser.name()));

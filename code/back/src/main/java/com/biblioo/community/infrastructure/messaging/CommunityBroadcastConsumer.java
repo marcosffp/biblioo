@@ -1,8 +1,8 @@
 package com.biblioo.community.infrastructure.messaging;
 
-import com.biblioo.community.infrastructure.dto.CommunityBroadcastEnvelope;
-import com.biblioo.community.infrastructure.dto.TypingEventPayload;
-import com.biblioo.community.infrastructure.dto.VotingBroadcastEnvelope;
+import com.biblioo.community.infrastructure.dto.community.CommunityBroadcastEnvelope;
+import com.biblioo.community.infrastructure.dto.message.TypingEventPayload;
+import com.biblioo.community.infrastructure.dto.voting.VotingBroadcastEnvelope;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,13 +11,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * Recebe broadcasts de outras instâncias via AMQP FanoutExchange e entrega ao SimpleBroker local.
- *
- * <p>Cada instância tem sua própria AnonymousQueue efêmera. Mensagens publicadas pela própria
- * instância são descartadas pelo header x-instance-id para evitar entrega duplicada (a instância
- * já fez a entrega local diretamente em WebSocketMessageBroadcastAdapter).
- */
+
 @Slf4j
 @Component
 @RequiredArgsConstructor

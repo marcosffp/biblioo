@@ -1,7 +1,8 @@
 package com.biblioo.community.infrastructure.persistence;
 
 import com.biblioo.community.domain.model.BookVoting;
-import com.biblioo.community.domain.model.VotingStatus;
+import com.biblioo.community.domain.model.enumeration.VotingStatus;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

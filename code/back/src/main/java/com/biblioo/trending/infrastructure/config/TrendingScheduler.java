@@ -15,10 +15,8 @@ class TrendingScheduler {
 
   @Scheduled(cron = "${trending.refresh-cron:0 */15 * * * *}")
   public void refreshTrendingCache() {
-    log.info("Iniciando atualização periódica do trending");
     trendingService.evictAllTrendingCaches();
     trendingService.getTopCommunities();
     trendingService.getTopBooks();
-    log.info("Cache de trending atualizado com sucesso");
   }
 }

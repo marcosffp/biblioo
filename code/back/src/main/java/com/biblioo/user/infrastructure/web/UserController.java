@@ -220,7 +220,7 @@ public class UserController {
     return principal != null ? currentUserId(principal) : null;
   }
 
-  private static final long MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
+  private static final long MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
   private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
       "image/jpeg",
@@ -236,32 +236,27 @@ public class UserController {
   private void validateImageFile(MultipartFile file) {
     try {
 
-      // arquivo obrigatório
       if (file == null || file.isEmpty()) {
         throw new IllegalArgumentException("Arquivo não pode estar vazio");
       }
 
-      // tamanho máximo
       if (file.getSize() > MAX_UPLOAD_BYTES) {
         throw new IllegalArgumentException(
             "Arquivo excede o tamanho máximo permitido de 5MB");
       }
 
-      // nome original
       String originalFilename = file.getOriginalFilename();
 
       if (originalFilename == null || originalFilename.isBlank()) {
         throw new IllegalArgumentException("Nome do arquivo inválido");
       }
 
-      // bloqueia path traversal
       if (originalFilename.contains("..")
           || originalFilename.contains("/")
           || originalFilename.contains("\\")) {
         throw new IllegalArgumentException("Nome de arquivo inválido");
       }
 
-      // detecta MIME REAL via magic bytes
       String detectedMimeType;
 
       try (InputStream inputStream = file.getInputStream()) {
@@ -272,18 +267,15 @@ public class UserController {
         throw new IllegalArgumentException("Não foi possível identificar o tipo do arquivo");
       }
 
-      // bloqueios explícitos
       if (BLOCKED_MIME_TYPES.contains(detectedMimeType)) {
         throw new IllegalArgumentException("Tipo de arquivo não permitido");
       }
 
-      // whitelist
       if (!ALLOWED_MIME_TYPES.contains(detectedMimeType)) {
         throw new IllegalArgumentException(
             "Tipo de arquivo inválido. Tipos aceitos: JPEG, PNG e WebP");
       }
 
-      // valida se realmente é uma imagem parseável
       BufferedImage image;
 
       try (InputStream inputStream = file.getInputStream()) {

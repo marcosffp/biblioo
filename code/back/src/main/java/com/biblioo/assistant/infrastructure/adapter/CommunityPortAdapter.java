@@ -3,7 +3,7 @@ package com.biblioo.assistant.infrastructure.adapter;
 import com.biblioo.assistant.domain.model.CommunityResult;
 import com.biblioo.assistant.domain.port.out.AssistantCommunityPort;
 import com.biblioo.community.domain.model.Community;
-import com.biblioo.community.domain.model.CommunityType;
+import com.biblioo.community.domain.model.enumeration.CommunityType;
 import com.biblioo.community.domain.port.in.CommunityUseCase;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

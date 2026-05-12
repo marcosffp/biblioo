@@ -35,11 +35,8 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth
-                    // WebSocket handshake — autenticação ocorre no STOMP CONNECT via
-                    // JwtChannelInterceptor
                     .requestMatchers("/ws/**")
                     .permitAll()
-                    // create-password exige autenticação: declarado antes do permitAll de /auth/**
                     .requestMatchers(HttpMethod.POST, "/auth/create-password")
                     .authenticated()
                     .requestMatchers("/auth/**")
@@ -49,11 +46,9 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/books/**")
                     .permitAll()
                     .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
-                    // Communities: endpoints autenticados ANTES dos wildcards
                     .requestMatchers(
                         HttpMethod.GET, "/communities/mine", "/communities/invites/pending")
                     .authenticated()
-                    // Communities: endpoints públicos
                     .requestMatchers(
                         HttpMethod.GET,
                         "/communities",
@@ -71,10 +66,8 @@ public class SecurityConfig {
                         "/v3/api-docs",
                         "/v3/api-docs/**")
                     .permitAll()
-                    // /me deve ser autenticado — declarado ANTES do wildcard abaixo
                     .requestMatchers(HttpMethod.GET, "/users/me")
                     .authenticated()
-                    // Perfis públicos acessíveis sem login; controller trata restrição de privados
                     .requestMatchers(
                         HttpMethod.GET, "/users/*", "/users/*/followers", "/users/*/following")
                     .permitAll()

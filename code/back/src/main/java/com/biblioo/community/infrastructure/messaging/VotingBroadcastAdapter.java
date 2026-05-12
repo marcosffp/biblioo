@@ -1,8 +1,8 @@
 package com.biblioo.community.infrastructure.messaging;
 
 import com.biblioo.community.domain.port.out.VotingBroadcastPort;
-import com.biblioo.community.infrastructure.dto.VotingBroadcastEnvelope;
-import com.biblioo.community.infrastructure.dto.VotingEventPayload;
+import com.biblioo.community.infrastructure.dto.voting.VotingBroadcastEnvelope;
+import com.biblioo.community.infrastructure.dto.voting.VotingEventPayload;
 import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

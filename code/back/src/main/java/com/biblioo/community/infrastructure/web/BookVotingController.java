@@ -1,7 +1,12 @@
 package com.biblioo.community.infrastructure.web;
 
 import com.biblioo.community.domain.port.in.BookVotingUseCase;
-import com.biblioo.community.infrastructure.dto.*;
+import com.biblioo.community.infrastructure.dto.voting.ApproveVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.CastVoteRequest;
+import com.biblioo.community.infrastructure.dto.voting.CreateVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.RejectVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.VotingResponse;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

@@ -1,13 +1,13 @@
 package com.biblioo.community.infrastructure.messaging;
 
 import com.biblioo.community.domain.model.CommunityMessage;
-import com.biblioo.community.domain.model.MessageType;
+import com.biblioo.community.domain.model.enumeration.MessageType;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
-import com.biblioo.community.infrastructure.dto.CommunityBroadcastEnvelope;
-import com.biblioo.community.infrastructure.dto.MessageEventPayload;
-import com.biblioo.community.infrastructure.dto.MessageResponse;
-import com.biblioo.community.infrastructure.dto.TypingEventPayload;
+import com.biblioo.community.infrastructure.dto.community.CommunityBroadcastEnvelope;
 import com.biblioo.community.infrastructure.dto.mapper.CommunityMessageMapper;
+import com.biblioo.community.infrastructure.dto.message.MessageEventPayload;
+import com.biblioo.community.infrastructure.dto.message.MessageResponse;
+import com.biblioo.community.infrastructure.dto.message.TypingEventPayload;
 import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -103,7 +103,6 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
     publishTypingToOtherInstances(destination, payload);
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   private void scheduleOrSend(String destination, MessageEventPayload event) {
     if (TransactionSynchronizationManager.isActualTransactionActive()) {

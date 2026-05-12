@@ -1,7 +1,7 @@
 package com.biblioo.user.infrastructure.external;
 
-import com.biblioo.community.domain.model.CommunityUserSummary;
 import com.biblioo.community.domain.port.out.CommunityUserLookupPort;
+import com.biblioo.community.infrastructure.dto.community.CommunityUserSummary;
 import com.biblioo.feed.domain.port.out.UserPort;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.infrastructure.persistence.UserRepository;

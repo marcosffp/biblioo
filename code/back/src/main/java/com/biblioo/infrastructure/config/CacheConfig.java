@@ -33,10 +33,7 @@ public class CacheConfig implements CachingConfigurer {
         .build();
   }
 
-  /**
-   * Template dedicado para operações diretas no Redis (ex.: MGET em batch de livros).
-   * Usa o mesmo serializer do CacheManager para garantir compatibilidade de chaves/valores.
-   */
+
   @Bean("bookCacheTemplate")
   RedisTemplate<String, Object> bookCacheTemplate(RedisConnectionFactory factory) {
     var template = new RedisTemplate<String, Object>();
@@ -47,7 +44,6 @@ public class CacheConfig implements CachingConfigurer {
     return template;
   }
 
-  /** Template dedicado para share cards — armazena PNG em bytes sem serialização JSON. */
   @Bean("shareCardRedisTemplate")
   RedisTemplate<String, byte[]> shareCardRedisTemplate(RedisConnectionFactory factory) {
     var template = new RedisTemplate<String, byte[]>();
@@ -71,30 +67,23 @@ public class CacheConfig implements CachingConfigurer {
 
     return RedisCacheManager.builder(factory)
         .cacheDefaults(base)
-        // books
         .withCacheConfiguration("book-search",  base.entryTtl(Duration.ofMinutes(5)))
         .withCacheConfiguration("book-detail",  base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("google-books", base.entryTtl(Duration.ofMinutes(10)))
-        // user
         .withCacheConfiguration("user-profile", base.entryTtl(Duration.ofMinutes(10)))
-        // shelf
         .withCacheConfiguration("shelf-list",       base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("shelf",            base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("shelf-items-list", base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("shelf-item",       base.entryTtl(Duration.ofHours(1)))
-        // collection
         .withCacheConfiguration("collection-list",   base.entryTtl(Duration.ofHours(1)))
         .withCacheConfiguration("collection-detail", base.entryTtl(Duration.ofHours(1)))
-        // community
         .withCacheConfiguration("community-membership", base.entryTtl(Duration.ofMinutes(2)))
-        // recommendation
         .withCacheConfiguration("rec-byr", base.entryTtl(Duration.ofMinutes(5)))
         .withCacheConfiguration("rec-fgn", base.entryTtl(Duration.ofMinutes(5)))
         .withCacheConfiguration("rec-tic", base.entryTtl(Duration.ofMinutes(3)))
         .withCacheConfiguration("rec-cs",  base.entryTtl(Duration.ofMinutes(2)))
         .withCacheConfiguration("rec-sa",  base.entryTtl(Duration.ofMinutes(5)))
         .withCacheConfiguration("rec-rwi", base.entryTtl(Duration.ofMinutes(5)))
-        // trending — recalculado pelo scheduler a cada 15min; TTL de 15min como fallback.
         .withCacheConfiguration("trending-communities", base.entryTtl(Duration.ofMinutes(15)))
         .withCacheConfiguration("trending-books",       base.entryTtl(Duration.ofMinutes(15)))
         .build();
@@ -146,7 +135,6 @@ public class CacheConfig implements CachingConfigurer {
     };
   }
 
-  // Renomeado de retryTemplate para evitar conflito com o bean retryTemplate do Spring AI
   @Bean("cacheRetryTemplate")
   RetryTemplate cacheRetryTemplate() {
     return RetryTemplate.builder()

@@ -33,22 +33,8 @@ public class GoogleBooksAdapter {
     this.bookEnrichExecutor = bookEnrichExecutor;
   }
 
-  // -------------------------------------------------------------------------
-  // search — ponto de entrada público
-  //
-  // @Cacheable com TTL de 10 min: evita chamadas duplicadas à API externa
-  // para queries repetidas (ex.: enrich sync + async rodando em paralelo).
-  //
-  // Fases executadas em paralelo via CompletableFuture:
-  //   Fase 1 — frase exata no título: intitle:"Jogos Vorazes"
-  //   Fase 2 — cada palavra obrigatória: intitle:Jogos+intitle:Vorazes
-  // Ambas disparam ao mesmo tempo; o merge é feito só se fase 1 retornar < 3.
-  // -------------------------------------------------------------------------
-
   @Cacheable(value = "google-books", key = "#query.strip().toLowerCase()", sync = true)
   public List<Book> search(String query) {
-    log.debug("Chamando Google Books API. query='{}'", query);
-
     String wordQuery =
         Arrays.stream(query.trim().split("\\s+"))
             .map(w -> "intitle:" + w)

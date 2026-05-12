@@ -1,9 +1,20 @@
 package com.biblioo.community.infrastructure.web;
 
 import com.biblioo.community.domain.model.*;
+import com.biblioo.community.domain.model.enumeration.CommunityRole;
 import com.biblioo.community.domain.port.in.CommunityUseCase;
 import com.biblioo.community.domain.port.out.CommunityUserLookupPort;
-import com.biblioo.community.infrastructure.dto.*;
+import com.biblioo.community.infrastructure.dto.community.ChangeRoleRequest;
+import com.biblioo.community.infrastructure.dto.community.CommunityDetailResponse;
+import com.biblioo.community.infrastructure.dto.community.CommunityInviteResponse;
+import com.biblioo.community.infrastructure.dto.community.CommunityJoinRequestResponse;
+import com.biblioo.community.infrastructure.dto.community.CommunityMemberResponse;
+import com.biblioo.community.infrastructure.dto.community.CommunityResponse;
+import com.biblioo.community.infrastructure.dto.community.CommunityUserSummary;
+import com.biblioo.community.infrastructure.dto.community.CreateCommunityRequest;
+import com.biblioo.community.infrastructure.dto.community.InviteUserRequest;
+import com.biblioo.community.infrastructure.dto.community.TransferOwnershipRequest;
+import com.biblioo.community.infrastructure.dto.community.UpdateCommunityRequest;
 import com.biblioo.community.infrastructure.dto.mapper.CommunityMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,7 +44,6 @@ public class CommunityController {
   private final CommunityMapper communityMapper;
   private final CommunityUserLookupPort userLookup;
 
-  // ── CRUD ──────────────────────────────────────────────────────────────────
 
   @PostMapping
   @Operation(summary = "Criar uma comunidade")
@@ -84,7 +94,6 @@ public class CommunityController {
     return ResponseEntity.noContent().build();
   }
 
-  // ── Listagem / Busca ──────────────────────────────────────────────────────
 
   @GetMapping
   @Operation(summary = "Listar/buscar comunidades")
@@ -117,7 +126,6 @@ public class CommunityController {
     return ResponseEntity.ok(page);
   }
 
-  // ── Membership ────────────────────────────────────────────────────────────
 
   @PostMapping("/{id}/join")
   @Operation(summary = "Entrar em uma comunidade pública")
@@ -159,7 +167,6 @@ public class CommunityController {
     return ResponseEntity.ok(page);
   }
 
-  // ── Role Management ───────────────────────────────────────────────────────
 
   @PutMapping("/{id}/members/{userId}/role")
   @Operation(summary = "Alterar papel de um membro")
@@ -192,7 +199,6 @@ public class CommunityController {
     return ResponseEntity.noContent().build();
   }
 
-  // ── Invite Link ───────────────────────────────────────────────────────────
 
   @PostMapping("/{id}/invite-link")
   @Operation(summary = "Gerar ou regenerar link de convite")
@@ -218,7 +224,6 @@ public class CommunityController {
     return ResponseEntity.noContent().build();
   }
 
-  // ── Invites ────────────────────────────────────────────────────────────────
 
   @PostMapping("/{id}/invites")
   @Operation(summary = "Convidar um usuário para a comunidade")
@@ -271,7 +276,6 @@ public class CommunityController {
     return ResponseEntity.ok(page);
   }
 
-  // ── Join Requests ─────────────────────────────────────────────────────────
 
   @PostMapping("/{id}/join-requests")
   @Operation(summary = "Solicitar entrada em comunidade privada")
@@ -321,7 +325,6 @@ public class CommunityController {
     return ResponseEntity.noContent().build();
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   private Long currentUserId(UserDetails principal) {
     return Long.parseLong(principal.getUsername());

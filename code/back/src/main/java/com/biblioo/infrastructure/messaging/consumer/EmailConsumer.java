@@ -48,7 +48,6 @@ public class EmailConsumer {
     this.restClient = restClientBuilder.build();
   }
 
-  // ── listener ──────────────────────────────────────────────────────
 
   @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE, containerFactory = "emailListenerFactory")
   public void handle(EventMessage message) {
@@ -58,11 +57,9 @@ public class EmailConsumer {
 
     try {
       if (outboxEventService.isAlreadyProcessed(eventId)) {
-        log.info("[Email-Consumer] Evento já processado event_id={}", eventId);
         return;
       }
 
-      log.info("[Email-Consumer] Processando event_id={} type={}", eventId, message.getEventType());
 
       JsonNode payload = message.getPayload();
 
@@ -73,7 +70,6 @@ public class EmailConsumer {
       }
 
       outboxEventService.markAsProcessed(eventId);
-      log.info("[Email-Consumer] Concluído event_id={}", eventId);
 
     } catch (Exception ex) {
       log.error("[Email-Consumer] Falha ao processar event_id={}: {}", eventId, ex.getMessage(), ex);
@@ -84,7 +80,6 @@ public class EmailConsumer {
     }
   }
 
-  // ── handlers ──────────────────────────────────────────────────────
 
   private void handlePasswordResetEmail(JsonNode payload) {
     String toEmail   = payload.get("toEmail").asText();
@@ -99,7 +94,6 @@ public class EmailConsumer {
     sendEmail(toEmail, "Sua senha foi alterada — Biblioo", username, null, "changed");
   }
 
-  // ── envio com fallback ─────────────────────────────────────────────
 
   private void sendEmail(String toEmail, String subject, String username, String resetLink, String type) {
     String html = buildHtml(type, username, resetLink, "cid:logo");
@@ -127,7 +121,6 @@ public class EmailConsumer {
         .retrieve()
         .toBodilessEntity();
 
-    log.info("[Email-Consumer] E-mail enviado via SendGrid para {}", toEmail);
   }
 
   private void sendViaGmail(String toEmail, String subject, String html) {
@@ -140,14 +133,12 @@ public class EmailConsumer {
       helper.setText(html, true);
       helper.addInline("logo", new ClassPathResource("static/Logo_Biblioo_Branca.png"));
       mailSender.send(mime);
-      log.info("[Email-Consumer] E-mail enviado via Gmail para {}", toEmail);
     } catch (MessagingException e) {
       log.error("[Email-Consumer] Fallback Gmail também falhou para {}: {}", toEmail, e.getMessage());
       throw new RuntimeException("Ambos os provedores de e-mail falharam", e);
     }
   }
 
-  // ── roteador de templates ──────────────────────────────────────────
 
   private String buildHtml(String type, String username, String resetLink, String logoSrc) {
     return switch (type) {

@@ -162,8 +162,6 @@ public class ShelfController {
               try {
                 return bookUseCase.getById(item.getBookId()).getCoverUrl();
               } catch (Exception e) {
-                log.debug(
-                    "Cover não encontrada para bookId={}: {}", item.getBookId(), e.getMessage());
                 return null;
               }
             })

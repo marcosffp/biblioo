@@ -1,6 +1,6 @@
 package com.biblioo.feed.domain.port.in;
 
-import com.biblioo.feed.domain.model.FeedSlice;
+import com.biblioo.feed.infrastructure.dto.feed.FeedSlice;
 
 public interface FeedUseCase {
 

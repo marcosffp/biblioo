@@ -1,9 +1,10 @@
 package com.biblioo.community.domain.port.in;
 
-import com.biblioo.community.infrastructure.dto.ApproveVotingRequest;
-import com.biblioo.community.infrastructure.dto.CreateVotingRequest;
-import com.biblioo.community.infrastructure.dto.RejectVotingRequest;
-import com.biblioo.community.infrastructure.dto.VotingResponse;
+import com.biblioo.community.infrastructure.dto.voting.ApproveVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.CreateVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.RejectVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.VotingResponse;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

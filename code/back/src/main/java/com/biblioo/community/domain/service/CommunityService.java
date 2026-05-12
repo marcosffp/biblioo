@@ -3,11 +3,17 @@ package com.biblioo.community.domain.service;
 import com.biblioo.community.domain.exception.CommunityAccessDeniedException;
 import com.biblioo.community.domain.exception.CommunityBusinessException;
 import com.biblioo.community.domain.model.*;
+import com.biblioo.community.domain.model.enumeration.CommunityRole;
+import com.biblioo.community.domain.model.enumeration.CommunityType;
+import com.biblioo.community.domain.model.enumeration.InviteStatus;
+import com.biblioo.community.domain.model.enumeration.JoinRequestStatus;
+import com.biblioo.community.domain.model.enumeration.MessageType;
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.domain.port.in.CommunityUseCase;
 import com.biblioo.community.domain.port.out.CommunityBookLookupPort;
 import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
 import com.biblioo.community.domain.port.out.CommunityUserLookupPort;
+import com.biblioo.community.infrastructure.dto.community.CommunityUserSummary;
 import com.biblioo.community.infrastructure.persistence.CommunityInviteRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityJoinRequestRepository;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
@@ -35,7 +41,6 @@ public class CommunityService implements CommunityUseCase {
   private final CommunityEventPublisherPort eventPublisher;
   private final CommunityMessageUseCase messageUseCase;
 
-  // ── CRUD ──────────────────────────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -130,7 +135,6 @@ public class CommunityService implements CommunityUseCase {
     return communityRepository.findByMemberUserId(userId, pageable);
   }
 
-  // ── Membership ────────────────────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -276,7 +280,6 @@ public class CommunityService implements CommunityUseCase {
     return memberRepository.findRole(communityId, userId);
   }
 
-  // ── Invites ───────────────────────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -391,7 +394,6 @@ public class CommunityService implements CommunityUseCase {
     return inviteRepository.findPendingByInviteeId(userId, pageable);
   }
 
-  // ── Join Requests ─────────────────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -411,7 +413,6 @@ public class CommunityService implements CommunityUseCase {
       throw new CommunityBusinessException("Já existe uma solicitação pendente.");
     }
 
-    // Check if user has a pending invite — suggest accepting it instead
     if (inviteRepository.existsPending(communityId, userId, InviteStatus.PENDING)) {
       throw new CommunityBusinessException(
           "Você já possui um convite pendente para esta comunidade. Aceite o convite.");
@@ -494,7 +495,6 @@ public class CommunityService implements CommunityUseCase {
     return joinRequestRepository.findPendingByCommunityId(communityId, pageable);
   }
 
-  // ── Invite Link ───────────────────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -544,7 +544,6 @@ public class CommunityService implements CommunityUseCase {
     eventPublisher.publishMemberJoinedForTrending(userId, community.getBookId());
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   void addMember(Long communityId, Long userId, CommunityRole role) {
     CommunityMember member =

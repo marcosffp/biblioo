@@ -14,10 +14,7 @@ public class GoogleUserFactory {
 
   private final UserRepository userRepo;
 
-  /**
-   * Roda em transação própria (REQUIRES_NEW) para que, em caso de colisão de username, a sessão
-   * Hibernate possa ser descartada sem contaminar a transação do chamador.
-   */
+
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public User findOrCreate(GoogleUserInfo googleUser, String username) {
     return userRepo

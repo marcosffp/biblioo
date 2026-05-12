@@ -2,11 +2,19 @@ package com.biblioo.community.domain.service;
 
 import com.biblioo.community.domain.exception.*;
 import com.biblioo.community.domain.model.*;
+import com.biblioo.community.domain.model.enumeration.CommunityRole;
+import com.biblioo.community.domain.model.enumeration.TieBreakRule;
+import com.biblioo.community.domain.model.enumeration.VotingStatus;
 import com.biblioo.community.domain.port.in.BookVotingUseCase;
 import com.biblioo.community.domain.port.out.CommunityBookLookupPort;
 import com.biblioo.community.domain.port.out.VotingBroadcastPort;
-import com.biblioo.community.infrastructure.dto.*;
+import com.biblioo.community.infrastructure.dto.community.CommunityBookSummary;
 import com.biblioo.community.infrastructure.dto.mapper.BookVotingMapper;
+import com.biblioo.community.infrastructure.dto.voting.ApproveVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.CreateVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.RejectVotingRequest;
+import com.biblioo.community.infrastructure.dto.voting.VotingEventPayload;
+import com.biblioo.community.infrastructure.dto.voting.VotingResponse;
 import com.biblioo.community.infrastructure.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,7 +40,6 @@ public class BookVotingService implements BookVotingUseCase {
   private final BookVotingMapper mapper;
   private final VotingBroadcastPort broadcastPort;
 
-  // ── Admin: criar votação (rascunho) ───────────────────────────────────────
 
   @Override
   @Transactional
@@ -83,7 +90,6 @@ public class BookVotingService implements BookVotingUseCase {
     return mapper.toResponse(savedVoting, options, null);
   }
 
-  // ── Admin: publicar votação ────────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -105,11 +111,9 @@ public class BookVotingService implements BookVotingUseCase {
     VotingResponse response = mapper.toResponse(voting, options, null);
     broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTING_CREATED, response));
 
-    log.info("Votação publicada id={} communityId={}", votingId, communityId);
     return response;
   }
 
-  // ── Membro: votar / desfazer voto ─────────────────────────────────────────
 
   @Override
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -126,7 +130,6 @@ public class BookVotingService implements BookVotingUseCase {
       throw new VotingClosedException("O prazo desta votação já encerrou.");
     }
 
-    // Bloqueio pessimista na opção para garantir atomicidade do contador
     BookVotingOption option =
         optionRepository
             .findByIdForUpdate(optionId)
@@ -140,7 +143,6 @@ public class BookVotingService implements BookVotingUseCase {
     Long myVotedOptionId;
 
     if (existingVote.isEmpty()) {
-      // 1º clique: registrar voto
       voteRepository.save(
           BookVote.builder()
               .votingId(votingId)
@@ -152,26 +154,22 @@ public class BookVotingService implements BookVotingUseCase {
       optionRepository.save(option);
       myVotedOptionId = optionId;
     } else if (existingVote.get().getOptionId().equals(optionId)) {
-      // 2º clique na mesma opção: desfazer voto
       voteRepository.delete(existingVote.get());
       option.setVoteCount(Math.max(0, option.getVoteCount() - 1));
       optionRepository.save(option);
       myVotedOptionId = null;
     } else {
-      // Clique em opção diferente sem desfazer: rejeitar
       throw new AlreadyVotedDifferentOptionException(
           "Você já votou em outra opção. Desfaça seu voto primeiro clicando na opção votada.");
     }
 
     List<BookVotingOption> options = optionRepository.findByVotingId(votingId);
-    // Broadcast sem myVotedOptionId (dado pessoal; clientes usam o retorno direto)
     VotingResponse broadcast = mapper.toResponse(voting, options, null);
     broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTE_UPDATED, broadcast));
 
     return mapper.toResponse(voting, options, myVotedOptionId);
   }
 
-  // ── Admin: encerrar antecipado ─────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -189,11 +187,9 @@ public class BookVotingService implements BookVotingUseCase {
     VotingResponse response = mapper.toResponse(voting, options, null);
     broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTING_CLOSED, response));
 
-    log.info("Votação encerrada manualmente id={} communityId={} adminId={}", votingId, communityId, adminId);
     return response;
   }
 
-  // ── Admin: aprovar resultado ───────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -207,7 +203,6 @@ public class BookVotingService implements BookVotingUseCase {
     }
 
     if (voting.getWinnerOptionId() == null) {
-      // Empate com regra ADMIN_CHOICE: admin deve fornecer o vencedor
       if (request.winnerOptionId() == null) {
         throw new CommunityBusinessException(
             "Há empate com regra de decisão do proprietário. Informe o ID da opção vencedora.");
@@ -225,7 +220,6 @@ public class BookVotingService implements BookVotingUseCase {
     voting.setStatus(VotingStatus.APPROVED);
     voting = votingRepository.save(voting);
 
-    // Atualizar livro atual da comunidade
     BookVotingOption winner = optionRepository.findById(voting.getWinnerOptionId()).orElseThrow();
     Community community =
         communityRepository
@@ -238,15 +232,9 @@ public class BookVotingService implements BookVotingUseCase {
     VotingResponse response = mapper.toResponse(voting, options, null);
     broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTING_APPROVED, response));
 
-    log.info(
-        "Resultado aprovado votingId={} winnerOptionId={} communityId={}",
-        votingId,
-        voting.getWinnerOptionId(),
-        communityId);
     return response;
   }
 
-  // ── Admin: rejeitar resultado ──────────────────────────────────────────────
 
   @Override
   @Transactional
@@ -267,11 +255,9 @@ public class BookVotingService implements BookVotingUseCase {
     VotingResponse response = mapper.toResponse(voting, options, null);
     broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTING_REJECTED, response));
 
-    log.info("Resultado rejeitado votingId={} communityId={} reason={}", votingId, communityId, request.reason());
     return response;
   }
 
-  // ── Consultas ─────────────────────────────────────────────────────────────
 
   @Override
   @Transactional(readOnly = true)
@@ -307,7 +293,6 @@ public class BookVotingService implements BookVotingUseCase {
             });
   }
 
-  // ── Agendador: encerrar votações expiradas ─────────────────────────────────
 
   @Override
   @Transactional
@@ -321,14 +306,10 @@ public class BookVotingService implements BookVotingUseCase {
       broadcastPort.broadcast(
           voting.getCommunityId(),
           new VotingEventPayload(VotingEventPayload.VOTING_CLOSED, response));
-      log.info(
-          "Votação encerrada automaticamente id={} communityId={}",
-          voting.getId(),
-          voting.getCommunityId());
+
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   private BookVoting getVotingOrThrow(Long votingId, Long communityId) {
     return votingRepository
@@ -363,7 +344,6 @@ public class BookVotingService implements BookVotingUseCase {
       int idx = ThreadLocalRandom.current().nextInt(leaders.size());
       voting.setWinnerOptionId(leaders.get(idx).getId());
     }
-    // TieBreakRule.ADMIN_CHOICE: winner permanece null até o admin escolher ao aprovar
 
     votingRepository.save(voting);
   }

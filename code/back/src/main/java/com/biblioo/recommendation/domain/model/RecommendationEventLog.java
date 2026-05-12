@@ -19,7 +19,6 @@ public class RecommendationEventLog {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  // Comprimento 60 para acomodar prefixos de trail (ex.: "FGN:") + UUID de 36 chars
   @Column(name = "event_id", nullable = false, unique = true, length = 60)
   private String eventId;
 

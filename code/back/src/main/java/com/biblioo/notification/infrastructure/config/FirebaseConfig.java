@@ -28,7 +28,6 @@ public class FirebaseConfig {
                 .setCredentials(GoogleCredentials.fromStream(new ByteArrayInputStream(decoded)))
                 .build();
         FirebaseApp.initializeApp(options);
-        log.info("[Firebase] App inicializado com sucesso");
       } catch (IOException | IllegalArgumentException e) {
         log.warn(
             "[Firebase] Não foi possível inicializar o Firebase (push FCM desativado): {}",
