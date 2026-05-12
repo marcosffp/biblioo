@@ -1,6 +1,10 @@
+<div align="center" style="background:#1a1a2e;padding:32px 0;border-radius:12px">
+  <img src="src/main/resources/static/Logo_Biblioo_Branca.png" alt="Biblioo" width="320"/>
+</div>
+
 # Biblioo — Backend
 
-> Rede social de leitura com estantes, reviews, comunidades com chat em tempo real, notificações push/SSE, recomendações personalizadas via grafo e assistente de IA.
+> Rede social de leitura com estantes, reviews, comunidades com chat em tempo real, notificações push, recomendações personalizadas geradas por diferentes algoritmos de recomendação e um assistente de IA conversacional.
 
 ---
 
@@ -94,18 +98,7 @@ A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura
 | `user` | Autenticação, perfil, seguidores, busca por username | ~67 |
 | `assistant` | Assistente Bibo com Google Gemini, function calling, histórico Redis | ~21 |
 
-### 🤖 Algoritmos de Recomendação
 
-| Trilha | Algoritmo | Descrição |
-|---|---|---|
-| T1 — BecauseYouRead | Co-leitura via Neo4j | Livros lidos por quem leu o mesmo que você |
-| T2 — FavoriteGenreNow | Top gêneros recentes | Baseado nos 3 gêneros mais lidos nos últimos 30 dias |
-| T3 — TrendingInCommunities | Exponential Decay | Score decai 10% por hora; atividade de comunidades |
-| T4 — CatalogSurprise | Thompson Sampling (Multi-Armed Bandit) | Aprendizado bayesiano com alpha/beta persistidos no Redis por 90 dias |
-| T5 — SimilarAuthors | Collaborative Filtering | Usuários similares via grafo Neo4j (2 níveis de relacionamento) |
-| T6 — RereadWorthIt | Spaced Repetition | Sugere releitura após 90 dias com fator de espaçamento 1.5× |
-
----
 
 ## 📁 Estrutura de pastas
 
@@ -310,28 +303,76 @@ docker-compose --profile tools up -d
 
 ## 📊 Testes de performance
 
-Testes escritos em **K6** cobrindo todos os domínios com três perfis de carga cada:
+O Biblioo executa operações computacionalmente pesadas: consultas a seis bancos de dados distintos, algoritmos de grafo (Neo4j), fanout de feed para milhares de seguidores e mensageria assíncrona. Por isso, **requisitos não funcionais de desempenho** são tratados como cidadãos de primeira classe — latência máxima aceitável, taxa de erro tolerada e comportamento sob carga inesperada são definidos como SLAs explícitos e verificados automaticamente pelos testes.
 
-| Perfil | Objetivo |
-|---|---|
-| `*-load.js` | Carga sustentada — simula uso normal em produção |
-| `*-spike.js` | Pico repentino — valida comportamento sob burst de tráfego |
-| `*-stress.js` | Estresse progressivo — encontra o ponto de ruptura |
+Os testes são escritos em **K6** e organizados por domínio. Cada domínio possui **três perfis obrigatórios**, cada um validando um aspecto diferente de resiliência:
+
+| Perfil | Dinâmica de carga | Objetivo |
+|---|---|---|
+| `*-load.js` | VUs constantes por 2 min (ex: 80 VUs em busca + 20 VUs em detalhes simultaneamente) | Valida que a latência p95 permanece dentro do SLA em uso normal sustentado |
+| `*-spike.js` | Base (50 VUs) → pico brusco (300 VUs em 5 s) → queda → recuperação | Valida que o sistema absorve bursts repentinos sem degradar além do limiar e se recupera |
+| `*-stress.js` | Estágios crescentes: 20 → 50 → 100 → 200 → 300 → 400 VUs (30 s cada) | Encontra o ponto de ruptura e mede a degradação progressiva |
+
+### SLAs definidos por endpoint (thresholds K6)
+
+Os thresholds são declarados diretamente nos scripts e fazem o teste **falhar** automaticamente se forem violados — funcionam como assertions de desempenho na pipeline:
+
+| Domínio / endpoint | p95 máximo | Taxa de erro máxima |
+|---|---|---|
+| Busca de livros (`/books/search`) | 2 000 ms | 1% |
+| Detalhes de livro (`/books/{id}`) | 800 ms | 1% |
+| Feed do usuário (`/feed`) | 1 500 ms | 1% |
+| BecauseYouRead | 800 ms | 1% |
+| FavoriteGenreNow | 800 ms | 1% |
+| TrendingInCommunities | 900 ms | 1% |
+| CatalogSurprise (Thompson Sampling) | 1 200 ms | 1% |
+| SimilarAuthors (Neo4j 2 níveis) | 1 100 ms | 1% |
+| RereadWorthIt | 800 ms | 1% |
+| Geral (fallback todos os endpoints) | 1 000–1 500 ms | 1–5% |
+
+> CatalogSurprise e SimilarAuthors têm SLAs mais altos: o primeiro envolve leitura/escrita stateful de parâmetros bayesianos no Redis; o segundo percorre dois níveis de relacionamento no grafo Neo4j.
+
+### Padrão dos testes autenticados
+
+Domínios que exigem autenticação (feed, recommendations, community, user) seguem um padrão com `setup()`: antes do teste começar, o script provisiona um **pool de N usuários** — registra cada um via `/auth/register`, faz login e armazena o token. Durante a execução, cada VU consome um token do pool por round-robin, eliminando o custo de autenticação do caminho crítico medido.
+
+Os testes de recomendação disparam as **6 trilhas em batch paralelo** (`http.batch`) para simular o padrão real da aplicação, onde todas são carregadas juntas na tela inicial. Isso também revela gargalos de concorrência entre trilhas que compartilham Neo4j ou Redis.
+
+### Estrutura de arquivos
 
 ```
 performance-tests/
-├── DomainBook/          book · collection · shelf · shelfItem
-├── DomainCommunity/     community · manage · invites · join-requests · voting
-├── DomainDna/           dna profile e snapshots
-├── DomainFeed/          feed · posts · reviews · comments
-├── DomainRecommendation/ as 6 trilhas de recomendação
-├── DomainTrending/      trending books e communities
-└── DomainUser/          register · login · follow · search
+├── DomainBook/
+│   ├── book/           books-load.js · books-spike.js · books-stress.js
+│   ├── collection/     collection-load.js · collection-spike.js · collection-stress.js
+│   ├── shelf/          shelf-load.js · shelf-spike.js · shelf-stress.js
+│   └── shelfItem/      shelfItem-load.js · shelfItem-spike.js · shelfItem-stress.js
+├── DomainCommunity/
+│   ├── community/      community-load.js · community-spike.js · community-stress.js
+│   ├── message/        message-load.js · message-spike.js · message-stress.js
+│   └── voting/         voting-load.js · voting-spike.js · voting-stress.js
+├── DomainDna/          dna-load.js · dna-spike.js · dna-stress.js
+├── DomainFeed/
+│   ├── feed/           feed-load.js · feed-spike.js · feed-stress.js
+│   ├── post/           post-load.js · post-spike.js · post-stress.js
+│   ├── review/         review-load.js · review-spike.js · review-stress.js
+│   └── comment/        comment-load.js · comment-spike.js · comment-stress.js
+├── DomainRecommendation/
+│   ├── recommendation/ recommendation-load.js · recommendation-spike.js · recommendation-stress.js
+│   └── roll-dice/      roll-dice-load.js · roll-dice-spike.js · roll-dice-stress.js
+├── DomainTrending/     trending-load.js · trending-spike.js · trending-stress.js
+└── DomainUser/         user-load.js · user-spike.js · user-stress.js
 ```
 
 ```bash
-# Exemplo: teste de carga no domínio de livros
-k6 run performance-tests/DomainBook/book-load.js
+# Carga normal — busca de livros (80 VUs busca + 20 VUs detalhes por 2 min)
+k6 run performance-tests/DomainBook/book/books-load.js
+
+# Spike — todas as 6 trilhas de recomendação em batch paralelo
+k6 run performance-tests/DomainRecommendation/recommendation/recommendation-spike.js
+
+# Stress progressivo — feed (fanout + Redis sliding window)
+k6 run performance-tests/DomainFeed/feed/feed-stress.js
 ```
 
 ---
