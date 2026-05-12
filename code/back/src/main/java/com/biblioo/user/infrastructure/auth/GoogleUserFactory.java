@@ -1,5 +1,6 @@
 package com.biblioo.user.infrastructure.auth;
 
+import com.biblioo.user.domain.exception.EmailRegisteredWithPasswordException;
 import com.biblioo.user.domain.model.GoogleUserInfo;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.infrastructure.persistence.UserRepository;
@@ -21,6 +22,9 @@ public class GoogleUserFactory {
         .findByEmail(googleUser.email())
         .map(
             existing -> {
+              if (existing.getGoogleId() == null || existing.getGoogleId().isBlank()) {
+                throw new EmailRegisteredWithPasswordException();
+              }
               existing.setGoogleId(googleUser.googleId());
               return userRepo.save(existing);
             })
