@@ -1,8 +1,10 @@
+<!--
 <div align="center" style="background:#1a1a2e;padding:32px 0;border-radius:12px">
-  <img src="src/main/resources/static/Logo_Biblioo_Branca.png" alt="Biblioo" width="320"/>
-</div>
+<div align="center" style="background:#3fc3a7;padding:32px 80px;border-radius:12px;width:85%">
+-->
+<img width="1600" style="height:auto; border-radius: 12px;" alt="banner" src="../../docs/imagens/banner.png" />
 
-# Biblioo — Backend
+# Backend
 
 > Rede social de leitura com estantes, reviews, comunidades com chat em tempo real, notificações push, recomendações personalizadas geradas por diferentes algoritmos de recomendação e um assistente de IA conversacional.
 
@@ -100,89 +102,67 @@ A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura
 
 ### 🤖 Algoritmos de Recomendação
 
-O módulo `recommendation` é completamente independente do assistente Bibo — as recomendações são geradas por algoritmos determinísticos e estatísticos, sem envolver nenhum modelo de linguagem. Cada trilha é disparada por eventos de domínio (livro concluído, entrada em comunidade, mensagem enviada) via RabbitMQ, e o resultado pré-computado é cacheado no Redis por usuário.
+O sistema de recomendação é o **diferencial central do Biblioo**. São seis trilhas independentes, cada uma com uma estratégia distinta para cobrir ângulos diferentes de descoberta de leitura — de comportamento social a aprendizado adaptativo. Nenhuma usa IA generativa: os resultados são gerados por algoritmos determinísticos e estatísticos, acionados por eventos de domínio via RabbitMQ e cacheados no Redis por usuário.
 
 ---
 
-#### T1 — BecauseYouRead
+#### 🔗 T1 — BecauseYouRead `rec-byr`
 
-**Tipo:** Co-leitura via grafo
-**Quando dispara:** ao marcar um livro como concluído
+> *"Quem leu o mesmo livro que você também leu estes..."*
 
-Ao receber o evento, o serviço grava a relação `(:User)-[:READ]->(:Book)` no Neo4j e executa uma query Cypher que encontra outros usuários que leram o mesmo livro (`min-co-readers: 2`) e retorna os livros que eles também leram, mas que o usuário ainda não conhece. O resultado passa por **pós-processamento**: cada score recebe um jitter aleatório de ±3% para evitar que todos os usuários recebam exatamente a mesma lista, e é aplicada uma restrição de diversidade de categoria (`max-same-category-ratio: 60%`). Se o Neo4j estiver indisponível, há **fallback para SQL** via `BecauseYouReadComputeService`. O resultado final é persistido no MySQL e cacheado no Redis (`rec-byr`).
+A trilha de co-leitura conecta leitores pelo título em comum. Quando o usuário conclui um livro, o sistema navega o grafo Neo4j para encontrar outros usuários que leram o mesmo título e retorna os livros que eles também leram — mas que o usuário ainda não conhece. Quanto mais leitores em comum, mais forte o sinal.
 
----
-
-#### T2 — FavoriteGenreNow
-
-**Tipo:** Filtragem por gênero com dois estágios
-**Quando dispara:** ao marcar um livro como concluído
-
-Calcula os **3 gêneros mais frequentes** no histórico de leitura do usuário. Então busca livros nesses gêneros em dois estágios:
-
-1. **Primário** — livros com número mínimo de reviews (`min-reviews: 10`), priorizando dados confiáveis
-2. **Fallback por popularidade** — se o estágio 1 não preencher os 20 slots, completa com os livros mais lidos (`reader_count`) nos mesmos gêneros, excluindo os já retornados e os já lidos pelo usuário
-
-O resultado é persistido com metadados dos nomes dos gêneros para exibição no front e cacheado (`rec-fgn`).
+**Como funciona:** grava `(:User)-[:READ]->(:Book)` · filtra por `min-co-readers: 2` · aplica jitter ±3% para diversificar listas entre usuários · cap de 60% por categoria · fallback automático para SQL se o Neo4j estiver indisponível
 
 ---
 
-#### T3 — TrendingInCommunities
+#### 🎯 T2 — FavoriteGenreNow `rec-fgn`
 
-**Tipo:** Pontuação com Exponential Decay orientada a eventos
-**Quando dispara:** a cada mensagem publicada ou entrada em comunidade
+> *"Você está numa fase de ficção científica — aqui estão os melhores títulos que ainda não leu."*
 
-Cada evento incrementa o score do livro da comunidade com peso diferente: **mensagem = 2.0**, **entrada = 0.5**. Antes de incrementar, verifica **deduplicação por janela de 24h** — o mesmo usuário não pode contribuir mais de uma vez para o mesmo livro+evento nesse período, evitando spam de score. O score já existente sofre decaimento exponencial de **10% por hora** antes do incremento. Na leitura, os livros com score acima do limiar (`min-score: 0.1`) formam a camada orgânica; slots restantes são preenchidos com um fallback de livros bem avaliados adicionados nos últimos 60 dias. Resultado cacheado (`rec-tic`).
+Detecta os **3 gêneros dominantes no momento atual** do usuário (não o histórico de todos os tempos, mas o que ele está lendo agora) e busca os melhores livros desses gêneros que ele ainda não conhece.
 
----
-
-#### T4 — CatalogSurprise
-
-**Tipo:** Thompson Sampling (Multi-Armed Bandit)
-**Quando dispara:** a cada interação do usuário com um livro (concluído ou abandonado)
-
-Propõe livros de **categorias distantes** do perfil habitual do usuário para combater o efeito de bolha. Os parâmetros bayesianos α e β de cada par `(userId, bookId)` são persistidos no Redis com TTL de 90 dias:
-
-- Livro **concluído** → `α++` (reforço positivo)
-- Livro **abandonado** → `β++` (reforço negativo)
-
-Na geração, o serviço busca um pool de candidatos (`pool = candidateLimit × 3`), amostra um θ por livro via `Beta(α, β)` e multiplica pelo score base dos candidatos. A ordenação por θ×score garante que livros com mais feedbacks positivos sobem naturalmente, enquanto novos candidatos sem histórico têm chance real de aparecer (prior uniforme `α=1, β=1`). O resultado é cacheado com TTL curto para preservar a natureza estocástica entre sessões distintas sem pagar o custo de computação a cada request.
+**Como funciona:** estágio 1 prioriza livros com avaliações suficientes (`min-reviews: 10`); se não preencher os 20 slots, estágio 2 completa por popularidade (`reader_count`) · resultado persistido com os nomes dos gêneros para exibição no app
 
 ---
 
-#### T5 — SimilarAuthors
+#### 📈 T3 — TrendingInCommunities `rec-tic`
 
-**Tipo:** Collaborative Filtering via Neo4j em dois níveis
-**Quando dispara:** ao marcar um livro como concluído (≥ 7 dias após conclusão)
+> *"Este livro está em alta nas comunidades agora — as pessoas estão comentando muito sobre ele."*
 
-Combina dois níveis de candidatos, ambos filtrados por avaliação mínima (`min-rating: 4`):
+Capta o que está gerando engajamento real nas comunidades em tempo real. Cada mensagem publicada ou nova entrada em uma comunidade incrementa o score do livro vinculado. O score decai naturalmente com o tempo, garantindo que só o que é relevante **agora** aparece.
 
-- **Nível 1** (autores confirmados) — livros de autores que o próprio usuário já avaliou bem, excluindo os já lidos
-- **Nível 2** (descoberta colaborativa) — percorre o grafo Neo4j em dois saltos: encontra até 30 usuários com padrão de leitura similar, e retorna livros que eles avaliaram bem, mas que o usuário ainda não conhece
-
-Os dois níveis são mesclados e ordenados por score descendente. A **zona de sobreposição [0.6, 0.7]** é intencional: um livro de nível 2 muito bem avaliado pode preceder um livro de nível 1 mal avaliado. Se nenhum candidato for encontrado, aplica um fallback global. Resultado persistido e cacheado (`rec-sa`).
+**Como funciona:** pesos por evento — mensagem `2.0` · entrada `0.5` · deduplicação por janela de 24h por usuário/livro · decay de 10%/hora · resultado combina camada orgânica (score > `0.1`) + fallback dos últimos 60 dias
 
 ---
 
-#### T6 — RereadWorthIt
+#### 🎲 T4 — CatalogSurprise `rec-cs`
 
-**Tipo:** Spaced Repetition
-**Quando dispara:** ao marcar um livro como concluído
+> *"Saia da zona de conforto — aqui está algo diferente do que você costuma ler, mas que faz sentido para o seu perfil."*
 
-Recomenda **releitura** de livros que o usuário já leu, respeitando um intervalo de espaçamento calculado individualmente por livro:
+A trilha que combate o efeito de bolha. Propõe livros de **categorias distantes do perfil habitual** do usuário usando Thompson Sampling — um algoritmo bayesiano que aprende com cada interação. Cada livro concluído reforça positivamente; cada livro abandonado reforça negativamente. Livros sem histórico têm prior uniforme e sempre têm chance real de aparecer.
 
-```
-intervalo_ideal = avaliação × 30 dias × 1.5^(n_releituras)
-```
+**Como funciona:** parâmetros α/β por `(userId, bookId)` persistidos no Redis por 90 dias · concluído → `α++` · abandonado → `β++` · score = `θ ~ Beta(α,β) × score_base` · TTL curto preserva a natureza estocástica entre sessões
 
-Exemplos: nota 5, primeira vez → 150 dias; nota 5, segunda releitura → 225 dias. O `reread_count` é rastreado em um JSON de metadados persistido junto ao resultado (a tabela `shelf_items` tem constraint única por livro, impossibilitando contar releituras por linhas). O score final pondera maturidade temporal e avaliação:
+---
 
-```
-maturity  = min(1.0, (dias_decorridos − intervalo_ideal) / intervalo_ideal)
-score     = 0.7 × maturity + 0.3 × (avaliação / 5.0)
-```
+#### 👥 T5 — SimilarAuthors `rec-sa`
 
-Livros dentro do intervalo ideal recebem score 0 e não aparecem. Resultado cacheado (`rec-rwi`).
+> *"Leitores com gosto parecido com o seu adoraram estes livros — e são de autores que você ainda não explorou."*
+
+Combina duas fontes: o próprio histórico do usuário e o comportamento de leitores similares navegando o grafo Neo4j. O resultado mistura descoberta pessoal com descoberta social.
+
+**Como funciona:** **L1** — livros de autores já bem avaliados pelo próprio usuário (`min-rating: 4`) · **L2** — Neo4j 2 saltos até 30 usuários similares → livros que avaliaram bem · L2 com score alto pode superar L1 (zona de sobreposição `[0.6–0.7]` intencional)
+
+---
+
+#### 🔄 T6 — RereadWorthIt `rec-rwi`
+
+> *"Faz um tempo que você leu este livro — pode ser o momento certo para revisitá-lo."*
+
+A única trilha focada em releitura. Usa repetição espaçada para calcular, livro a livro, o momento ideal para reler com base na nota que o usuário deu e em quantas vezes já releu. Quanto maior a nota e mais releituras confirmadas, maior o intervalo sugerido.
+
+**Como funciona:** `intervalo = avaliação × 30 dias × 1.5^n_releituras` · ex: nota 5, 1ª vez → 150 dias · score = `0.7 × maturity + 0.3 × (avaliação / 5.0)` · livros dentro do intervalo ficam ocultos · `reread_count` rastreado em JSON de metadados por conta da constraint única em `shelf_items`
 
 ---
 
