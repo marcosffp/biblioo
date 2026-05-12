@@ -10,6 +10,7 @@ import org.mapstruct.Mapping;
 public interface CommentMapper {
 
   @Mapping(target = "likedByCurrentUser", constant = "false")
+  @Mapping(target = "copyWithLikeStatus", ignore = true)
   CommentResponse toResponse(Comment comment);
 
   @Mapping(target = "authorUsername", ignore = true)

@@ -10,6 +10,7 @@ import org.mapstruct.Mapping;
 public interface FeedPostMapper {
 
   @Mapping(target = "likedByCurrentUser", constant = "false")
+  @Mapping(target = "copyWithLikeStatus", ignore = true)
   FeedPostResponse toResponse(FeedPost post);
 
   FeedPostBasicResponse toBasicResponse(FeedPost post);

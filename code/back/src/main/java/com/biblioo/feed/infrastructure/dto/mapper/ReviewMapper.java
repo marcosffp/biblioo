@@ -10,6 +10,7 @@ import org.mapstruct.Mapping;
 public interface ReviewMapper {
 
   @Mapping(target = "likedByCurrentUser", constant = "false")
+  @Mapping(target = "copyWithLikeStatus", ignore = true)
   ReviewResponse toResponse(Review review);
 
   ReviewBasicResponse toBasicResponse(Review review);

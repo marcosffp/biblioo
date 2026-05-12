@@ -60,6 +60,7 @@ public class CommentEnricher {
         response.createdAt(),
         user != null ? user.getUsername() : null,
         user != null ? user.getAvatarUrl() : null,
-        response.deleted());
+        response.deleted(),
+        response.likedByCurrentUser());
   }
 }
