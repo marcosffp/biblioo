@@ -674,5 +674,8 @@ O projeto usa **Google Java Format 1.35.0** via **Spotless**, aplicado obrigator
 ---
 
 <div align="center">
-  Biblioo — Leitura conectada
+  <img width="70%" alt="pucminas" src="../../docs/imagens/banner-institucional.svg"/>
 </div>
+<p align="center">Fonte do banner: <a href="https://github.com/joaopauloaramuni">João Paulo Carneiro Aramuni</a></p>
+
+---
