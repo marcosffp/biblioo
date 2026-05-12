@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, ChevronLeft, ChevronRight, Shuffle, Star, Users } from "lucide-react";
 import { AppShell, BookCoverPlaceholder, Button, PageHeader, SkeletonBlock } from "@/components";
+import { BookDetailsCard } from "@/components/BookDetailsCard";
+import {
+  addBookToShelf,
+  getBookById,
+  listShelves,
+  type BackendBookResponse,
+  type BackendShelfSummaryResponse,
+} from "@/services/bookcase";
 import {
   getBecauseYouRead,
   getCatalogSurprise,
@@ -29,9 +37,19 @@ function RatingBadge({ value }: { value?: number | null }) {
   );
 }
 
-function RecBookCard({ book }: { book: RecommendedBook }) {
+function RecBookCard({
+  book,
+  onClick,
+}: {
+  book: RecommendedBook;
+  onClick: (id: number) => void;
+}) {
   return (
-    <div className="group w-40 shrink-0 cursor-pointer">
+    <button
+      type="button"
+      onClick={() => onClick(book.id)}
+      className="group w-40 shrink-0 cursor-pointer text-left"
+    >
       <div className="relative overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--bg-surface)] shadow-sm transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-md">
         {book.coverUrl ? (
           <img src={book.coverUrl} alt={book.title} className="h-56 w-full object-cover" />
@@ -55,7 +73,7 @@ function RecBookCard({ book }: { book: RecommendedBook }) {
           </p>
         ) : null}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -78,11 +96,13 @@ function RecRow({
   subtitle,
   books,
   loading,
+  onBookClick,
 }: {
   title: string;
   subtitle?: string;
   books: RecommendedBook[] | null;
   loading: boolean;
+  onBookClick: (id: number) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -124,7 +144,6 @@ function RecRow({
       </div>
 
       <div className="relative">
-        {/* Left arrow */}
         {canScrollLeft && (
           <button
             type="button"
@@ -136,18 +155,16 @@ function RecRow({
           </button>
         )}
 
-        {/* Scrollable list */}
         <div
           ref={scrollRef}
           className="flex gap-4 overflow-x-auto pb-1"
           style={{ scrollbarWidth: "none" }}
         >
           {books.map((book) => (
-            <RecBookCard key={book.id} book={book} />
+            <RecBookCard key={book.id} book={book} onClick={onBookClick} />
           ))}
         </div>
 
-        {/* Right arrow */}
         {canScrollRight && (
           <button
             type="button"
@@ -168,11 +185,13 @@ function HeroBanner({
   loading,
   rolling,
   onRoll,
+  onBookClick,
 }: {
   book: DiceRollBook | null;
   loading: boolean;
   rolling: boolean;
   onRoll: () => void;
+  onBookClick: (id: number) => void;
 }) {
   if (loading) {
     return <SkeletonBlock lines={4} className="h-44 rounded-2xl" />;
@@ -181,29 +200,39 @@ function HeroBanner({
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--brand-700,#0d6e5c)] to-[var(--brand-500,#13937a)] p-6 text-white">
       <div className="flex items-center gap-6">
-        {/* Cover */}
-        <div className="shrink-0">
+        <button
+          type="button"
+          onClick={() => book && onBookClick(book.id)}
+          disabled={!book}
+          className="shrink-0 disabled:cursor-default"
+          aria-label={book ? `Ver detalhes de ${book.title}` : undefined}
+        >
           {book?.coverUrl ? (
             <img
               src={book.coverUrl}
-              alt={book?.title}
-              className="h-36 w-24 rounded-lg object-cover shadow-lg"
+              alt={book.title}
+              className="h-36 w-24 rounded-lg object-cover shadow-lg transition hover:scale-105"
             />
           ) : (
             <div className="flex h-36 w-24 items-center justify-center rounded-lg bg-white/10">
               <BookOpen className="h-10 w-10 text-white/50" />
             </div>
           )}
-        </div>
+        </button>
 
-        {/* Info */}
         <div className="min-w-0 flex-1">
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/60">
             Recomendação do dia
           </p>
           {book ? (
             <>
-              <h2 className="mb-1 text-2xl font-bold leading-tight">{book.title}</h2>
+              <button
+                type="button"
+                onClick={() => onBookClick(book.id)}
+                className="mb-1 text-left text-2xl font-bold leading-tight hover:underline"
+              >
+                {book.title}
+              </button>
               <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-white/75">
                 {book.averageRating ? (
                   <span className="flex items-center gap-1">
@@ -233,7 +262,6 @@ function HeroBanner({
           )}
         </div>
 
-        {/* Action */}
         <div className="shrink-0">
           <Button
             variant="outline"
@@ -275,6 +303,58 @@ export default function ParaVocePage() {
   const [rereadWorthIt, setRereadWorthIt] = useState<RecommendedBook[] | null>(null);
   const [rereadLoading, setRereadLoading] = useState(true);
 
+  // ── book detail modal ──────────────────────────────────────────────────────
+  const [modalBook, setModalBook] = useState<BackendBookResponse | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoadingBook, setIsLoadingBook] = useState(false);
+  const [shelves, setShelves] = useState<BackendShelfSummaryResponse[]>([]);
+  const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null);
+  const [isAddingToShelf, setIsAddingToShelf] = useState(false);
+  const [addToShelfError, setAddToShelfError] = useState("");
+  const [isAlreadyInShelf, setIsAlreadyInShelf] = useState(false);
+
+  const openBook = useCallback(async (bookId: number) => {
+    setIsLoadingBook(true);
+    setIsModalOpen(true);
+    setModalBook(null);
+    setSelectedShelfId(null);
+    setAddToShelfError("");
+    setIsAlreadyInShelf(false);
+
+    try {
+      const [book, shelfList] = await Promise.all([
+        getBookById(bookId),
+        listShelves().catch(() => [] as BackendShelfSummaryResponse[]),
+      ]);
+      setModalBook(book);
+      setShelves(shelfList);
+    } catch {
+      setIsModalOpen(false);
+    } finally {
+      setIsLoadingBook(false);
+    }
+  }, []);
+
+  const handleAddToShelf = useCallback(async () => {
+    if (!modalBook || selectedShelfId === null) return;
+    setIsAddingToShelf(true);
+    setAddToShelfError("");
+    try {
+      await addBookToShelf(selectedShelfId, modalBook.id);
+      setIsAlreadyInShelf(true);
+    } catch (e) {
+      setAddToShelfError(e instanceof Error ? e.message : "Erro ao adicionar à estante.");
+    } finally {
+      setIsAddingToShelf(false);
+    }
+  }, [modalBook, selectedShelfId]);
+
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false);
+    setModalBook(null);
+  }, []);
+
+  // ── data loading ───────────────────────────────────────────────────────────
   const handleRollDice = useCallback(async () => {
     setRolling(true);
     try {
@@ -335,6 +415,7 @@ export default function ParaVocePage() {
           loading={diceLoading}
           rolling={rolling}
           onRoll={() => void handleRollDice()}
+          onBookClick={(id) => void openBook(id)}
         />
 
         <RecRow
@@ -346,6 +427,7 @@ export default function ParaVocePage() {
           subtitle="Leitores com gosto similar também curtiram"
           books={becauseYouRead?.books ?? null}
           loading={byrLoading}
+          onBookClick={(id) => void openBook(id)}
         />
 
         <RecRow
@@ -353,6 +435,7 @@ export default function ParaVocePage() {
           subtitle={favoriteGenre?.topGenres?.join(" · ") ?? undefined}
           books={favoriteGenre?.books ?? null}
           loading={fgnLoading}
+          onBookClick={(id) => void openBook(id)}
         />
 
         <RecRow
@@ -360,6 +443,7 @@ export default function ParaVocePage() {
           subtitle="Os mais comentados e discutidos essa semana"
           books={trending}
           loading={trendingLoading}
+          onBookClick={(id) => void openBook(id)}
         />
 
         <RecRow
@@ -367,6 +451,7 @@ export default function ParaVocePage() {
           subtitle="Algo fora da sua zona de conforto para expandir horizontes"
           books={catalogSurprise}
           loading={catalogLoading}
+          onBookClick={(id) => void openBook(id)}
         />
 
         <RecRow
@@ -374,6 +459,7 @@ export default function ParaVocePage() {
           subtitle="Você pode gostar de quem escreve assim"
           books={similarAuthors}
           loading={authorsLoading}
+          onBookClick={(id) => void openBook(id)}
         />
 
         <RecRow
@@ -381,8 +467,28 @@ export default function ParaVocePage() {
           subtitle="Livros que você leu e que merecem uma nova chance"
           books={rereadWorthIt}
           loading={rereadLoading}
+          onBookClick={(id) => void openBook(id)}
         />
       </div>
+
+      {/* Book detail modal */}
+      {(isModalOpen || isLoadingBook) && (
+        <BookDetailsCard
+          isOpen={isModalOpen && !isLoadingBook}
+          title={modalBook?.title ?? ""}
+          author={modalBook?.authors?.join(", ") ?? ""}
+          coverUrl={modalBook?.coverUrl ?? undefined}
+          synopsis={modalBook?.synopsis ?? modalBook?.description ?? undefined}
+          onClose={closeModal}
+          onAddToShelf={() => void handleAddToShelf()}
+          availableShelves={shelves.map((s) => ({ id: s.id, name: s.name }))}
+          selectedShelfId={selectedShelfId}
+          onSelectShelf={setSelectedShelfId}
+          isAlreadyInShelf={isAlreadyInShelf}
+          isAddingToShelf={isAddingToShelf}
+          addToShelfError={addToShelfError}
+        />
+      )}
     </AppShell>
   );
 }

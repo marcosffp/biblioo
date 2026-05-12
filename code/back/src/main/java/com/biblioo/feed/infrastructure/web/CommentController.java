@@ -64,7 +64,7 @@ public class CommentController {
       description =
           "Cria um novo comentário na avaliação indicada. Permite texto (opcional),"
               + " até 5 imagens e 1 GIF.")
-  public ResponseEntity<CommentResponse> createComment(
+  public ResponseEntity<CommentBasicResponse> createComment(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId,
       @Parameter(
@@ -84,7 +84,8 @@ public class CommentController {
     Comment comment =
         commentUseCase.createComment(
             userId, reviewId, safeText, parseImages(images), parseGif(gif));
-    return ResponseEntity.status(HttpStatus.CREATED).body(commentMapper.toResponse(comment));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(commentEnricher.enrich(commentMapper.toBasicResponse(comment)));
   }
 
   @PutMapping(value = "/{commentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -5,7 +5,6 @@ import { TrendingUp } from "lucide-react";
 import {
   AppShell,
   CreatePostModal,
-  CreateReviewModal,
   EditReviewModal,
   EmptyState,
   FeedComposeCard,
@@ -43,7 +42,6 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showReviewModal, setShowReviewModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
   const [editingReview, setEditingReview] = useState<EditingReview | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -86,16 +84,8 @@ export default function FeedPage() {
         {/* Coluna principal do feed */}
         <div className="min-w-0 flex-1">
           <FeedComposeCard
-            onOpenReview={() => setShowReviewModal(true)}
             onOpenPost={() => setShowPostModal(true)}
           />
-
-          {showReviewModal && (
-            <CreateReviewModal
-              onClose={() => setShowReviewModal(false)}
-              onPublished={() => { void loadFeed(); }}
-            />
-          )}
 
           {showPostModal && (
             <CreatePostModal

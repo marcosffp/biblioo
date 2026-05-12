@@ -181,7 +181,7 @@ public class FeedPostController {
 
   @PostMapping(value = "/{postId}/comments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Comenta em um post")
-  public ResponseEntity<CommentResponse> createComment(
+  public ResponseEntity<CommentBasicResponse> createComment(
       @AuthenticationPrincipal UserDetails principal,
       @PathVariable Long postId,
       @RequestParam(required = false) String text,
@@ -193,7 +193,8 @@ public class FeedPostController {
     Comment comment =
         commentUseCase.createComment(
             userId, postId, sanitize(text), parseImages(images), parseGif(gif));
-    return ResponseEntity.status(HttpStatus.CREATED).body(commentMapper.toResponse(comment));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(commentEnricher.enrich(commentMapper.toBasicResponse(comment)));
   }
 
   @GetMapping("/{postId}/comments")

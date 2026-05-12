@@ -4,6 +4,7 @@ import React from "react";
 import {
   AlertTriangle,
   ArrowLeft,
+  BarChart2,
   BookOpen,
   CirclePlus,
   CornerUpLeft,
@@ -36,6 +37,9 @@ export interface CommunityChatPanelProps {
   onOpenInfo: () => void;
   typingUsers: TypingUser[];
   onTyping: () => void;
+  isVotingOpen: boolean;
+  onToggleVoting: () => void;
+  votingPanel?: React.ReactNode;
 }
 
 export function CommunityChatPanel({
@@ -53,6 +57,9 @@ export function CommunityChatPanel({
   onOpenInfo,
   typingUsers,
   onTyping,
+  isVotingOpen,
+  onToggleVoting,
+  votingPanel,
 }: Readonly<CommunityChatPanelProps>) {
   const [newMessage, setNewMessage] = React.useState("");
   const [spoilerEnabled, setSpoilerEnabled] = React.useState(false);
@@ -338,6 +345,16 @@ export function CommunityChatPanel({
 
         <button
           type="button"
+          onClick={onToggleVoting}
+          className={`rounded-md p-2 transition-colors hover:bg-muted ${isVotingOpen ? "text-emerald-600" : "text-muted-foreground"}`}
+          aria-label="Painel de votação"
+          title="Votação"
+        >
+          <BarChart2 className="h-5 w-5" />
+        </button>
+
+        <button
+          type="button"
           onClick={onOpenInfo}
           className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted"
           aria-label="Abrir painel do grupo"
@@ -345,6 +362,12 @@ export function CommunityChatPanel({
           <Info className="h-5 w-5" />
         </button>
       </div>
+
+      {isVotingOpen && votingPanel ? (
+        <div className="border-b border-border/80 bg-white">
+          {votingPanel}
+        </div>
+      ) : null}
 
       <div className="flex-1 overflow-y-auto bg-[#f8faf9] px-4 py-4 pb-20">
         <div className="mx-auto flex h-full w-full max-w-[1180px] flex-col gap-2.5">

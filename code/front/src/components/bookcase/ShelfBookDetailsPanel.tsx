@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Minus, Plus, Rss, Trash2, X } from "lucide-react";
+import { ChevronDown, Minus, Plus, Rss, Trash2 } from "lucide-react";
 import { BackHeader, RatingStars, TopHeader } from "@/components";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
 import type { ReadingStatus } from "@/utils/bookcase-filters";
@@ -40,9 +40,6 @@ interface ReviewFormProps {
   isLoadingReview: boolean;
 }
 
-interface ReviewModalProps extends ReviewFormProps {
-  onClose: () => void;
-}
 
 const statusOptions: Array<{
   value: Exclude<ReadingStatus, "todos">;
@@ -182,32 +179,6 @@ function ReviewForm({
   );
 }
 
-function ReviewModal({ onClose, ...formProps }: Readonly<ReviewModalProps>) {
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">Sua avaliação</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="rounded-lg p-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-soft)] hover:text-[var(--text-primary)]"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <ReviewForm {...formProps} />
-      </div>
-    </div>
-  );
-}
 
 export function ShelfBookDetailsPanel({
   isOpen,
@@ -234,7 +205,7 @@ export function ShelfBookDetailsPanel({
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isSynopsisExpanded, setIsSynopsisExpanded] = useState(false);
   const [pageDraft, setPageDraft] = useState("0");
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isReviewExpanded, setIsReviewExpanded] = useState(false);
 
   const progressPercent = useMemo(() => {
     if (!book) {
@@ -261,7 +232,7 @@ export function ShelfBookDetailsPanel({
 
   useEffect(() => {
     if (reviewSuccessMessage) {
-      const timer = setTimeout(() => setIsReviewModalOpen(false), 1500);
+      const timer = setTimeout(() => setIsReviewExpanded(false), 1800);
       return () => clearTimeout(timer);
     }
   }, [reviewSuccessMessage]);
@@ -508,22 +479,45 @@ export function ShelfBookDetailsPanel({
           <div className="flex items-center justify-between gap-4">
             <div>
               <h3 className="text-xl font-semibold text-[var(--text-primary)]">Sua avaliação</h3>
-              {reviewExists && reviewRating > 0 ? (
-                <div className="mt-1">
+              {!isReviewExpanded && reviewExists && reviewRating > 0 ? (
+                <div className="mt-1 flex items-center gap-3">
                   <RatingStars value={reviewRating} size={20} />
+                  {reviewComment.trim() ? (
+                    <p className="line-clamp-1 text-sm text-[var(--text-secondary)]">
+                      {reviewComment.trim()}
+                    </p>
+                  ) : null}
                 </div>
-              ) : (
+              ) : null}
+              {!isReviewExpanded && !reviewExists ? (
                 <p className="mt-1 text-sm text-[var(--text-secondary)]">Nenhuma avaliação ainda.</p>
-              )}
+              ) : null}
             </div>
             <button
               type="button"
-              onClick={() => setIsReviewModalOpen(true)}
-              className="flex-shrink-0 rounded-[var(--radius-md)] bg-[var(--brand-500)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-600)]"
+              onClick={() => setIsReviewExpanded((v) => !v)}
+              className="flex-shrink-0 rounded-[var(--radius-md)] border border-[var(--border-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-soft)]"
             >
-              {reviewExists ? "Editar avaliação" : "Avaliar"}
+              {isReviewExpanded ? "Cancelar" : reviewExists ? "Editar avaliação" : "Avaliar"}
             </button>
           </div>
+
+          {isReviewExpanded ? (
+            <div className="mt-4 border-t border-[var(--border-soft)] pt-4">
+              <ReviewForm
+                reviewRating={reviewRating}
+                reviewComment={reviewComment}
+                reviewExists={reviewExists}
+                onChangeReviewRating={onChangeReviewRating}
+                onChangeReviewComment={onChangeReviewComment}
+                onSaveReview={onSaveReview}
+                reviewSuccessMessage={reviewSuccessMessage}
+                reviewError={reviewError}
+                isSavingReview={isSavingReview}
+                isLoadingReview={isLoadingReview ?? false}
+              />
+            </div>
+          ) : null}
         </section>
 
         <div className="mt-4 flex justify-end">
@@ -538,22 +532,6 @@ export function ShelfBookDetailsPanel({
           </button>
         </div>
       </div>
-
-      {isReviewModalOpen ? (
-        <ReviewModal
-          reviewRating={reviewRating}
-          reviewComment={reviewComment}
-          reviewExists={reviewExists}
-          onChangeReviewRating={onChangeReviewRating}
-          onChangeReviewComment={onChangeReviewComment}
-          onSaveReview={onSaveReview}
-          reviewSuccessMessage={reviewSuccessMessage}
-          reviewError={reviewError}
-          isSavingReview={isSavingReview}
-          isLoadingReview={isLoadingReview ?? false}
-          onClose={() => setIsReviewModalOpen(false)}
-        />
-      ) : null}
     </div>
   );
 }

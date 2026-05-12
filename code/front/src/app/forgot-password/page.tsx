@@ -2,70 +2,88 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight } from "lucide-react";
-import { AuthLayout, Button, PasswordInput, TextInput } from "@/components";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
-import { AuthApiError, loginWithEmailPassword } from "@/services";
+import { ArrowLeft, Mail } from "lucide-react";
+import { AuthLayout, Button, TextInput } from "@/components";
+import { AuthApiError, forgotPassword } from "@/services";
 
 const INPUT_CLASS =
   "[&>span]:mb-1.5 [&>span]:text-[11px] [&>span]:font-semibold [&>span]:uppercase [&>span]:tracking-[0.18em] [&>span]:text-[var(--text-secondary)] [&_input]:h-12 [&_input]:text-sm [&_input]:font-medium";
 
 type SubmitLikeEvent = { preventDefault: () => void };
 
-function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [emailError, setEmailError] = useState("");
   const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   async function handleSubmit(event: SubmitLikeEvent) {
     event.preventDefault();
-    const nextErrors: { email?: string; password?: string } = {};
     const normalizedEmail = email.trim();
 
     if (!normalizedEmail) {
-      nextErrors.email = "E-mail obrigatório";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      nextErrors.email = "E-mail inválido";
+      setEmailError("E-mail obrigatório");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setEmailError("E-mail inválido");
+      return;
     }
 
-    if (!password.trim()) nextErrors.password = "Senha obrigatória";
-
-    setErrors(nextErrors);
+    setEmailError("");
     setFormError("");
-
-    if (Object.keys(nextErrors).length > 0) return;
-
     setIsLoading(true);
+
     try {
-      await loginWithEmailPassword({ email: normalizedEmail, password });
-      const next = searchParams.get("next") ?? "/feed";
-      router.push(next);
+      await forgotPassword(normalizedEmail);
+      setSent(true);
     } catch (error) {
-      if (error instanceof AuthApiError && error.code === "INVALID_CREDENTIALS") {
-        setFormError("E-mail ou senha inválidos.");
+      if (error instanceof AuthApiError && error.code === "RATE_LIMIT") {
+        setFormError("Muitas tentativas. Aguarde alguns minutos e tente novamente.");
       } else if (error instanceof AuthApiError && error.code === "NETWORK") {
         setFormError("Falha de comunicação com o servidor.");
       } else {
-        setFormError("Não foi possível entrar. Tente novamente.");
+        setFormError("Não foi possível enviar o e-mail. Tente novamente.");
       }
     } finally {
       setIsLoading(false);
     }
   }
 
+  if (sent) {
+    return (
+      <AuthLayout>
+        <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[hsl(var(--brand-500)/0.12)]">
+            <Mail size={22} className="text-[var(--brand-500)]" aria-hidden />
+          </div>
+          <h2 className="mt-4 font-display text-3xl font-semibold text-[var(--text-primary)]">
+            E-mail enviado
+          </h2>
+          <p className="mt-2 text-sm text-[var(--text-secondary)]">
+            Se esse e-mail estiver cadastrado, você receberá um link para redefinir sua senha em instantes. Verifique também sua caixa de spam.
+          </p>
+          <Link
+            href="/login"
+            className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-[var(--brand-500)] transition-colors hover:text-[var(--brand-600)]"
+          >
+            <ArrowLeft size={14} aria-hidden />
+            Voltar ao login
+          </Link>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout>
       <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
         <h2 className="font-display text-3xl font-semibold text-[var(--text-primary)]">
-          Entrar
+          Esqueci a senha
         </h2>
         <p className="mt-1 text-sm text-[var(--text-secondary)]">
-          ou crie sua conta grátis
+          Informe seu e-mail e enviaremos um link para redefinir sua senha.
         </p>
 
         <div className="mt-8 space-y-5">
@@ -83,31 +101,9 @@ function LoginForm() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               disabled={isLoading}
-              error={errors.email}
+              error={emailError}
               className={INPUT_CLASS}
             />
-
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
-                  Senha
-                </span>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--brand-600)]"
-                >
-                  esqueci a senha
-                </Link>
-              </div>
-              <PasswordInput
-                placeholder="********"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                disabled={isLoading}
-                error={errors.password}
-                className={INPUT_CLASS}
-              />
-            </div>
 
             <Button
               type="submit"
@@ -115,27 +111,19 @@ function LoginForm() {
               className="mt-2 h-12 w-full rounded-xl bg-primary-dark text-primary-foreground text-[0.95rem] font-semibold tracking-[0.01em] shadow-[0_12px_26px_rgba(19,147,122,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary hover:shadow-[0_16px_30px_rgba(19,147,122,0.3)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0"
             >
               <span className="inline-flex items-center justify-center gap-2">
-                <span>{isLoading ? "Entrando..." : "Entrar"}</span>
-                <ArrowRight size={16} aria-hidden />
+                <span>{isLoading ? "Enviando..." : "Enviar link"}</span>
+                <Mail size={16} aria-hidden />
               </span>
             </Button>
           </form>
 
-          <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
-            <span className="h-px flex-1 bg-[var(--border-soft)]" />
-            ou
-            <span className="h-px flex-1 bg-[var(--border-soft)]" />
-          </div>
-
-          <GoogleSignInButton onError={setFormError} onLoadingChange={setIsLoading} />
-
           <p className="text-center text-sm text-[var(--text-secondary)]">
-            Não tem conta?{" "}
+            Lembrou a senha?{" "}
             <Link
-              href="/register"
+              href="/login"
               className="font-semibold text-[var(--brand-500)] transition-colors hover:text-[var(--brand-600)]"
             >
-              Cadastre-se
+              Entrar
             </Link>
           </p>
         </div>
@@ -144,10 +132,10 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <Suspense>
-      <LoginForm />
+      <ForgotPasswordForm />
     </Suspense>
   );
 }

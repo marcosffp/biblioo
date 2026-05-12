@@ -1,16 +1,14 @@
 "use client";
 
 import React from "react";
-import { Star, PenLine } from "lucide-react";
 import { getAuthSession } from "@/services/auth";
 import type { AuthSession } from "@/types";
 
 interface FeedComposeCardProps {
-  onOpenReview: () => void;
   onOpenPost: () => void;
 }
 
-export function FeedComposeCard({ onOpenReview, onOpenPost }: FeedComposeCardProps) {
+export function FeedComposeCard({ onOpenPost }: Readonly<FeedComposeCardProps>) {
   const [session, setSession] = React.useState<AuthSession | null>(null);
 
   React.useEffect(() => {
@@ -38,28 +36,6 @@ export function FeedComposeCard({ onOpenReview, onOpenPost }: FeedComposeCardPro
           className="flex-1 rounded-full border border-gray-200 bg-emerald-50/60 px-4 py-2.5 text-left text-sm text-gray-400 hover:bg-emerald-50 transition-colors"
         >
           O que você quer compartilhar?
-        </button>
-      </div>
-
-      <div className="mt-3 flex items-center border-t border-gray-100 pt-3">
-        <button
-          type="button"
-          onClick={onOpenReview}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-emerald-700 transition-colors"
-        >
-          <Star size={16} aria-hidden />
-          Avaliar Livro
-        </button>
-
-        <div className="h-5 w-px bg-gray-200" />
-
-        <button
-          type="button"
-          onClick={onOpenPost}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-emerald-700 transition-colors"
-        >
-          <PenLine size={16} aria-hidden />
-          Escrever Post
         </button>
       </div>
     </div>

@@ -3,7 +3,6 @@ package com.biblioo.feed.infrastructure.web;
 import com.biblioo.feed.domain.model.Comment;
 import com.biblioo.feed.domain.port.in.CommentUseCase;
 import com.biblioo.feed.infrastructure.dto.comment.CommentBasicResponse;
-import com.biblioo.feed.infrastructure.dto.comment.CommentResponse;
 import com.biblioo.feed.infrastructure.dto.like.LikeResponse;
 import com.biblioo.feed.infrastructure.dto.mapper.CommentMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -79,12 +78,13 @@ public class CommentInteractionController {
 
   @PostMapping("/{commentId}/replies")
   @Operation(summary = "Responder a um comentário")
-  public ResponseEntity<CommentResponse> createReply(
+  public ResponseEntity<CommentBasicResponse> createReply(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do comentário pai") @PathVariable Long commentId,
       @Parameter(description = "Texto da resposta") @RequestParam String text) {
     Long userId = Long.parseLong(principal.getUsername());
     Comment reply = commentUseCase.createReply(userId, commentId, Jsoup.clean(text, Safelist.none()));
-    return ResponseEntity.status(HttpStatus.CREATED).body(commentMapper.toResponse(reply));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(commentEnricher.enrich(commentMapper.toBasicResponse(reply)));
   }
 }

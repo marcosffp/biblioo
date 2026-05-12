@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { clearAuthSession, getAuthSession, isTokenExpired } from "@/services/auth";
 import { getJwtExpiry } from "@/utils/jwt";
 
-const PUBLIC_ROUTES = new Set(["/login", "/register"]);
+const PUBLIC_ROUTES = new Set(["/login", "/register", "/forgot-password", "/reset-password"]);
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();

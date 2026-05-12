@@ -47,4 +47,19 @@ public class CommentEnricher {
               likedIds.contains(c.id()));
         });
   }
+
+  public CommentBasicResponse enrich(CommentBasicResponse response) {
+    List<User> users = userPort.getUsersByIds(List.of(response.userId()));
+    User user = users.isEmpty() ? null : users.get(0);
+    return new CommentBasicResponse(
+        response.id(),
+        response.userId(),
+        response.parentId(),
+        response.text(),
+        response.likeCount(),
+        response.createdAt(),
+        user != null ? user.getUsername() : null,
+        user != null ? user.getAvatarUrl() : null,
+        response.deleted());
+  }
 }

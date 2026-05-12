@@ -4,9 +4,11 @@ import React from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { TopHeader } from "@/components/TopHeader";
 import { useCommunityMessages } from "@/hooks/useCommunityMessages";
+import { useVoting } from "@/hooks/useVoting";
 import { changeCommunityMemberRole, deleteCommunity, leaveCommunity, removeCommunityMember } from "@/services/community";
 import { CommunityChatPanel } from "./CommunityChatPanel";
 import { CommunityInfoPanel } from "./CommunityInfoPanel";
+import { VotingPanel } from "./VotingPanel";
 import type { Community } from "../../hooks/useCommunity";
 
 export interface CommunityChatViewProps {
@@ -23,6 +25,8 @@ export function CommunityChatView({
   onInviteUser,
 }: Readonly<CommunityChatViewProps>) {
   const [isInfoOpen, setIsInfoOpen] = React.useState(false);
+  const [isVotingOpen, setIsVotingOpen] = React.useState(false);
+
   const {
     messages,
     members,
@@ -38,9 +42,23 @@ export function CommunityChatView({
     toggleHeartReaction,
     refreshMembers,
     publishTyping,
+    lastVotingEvent,
   } = useCommunityMessages(community.id);
 
   const isOwner = community.ownerId != null && community.ownerId === currentUserId;
+
+  const {
+    voting,
+    isLoading: isVotingLoading,
+    error: votingError,
+    isActing,
+    onVote,
+    onPublish,
+    onClose: onCloseVoting,
+    onApprove,
+    onReject,
+    onCreate,
+  } = useVoting(community.id, lastVotingEvent);
 
   const handleRemoveMember = async (memberId: string) => {
     await removeCommunityMember(Number(community.id), Number(memberId));
@@ -85,6 +103,23 @@ export function CommunityChatView({
                 onOpenInfo={() => setIsInfoOpen((current) => !current)}
                 typingUsers={typingUsers}
                 onTyping={publishTyping}
+                isVotingOpen={isVotingOpen}
+                onToggleVoting={() => setIsVotingOpen((current) => !current)}
+                votingPanel={
+                  <VotingPanel
+                    voting={voting}
+                    isLoading={isVotingLoading}
+                    error={votingError}
+                    isOwner={isOwner}
+                    isActing={isActing}
+                    onVote={onVote}
+                    onPublish={onPublish}
+                    onClose={onCloseVoting}
+                    onApprove={onApprove}
+                    onReject={onReject}
+                    onCreate={onCreate}
+                  />
+                }
               />
             </div>
 

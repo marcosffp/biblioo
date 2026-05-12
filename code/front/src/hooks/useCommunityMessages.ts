@@ -13,6 +13,7 @@ import {
   type BackendCommunityMessage,
   type BackendMessageEventPayload,
 } from "@/services/community-messages";
+import type { VotingEventPayload } from "@/services/voting";
 import type { CommunityChatMessage, CommunityMember } from "@/hooks/useCommunity";
 
 interface SendMessageInput {
@@ -158,6 +159,7 @@ export function useCommunityMessages(communityId: string) {
   const [isConnected, setIsConnected] = useState(false);
   const [messageError, setMessageError] = useState("");
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [lastVotingEvent, setLastVotingEvent] = useState<VotingEventPayload | null>(null);
 
   const clientRef = useRef<Client | null>(null);
   const isCancelledRef = useRef(false);
@@ -371,6 +373,14 @@ export function useCommunityMessages(communityId: string) {
       client.subscribe(`/topic/community.${communityNumericId}.reactions`, onCreatedFrame);
       client.subscribe(`/topic/community.${communityNumericId}.typing`, onTypingFrame);
       client.subscribe(`/user/queue/errors`, onErrorFrame);
+      client.subscribe(`/topic/community.${communityNumericId}.voting`, (frame) => {
+        try {
+          const payload = JSON.parse(frame.body) as VotingEventPayload;
+          setLastVotingEvent(payload);
+        } catch {
+          // ignore malformed voting frame
+        }
+      });
     },
     [onCreatedFrame, onErrorFrame, onTypingFrame],
   );
@@ -747,5 +757,6 @@ export function useCommunityMessages(communityId: string) {
     syncLostMessages,
     refreshMembers,
     publishTyping,
+    lastVotingEvent,
   };
 }
