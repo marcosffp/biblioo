@@ -98,7 +98,93 @@ A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura
 | `user` | Autenticação, perfil, seguidores, busca por username | ~67 |
 | `assistant` | Assistente Bibo com Google Gemini, function calling, histórico Redis | ~21 |
 
+### 🤖 Algoritmos de Recomendação
 
+O módulo `recommendation` é completamente independente do assistente Bibo — as recomendações são geradas por algoritmos determinísticos e estatísticos, sem envolver nenhum modelo de linguagem. Cada trilha é disparada por eventos de domínio (livro concluído, entrada em comunidade, mensagem enviada) via RabbitMQ, e o resultado pré-computado é cacheado no Redis por usuário.
+
+---
+
+#### T1 — BecauseYouRead
+
+**Tipo:** Co-leitura via grafo
+**Quando dispara:** ao marcar um livro como concluído
+
+Ao receber o evento, o serviço grava a relação `(:User)-[:READ]->(:Book)` no Neo4j e executa uma query Cypher que encontra outros usuários que leram o mesmo livro (`min-co-readers: 2`) e retorna os livros que eles também leram, mas que o usuário ainda não conhece. O resultado passa por **pós-processamento**: cada score recebe um jitter aleatório de ±3% para evitar que todos os usuários recebam exatamente a mesma lista, e é aplicada uma restrição de diversidade de categoria (`max-same-category-ratio: 60%`). Se o Neo4j estiver indisponível, há **fallback para SQL** via `BecauseYouReadComputeService`. O resultado final é persistido no MySQL e cacheado no Redis (`rec-byr`).
+
+---
+
+#### T2 — FavoriteGenreNow
+
+**Tipo:** Filtragem por gênero com dois estágios
+**Quando dispara:** ao marcar um livro como concluído
+
+Calcula os **3 gêneros mais frequentes** no histórico de leitura do usuário. Então busca livros nesses gêneros em dois estágios:
+
+1. **Primário** — livros com número mínimo de reviews (`min-reviews: 10`), priorizando dados confiáveis
+2. **Fallback por popularidade** — se o estágio 1 não preencher os 20 slots, completa com os livros mais lidos (`reader_count`) nos mesmos gêneros, excluindo os já retornados e os já lidos pelo usuário
+
+O resultado é persistido com metadados dos nomes dos gêneros para exibição no front e cacheado (`rec-fgn`).
+
+---
+
+#### T3 — TrendingInCommunities
+
+**Tipo:** Pontuação com Exponential Decay orientada a eventos
+**Quando dispara:** a cada mensagem publicada ou entrada em comunidade
+
+Cada evento incrementa o score do livro da comunidade com peso diferente: **mensagem = 2.0**, **entrada = 0.5**. Antes de incrementar, verifica **deduplicação por janela de 24h** — o mesmo usuário não pode contribuir mais de uma vez para o mesmo livro+evento nesse período, evitando spam de score. O score já existente sofre decaimento exponencial de **10% por hora** antes do incremento. Na leitura, os livros com score acima do limiar (`min-score: 0.1`) formam a camada orgânica; slots restantes são preenchidos com um fallback de livros bem avaliados adicionados nos últimos 60 dias. Resultado cacheado (`rec-tic`).
+
+---
+
+#### T4 — CatalogSurprise
+
+**Tipo:** Thompson Sampling (Multi-Armed Bandit)
+**Quando dispara:** a cada interação do usuário com um livro (concluído ou abandonado)
+
+Propõe livros de **categorias distantes** do perfil habitual do usuário para combater o efeito de bolha. Os parâmetros bayesianos α e β de cada par `(userId, bookId)` são persistidos no Redis com TTL de 90 dias:
+
+- Livro **concluído** → `α++` (reforço positivo)
+- Livro **abandonado** → `β++` (reforço negativo)
+
+Na geração, o serviço busca um pool de candidatos (`pool = candidateLimit × 3`), amostra um θ por livro via `Beta(α, β)` e multiplica pelo score base dos candidatos. A ordenação por θ×score garante que livros com mais feedbacks positivos sobem naturalmente, enquanto novos candidatos sem histórico têm chance real de aparecer (prior uniforme `α=1, β=1`). O resultado é cacheado com TTL curto para preservar a natureza estocástica entre sessões distintas sem pagar o custo de computação a cada request.
+
+---
+
+#### T5 — SimilarAuthors
+
+**Tipo:** Collaborative Filtering via Neo4j em dois níveis
+**Quando dispara:** ao marcar um livro como concluído (≥ 7 dias após conclusão)
+
+Combina dois níveis de candidatos, ambos filtrados por avaliação mínima (`min-rating: 4`):
+
+- **Nível 1** (autores confirmados) — livros de autores que o próprio usuário já avaliou bem, excluindo os já lidos
+- **Nível 2** (descoberta colaborativa) — percorre o grafo Neo4j em dois saltos: encontra até 30 usuários com padrão de leitura similar, e retorna livros que eles avaliaram bem, mas que o usuário ainda não conhece
+
+Os dois níveis são mesclados e ordenados por score descendente. A **zona de sobreposição [0.6, 0.7]** é intencional: um livro de nível 2 muito bem avaliado pode preceder um livro de nível 1 mal avaliado. Se nenhum candidato for encontrado, aplica um fallback global. Resultado persistido e cacheado (`rec-sa`).
+
+---
+
+#### T6 — RereadWorthIt
+
+**Tipo:** Spaced Repetition
+**Quando dispara:** ao marcar um livro como concluído
+
+Recomenda **releitura** de livros que o usuário já leu, respeitando um intervalo de espaçamento calculado individualmente por livro:
+
+```
+intervalo_ideal = avaliação × 30 dias × 1.5^(n_releituras)
+```
+
+Exemplos: nota 5, primeira vez → 150 dias; nota 5, segunda releitura → 225 dias. O `reread_count` é rastreado em um JSON de metadados persistido junto ao resultado (a tabela `shelf_items` tem constraint única por livro, impossibilitando contar releituras por linhas). O score final pondera maturidade temporal e avaliação:
+
+```
+maturity  = min(1.0, (dias_decorridos − intervalo_ideal) / intervalo_ideal)
+score     = 0.7 × maturity + 0.3 × (avaliação / 5.0)
+```
+
+Livros dentro do intervalo ideal recebem score 0 e não aparecem. Resultado cacheado (`rec-rwi`).
+
+---
 
 ## 📁 Estrutura de pastas
 
