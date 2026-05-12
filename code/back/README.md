@@ -43,7 +43,7 @@ O **Biblioo** é uma rede social focada em leitores. Os usuários organizam seus
 
 ## 🏛️ Arquitetura
 
-A aplicação segue o estilo **Hexagonal (Ports & Adapters)** com separação explícita entre camadas:
+A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura de **monólito modular**, garantindo desacoplamento entre domínios e permitindo que módulos específicos possam ser extraídos futuramente para serviços independentes conforme a necessidade de escalabilidade da plataforma.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
