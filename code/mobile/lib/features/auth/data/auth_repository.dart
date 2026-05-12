@@ -1,5 +1,6 @@
 import 'package:biblioo/features/auth/domain/auth_session.dart';
 import 'package:dio/dio.dart';
+import 'auth_secure_datasource.dart';
 import 'auth_local_datasource.dart';
 import 'auth_remote_datasource.dart';
 
@@ -14,8 +15,9 @@ class AuthFailure implements Exception {
 class AuthRepository {
   final AuthRemoteDatasource _remote;
   final AuthLocalDatasource _local;
+  final AuthSecureDatasource _secure;
 
-  const AuthRepository(this._remote, this._local);
+  const AuthRepository(this._remote, this._local, this._secure);
 
   bool _isConnectivityError(Object error) {
     return error is DioException &&
@@ -78,15 +80,15 @@ class AuthRepository {
   }
 
   Future<AuthSession?> restoreSession() async {
-    final access = _local.getAccessToken();
-    final refresh = _local.getRefreshToken();
+    final access = await _secure.getAccessToken();
+    final refresh = await _secure.getRefreshToken();
     if (access == null || refresh == null) return null;
 
     final cachedUser = _local.getSessionUser();
 
     try {
       final result = await _remote.refresh(refresh);
-      await _local.saveTokens(
+      await _secure.saveTokens(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
@@ -99,7 +101,8 @@ class AuthRepository {
     } on DioException catch (e) {
       // Token realmente invalido/expirado: encerra sessao.
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
-        await _local.clearTokens();
+        await _secure.clearTokens();
+        await _local.clearSessionUser();
         return null;
       }
 
@@ -121,7 +124,8 @@ class AuthRepository {
         );
       }
 
-      await _local.clearTokens();
+      await _secure.clearTokens();
+      await _local.clearSessionUser();
       return null;
     }
   }
@@ -132,7 +136,7 @@ class AuthRepository {
   }) async {
     try {
       final result = await _remote.login(email: email, password: password);
-      await _local.saveTokens(
+      await _secure.saveTokens(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
@@ -158,7 +162,7 @@ class AuthRepository {
         email: email,
         password: password,
       );
-      await _local.saveTokens(
+      await _secure.saveTokens(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
@@ -174,7 +178,7 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    final refresh = _local.getRefreshToken();
+    final refresh = await _secure.getRefreshToken();
     try {
       if (refresh != null) {
         await _remote.logout(refresh);
@@ -182,7 +186,8 @@ class AuthRepository {
     } catch (_) {
       // Logout remoto em best effort; limpeza local e obrigatoria.
     } finally {
-      await _local.clearTokens();
+      await _secure.clearTokens();
+      await _local.clearSessionUser();
     }
   }
 }

@@ -6,6 +6,7 @@ class CommunityModel {
   final String? description;
   final int bookId;
   final int ownerId;
+  final String? currentUserRole;
   final String type;
   final String bookTitle;
   final String bookAuthor;
@@ -20,6 +21,7 @@ class CommunityModel {
     this.description,
     required this.bookId,
     required this.ownerId,
+    this.currentUserRole,
     required this.type,
     required this.bookTitle,
     required this.bookAuthor,
@@ -36,6 +38,7 @@ class CommunityModel {
         description: json['description'] as String?,
         bookId: (json['bookId'] as num?)?.toInt() ?? 0,
         ownerId: (json['ownerId'] as num?)?.toInt() ?? 0,
+        currentUserRole: json['currentUserRole'] as String?,
         type: (json['type'] as String?) ?? 'PUBLIC',
         bookTitle: 'Livro #${(json['bookId'] as num?)?.toInt() ?? 0}',
         bookAuthor: '',
@@ -51,6 +54,7 @@ class CommunityModel {
     description: json['description'] as String?,
     bookId: (json['bookId'] as num?)?.toInt() ?? 0,
     ownerId: (json['ownerId'] as num?)?.toInt() ?? 0,
+    currentUserRole: json['currentUserRole'] as String?,
     type: (json['type'] as String?) ?? 'PUBLIC',
     bookTitle:
         (json['bookTitle'] as String?) ??
@@ -68,6 +72,7 @@ class CommunityModel {
     'description': description,
     'bookId': bookId,
     'ownerId': ownerId,
+    'currentUserRole': currentUserRole,
     'type': type,
     'bookTitle': bookTitle,
     'bookAuthor': bookAuthor,
@@ -83,6 +88,7 @@ class CommunityModel {
     String? description,
     int? bookId,
     int? ownerId,
+    String? currentUserRole,
     String? type,
     String? bookTitle,
     String? bookAuthor,
@@ -96,6 +102,7 @@ class CommunityModel {
     description: description ?? this.description,
     bookId: bookId ?? this.bookId,
     ownerId: ownerId ?? this.ownerId,
+    currentUserRole: currentUserRole ?? this.currentUserRole,
     type: type ?? this.type,
     bookTitle: bookTitle ?? this.bookTitle,
     bookAuthor: bookAuthor ?? this.bookAuthor,
@@ -111,6 +118,7 @@ class CommunityModel {
     description: description,
     bookId: bookId,
     ownerId: ownerId,
+    currentUserRole: currentUserRole,
     bookTitle: bookTitle,
     bookAuthor: bookAuthor,
     bookCoverUrl: bookCoverUrl,

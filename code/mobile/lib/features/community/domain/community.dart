@@ -6,6 +6,7 @@ class Community {
   final String? description;
   final int bookId;
   final int ownerId;
+  final String? currentUserRole;
   final String bookTitle;
   final String bookAuthor;
   final String? bookCoverUrl;
@@ -20,6 +21,7 @@ class Community {
     this.description,
     required this.bookId,
     required this.ownerId,
+    this.currentUserRole,
     required this.bookTitle,
     required this.bookAuthor,
     this.bookCoverUrl,
@@ -37,6 +39,7 @@ class Community {
     String? description,
     int? bookId,
     int? ownerId,
+    String? currentUserRole,
     String? bookTitle,
     String? bookAuthor,
     String? bookCoverUrl,
@@ -50,6 +53,7 @@ class Community {
     description: description ?? this.description,
     bookId: bookId ?? this.bookId,
     ownerId: ownerId ?? this.ownerId,
+    currentUserRole: currentUserRole ?? this.currentUserRole,
     bookTitle: bookTitle ?? this.bookTitle,
     bookAuthor: bookAuthor ?? this.bookAuthor,
     bookCoverUrl: bookCoverUrl ?? this.bookCoverUrl,

@@ -3,8 +3,8 @@ import 'package:biblioo/features/notification/domain/notification_item.dart';
 class NotificationModel {
   final String id;
   final String type;
-  final int actorId;
-  final String actorUsername;
+  final int? actorId;
+  final String? actorUsername;
   final String? actorAvatarUrl;
   final int? entityId;
   final int? communityId;
@@ -24,6 +24,14 @@ class NotificationModel {
   });
 
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    final rawActorId = json['actorId'];
+    int? parsedActorId;
+    if (rawActorId is num) {
+      parsedActorId = rawActorId.toInt();
+    } else if (rawActorId is String && rawActorId.isNotEmpty) {
+      parsedActorId = int.tryParse(rawActorId);
+    }
+
     final rawEntityId = json['entityId'];
     int? parsedEntityId;
     if (rawEntityId is num) {
@@ -43,8 +51,8 @@ class NotificationModel {
     return NotificationModel(
       id: json['id'] as String,
       type: json['type'] as String,
-      actorId: (json['actorId'] as num).toInt(),
-      actorUsername: json['actorUsername'] as String,
+      actorId: parsedActorId,
+      actorUsername: json['actorUsername'] as String?,
       actorAvatarUrl: json['actorAvatarUrl'] as String?,
       entityId: parsedEntityId,
       communityId: parsedCommunityId,

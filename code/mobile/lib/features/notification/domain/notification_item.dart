@@ -11,8 +11,8 @@ enum NotificationType {
 class NotificationItem {
   final String id;
   final NotificationType type;
-  final int actorId;
-  final String actorUsername;
+  final int? actorId;
+  final String? actorUsername;
   final String? actorAvatarUrl;
   final int? entityId;
   final int? communityId;

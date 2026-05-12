@@ -1,7 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/features/community/domain/community_member.dart';
-import 'package:flutter/material.dart';
 import 'package:biblioo/utils/cooldown_refresh.dart';
 
 import 'community_detail_shared.dart';
@@ -14,6 +14,9 @@ class CommunityOverviewTab extends StatelessWidget {
   final bool joinRequestPending;
   final Future<void> Function() onJoinOrLeave;
   final Future<void> Function()? onRefresh;
+  final Future<void> Function()? onShare;
+  final String? accessNoticeTitle;
+  final String? accessNoticeDescription;
 
   const CommunityOverviewTab({
     super.key,
@@ -23,6 +26,9 @@ class CommunityOverviewTab extends StatelessWidget {
     required this.joinRequestPending,
     required this.onJoinOrLeave,
     this.onRefresh,
+    this.onShare,
+    this.accessNoticeTitle,
+    this.accessNoticeDescription,
   });
 
   @override
@@ -36,6 +42,7 @@ class CommunityOverviewTab extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
+        // Card principal da comunidade
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -49,16 +56,33 @@ class CommunityOverviewTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(28),
           ),
           padding: const EdgeInsets.all(18),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CommunityDetailBookCover(coverUrl: coverUrl),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
+              // Título e descrição no topo esquerdo
+              Text(
+                community.name,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                (community.description?.trim().isNotEmpty ?? false)
+                    ? community.description!.trim()
+                    : 'Sem descrição disponível.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Badges à esquerda, botões à direita
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Badges
+                  Expanded(
+                    child: Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
@@ -74,27 +98,55 @@ class CommunityOverviewTab extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Text(
-                      community.name,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Botões com tamanho intrínseco
+                  IntrinsicWidth(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (community.isMember) ...[
+                          IntrinsicWidth(
+                            child: OutlinedButton.icon(
+                              onPressed: onJoinOrLeave,
+                              icon: const Icon(Icons.logout_rounded, size: 16),
+                              label: const Text('Sair'),
+                              style: OutlinedButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        IntrinsicWidth(
+                          child: FilledButton.icon(
+                            onPressed: community.isMember ? onShare : null,
+                            icon: const Icon(Icons.share_rounded, size: 16),
+                            label: const Text('Compartilhar'),
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      community.description ?? 'Sem descrição disponível.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
+
+        // Card do livro
         Card(
           elevation: 1,
           child: Padding(
@@ -136,10 +188,12 @@ class CommunityOverviewTab extends StatelessWidget {
                           const SizedBox(height: 8),
                           Text(
                             book?.description ??
-                                'Descrição do livro indisponível. Pode ser que o livro tenha sido removido ou que a comunidade esteja desatualizada.',
+                                'Descrição do livro indisponível.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -151,35 +205,77 @@ class CommunityOverviewTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: community.isMember || !community.isPublic
-                ? (joinRequestPending && !community.isMember
-                      ? null
-                      : onJoinOrLeave)
-                : onJoinOrLeave,
-            icon: Icon(
-              community.isMember
-                  ? Icons.logout_rounded
-                  : joinRequestPending && !community.isPublic
-                  ? Icons.hourglass_bottom_rounded
-                  : community.isPublic
-                  ? Icons.login_rounded
-                  : Icons.lock_person_rounded,
-            ),
-            label: Text(
-              community.isMember
-                  ? 'Sair'
-                  : joinRequestPending && !community.isPublic
-                  ? 'Solicitação enviada'
-                  : community.isPublic
-                  ? 'Entrar'
-                  : 'Pedir para entrar',
+
+        // Aviso de acesso restrito
+        if (accessNoticeTitle != null && accessNoticeDescription != null) ...[
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.secondaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.lock_outline_rounded,
+                    color: theme.colorScheme.onSecondaryContainer,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          accessNoticeTitle!,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          accessNoticeDescription!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 12),
+        ],
+
+        // Botão entrar (apenas para não membros)
+        if (!community.isMember)
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: joinRequestPending && !community.isPublic
+                  ? null
+                  : onJoinOrLeave,
+              icon: Icon(
+                joinRequestPending && !community.isPublic
+                    ? Icons.hourglass_bottom_rounded
+                    : community.isPublic
+                    ? Icons.login_rounded
+                    : Icons.lock_person_rounded,
+              ),
+              label: Text(
+                joinRequestPending && !community.isPublic
+                    ? 'Solicitação enviada'
+                    : community.isPublic
+                    ? 'Entrar'
+                    : 'Pedir para entrar',
+              ),
+            ),
+          ),
+
+        if (!community.isMember) const SizedBox(height: 16),
+
         CommunityMembersCard(members: members),
         const SizedBox(height: 16),
       ],

@@ -4,13 +4,18 @@ import 'dart:math' as math;
 
 import 'package:biblioo/core/di/injector.dart';
 import 'package:biblioo/features/book/domain/book.dart';
+import 'package:biblioo/features/community/bloc/community_voting_bloc.dart';
+import 'package:biblioo/features/community/bloc/community_voting_event.dart';
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/features/community/domain/community_member.dart';
 import 'package:biblioo/features/community/domain/community_message.dart';
+import 'package:biblioo/features/community/data/community_voting_remote_datasource.dart';
+import 'package:biblioo/features/community/data/community_voting_repository.dart';
 import 'package:biblioo/features/user/data/models/follow_page_model.dart';
 import 'package:biblioo/features/user/domain/user.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -19,6 +24,7 @@ import 'widgets/community_chat_tab.dart';
 import 'widgets/community_detail_shared.dart';
 import 'widgets/community_detail_tab_bar.dart';
 import 'widgets/community_overview_tab.dart';
+import 'widgets/community_voting_tab.dart';
 
 class CommunityDetailScreen extends StatefulWidget {
   final int communityId;
@@ -33,11 +39,14 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     with SingleTickerProviderStateMixin {
   final _repo = Injector.instance.communityRepo;
   final _bookRepo = Injector.instance.bookRepo;
-  final _authLocal = Injector.instance.authLocal;
+  final _votingRepo = CommunityVotingRepository(
+    CommunityVotingRemoteDatasource(Injector.instance.dio),
+  );
+  final _authSecure = Injector.instance.authSecure;
   final _imagePicker = ImagePicker();
   final User? _currentUser = Injector.instance.authLocal.getSessionUser();
 
-  late final TabController _tabController;
+  late TabController _tabController;
 
   Community? _community;
   Book? _book;
@@ -70,6 +79,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   String? _chatSocketError;
   Timer? _reconnectTimer;
   int _reconnectAttempt = 0;
+  bool _hasVotingHistory = false;
 
   bool get _isCurrentUserOwner {
     final community = _community;
@@ -78,10 +88,46 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     return community.ownerId == currentUserId;
   }
 
+  bool get _canAccessChat {
+    final community = _community;
+    if (community == null) return false;
+    return community.isMember;
+  }
+
+  String? _currentUserCommunityRole(Community? community) {
+    final currentUserId = _currentUser?.id;
+    if (community == null || currentUserId == null) return null;
+
+    for (final member in _members) {
+      if (member.userId == currentUserId) {
+        return member.role;
+      }
+    }
+
+    return community.currentUserRole;
+  }
+
+  bool _canManageVotingFor(Community? community) {
+    final currentUserId = _currentUser?.id;
+    if (community == null || currentUserId == null) return false;
+    if (community.ownerId == currentUserId) return true;
+
+    final role = _currentUserCommunityRole(community)?.toUpperCase();
+    return role == 'ADMIN' || role == 'LEADER' || role == 'OWNER';
+  }
+
+  bool get _canManageVoting => _canManageVotingFor(_community);
+
+  bool get _shouldShowVotingTab {
+    final community = _community;
+    if (community == null || !community.isMember) return false;
+    return _canManageVoting || _hasVotingHistory;
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this)
+    _tabController = TabController(length: 3, vsync: this)
       ..addListener(_onTabChanged);
     _loadHeader();
   }
@@ -111,16 +157,31 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       final book = community.bookId > 0
           ? await _bookRepo.getById(community.bookId)
           : null;
-      final members = await _repo.getCommunityMembers(
-        widget.communityId,
-        forceRefresh: forceRefresh,
-      );
+      List<CommunityMember> members = const [];
+
+      try {
+        members = await _repo.getCommunityMembers(
+          widget.communityId,
+          forceRefresh: forceRefresh,
+        );
+      } on DioException catch (e) {
+        // For private communities, non-members may be forbidden from listing members.
+        if (e.response?.statusCode != 403) {
+          rethrow;
+        }
+      }
 
       if (!mounted) return;
+      final hasVotingHistory = community.isMember
+          ? await _checkVotingHistory(community.id)
+          : false;
+      if (!mounted) return;
+
       setState(() {
         _community = community;
         _book = book;
         _members = members;
+        _hasVotingHistory = hasVotingHistory;
         _headerLoading = false;
       });
     } catch (_) {
@@ -132,9 +193,19 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     }
   }
 
+  Future<bool> _checkVotingHistory(int communityId) async {
+    try {
+      final votings = await _votingRepo.listVotings(communityId);
+      return votings.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   void _onTabChanged() {
     if (_tabController.indexIsChanging) return;
     if (_tabController.index != 1) return;
+    if (!_canAccessChat) return;
 
     if (!_messagesLoaded) {
       _loadMessages();
@@ -169,7 +240,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
   Future<void> _reloadScreenData() async {
     await _loadHeader(forceRefresh: true);
-    if (_tabController.index == 1) {
+    if (_canAccessChat && _tabController.index == 1) {
       await _loadMessages();
     }
   }
@@ -182,7 +253,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       defaultValue: 'http://localhost:8080',
     );
     final parsed = Uri.parse(apiUrl);
-    final token = _authLocal.getAccessToken();
+    final token = await _authSecure.getAccessToken();
 
     final wsUri = parsed.replace(
       scheme: parsed.scheme == 'https' ? 'wss' : 'ws',
@@ -366,7 +437,6 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     if (channel == null) return;
 
     final buffer = StringBuffer()..writeln(command);
-    headers.forEach((key, value) => buffer.writeln('$key:$value'));
     buffer.writeln();
     if (body != null && body.isNotEmpty) {
       buffer.write(body);
@@ -1092,6 +1162,50 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     );
   }
 
+  Future<void> _handleShareFromOverview() async {
+    if (_community == null) return;
+    if (!_community!.isMember) return;
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.qr_code_rounded),
+                title: const Text('Gerar código de convite'),
+                onTap: () => Navigator.of(sheetContext).pop('generate-code'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.people_alt_rounded),
+                title: const Text('Convidar amigo'),
+                subtitle: const Text('Escolha entre seus amigos em comum'),
+                onTap: () => Navigator.of(sheetContext).pop('send-friend'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (action == null) return;
+
+    if (action == 'generate-code') {
+      await _generateInviteCode();
+      return;
+    }
+
+    if (action == 'send-friend') {
+      await _openInviteFriendSheet();
+      return;
+    }
+  }
+
   String? _extractBackendMessage(DioException error) {
     final responseData = error.response?.data;
     if (responseData is Map<String, dynamic>) {
@@ -1113,69 +1227,35 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final community = _community;
+    final showMemberChat = community?.isMember == true;
+    final showVotingTab = _shouldShowVotingTab;
+
+    String? accessNoticeTitle;
+    String? accessNoticeDescription;
+    if (community != null && !community.isMember) {
+      if (community.isPublic) {
+        accessNoticeTitle = 'Chat liberado apenas para membros';
+        accessNoticeDescription =
+            'Esta comunidade é pública para visualização. Toque em Entrar para participar das conversas.';
+      } else {
+        accessNoticeTitle = 'Comunidade privada';
+        accessNoticeDescription = _joinRequestPending
+            ? 'Seu pedido de entrada está em análise. O chat será liberado quando for aprovado.'
+            : 'Peça para entrar para participar das conversas. O acesso ao chat é liberado após aprovação.';
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Comunidade'),
-        actions: [
-          if (_community?.isMember ?? false)
-            IconButton(
-              onPressed: _inviteActionBusy
-                  ? null
-                  : () async {
-                      final action = await showModalBottomSheet<String>(
-                        context: context,
-                        useSafeArea: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                        ),
-                        builder: (sheetContext) {
-                          return SafeArea(
-                            child: Wrap(
-                              children: [
-                                ListTile(
-                                  leading: const Icon(Icons.qr_code_rounded),
-                                  title: const Text('Gerar código de convite'),
-                                  onTap: () => Navigator.of(
-                                    sheetContext,
-                                  ).pop('generate-code'),
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.people_alt_rounded),
-                                  title: const Text('Convidar amigo'),
-                                  subtitle: const Text(
-                                    'Escolha entre seus amigos em comum',
-                                  ),
-                                  onTap: () => Navigator.of(
-                                    sheetContext,
-                                  ).pop('send-friend'),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-
-                      if (action == 'generate-code') {
-                        await _generateInviteCode();
-                      }
-                      if (action == 'send-friend') {
-                        await _openInviteFriendSheet();
-                      }
-                    },
-              icon: const Icon(Icons.group_add_rounded),
-              tooltip: 'Convites',
-            ),
-          if ((_community?.isMember ?? false) && !_isCurrentUserOwner)
-            IconButton(
-              onPressed: _confirmAndLeaveCommunity,
-              icon: const Icon(Icons.logout_rounded),
-              tooltip: 'Sair da comunidade',
-            ),
-        ],
-        bottom: CommunityDetailTabBar(controller: _tabController),
+        bottom: showMemberChat
+            ? CommunityDetailTabBar(
+                controller: _tabController,
+                showChatTab: true,
+                showVotingTab: showVotingTab,
+              )
+            : null,
       ),
       body: _headerLoading
           ? const Center(child: CircularProgressIndicator())
@@ -1190,7 +1270,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                 ),
               ],
             )
-          : _community == null
+          : community == null
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
@@ -1203,16 +1283,29 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                 ),
               ],
             )
+          : !showMemberChat
+          ? CommunityOverviewTab(
+              community: community,
+              book: _book,
+              members: _members,
+              joinRequestPending: _joinRequestPending,
+              onJoinOrLeave: _handleJoinOrLeave,
+              onRefresh: _reloadScreenData,
+              onShare: _handleShareFromOverview,
+              accessNoticeTitle: accessNoticeTitle,
+              accessNoticeDescription: accessNoticeDescription,
+            )
           : TabBarView(
               controller: _tabController,
               children: [
                 CommunityOverviewTab(
-                  community: _community!,
+                  community: community,
                   book: _book,
                   members: _members,
                   joinRequestPending: _joinRequestPending,
                   onJoinOrLeave: _handleJoinOrLeave,
                   onRefresh: _reloadScreenData,
+                  onShare: _handleShareFromOverview,
                 ),
                 CommunityChatTab(
                   loading: _messagesLoading && !_messagesLoaded,
@@ -1258,6 +1351,22 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   findMessageById: _findMessageById,
                   resolveAuthorName: _resolveAuthorName,
                 ),
+                if (showVotingTab)
+                  BlocProvider(
+                    create: (_) => CommunityVotingBloc(
+                      repository: _votingRepo,
+                      currentUserId: _currentUser?.id ?? -1,
+                      communityOwnerId: community.ownerId,
+                      currentUserRole: _currentUserCommunityRole(community),
+                    )..add(CommunityVotingLoadRequested(widget.communityId)),
+                    child: CommunityVotingTab(
+                      communityId: widget.communityId,
+                      isOwner: _canManageVoting,
+                      onRefresh: _reloadScreenData,
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
               ],
             ),
     );

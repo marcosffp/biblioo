@@ -11,6 +11,8 @@ class CommunityLocalDatasource {
   static const _updatedAtKey = 'community_cache_updated_at';
   static const _messagesPrefix = 'community_messages_cache_';
   static const _membersPrefix = 'community_members_cache_';
+  static const _membersTTLPrefix = 'community_members_ttl_';
+  static const _membersCacheTTLMinutes = 5; // 5 minutes TTL
 
   final SharedPreferences _prefs;
 
@@ -111,6 +113,19 @@ class CommunityLocalDatasource {
   }
 
   List<CommunityMemberModel> getCachedMembers(int communityId) {
+    // Check if cache has expired
+    final ttlRaw = _prefs.getString('$_membersTTLPrefix$communityId');
+    if (ttlRaw != null && ttlRaw.isNotEmpty) {
+      final savedTime = DateTime.tryParse(ttlRaw);
+      if (savedTime != null) {
+        final elapsed = DateTime.now().difference(savedTime);
+        if (elapsed.inMinutes >= _membersCacheTTLMinutes) {
+          // Cache expired, return empty to force remote fetch
+          return [];
+        }
+      }
+    }
+
     final raw = _prefs.getString('$_membersPrefix$communityId');
     if (raw == null || raw.isEmpty) return [];
     final list = jsonDecode(raw) as List<dynamic>;
@@ -125,9 +140,16 @@ class CommunityLocalDatasource {
     int communityId,
     List<CommunityMemberModel> members,
   ) async {
-    await _prefs.setString(
-      '$_membersPrefix$communityId',
-      jsonEncode(members.map((m) => m.toJson()).toList()),
-    );
+    await Future.wait([
+      _prefs.setString(
+        '$_membersPrefix$communityId',
+        jsonEncode(members.map((m) => m.toJson()).toList()),
+      ),
+      // Save timestamp for TTL tracking
+      _prefs.setString(
+        '$_membersTTLPrefix$communityId',
+        DateTime.now().toIso8601String(),
+      ),
+    ]);
   }
 }

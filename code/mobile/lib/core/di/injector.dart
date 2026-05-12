@@ -6,6 +6,7 @@ import 'package:biblioo/features/auth/bloc/auth_bloc.dart';
 import 'package:biblioo/features/auth/bloc/auth_event.dart';
 import 'package:biblioo/features/auth/data/auth_local_datasource.dart';
 import 'package:biblioo/features/auth/data/auth_remote_datasource.dart';
+import 'package:biblioo/features/auth/data/auth_secure_datasource.dart';
 import 'package:biblioo/features/auth/data/auth_repository.dart';
 import 'package:biblioo/features/book/bloc/book_bloc.dart';
 import 'package:biblioo/features/book/data/book_local_datasource.dart';
@@ -38,34 +39,44 @@ import 'package:biblioo/features/user/data/user_remote_datasource.dart';
 import 'package:biblioo/features/user/data/user_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Injector {
   static late Injector instance;
 
   final SharedPreferences _prefs;
+  final FlutterSecureStorage _secureStorage;
   final Dio _dio;
 
-  Injector._(this._prefs, this._dio);
+  Injector._(this._prefs, this._secureStorage, this._dio);
+
+  Dio get dio => _dio;
 
   static Future<Injector> init() async {
     final prefs = await SharedPreferences.getInstance();
+    const secureStorage = FlutterSecureStorage();
     final dio = createDio();
 
     dio.interceptors.add(RetryInterceptor(dio));
 
     final authLocal = AuthLocalDatasource(prefs);
+    final authSecure = AuthSecureDatasource(secureStorage);
     final authRemote = AuthRemoteDatasource(dio);
-    dio.interceptors.add(AuthInterceptor(authLocal, authRemote, dio));
+    dio.interceptors.add(
+      AuthInterceptor(authLocal, authSecure, authRemote, dio),
+    );
 
-    instance = Injector._(prefs, dio);
+    instance = Injector._(prefs, secureStorage, dio);
     return instance;
   }
 
   // ── auth ──────────────────────────────────────────────
   AuthLocalDatasource get authLocal => AuthLocalDatasource(_prefs);
+  AuthSecureDatasource get authSecure => AuthSecureDatasource(_secureStorage);
   AuthRemoteDatasource get _authRemote => AuthRemoteDatasource(_dio);
-  AuthRepository get authRepo => AuthRepository(_authRemote, authLocal);
+  AuthRepository get authRepo =>
+      AuthRepository(_authRemote, authLocal, authSecure);
 
   // ── user ──────────────────────────────────────────────
   UserLocalDatasource get _userLocal => UserLocalDatasource(_prefs);

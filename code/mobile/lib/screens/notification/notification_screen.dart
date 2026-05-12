@@ -20,6 +20,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   final _communityRepo = Injector.instance.communityRepo;
   final Set<String> _busyNotificationIds = <String>{};
   final Map<String, String> _actionResults = <String, String>{};
+  bool _navigatingFromNotification = false;
 
   @override
   void initState() {
@@ -99,29 +100,55 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _acceptFollowRequest(NotificationItem item) {
+    if (item.actorUsername == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível processar a solicitação.'),
+        ),
+      );
+      return Future.value();
+    }
     return _handleNotificationAction(
       item,
-      () => _userRepo.acceptFollowRequest(item.actorUsername),
+      () => _userRepo.acceptFollowRequest(item.actorUsername!),
       'Aprovado',
     );
   }
 
   Future<void> _rejectFollowRequest(NotificationItem item) {
+    if (item.actorUsername == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível processar a solicitação.'),
+        ),
+      );
+      return Future.value();
+    }
     return _handleNotificationAction(
       item,
-      () => _userRepo.rejectFollowRequest(item.actorUsername),
+      () => _userRepo.rejectFollowRequest(item.actorUsername!),
       'Recusado',
     );
   }
 
   Future<void> _acceptCommunityJoinRequest(NotificationItem item) async {
+    if (item.actorUsername == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível processar a solicitação.'),
+        ),
+      );
+      return;
+    }
+
     final communityId = item.communityId ?? item.entityId;
     if (communityId == null) return;
 
     await _handleNotificationAction(item, () async {
       final requests = await _communityRepo.getPendingJoinRequests(communityId);
       final request = requests.where(
-        (req) => req.username.toLowerCase() == item.actorUsername.toLowerCase(),
+        (req) =>
+            req.username.toLowerCase() == item.actorUsername!.toLowerCase(),
       );
 
       if (request.isEmpty) {
@@ -133,13 +160,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _rejectCommunityJoinRequest(NotificationItem item) async {
+    if (item.actorUsername == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível processar a solicitação.'),
+        ),
+      );
+      return;
+    }
+
     final communityId = item.communityId ?? item.entityId;
     if (communityId == null) return;
 
     await _handleNotificationAction(item, () async {
       final requests = await _communityRepo.getPendingJoinRequests(communityId);
       final request = requests.where(
-        (req) => req.username.toLowerCase() == item.actorUsername.toLowerCase(),
+        (req) =>
+            req.username.toLowerCase() == item.actorUsername!.toLowerCase(),
       );
 
       if (request.isEmpty) {
@@ -262,8 +299,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         CircleAvatar(
                           radius: 22,
                           child: Text(
-                            item.actorUsername.isNotEmpty
-                                ? item.actorUsername[0].toUpperCase()
+                            item.actorUsername != null &&
+                                    item.actorUsername!.isNotEmpty
+                                ? item.actorUsername![0].toUpperCase()
                                 : '?',
                           ),
                         ),
@@ -375,6 +413,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   void _handleNotificationTap(NotificationItem item) {
+    if (_navigatingFromNotification) return;
+    _navigatingFromNotification = true;
+
     if (!item.read) {
       context.read<NotificationBloc>().add(
         NotificationMarkAsReadRequested(item.id),
@@ -384,23 +425,40 @@ class _NotificationScreenState extends State<NotificationScreen> {
     switch (item.type) {
       case NotificationType.userFollowRequested:
       case NotificationType.userFollowed:
-        context.push('/user/${Uri.encodeComponent(item.actorUsername)}');
+        if (item.actorUsername != null) {
+          context.go('/user/${Uri.encodeComponent(item.actorUsername!)}');
+        }
+        Future.microtask(() {
+          _navigatingFromNotification = false;
+        });
         return;
       case NotificationType.communityInvite:
         context.go('/community?focus=invites');
+        Future.microtask(() {
+          _navigatingFromNotification = false;
+        });
         return;
       case NotificationType.communityJoinRequest:
       case NotificationType.communityJoinApproved:
         final communityId = item.communityId ?? item.entityId;
         if (communityId != null) {
-          context.push('/community/$communityId');
+          context.go('/community/$communityId');
+          Future.microtask(() {
+            _navigatingFromNotification = false;
+          });
           return;
         }
         context.go('/community');
+        Future.microtask(() {
+          _navigatingFromNotification = false;
+        });
         return;
       case NotificationType.commentReplied:
       case NotificationType.reviewLiked:
         context.go('/feed');
+        Future.microtask(() {
+          _navigatingFromNotification = false;
+        });
         return;
     }
   }
@@ -420,19 +478,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   String _notificationTitle(NotificationItem item) {
+    final actorName = item.actorUsername ?? 'Alguém';
     switch (item.type) {
       case NotificationType.userFollowRequested:
-        return '${item.actorUsername} quer te seguir';
+        return '$actorName quer te seguir';
       case NotificationType.userFollowed:
-        return '${item.actorUsername} comecou a te seguir';
+        return '$actorName comecou a te seguir';
       case NotificationType.commentReplied:
-        return '${item.actorUsername} respondeu seu comentario';
+        return '$actorName respondeu seu comentario';
       case NotificationType.reviewLiked:
-        return '${item.actorUsername} curtiu sua review';
+        return '$actorName curtiu sua review';
       case NotificationType.communityInvite:
-        return '${item.actorUsername} te convidou para uma comunidade';
+        return '$actorName te convidou para uma comunidade';
       case NotificationType.communityJoinRequest:
-        return '${item.actorUsername} pediu para entrar na comunidade';
+        return '$actorName pediu para entrar na comunidade';
       case NotificationType.communityJoinApproved:
         return 'Seu pedido de entrada foi aprovado';
     }
