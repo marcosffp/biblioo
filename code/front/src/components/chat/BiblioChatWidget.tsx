@@ -24,6 +24,11 @@ type DateDivider = {
 
 type ChatItem = Message | DateDivider;
 
+type MessageBlock =
+  | { type: "p"; text: string }
+  | { type: "ul"; items: string[] }
+  | { type: "ol"; items: string[] };
+
 type StoredChat = {
   conversationId: string | null;
   tokenExpiry: number | null;
@@ -80,6 +85,102 @@ function groupByDate(messages: Message[]): ChatItem[] {
   }
 
   return result;
+}
+
+function parseMessageBlocks(content: string): MessageBlock[] {
+  const blocks: MessageBlock[] = [];
+  let list: { type: "ul" | "ol"; items: string[] } | null = null;
+
+  const flushList = () => {
+    if (!list) return;
+    blocks.push(list);
+    list = null;
+  };
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushList();
+      continue;
+    }
+
+    const ordered = line.match(/^\d+\.\s+(.+)/);
+    if (ordered) {
+      if (!list || list.type !== "ol") {
+        flushList();
+        list = { type: "ol", items: [] };
+      }
+      list.items.push(ordered[1]);
+      continue;
+    }
+
+    const unordered = line.match(/^[-*]\s+(.+)/);
+    if (unordered) {
+      if (!list || list.type !== "ul") {
+        flushList();
+        list = { type: "ul", items: [] };
+      }
+      list.items.push(unordered[1]);
+      continue;
+    }
+
+    flushList();
+    blocks.push({ type: "p", text: line });
+  }
+
+  flushList();
+  return blocks;
+}
+
+function renderInline(text: string): React.ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={`b-${index}`} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    return <span key={`t-${index}`}>{part}</span>;
+  });
+}
+
+function renderMessageContent(content: string): React.ReactNode {
+  const blocks = parseMessageBlocks(content);
+
+  return (
+    <div className="space-y-2">
+      {blocks.map((block, index) => {
+        if (block.type === "p") {
+          return (
+            <p key={`p-${index}`} className="whitespace-pre-line">
+              {renderInline(block.text)}
+            </p>
+          );
+        }
+
+        if (block.type === "ul") {
+          return (
+            <ul key={`ul-${index}`} className="list-disc pl-4 space-y-1">
+              {block.items.map((item, itemIndex) => (
+                <li key={`uli-${itemIndex}`}>{renderInline(item)}</li>
+              ))}
+            </ul>
+          );
+        }
+
+        return (
+          <ol key={`ol-${index}`} className="list-decimal pl-4 space-y-1">
+            {block.items.map((item, itemIndex) => (
+              <li key={`oli-${itemIndex}`}>{renderInline(item)}</li>
+            ))}
+          </ol>
+        );
+      })}
+    </div>
+  );
 }
 
 function loadStoredChat(userId: number): { messages: Message[]; conversationId: string | null } {
@@ -342,7 +443,7 @@ const BiblioChatWidget = () => {
                       : "bg-card border border-border text-foreground rounded-bl-sm shadow-sm",
                   )}
                 >
-                  {m.content}
+                  {renderMessageContent(m.content)}
                 </div>
               </div>
             );
