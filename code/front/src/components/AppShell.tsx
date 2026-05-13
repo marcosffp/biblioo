@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import React from "react";
 import { Sidebar } from "./Sidebar";
 import { TopHeader } from "./TopHeader";
+import BiblioChatWidget from "@/components/chat/BiblioChatWidget";
 
 export interface AppShellProps {
   children: ReactNode;
@@ -27,6 +28,7 @@ export function AppShell({ children, className }: Readonly<AppShellProps>) {
           </div>
         </div>
       </main>
+      <BiblioChatWidget />
     </div>
   );
 }
