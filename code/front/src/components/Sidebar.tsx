@@ -42,7 +42,7 @@ export function Sidebar({ items = defaultItems, className }: Readonly<SidebarPro
               href={item.href}
               className={`flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition duration-200 ease-out ${
                 isActive
-                  ? "bg-[rgba(126,217,182,0.14)] text-[var(--text-primary)]"
+                  ? "bg-[rgba(26,129,98,0.10)] text-[#1a8162]"
                   : "text-[var(--text-secondary)] hover:bg-[rgba(31,61,58,0.04)] hover:text-[var(--text-primary)]"
               }`}
               aria-current={isActive ? "page" : undefined}
