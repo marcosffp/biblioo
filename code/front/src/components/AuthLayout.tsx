@@ -155,7 +155,7 @@ export function AuthLayout({ children }: Readonly<AuthLayoutProps>) {
         >
           <span className="font-display text-sm font-semibold text-white">
             <img
-              src="./biblioo-logo.png"
+              src="biblioo-logo-branca.png"
               alt="Biblioo"
               className="h-6 w-auto"
             />
