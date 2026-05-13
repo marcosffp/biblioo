@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { X, Send, Sparkles, Minimize2 } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { X, Send, Sparkles, Maximize2, Minimize2, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import { sendAssistantMessage } from "@/services/assistant";
@@ -64,17 +64,14 @@ function formatDateLabel(date: Date): string {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-
   if (isSameDay(date, today)) return "Hoje";
   if (isSameDay(date, yesterday)) return "Ontem";
-
   return date.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function groupByDate(messages: Message[]): ChatItem[] {
   const result: ChatItem[] = [];
   let lastLabel = "";
-
   for (const msg of messages) {
     const label = formatDateLabel(msg.timestamp);
     if (label !== lastLabel) {
@@ -83,8 +80,11 @@ function groupByDate(messages: Message[]): ChatItem[] {
     }
     result.push(msg);
   }
-
   return result;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function parseMessageBlocks(content: string): MessageBlock[] {
@@ -99,28 +99,18 @@ function parseMessageBlocks(content: string): MessageBlock[] {
 
   for (const rawLine of content.split(/\r?\n/)) {
     const line = rawLine.trim();
-
-    if (!line) {
-      flushList();
-      continue;
-    }
+    if (!line) { flushList(); continue; }
 
     const ordered = line.match(/^\d+\.\s+(.+)/);
     if (ordered) {
-      if (!list || list.type !== "ol") {
-        flushList();
-        list = { type: "ol", items: [] };
-      }
+      if (!list || list.type !== "ol") { flushList(); list = { type: "ol", items: [] }; }
       list.items.push(ordered[1]);
       continue;
     }
 
     const unordered = line.match(/^[-*]\s+(.+)/);
     if (unordered) {
-      if (!list || list.type !== "ul") {
-        flushList();
-        list = { type: "ul", items: [] };
-      }
+      if (!list || list.type !== "ul") { flushList(); list = { type: "ul", items: [] }; }
       list.items.push(unordered[1]);
       continue;
     }
@@ -133,21 +123,36 @@ function parseMessageBlocks(content: string): MessageBlock[] {
   return blocks;
 }
 
-function renderInline(text: string): React.ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return (
-        <strong key={`b-${index}`} className="font-semibold">
-          {part.slice(2, -2)}
-        </strong>
-      );
+function renderInlineWithHighlight(text: string, query: string): React.ReactNode[] {
+  const boldParts = text.split(/(\*\*[^*]+\*\*)/g);
+
+  return boldParts.flatMap((part, bIndex) => {
+    const isBold = part.startsWith("**") && part.endsWith("**");
+    const inner = isBold ? part.slice(2, -2) : part;
+
+    if (!query.trim()) {
+      const node = isBold
+        ? <strong key={`b-${bIndex}`} className="font-semibold">{inner}</strong>
+        : <span key={`t-${bIndex}`}>{inner}</span>;
+      return [node];
     }
 
-    return <span key={`t-${index}`}>{part}</span>;
+    const regex = new RegExp(`(${escapeRegex(query)})`, "gi");
+    const segments = inner.split(regex);
+    const highlighted = segments.map((seg, sIndex) =>
+      regex.test(seg)
+        ? <mark key={`h-${bIndex}-${sIndex}`} className="bg-yellow-200 text-yellow-900 rounded-sm px-0.5">{seg}</mark>
+        : <span key={`s-${bIndex}-${sIndex}`}>{seg}</span>,
+    );
+
+    if (isBold) {
+      return [<strong key={`b-${bIndex}`} className="font-semibold">{highlighted}</strong>];
+    }
+    return highlighted;
   });
 }
 
-function renderMessageContent(content: string): React.ReactNode {
+function renderMessageContent(content: string, searchQuery = ""): React.ReactNode {
   const blocks = parseMessageBlocks(content);
 
   return (
@@ -156,25 +161,23 @@ function renderMessageContent(content: string): React.ReactNode {
         if (block.type === "p") {
           return (
             <p key={`p-${index}`} className="whitespace-pre-line">
-              {renderInline(block.text)}
+              {renderInlineWithHighlight(block.text, searchQuery)}
             </p>
           );
         }
-
         if (block.type === "ul") {
           return (
             <ul key={`ul-${index}`} className="list-disc pl-4 space-y-1">
-              {block.items.map((item, itemIndex) => (
-                <li key={`uli-${itemIndex}`}>{renderInline(item)}</li>
+              {block.items.map((item, i) => (
+                <li key={`uli-${i}`}>{renderInlineWithHighlight(item, searchQuery)}</li>
               ))}
             </ul>
           );
         }
-
         return (
           <ol key={`ol-${index}`} className="list-decimal pl-4 space-y-1">
-            {block.items.map((item, itemIndex) => (
-              <li key={`oli-${itemIndex}`}>{renderInline(item)}</li>
+            {block.items.map((item, i) => (
+              <li key={`oli-${i}`}>{renderInlineWithHighlight(item, searchQuery)}</li>
             ))}
           </ol>
         );
@@ -189,7 +192,6 @@ function loadStoredChat(userId: number): { messages: Message[]; conversationId: 
     if (!raw) return { messages: [{ ...WELCOME_MESSAGE, timestamp: new Date() }], conversationId: null };
 
     const stored: StoredChat = JSON.parse(raw) as StoredChat;
-
     const session = getAuthSession();
     const currentExpiry = session ? getJwtExpiry(session.accessToken) : null;
 
@@ -198,11 +200,7 @@ function loadStoredChat(userId: number): { messages: Message[]; conversationId: 
       return { messages: [{ ...WELCOME_MESSAGE, timestamp: new Date() }], conversationId: null };
     }
 
-    const messages: Message[] = stored.messages.map((m) => ({
-      ...m,
-      timestamp: new Date(m.timestamp),
-    }));
-
+    const messages: Message[] = stored.messages.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }));
     return { messages, conversationId: stored.conversationId };
   } catch {
     return { messages: [{ ...WELCOME_MESSAGE, timestamp: new Date() }], conversationId: null };
@@ -223,35 +221,35 @@ function saveStoredChat(
     };
     localStorage.setItem(CHAT_STORAGE_KEY(userId), JSON.stringify(stored));
   } catch {
-    // localStorage can fail in private browsing with full storage
+    // localStorage unavailable
   }
 }
 
 const BiblioChatWidget = () => {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatchIndex, setSearchMatchIndex] = useState(0);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([
-    { ...WELCOME_MESSAGE, timestamp: new Date() },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
   const [userId, setUserId] = useState<number | null>(null);
   const [tokenExpiry, setTokenExpiry] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const initializedRef = useRef(false);
 
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
-
     const session = getAuthSession();
     if (!session) return;
-
     const expiry = getJwtExpiry(session.accessToken);
     setUserId(session.user.id);
     setTokenExpiry(expiry);
-
     const { messages: stored, conversationId: storedConvId } = loadStoredChat(session.user.id);
     setMessages(stored);
     setConversationId(storedConvId);
@@ -263,39 +261,61 @@ const BiblioChatWidget = () => {
   }, [messages, conversationId, userId, tokenExpiry]);
 
   useEffect(() => {
+    if (!showSearch) return;
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+  }, [showSearch]);
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isTyping, open]);
+
+  const matchingIds = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return messages.filter((m) => m.content.toLowerCase().includes(q)).map((m) => m.id);
+  }, [messages, searchQuery]);
+
+  const matchCount = matchingIds.length;
+
+  useEffect(() => {
+    setSearchMatchIndex(0);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (matchCount === 0) return;
+    const id = matchingIds[searchMatchIndex];
+    const el = scrollRef.current?.querySelector(`[data-msg-id="${id}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [searchMatchIndex, matchingIds, matchCount]);
+
+  const closeSearch = () => {
+    setShowSearch(false);
+    setSearchQuery("");
+    setSearchMatchIndex(0);
+  };
+
+  const navigateSearch = (dir: 1 | -1) => {
+    if (matchCount === 0) return;
+    setSearchMatchIndex((i) => (i + dir + matchCount) % matchCount);
+  };
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || isTyping) return;
 
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: trimmed,
-      timestamp: new Date(),
-    };
-
-    setMessages((m) => [...m, userMsg]);
+    setMessages((m) => [
+      ...m,
+      { id: crypto.randomUUID(), role: "user", content: trimmed, timestamp: new Date() },
+    ]);
     setInput("");
     setIsTyping(true);
 
     try {
       const response = await sendAssistantMessage({ message: trimmed, conversationId });
-
-      if (response.conversationId && !conversationId) {
-        setConversationId(response.conversationId);
-      }
-
+      if (response.conversationId && !conversationId) setConversationId(response.conversationId);
       setMessages((m) => [
         ...m,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: response.reply,
-          timestamp: new Date(),
-        },
+        { id: crypto.randomUUID(), role: "assistant", content: response.reply, timestamp: new Date() },
       ]);
     } catch (err) {
       setMessages((m) => [
@@ -303,10 +323,7 @@ const BiblioChatWidget = () => {
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content:
-            err instanceof Error
-              ? err.message
-              : "Não consegui processar sua mensagem. Tente novamente.",
+          content: err instanceof Error ? err.message : "Não consegui processar sua mensagem. Tente novamente.",
           timestamp: new Date(),
         },
       ]);
@@ -320,6 +337,11 @@ const BiblioChatWidget = () => {
     void sendMessage(input);
   };
 
+  const handleClose = () => {
+    setOpen(false);
+    closeSearch();
+  };
+
   const chatItems = groupByDate(messages);
   const hasOnlyWelcome = messages.length <= 1;
 
@@ -329,21 +351,14 @@ const BiblioChatWidget = () => {
       <button
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed bottom-6 right-6 z-50 group",
-          "transition-all duration-300 ease-out",
+          "fixed bottom-6 right-6 z-50 group transition-all duration-300 ease-out",
           open && "scale-0 opacity-0 pointer-events-none",
         )}
         aria-label="Abrir chat com a Bibi"
       >
         <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping" />
         <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/40 ring-4 ring-background group-hover:scale-110 transition-transform">
-          <Image
-            src="/biblioo-carinha-branca-logo.png"
-            alt="Bibi"
-            width={40}
-            height={40}
-            className="object-contain"
-          />
+          <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={40} height={40} className="object-contain" />
           <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-premium ring-2 ring-background">
             <Sparkles className="h-3 w-3 text-premium-foreground" />
           </span>
@@ -356,26 +371,23 @@ const BiblioChatWidget = () => {
       {/* Chat Panel */}
       <div
         className={cn(
-          "fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-3rem)]",
+          "fixed bottom-6 right-6 z-50",
           "bg-card border border-border rounded-2xl shadow-2xl shadow-foreground/10",
           "flex flex-col overflow-hidden origin-bottom-right",
           "transition-all duration-300 ease-out",
+          expanded
+            ? "w-[660px] max-w-[calc(100vw-2rem)] h-[740px] max-h-[calc(100vh-3rem)]"
+            : "w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-3rem)]",
           open ? "scale-100 opacity-100" : "scale-90 opacity-0 pointer-events-none translate-y-4",
         )}
       >
         {/* Header */}
-        <div className="relative px-4 py-3 bg-gradient-to-br from-primary to-primary-dark text-primary-foreground">
+        <div className="relative px-4 py-3 bg-gradient-to-br from-primary to-primary-dark text-primary-foreground shrink-0">
           <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_right,white,transparent_60%)]" />
           <div className="relative flex items-center gap-3">
             <div className="relative">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/20 ring-2 ring-background/30 backdrop-blur overflow-hidden">
-                <Image
-                  src="/biblioo-carinha-branca-logo.png"
-                  alt="Bibi"
-                  width={32}
-                  height={32}
-                  className="object-contain"
-                />
+                <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={32} height={32} className="object-contain" />
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-400 ring-2 ring-primary-dark" />
             </div>
@@ -384,14 +396,24 @@ const BiblioChatWidget = () => {
               <p className="text-[11px] opacity-90 leading-tight">Sua assistente literária</p>
             </div>
             <button
-              onClick={() => setOpen(false)}
-              className="h-8 w-8 rounded-full hover:bg-white/15 flex items-center justify-center transition-colors"
-              aria-label="Minimizar"
+              onClick={() => setShowSearch((v) => !v)}
+              className={cn(
+                "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
+                showSearch ? "bg-white/20" : "hover:bg-white/15",
+              )}
+              aria-label="Buscar no chat"
             >
-              <Minimize2 className="h-4 w-4" />
+              <Search className="h-4 w-4" />
             </button>
             <button
-              onClick={() => setOpen(false)}
+              onClick={() => setExpanded((v) => !v)}
+              className="h-8 w-8 rounded-full hover:bg-white/15 flex items-center justify-center transition-colors"
+              aria-label={expanded ? "Reduzir chat" : "Expandir chat"}
+            >
+              {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={handleClose}
               className="h-8 w-8 rounded-full hover:bg-white/15 flex items-center justify-center transition-colors"
               aria-label="Fechar"
             >
@@ -399,6 +421,48 @@ const BiblioChatWidget = () => {
             </button>
           </div>
         </div>
+
+        {/* Search Bar */}
+        {showSearch && (
+          <div className="shrink-0 px-3 py-2 border-b border-border bg-card flex items-center gap-2">
+            <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <input
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              placeholder="Buscar no chat..."
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            {searchQuery && (
+              <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums">
+                {matchCount === 0 ? "0 resultados" : `${searchMatchIndex + 1} de ${matchCount}`}
+              </span>
+            )}
+            <button
+              onClick={() => navigateSearch(-1)}
+              disabled={matchCount === 0}
+              className="h-6 w-6 rounded flex items-center justify-center hover:bg-secondary disabled:opacity-30 transition-colors"
+              aria-label="Resultado anterior"
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => navigateSearch(1)}
+              disabled={matchCount === 0}
+              className="h-6 w-6 rounded flex items-center justify-center hover:bg-secondary disabled:opacity-30 transition-colors"
+              aria-label="Próximo resultado"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={closeSearch}
+              className="h-6 w-6 rounded flex items-center justify-center hover:bg-secondary transition-colors"
+              aria-label="Fechar busca"
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          </div>
+        )}
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-secondary/40">
@@ -416,9 +480,13 @@ const BiblioChatWidget = () => {
             }
 
             const m = item as Message;
+            const isCurrentMatch =
+              searchQuery.trim() !== "" && matchingIds[searchMatchIndex] === m.id;
+
             return (
               <div
                 key={m.id}
+                data-msg-id={m.id}
                 className={cn(
                   "flex gap-2 animate-fade-in",
                   m.role === "user" ? "justify-end" : "justify-start",
@@ -426,24 +494,19 @@ const BiblioChatWidget = () => {
               >
                 {m.role === "assistant" && (
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark overflow-hidden">
-                    <Image
-                      src="/biblioo-carinha-branca-logo.png"
-                      alt="Bibi"
-                      width={20}
-                      height={20}
-                      className="object-contain"
-                    />
+                    <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={20} height={20} className="object-contain" />
                   </div>
                 )}
                 <div
                   className={cn(
-                    "max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
+                    "max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed transition-colors",
                     m.role === "user"
                       ? "bg-primary text-primary-foreground rounded-br-sm"
                       : "bg-card border border-border text-foreground rounded-bl-sm shadow-sm",
+                    isCurrentMatch && "ring-2 ring-yellow-400 ring-offset-1",
                   )}
                 >
-                  {renderMessageContent(m.content)}
+                  {renderMessageContent(m.content, searchQuery)}
                 </div>
               </div>
             );
@@ -452,13 +515,7 @@ const BiblioChatWidget = () => {
           {isTyping && (
             <div className="flex gap-2 animate-fade-in">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark overflow-hidden">
-                <Image
-                  src="/biblioo-carinha-branca-logo.png"
-                  alt="Bibi"
-                  width={20}
-                  height={20}
-                  className="object-contain"
-                />
+                <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={20} height={20} className="object-contain" />
               </div>
               <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-3.5 py-2.5 shadow-sm">
                 <div className="flex gap-1">
@@ -491,7 +548,7 @@ const BiblioChatWidget = () => {
         </div>
 
         {/* Input */}
-        <form onSubmit={handleSubmit} className="border-t border-border bg-card p-3">
+        <form onSubmit={handleSubmit} className="border-t border-border bg-card p-3 shrink-0">
           <div className="flex items-center gap-2 rounded-full bg-secondary/60 border border-border focus-within:border-primary focus-within:bg-card transition-colors pl-4 pr-1.5 py-1">
             <input
               value={input}
