@@ -6,7 +6,6 @@ import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import { sendAssistantMessage } from "@/services/assistant";
 import { getAuthSession } from "@/services/auth";
-import { getJwtExpiry } from "@/utils/jwt";
 import Image from "next/image";
 
 type Message = {
@@ -31,11 +30,12 @@ type MessageBlock =
 
 type StoredChat = {
   conversationId: string | null;
-  tokenExpiry: number | null;
   messages: Array<Omit<Message, "timestamp"> & { timestamp: string }>;
 };
 
 const CHAT_STORAGE_KEY = (userId: number) => `biblioo.chat.${userId}`;
+const TYPEWRITER_CHARS_PER_TICK = 6;
+const TYPEWRITER_INTERVAL_MS = 16;
 
 const WELCOME_MESSAGE: Message = {
   id: "welcome",
@@ -154,7 +154,6 @@ function renderInlineWithHighlight(text: string, query: string): React.ReactNode
 
 function renderMessageContent(content: string, searchQuery = ""): React.ReactNode {
   const blocks = parseMessageBlocks(content);
-
   return (
     <div className="space-y-2">
       {blocks.map((block, index) => {
@@ -192,16 +191,11 @@ function loadStoredChat(userId: number): { messages: Message[]; conversationId: 
     if (!raw) return { messages: [{ ...WELCOME_MESSAGE, timestamp: new Date() }], conversationId: null };
 
     const stored: StoredChat = JSON.parse(raw) as StoredChat;
-    const session = getAuthSession();
-    const currentExpiry = session ? getJwtExpiry(session.accessToken) : null;
 
-    if (stored.tokenExpiry !== currentExpiry) {
-      localStorage.removeItem(CHAT_STORAGE_KEY(userId));
-      return { messages: [{ ...WELCOME_MESSAGE, timestamp: new Date() }], conversationId: null };
-    }
-
-    const messages: Message[] = stored.messages.map((m) => ({ ...m, timestamp: new Date(m.timestamp) }));
-    return { messages, conversationId: stored.conversationId };
+    return {
+      messages: stored.messages.map((m) => ({ ...m, timestamp: new Date(m.timestamp) })),
+      conversationId: stored.conversationId,
+    };
   } catch {
     return { messages: [{ ...WELCOME_MESSAGE, timestamp: new Date() }], conversationId: null };
   }
@@ -211,12 +205,10 @@ function saveStoredChat(
   userId: number,
   messages: Message[],
   conversationId: string | null,
-  tokenExpiry: number | null,
 ): void {
   try {
     const stored: StoredChat = {
       conversationId,
-      tokenExpiry,
       messages: messages.map((m) => ({ ...m, timestamp: m.timestamp.toISOString() })),
     };
     localStorage.setItem(CHAT_STORAGE_KEY(userId), JSON.stringify(stored));
@@ -236,38 +228,83 @@ const BiblioChatWidget = () => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
   const [userId, setUserId] = useState<number | null>(null);
-  const [tokenExpiry, setTokenExpiry] = useState<number | null>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  // Typewriter: tracks which message is animating and how many chars are shown
+  const [typingEffect, setTypingEffect] = useState<{ id: string; chars: number } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const initializedRef = useRef(false);
 
+  // ── Init: load from localStorage ──
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
     const session = getAuthSession();
     if (!session) return;
-    const expiry = getJwtExpiry(session.accessToken);
     setUserId(session.user.id);
-    setTokenExpiry(expiry);
     const { messages: stored, conversationId: storedConvId } = loadStoredChat(session.user.id);
     setMessages(stored);
     setConversationId(storedConvId);
   }, []);
 
+  // ── Persist to localStorage (skip during typewriter to avoid thrashing) ──
   useEffect(() => {
-    if (userId === null) return;
-    saveStoredChat(userId, messages, conversationId, tokenExpiry);
-  }, [messages, conversationId, userId, tokenExpiry]);
+    if (userId === null || typingEffect !== null) return;
+    saveStoredChat(userId, messages, conversationId);
+  }, [messages, conversationId, userId, typingEffect]);
 
+  // ── Focus search input when opened ──
   useEffect(() => {
     if (!showSearch) return;
     setTimeout(() => searchInputRef.current?.focus(), 50);
   }, [showSearch]);
 
+  // ── Typewriter tick ──
   useEffect(() => {
+    if (!typingEffect) return;
+    const msg = messages.find((m) => m.id === typingEffect.id);
+    if (!msg) { setTypingEffect(null); return; }
+
+    if (typingEffect.chars >= msg.content.length) {
+      setTypingEffect(null);
+      // Persist once animation is done
+      if (userId !== null) saveStoredChat(userId, messages, conversationId);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setTypingEffect((prev) =>
+        prev ? { ...prev, chars: Math.min(prev.chars + TYPEWRITER_CHARS_PER_TICK, msg.content.length) } : null,
+      );
+    }, TYPEWRITER_INTERVAL_MS);
+
+    return () => clearTimeout(timer);
+  }, [typingEffect, messages, userId, conversationId]);
+
+  // ── Auto-scroll: follow new messages when already at bottom ──
+  useEffect(() => {
+    if (!isAtBottom) return;
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isTyping, open]);
+  }, [messages, isTyping, isAtBottom]);
+
+  // ── Auto-scroll during typewriter ──
+  useEffect(() => {
+    if (!typingEffect || !isAtBottom) return;
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [typingEffect, isAtBottom]);
+
+  // ── Scroll to bottom when chat opens ──
+  useEffect(() => {
+    if (!open) return;
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "instant" });
+    }, 50);
+  }, [open]);
+
+  // ── Search: reset index when query changes ──
+  useEffect(() => { setSearchMatchIndex(0); }, [searchQuery]);
 
   const matchingIds = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -277,16 +314,25 @@ const BiblioChatWidget = () => {
 
   const matchCount = matchingIds.length;
 
-  useEffect(() => {
-    setSearchMatchIndex(0);
-  }, [searchQuery]);
-
+  // ── Scroll to current search match ──
   useEffect(() => {
     if (matchCount === 0) return;
     const id = matchingIds[searchMatchIndex];
     const el = scrollRef.current?.querySelector(`[data-msg-id="${id}"]`);
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [searchMatchIndex, matchingIds, matchCount]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setIsAtBottom(distFromBottom < 60);
+  };
+
+  const scrollToBottom = () => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    setIsAtBottom(true);
+  };
 
   const closeSearch = () => {
     setShowSearch(false);
@@ -308,25 +354,31 @@ const BiblioChatWidget = () => {
       { id: crypto.randomUUID(), role: "user", content: trimmed, timestamp: new Date() },
     ]);
     setInput("");
+    setIsAtBottom(true);
     setIsTyping(true);
 
     try {
       const response = await sendAssistantMessage({ message: trimmed, conversationId });
       if (response.conversationId && !conversationId) setConversationId(response.conversationId);
+
+      const newId = crypto.randomUUID();
       setMessages((m) => [
         ...m,
-        { id: crypto.randomUUID(), role: "assistant", content: response.reply, timestamp: new Date() },
+        { id: newId, role: "assistant", content: response.reply, timestamp: new Date() },
       ]);
+      setTypingEffect({ id: newId, chars: 0 });
     } catch (err) {
+      const newId = crypto.randomUUID();
       setMessages((m) => [
         ...m,
         {
-          id: crypto.randomUUID(),
+          id: newId,
           role: "assistant",
           content: err instanceof Error ? err.message : "Não consegui processar sua mensagem. Tente novamente.",
           timestamp: new Date(),
         },
       ]);
+      setTypingEffect({ id: newId, chars: 0 });
     } finally {
       setIsTyping(false);
     }
@@ -389,11 +441,19 @@ const BiblioChatWidget = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/20 ring-2 ring-background/30 backdrop-blur overflow-hidden">
                 <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={32} height={32} className="object-contain" />
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-400 ring-2 ring-primary-dark" />
+              {/* Pulse on green dot while typing */}
+              <span
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-primary-dark transition-colors",
+                  isTyping || typingEffect ? "bg-yellow-400 animate-pulse" : "bg-green-400",
+                )}
+              />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-display text-base leading-tight">Bibi</h3>
-              <p className="text-[11px] opacity-90 leading-tight">Sua assistente literária</p>
+              <p className="text-[11px] opacity-90 leading-tight">
+                {isTyping ? "digitando..." : "Sua assistente literária"}
+              </p>
             </div>
             <button
               onClick={() => setShowSearch((v) => !v)}
@@ -465,7 +525,11 @@ const BiblioChatWidget = () => {
         )}
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-secondary/40">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="relative flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-secondary/40"
+        >
           {chatItems.map((item) => {
             if ("type" in item && item.type === "divider") {
               return (
@@ -480,6 +544,10 @@ const BiblioChatWidget = () => {
             }
 
             const m = item as Message;
+            const isAnimating = typingEffect?.id === m.id;
+            const displayedContent = isAnimating
+              ? m.content.slice(0, typingEffect.chars)
+              : m.content;
             const isCurrentMatch =
               searchQuery.trim() !== "" && matchingIds[searchMatchIndex] === m.id;
 
@@ -499,14 +567,17 @@ const BiblioChatWidget = () => {
                 )}
                 <div
                   className={cn(
-                    "max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed transition-colors",
+                    "max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed transition-shadow",
                     m.role === "user"
                       ? "bg-primary text-primary-foreground rounded-br-sm"
                       : "bg-card border border-border text-foreground rounded-bl-sm shadow-sm",
                     isCurrentMatch && "ring-2 ring-yellow-400 ring-offset-1",
                   )}
                 >
-                  {renderMessageContent(m.content, searchQuery)}
+                  {renderMessageContent(displayedContent, isAnimating ? "" : searchQuery)}
+                  {isAnimating && (
+                    <span className="inline-block w-[2px] h-[1em] bg-current align-middle ml-0.5 animate-pulse" />
+                  )}
                 </div>
               </div>
             );
@@ -544,6 +615,23 @@ const BiblioChatWidget = () => {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Scroll to bottom button */}
+          {!isAtBottom && (
+            <button
+              onClick={scrollToBottom}
+              className={cn(
+                "sticky bottom-0 left-1/2 -translate-x-1/2 w-fit",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
+                "bg-primary text-primary-foreground text-xs font-medium shadow-lg",
+                "hover:opacity-90 transition-all animate-fade-in",
+              )}
+              aria-label="Ir para o final"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+              Ir para o final
+            </button>
           )}
         </div>
 
