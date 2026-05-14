@@ -3,6 +3,8 @@ package com.biblioo.assistant.domain.service;
 import com.biblioo.assistant.domain.model.BookResult;
 import com.biblioo.assistant.domain.model.CollectionResult;
 import com.biblioo.assistant.domain.model.CommunityResult;
+import com.biblioo.assistant.domain.model.ShelfItemBasic;
+import com.biblioo.assistant.domain.model.ShelfItemResult;
 import com.biblioo.assistant.domain.model.ShelfResult;
 import com.biblioo.assistant.domain.model.UserDnaProfile;
 import com.biblioo.assistant.domain.port.out.AssistantActionLogPort;
@@ -58,17 +60,26 @@ public class BiboTools {
   @Tool(
       description =
           "Cria uma nova estante para o usuário. name: nome da estante (obrigatório, máx 100"
-              + " chars). description: descrição opcional.")
-  public ShelfResult createShelf(String name, String description) {
-    ShelfResult result = shelfPort.createShelf(UserIdHolder.get(), name, description);
-    log("createShelf", Map.of("name", name, "description", description), "Estante criada com id=" + result.id());
-    return result;
+              + " chars). description: descrição opcional. "
+              + "Se a operação retornar erro (ex.: nome duplicado), informe o usuário com a mensagem recebida.")
+  public String createShelf(String name, String description) {
+    try {
+      ShelfResult result = shelfPort.createShelf(UserIdHolder.get(), name, description);
+      log("createShelf", Map.of("name", name, "description", description), "Estante criada com id=" + result.id());
+      return "Estante criada com sucesso. id=" + result.id() + ", nome=" + result.name();
+    } catch (RuntimeException e) {
+      log("createShelf", Map.of("name", name, "description", description), "Erro: " + e.getMessage());
+      return "Erro: " + e.getMessage();
+    }
   }
 
   @Tool(
       description =
-          "Adiciona um livro a uma estante. status: WANT_TO_READ | READING | REREADING |"
-              + " COMPLETED | ABANDONED")
+          "Adiciona um livro a uma estante. "
+              + "IMPORTANTE: antes de chamar esta ferramenta, use listShelves para obter o shelfId "
+              + "correto e searchBooks para obter o bookId. Nunca invente ou assuma esses IDs. "
+              + "Se a operação retornar um erro, informe o usuário com a mensagem recebida. "
+              + "status: WANT_TO_READ | READING | REREADING | COMPLETED | ABANDONED")
   public String addBookToShelf(Long shelfId, Long bookId, String status) {
     String result = shelfPort.addBookToShelf(UserIdHolder.get(), shelfId, bookId, status);
     log("addBookToShelf", Map.of("shelfId", shelfId, "bookId", bookId, "status", status), result);
@@ -77,15 +88,50 @@ public class BiboTools {
 
   @Tool(
       description =
-          "Atualiza o status de leitura de um item na estante. newStatus: WANT_TO_READ | READING"
-              + " | REREADING | COMPLETED | ABANDONED")
+          "Lista os livros (itens) de uma estante específica, com itemId, bookId, título, status e progresso. "
+              + "Use para obter o itemId necessário em changeItemStatus e updateReadingProgress. "
+              + "Antes, chame listShelves para descobrir o shelfId correto.")
+  public List<ShelfItemResult> listShelfItems(Long shelfId) {
+    List<ShelfItemBasic> basics = shelfPort.listShelfItems(UserIdHolder.get(), shelfId);
+    List<Long> bookIds = basics.stream().map(ShelfItemBasic::bookId).distinct().toList();
+    java.util.Map<Long, String> titleByBookId =
+        bookPort.getByIds(bookIds).stream()
+            .collect(java.util.stream.Collectors.toMap(BookResult::id, BookResult::title));
+    List<ShelfItemResult> results =
+        basics.stream()
+            .map(
+                b ->
+                    new ShelfItemResult(
+                        b.itemId(),
+                        b.bookId(),
+                        titleByBookId.get(b.bookId()),
+                        b.status(),
+                        b.currentPage(),
+                        b.totalPages()))
+            .toList();
+    log("listShelfItems", Map.of("shelfId", shelfId), results.size() + " itens retornados");
+    return results;
+  }
+
+  @Tool(
+      description =
+          "Atualiza o status de leitura de um item na estante. "
+              + "IMPORTANTE: use listShelves para obter o shelfId e listShelfItems(shelfId) para obter o itemId "
+              + "(filtrando pelo bookId quando o usuário se referir ao livro pelo nome). "
+              + "Nunca invente ou assuma esses IDs. "
+              + "newStatus: WANT_TO_READ | READING | REREADING | COMPLETED | ABANDONED")
   public String changeItemStatus(Long shelfId, Long itemId, String newStatus) {
     String result = shelfPort.changeItemStatus(UserIdHolder.get(), shelfId, itemId, newStatus);
     log("changeItemStatus", Map.of("shelfId", shelfId, "itemId", itemId, "newStatus", newStatus), result);
     return result;
   }
 
-  @Tool(description = "Atualiza a página atual de leitura de um livro em uma estante.")
+  @Tool(
+      description =
+          "Atualiza a página atual de leitura de um livro em uma estante. "
+              + "IMPORTANTE: use listShelves para obter o shelfId e listShelfItems(shelfId) para obter o itemId "
+              + "(filtrando pelo bookId quando o usuário se referir ao livro pelo nome). "
+              + "Nunca invente ou assuma esses IDs.")
   public String updateReadingProgress(Long shelfId, Long itemId, Integer currentPage) {
     String result = shelfPort.updateReadingProgress(UserIdHolder.get(), shelfId, itemId, currentPage);
     log("updateReadingProgress", Map.of("shelfId", shelfId, "itemId", itemId, "currentPage", currentPage), result);
@@ -102,21 +148,35 @@ public class BiboTools {
   @Tool(
       description =
           "Cria uma nova coleção para agrupar estantes. name: nome da coleção (obrigatório)."
-              + " description: descrição opcional.")
-  public CollectionResult createCollection(String name, String description) {
-    CollectionResult result = collectionPort.createCollection(UserIdHolder.get(), name, description);
-    log("createCollection", Map.of("name", name, "description", description), "Coleção criada com id=" + result.id());
-    return result;
+              + " description: descrição opcional. "
+              + "Se a operação retornar erro (ex.: nome duplicado), informe o usuário com a mensagem recebida.")
+  public String createCollection(String name, String description) {
+    try {
+      CollectionResult result = collectionPort.createCollection(UserIdHolder.get(), name, description);
+      log("createCollection", Map.of("name", name, "description", description), "Coleção criada com id=" + result.id());
+      return "Coleção criada com sucesso. id=" + result.id() + ", nome=" + result.name();
+    } catch (RuntimeException e) {
+      log("createCollection", Map.of("name", name, "description", description), "Erro: " + e.getMessage());
+      return "Erro: " + e.getMessage();
+    }
   }
 
-  @Tool(description = "Adiciona uma estante a uma coleção existente.")
+  @Tool(
+      description =
+          "Adiciona uma estante a uma coleção existente. "
+              + "IMPORTANTE: use listCollections para obter o collectionId e listShelves para obter o shelfId. "
+              + "Nunca invente ou assuma esses IDs.")
   public String addShelfToCollection(Long collectionId, Long shelfId) {
     String result = collectionPort.addShelfToCollection(UserIdHolder.get(), collectionId, shelfId);
     log("addShelfToCollection", Map.of("collectionId", collectionId, "shelfId", shelfId), result);
     return result;
   }
 
-  @Tool(description = "Remove uma estante de uma coleção.")
+  @Tool(
+      description =
+          "Remove uma estante de uma coleção. "
+              + "IMPORTANTE: use listCollections para obter o collectionId e listShelves para obter o shelfId. "
+              + "Nunca invente ou assuma esses IDs.")
   public String removeShelfFromCollection(Long collectionId, Long shelfId) {
     String result = collectionPort.removeShelfFromCollection(UserIdHolder.get(), collectionId, shelfId);
     log("removeShelfFromCollection", Map.of("collectionId", collectionId, "shelfId", shelfId), result);
@@ -134,11 +194,16 @@ public class BiboTools {
       description =
           "Cria uma nova comunidade vinculada a um livro. type: PUBLIC ou PRIVATE. "
               + "bookId: ID do livro — use searchBooks para encontrar o ID antes de chamar esta ferramenta. "
-              + "Nunca invente um bookId.")
+              + "Nunca invente um bookId. Se a operação retornar erro, informe o usuário.")
   public CommunityResult createCommunity(String name, String description, String type, Long bookId) {
-    CommunityResult result = communityPort.createCommunity(UserIdHolder.get(), name, description, type, bookId);
-    log("createCommunity", Map.of("name", name, "type", type, "bookId", bookId), "Comunidade criada com id=" + result.id());
-    return result;
+    try {
+      CommunityResult result = communityPort.createCommunity(UserIdHolder.get(), name, description, type, bookId);
+      log("createCommunity", Map.of("name", name, "type", type, "bookId", bookId), "Comunidade criada com id=" + result.id());
+      return result;
+    } catch (RuntimeException e) {
+      log("createCommunity", Map.of("name", name, "type", type, "bookId", bookId), "Erro: " + e.getMessage());
+      return null;
+    }
   }
 
   @Tool(

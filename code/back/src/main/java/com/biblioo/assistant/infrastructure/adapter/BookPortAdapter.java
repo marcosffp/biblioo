@@ -35,4 +35,25 @@ class BookPortAdapter implements AssistantBookPort {
       return List.of();
     }
   }
+
+  @Override
+  public List<BookResult> getByIds(List<Long> ids) {
+    if (ids == null || ids.isEmpty()) return List.of();
+    try {
+      return bookUseCase.getByIds(ids).stream()
+          .map(b -> {
+            List<String> authors;
+            try {
+              authors = List.copyOf(b.getAuthors());
+            } catch (Exception e) {
+              authors = List.of();
+            }
+            return new BookResult(b.getId(), b.getTitle(), authors, b.getAverageRating());
+          })
+          .toList();
+    } catch (Exception e) {
+      log.warn("Erro ao buscar livros por ids: {}", e.getMessage());
+      return List.of();
+    }
+  }
 }

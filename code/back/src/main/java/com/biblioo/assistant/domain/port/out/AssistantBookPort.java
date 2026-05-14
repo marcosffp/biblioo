@@ -6,4 +6,6 @@ import java.util.List;
 public interface AssistantBookPort {
 
   List<BookResult> search(String query, int limit);
+
+  List<BookResult> getByIds(List<Long> ids);
 }
