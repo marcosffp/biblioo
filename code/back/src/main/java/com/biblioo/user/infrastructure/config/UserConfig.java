@@ -6,7 +6,10 @@ import com.biblioo.user.domain.port.in.UserUseCase;
 import com.biblioo.user.domain.port.out.GoogleAuthPort;
 import com.biblioo.user.domain.port.out.PasswordResetEmailPort;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
+import com.biblioo.user.domain.port.out.RefreshTokenPersistencePort;
+import com.biblioo.user.domain.port.out.UserFollowPersistencePort;
 import com.biblioo.user.domain.port.out.UserNotificationEventPort;
+import com.biblioo.user.domain.port.out.UserPersistencePort;
 import com.biblioo.user.domain.port.out.UserSearchPort;
 import com.biblioo.user.domain.service.UserService;
 import com.biblioo.user.infrastructure.async.TokenCleanupAdapter;
@@ -16,7 +19,6 @@ import com.biblioo.user.infrastructure.auth.PasswordResetService;
 import com.biblioo.user.infrastructure.cache.CachedUserService;
 import com.biblioo.user.infrastructure.persistence.PasswordResetTokenRepository;
 import com.biblioo.user.infrastructure.persistence.RefreshTokenRepository;
-import com.biblioo.user.infrastructure.persistence.UserFollowRepository;
 import com.biblioo.user.infrastructure.persistence.UserRepository;
 import com.biblioo.user.infrastructure.security.JwtService;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,14 +68,19 @@ PasswordResetUseCase passwordResetUseCase(
 
   @Bean
   UserUseCase userUseCase(
-      UserRepository userRepo,
-      UserFollowRepository followRepo,
+      UserPersistencePort userPersistencePort,
+      UserFollowPersistencePort userFollowPersistencePort,
       ProfileImagePort profileImagePort,
-      RefreshTokenRepository tokenRepo,
+      RefreshTokenPersistencePort refreshTokenPersistencePort,
       UserSearchPort searchPort,
       UserNotificationEventPort notificationEventPort) {
     return new CachedUserService(
         new UserService(
-            userRepo, followRepo, profileImagePort, tokenRepo, searchPort, notificationEventPort));
+            userPersistencePort,
+            userFollowPersistencePort,
+            profileImagePort,
+            refreshTokenPersistencePort,
+            searchPort,
+            notificationEventPort));
   }
 }
