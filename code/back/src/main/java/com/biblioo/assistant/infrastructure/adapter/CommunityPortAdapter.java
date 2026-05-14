@@ -34,13 +34,8 @@ class CommunityPortAdapter implements AssistantCommunityPort {
     } catch (IllegalArgumentException e) {
       communityType = CommunityType.PUBLIC;
     }
-    try {
-      Community community = communityUseCase.createCommunity(userId, name, description, communityType, bookId);
-      return toResult(community);
-    } catch (Exception e) {
-      log.warn("Falha ao criar comunidade: {}", e.getMessage());
-      throw e;
-    }
+    Community community = communityUseCase.createCommunity(userId, name, description, communityType, bookId);
+    return toResult(community);
   }
 
   private CommunityResult toResult(Community c) {

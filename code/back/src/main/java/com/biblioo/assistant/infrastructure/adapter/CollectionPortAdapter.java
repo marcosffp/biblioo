@@ -30,14 +30,22 @@ class CollectionPortAdapter implements AssistantCollectionPort {
 
   @Override
   public String addShelfToCollection(Long userId, Long collectionId, Long shelfId) {
-    collectionUseCase.addShelfToCollection(userId, collectionId, shelfId);
-    return "Estante adicionada à coleção com sucesso.";
+    try {
+      collectionUseCase.addShelfToCollection(userId, collectionId, shelfId);
+      return "Estante adicionada à coleção com sucesso.";
+    } catch (RuntimeException e) {
+      return "Erro: " + e.getMessage();
+    }
   }
 
   @Override
   public String removeShelfFromCollection(Long userId, Long collectionId, Long shelfId) {
-    collectionUseCase.removeShelfFromCollection(userId, collectionId, shelfId);
-    return "Estante removida da coleção com sucesso.";
+    try {
+      collectionUseCase.removeShelfFromCollection(userId, collectionId, shelfId);
+      return "Estante removida da coleção com sucesso.";
+    } catch (RuntimeException e) {
+      return "Erro: " + e.getMessage();
+    }
   }
 
   private CollectionResult toResult(Collection c) {
