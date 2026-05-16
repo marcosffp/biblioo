@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
-import { BookOpen, BookOpenCheck, MessageSquare, Sparkles, Users } from "lucide-react";
+import { Activity, BookOpen, BookOpenCheck, MessageSquare, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -12,6 +12,7 @@ import {
   ProfileStatsGrid,
   ProfileTabs,
   SectionHeader,
+  UserActivityFeed,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
 import { ReadingGoalSection } from "@/components/profile/ReadingGoalSection";
@@ -48,7 +49,7 @@ import {
 const isOwner = true;
 const isPublic = true;
 
-const tabs = ["Biblioteca", "Comunidades", "Resenhas"] as const;
+const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
 
 
 export default function PerfilPage() {
@@ -478,6 +479,7 @@ export default function PerfilPage() {
 
   const tabIcons = {
     Biblioteca: BookOpen,
+    Atividade: Activity,
     Comunidades: Users,
     Resenhas: MessageSquare,
   };
@@ -572,6 +574,15 @@ export default function PerfilPage() {
             />
           )}
         </section>
+      ) : activeTab === "Atividade" ? (
+        profile ? (
+          <UserActivityFeed
+            userId={profile.id}
+            authorName={profileName}
+            authorAvatarUrl={profile.avatarUrl ?? null}
+            isOwnProfile
+          />
+        ) : null
       ) : activeTab === "Comunidades" ? (
         <EmptyState
           title="Nenhuma comunidade ainda"

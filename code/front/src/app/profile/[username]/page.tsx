@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
-import { BookMarked, BookOpen, MessageSquare, MoreHorizontal, Sparkles, Users } from "lucide-react";
+import { Activity, BookMarked, BookOpen, MessageSquare, MoreHorizontal, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -13,6 +13,7 @@ import {
   ProfileStatsGrid,
   ProfileTabs,
   UnfollowPrivateConfirmModal,
+  UserActivityFeed,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
 import { ReadingGoalSection } from "@/components/profile/ReadingGoalSection";
@@ -38,7 +39,7 @@ import {
   type UserProfileResponse,
 } from "@/services/profile";
 
-const tabs = ["Biblioteca", "Comunidades", "Resenhas"] as const;
+const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
 
 type PanelShelfBook = ShelfBook & { shelfId?: number };
 
@@ -347,6 +348,7 @@ export default function SeguidorProfilePage() {
   const readerStatusLabel = booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora";
   const tabIcons = {
     Biblioteca: BookOpen,
+    Atividade: Activity,
     Comunidades: Users,
     Resenhas: MessageSquare,
   };
@@ -441,6 +443,15 @@ export default function SeguidorProfilePage() {
                   />
                 )}
               </section>
+            ) : activeTab === "Atividade" ? (
+              profile ? (
+                <UserActivityFeed
+                  userId={profile.id}
+                  authorName={displayName}
+                  authorAvatarUrl={profile.avatarUrl ?? null}
+                  isOwnProfile={isOwnProfile}
+                />
+              ) : null
             ) : activeTab === "Comunidades" ? (
               <section className="grid gap-4 lg:grid-cols-2">
                 <ProfileFollowersPanel

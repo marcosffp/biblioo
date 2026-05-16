@@ -47,6 +47,7 @@ export * from "./profile/ProfileStatsGrid";
 export * from "./profile/ProfileTabs";
 export * from "./profile/ProfileShelfBookCard";
 export * from "./profile/ProfileFollowersPanel";
+export * from "./profile/UserActivityFeed";
 export * from "./modal/UnfollowPrivateConfirmModal";
 export * from "./AuthLayout";
 export * from "./feed/FeedComposeCard";
