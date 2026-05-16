@@ -9,28 +9,28 @@ import com.biblioo.user.domain.model.ProfileAccess;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.UserUseCase;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
+import com.biblioo.user.domain.port.out.RefreshTokenPersistencePort;
+import com.biblioo.user.domain.port.out.UserFollowPersistencePort;
 import com.biblioo.user.domain.port.out.UserNotificationEventPort;
+import com.biblioo.user.domain.port.out.UserPersistencePort;
 import com.biblioo.user.domain.port.out.UserSearchPort;
-import com.biblioo.user.infrastructure.persistence.RefreshTokenRepository;
-import com.biblioo.user.infrastructure.persistence.UserFollowRepository;
-import com.biblioo.user.infrastructure.persistence.UserRepository;
 import java.util.List;
 import java.util.Optional;
 
 public class UserService implements UserUseCase {
 
-  private final UserRepository userRepo;
-  private final UserFollowRepository followRepo;
+  private final UserPersistencePort userRepo;
+  private final UserFollowPersistencePort followRepo;
   private final ProfileImagePort profileImagePort;
-  private final RefreshTokenRepository tokenRepo;
+  private final RefreshTokenPersistencePort tokenRepo;
   private final UserSearchPort searchPort;
   private final UserNotificationEventPort notificationEventPort;
 
   public UserService(
-      UserRepository userRepo,
-      UserFollowRepository followRepo,
+      UserPersistencePort userRepo,
+      UserFollowPersistencePort followRepo,
       ProfileImagePort profileImagePort,
-      RefreshTokenRepository tokenRepo,
+      RefreshTokenPersistencePort tokenRepo,
       UserSearchPort searchPort,
       UserNotificationEventPort notificationEventPort) {
     this.userRepo = userRepo;
