@@ -22,11 +22,12 @@ import { LiteraryDnaSection } from "@/components/profile/LiteraryDnaSection";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
 import { mapBackendReadingStatus } from "@/utils/bookcase-filters";
 import { humanizeUsername } from "@/utils/format";
-import type { DisplayShelfBook, GenreDistribution, ShelfItemWithShelfId } from "@/types/profile";
+import type { DisplayShelfBook, ShelfItemWithShelfId } from "@/types/profile";
 import { getAccessToken } from "@/services/auth";
 import {
   followUser,
   getBookById,
+  getDnaByUserId,
   getMyProfile,
   getProfileByUsername,
   listFollowersByUsername,
@@ -35,8 +36,10 @@ import {
   listShelvesByUserId,
   listMyFollowing,
   listShelfItemsByUserId,
-  type UserSummaryResponse,
   unfollowUser,
+  type DnaResponse,
+  type DnaProgressResponse,
+  type UserSummaryResponse,
   type UserProfileResponse,
 } from "@/services/profile";
 
@@ -76,12 +79,12 @@ export default function SeguidorProfilePage() {
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
   const [readersReached, setReadersReached] = React.useState(0);
-  const [authorItems, setAuthorItems] = React.useState<GenreDistribution[]>([]);
-  const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
+  const [dna, setDna] = React.useState<DnaResponse | DnaProgressResponse | null>(null);
   const [isShelfBookDetailsOpen, setIsShelfBookDetailsOpen] = React.useState(false);
   const [selectedShelfBook, setSelectedShelfBook] = React.useState<DisplayShelfBook | null>(null);
 
   const goalTarget = 24;
+  const currentYear = new Date().getFullYear();
 
   React.useEffect(() => {
     if (!username) {
@@ -118,8 +121,6 @@ export default function SeguidorProfilePage() {
         let computedBooksRead = 0;
         let computedPagesRead = 0;
         let computedReadersReached = 0;
-        let computedAuthorItems: GenreDistribution[] = [];
-        let computedFavoriteAuthors: string[] = [];
         let computedShelfBooks: DisplayShelfBook[] = [];
 
         if (!loadedProfile.restricted) {
@@ -174,19 +175,6 @@ export default function SeguidorProfilePage() {
             (total, entry) => total + Math.max(0, entry.readerCount ?? 0),
             0,
           );
-
-          const authorCountMap = new Map<string, number>();
-          pageCountEntries.forEach((entry) => {
-            entry.authors.forEach((author) => {
-              if (author?.trim()) {
-                authorCountMap.set(author, (authorCountMap.get(author) ?? 0) + 1);
-              }
-            });
-          });
-
-          const sortedAuthors = Array.from(authorCountMap.entries()).sort((a, b) => b[1] - a[1]);
-          computedAuthorItems = sortedAuthors.slice(0, 6).map(([label, value]) => ({ label, value }));
-          computedFavoriteAuthors = sortedAuthors.slice(0, 5).map(([name]) => name);
 
           computedShelfBooks = await Promise.all(
             uniqueItems.map(async (item) => {
@@ -247,9 +235,16 @@ export default function SeguidorProfilePage() {
         setBooksRead(computedBooksRead);
         setPagesRead(computedPagesRead);
         setReadersReached(computedReadersReached);
-        setAuthorItems(computedAuthorItems);
-        setFavoriteAuthors(computedFavoriteAuthors);
         setShelfBooks(computedShelfBooks);
+
+        if (!loadedProfile.restricted) {
+          try {
+            const dnaData = await getDnaByUserId(loadedProfile.id, accessToken);
+            if (!cancelled) setDna(dnaData);
+          } catch {
+            // DNA é opcional
+          }
+        }
       } catch {
         if (!cancelled) setError("Não foi possível carregar o perfil deste usuário.");
       } finally {
@@ -408,14 +403,9 @@ export default function SeguidorProfilePage() {
               ]}
             />
 
-            <ReadingGoalSection current={booksRead} target={goalTarget} />
+            <ReadingGoalSection current={booksRead} target={goalTarget} year={currentYear} />
 
-            <LiteraryDnaSection
-              authorItems={authorItems}
-              favoriteAuthors={favoriteAuthors}
-              subtitle="Perfil de leitura"
-              emptyMessage="Ainda não há dados suficientes para montar o DNA literário."
-            />
+            <LiteraryDnaSection dna={dna} />
 
             <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 

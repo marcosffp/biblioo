@@ -26,7 +26,7 @@ import {
   mapBackendReadingStatus,
   mapFrontendReadingStatus,
 } from "@/utils/bookcase-filters";
-import type { DisplayShelfBook, GenreDistribution, ShelfItemWithShelfId } from "@/types/profile";
+import type { DisplayShelfBook, ShelfItemWithShelfId } from "@/types/profile";
 import { getAccessToken } from "@/services/auth";
 import {
   BookcaseApiError,
@@ -42,9 +42,12 @@ import {
   getFollowersCount,
   getFollowingCount,
   getMyProfile,
+  getMyDna,
   getProfilePreferences,
   listMyShelves,
   listShelfItems,
+  type DnaResponse,
+  type DnaProgressResponse,
   type ProfilePreferences,
   type UserProfileResponse,
 } from "@/services/profile";
@@ -68,7 +71,7 @@ export default function PerfilPage() {
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
   const [readersReached, setReadersReached] = React.useState(0);
-  const [authorItems, setAuthorItems] = React.useState<GenreDistribution[]>([]);
+  const [dna, setDna] = React.useState<DnaResponse | DnaProgressResponse | null>(null);
   const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
   const [preferences, setPreferences] = React.useState<ProfilePreferences>({
     displayName: null,
@@ -87,7 +90,12 @@ export default function PerfilPage() {
   const [reviewError, setReviewError] = React.useState("");
   const [isSavingReview, setIsSavingReview] = React.useState(false);
 
-  const goalTarget = 24;
+  const [goalTarget, setGoalTarget] = React.useState<number>(() => {
+    if (typeof window === "undefined") return 24;
+    return parseInt(localStorage.getItem("biblioo.profile.goal.target") ?? "24", 10) || 24;
+  });
+  const [goalEditOpen, setGoalEditOpen] = React.useState(false);
+  const currentYear = new Date().getFullYear();
 
   React.useEffect(() => {
     const accessToken = getAccessToken();
@@ -157,10 +165,10 @@ export default function PerfilPage() {
             }
           });
         });
-
-        const sortedAuthors = Array.from(authorCountMap.entries()).sort((a, b) => b[1] - a[1]);
-        const computedAuthorItems = sortedAuthors.slice(0, 6).map(([label, value]) => ({ label, value }));
-        const computedFavoriteAuthors = sortedAuthors.slice(0, 5).map(([name]) => name);
+        const computedFavoriteAuthors = Array.from(authorCountMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([name]) => name);
 
         const [followers, following] = await Promise.all([
           getFollowersCount(loadedProfile.username, accessToken),
@@ -177,8 +185,14 @@ export default function PerfilPage() {
         setBooksRead(completedCount);
         setPagesRead(computedPagesRead);
         setReadersReached(computedReadersReached);
-        setAuthorItems(computedAuthorItems);
         setFavoriteAuthors(computedFavoriteAuthors);
+
+        try {
+          const dnaData = await getMyDna(accessToken);
+          if (!cancelled) setDna(dnaData);
+        } catch {
+          // DNA é opcional
+        }
 
         const shelfBookItems = await Promise.all(
           uniqueItems.slice(0, 8).map(async (item) => {
@@ -543,13 +557,34 @@ export default function PerfilPage() {
         ]}
       />
 
-      {preferences.showReadingGoal ? (
-        <ReadingGoalSection current={booksRead} target={goalTarget} />
-      ) : null}
+      {(preferences.showReadingGoal || preferences.showDnaLiterario) && (
+        <div className={`grid gap-4 ${preferences.showReadingGoal && preferences.showDnaLiterario ? "lg:grid-cols-2" : ""}`}>
+          {preferences.showReadingGoal && (
+            <ReadingGoalSection
+              current={booksRead}
+              target={goalTarget}
+              year={currentYear}
+              onEdit={() => setGoalEditOpen(true)}
+            />
+          )}
+          {preferences.showDnaLiterario && (
+            <LiteraryDnaSection dna={dna} />
+          )}
+        </div>
+      )}
 
-      {preferences.showDnaLiterario ? (
-        <LiteraryDnaSection authorItems={authorItems} favoriteAuthors={favoriteAuthors} />
-      ) : null}
+      {goalEditOpen && (
+        <GoalEditModal
+          currentTarget={goalTarget}
+          year={currentYear}
+          onSave={(next: number) => {
+            setGoalTarget(next);
+            localStorage.setItem("biblioo.profile.goal.target", String(next));
+            setGoalEditOpen(false);
+          }}
+          onClose={() => setGoalEditOpen(false)}
+        />
+      )}
 
       <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
@@ -656,5 +691,75 @@ export default function PerfilPage() {
         errorMessage={bookDetailsError}
       />
     </AppShell>
+  );
+}
+
+// ─── Goal Edit Modal ──────────────────────────────────────────────────────────
+
+function GoalEditModal({
+  currentTarget,
+  year,
+  onSave,
+  onClose,
+}: Readonly<{
+  currentTarget: number;
+  year: number;
+  onSave: (v: number) => void;
+  onClose: () => void;
+}>) {
+  const [value, setLocalValue] = React.useState(currentTarget);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const n = Math.max(1, Math.min(365, value));
+    onSave(n);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-base font-semibold text-foreground">
+          Meta de leitura {year}
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Quantos livros você quer ler em {year}?
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-5">
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={value}
+            onChange={(e) => setLocalValue(Number(e.target.value))}
+            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center text-3xl font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            autoFocus
+          />
+          <p className="mt-1.5 text-center text-xs text-muted-foreground">livros</p>
+
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-border py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            >
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

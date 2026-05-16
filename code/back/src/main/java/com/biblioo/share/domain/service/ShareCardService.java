@@ -11,11 +11,13 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.imageio.ImageIO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -61,6 +63,13 @@ public class ShareCardService implements ShareCardUseCase {
   private static final Font F_BOOK_TITLE = new Font(Font.SANS_SERIF, Font.PLAIN, 13 * SCALE);
 
   private static final Duration CARD_TTL = Duration.ofHours(1);
+  private static final Duration MEM_CACHE_TTL = Duration.ofMinutes(5);
+
+  private record CachedCard(byte[] data, Instant expiresAt) {
+    boolean valid() { return Instant.now().isBefore(expiresAt); }
+  }
+
+  private final ConcurrentHashMap<Long, CachedCard> memCache = new ConcurrentHashMap<>();
   private static final Locale PT_BR = new Locale.Builder()
     .setLanguage("pt")
     .setRegion("BR")
@@ -91,17 +100,27 @@ public class ShareCardService implements ShareCardUseCase {
   @Override
   public byte[] generateDnaCard(Long userId) {
     String key = "biblioo:share-card-dna:mobile:" + userId;
+
+    // 1. In-process cache — always available, survives Redis failures
+    CachedCard inMem = memCache.get(userId);
+    if (inMem != null && inMem.valid()) return inMem.data();
+
+    // 2. Redis cache
     try {
       byte[] cached = shareCardRedisTemplate.opsForValue().get(key);
-      if (cached != null) return cached;
+      if (cached != null) {
+        memCache.put(userId, new CachedCard(cached, Instant.now().plus(MEM_CACHE_TTL)));
+        return cached;
+      }
     } catch (Exception e) {
       log.warn("Redis indisponível, gerando card sem cache userId={}", userId);
     }
 
+    // 3. Generate
     ShareCardData data = shareCardDataService.buildCardData(userId);
-
     try {
       byte[] card = render(data);
+      memCache.put(userId, new CachedCard(card, Instant.now().plus(MEM_CACHE_TTL)));
       try {
         shareCardRedisTemplate.opsForValue().set(key, card, CARD_TTL);
       } catch (Exception e) {
