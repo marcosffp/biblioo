@@ -13,6 +13,9 @@ import {
   ProfileTabs,
   SectionHeader,
   UserActivityFeed,
+  UserReviewsTab,
+  UserCommunitiesTab,
+  ShareCapsuleModal,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
 import { ReadingGoalSection } from "@/components/profile/ReadingGoalSection";
@@ -54,6 +57,7 @@ const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
 
 export default function PerfilPage() {
   const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Biblioteca");
+  const [shareCapsuleOpen, setShareCapsuleOpen] = React.useState(false);
   const [isPublicProfile, setIsPublicProfile] = React.useState(isPublic);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -502,28 +506,27 @@ export default function PerfilPage() {
         followingHref="/profile/following"
         action={
           isOwner ? (
-            <Link
-              href="/profile/edit"
-              className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-              Editar perfil
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-              Seguir
-            </button>
-          )
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShareCapsuleOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary-dark px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(19,147,122,0.22)] transition-all hover:-translate-y-px hover:bg-primary hover:shadow-[0_12px_24px_rgba(19,147,122,0.30)]"
+              >
+                <Sparkles size={14} />
+                Compartilhar cápsula
+              </button>
+              <Link
+                href="/profile/edit"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+                Editar perfil
+              </Link>
+            </div>
+          ) : null
         }
       />
 
@@ -584,18 +587,17 @@ export default function PerfilPage() {
           />
         ) : null
       ) : activeTab === "Comunidades" ? (
-        <EmptyState
-          title="Nenhuma comunidade ainda"
-          description="Encontre clubes e conversas para compartilhar suas leituras."
-          action={<Button>Explorar comunidades</Button>}
-        />
-      ) : (
-        <EmptyState
-          title="Sem resenhas publicadas"
-          description="Escreva uma resenha para registrar suas leituras favoritas."
-          action={<Button>Escrever resenha</Button>}
-        />
-      )}
+        <UserCommunitiesTab isOwnProfile />
+      ) : activeTab === "Resenhas" ? (
+        profile ? (
+          <UserReviewsTab
+            userId={profile.id}
+            authorName={profileName}
+            authorAvatarUrl={profile.avatarUrl ?? null}
+            emptyMessage="Escreva sua primeira resenha para que ela apareça aqui."
+          />
+        ) : null
+      ) : null}
 
       <section className="rounded-xl border border-gray-200 bg-white p-6">
         <SectionHeader title="Importar Goodreads" />
@@ -619,6 +621,17 @@ export default function PerfilPage() {
           </button>
         </div>
       </section>
+
+      <ShareCapsuleModal
+        open={shareCapsuleOpen}
+        onClose={() => setShareCapsuleOpen(false)}
+        userName={profileName}
+        userHandle={profileHandle}
+        avatarUrl={profile?.avatarUrl ?? null}
+        booksRead={booksRead}
+        pagesRead={pagesRead}
+        favoriteAuthors={favoriteAuthors}
+      />
 
       <ShelfBookDetailsPanel
         isOpen={isShelfBookDetailsOpen}

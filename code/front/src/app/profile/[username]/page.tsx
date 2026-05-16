@@ -7,13 +7,14 @@ import {
   AppShell,
   Button,
   EmptyState,
-  ProfileFollowersPanel,
   ProfileHeaderCard,
   ProfileShelfBookCard,
   ProfileStatsGrid,
   ProfileTabs,
   UnfollowPrivateConfirmModal,
   UserActivityFeed,
+  UserReviewsTab,
+  UserCommunitiesTab,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
 import { ReadingGoalSection } from "@/components/profile/ReadingGoalSection";
@@ -453,29 +454,30 @@ export default function SeguidorProfilePage() {
                 />
               ) : null
             ) : activeTab === "Comunidades" ? (
-              <section className="grid gap-4 lg:grid-cols-2">
-                <ProfileFollowersPanel
-                  title="Seguidores"
-                  emptyLabel="Nenhum seguidor visível."
-                  users={followersUsers.slice(0, 8).map((user) => ({
-                    id: user.id,
-                    username: user.username,
-                    sideLabel: myFollowingUsernames.includes(user.username.toLowerCase()) ? "Você segue" : "",
-                  }))}
-                />
-
-                <ProfileFollowersPanel
-                  title="Seguindo"
-                  emptyLabel="Não segue nenhum usuário visível."
-                  users={followingUsers.slice(0, 8).map((user) => ({ id: user.id, username: user.username, sideLabel: "Leitor" }))}
-                />
-              </section>
-            ) : (
-              <EmptyState
-                title="Sem resenhas publicadas"
-                description="As resenhas deste usuário aparecerão aqui quando forem publicadas."
+              <UserCommunitiesTab
+                isOwnProfile={isOwnProfile}
+                followersUsers={followersUsers.slice(0, 8).map((user) => ({
+                  id: user.id,
+                  username: user.username,
+                  sideLabel: myFollowingUsernames.includes(user.username.toLowerCase()) ? "Você segue" : "",
+                }))}
+                followingUsers={followingUsers.slice(0, 8).map((user) => ({
+                  id: user.id,
+                  username: user.username,
+                  sideLabel: "Leitor",
+                }))}
+                myFollowingUsernames={myFollowingUsernames}
               />
-            )}
+            ) : activeTab === "Resenhas" ? (
+              profile ? (
+                <UserReviewsTab
+                  userId={profile.id}
+                  authorName={displayName}
+                  authorAvatarUrl={profile.avatarUrl ?? null}
+                  emptyMessage="As resenhas deste usuário aparecerão aqui quando forem publicadas."
+                />
+              ) : null
+            ) : null}
           </>
         )}
 
