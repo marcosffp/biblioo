@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CommunityCard } from "@/components/CommunityCard";
@@ -55,7 +55,6 @@ export function UserCommunitiesTab({
   const router = useRouter();
   const [communities, setCommunities] = useState<BackendCommunityResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const initiated = useRef(false);
 
   const bookTitles = useCommunityBooks(communities);
 
@@ -64,8 +63,6 @@ export function UserCommunitiesTab({
       setIsLoading(false);
       return;
     }
-    if (initiated.current) return;
-    initiated.current = true;
 
     let cancelled = false;
     const run = async () => {

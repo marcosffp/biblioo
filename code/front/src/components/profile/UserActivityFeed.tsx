@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen, MessageSquare } from "lucide-react";
 import { PostCard } from "@/components/PostCard";
 import { ReviewFeedCard } from "@/components/ReviewFeedCard";
@@ -111,12 +111,8 @@ export function UserActivityFeed({
   const [hasMorePosts, setHasMorePosts] = useState(false);
   const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const initiatedRef = useRef(false);
 
   useEffect(() => {
-    if (initiatedRef.current) return;
-    initiatedRef.current = true;
-
     const token = getAccessToken();
     let cancelled = false;
 

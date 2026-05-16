@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { ReviewFeedCard } from "@/components/ReviewFeedCard";
 import { getBookById } from "@/services/bookcase";
@@ -67,11 +67,8 @@ export function UserReviewsTab({
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const initiated = useRef(false);
 
   useEffect(() => {
-    if (initiated.current) return;
-    initiated.current = true;
     let cancelled = false;
 
     const run = async () => {
