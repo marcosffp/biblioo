@@ -11,7 +11,6 @@ import {
   ProfileShelfBookCard,
   ProfileStatsGrid,
   ProfileTabs,
-  SectionHeader,
   UserActivityFeed,
   UserReviewsTab,
   UserCommunitiesTab,
@@ -63,7 +62,7 @@ function FireIcon({ count }: { count: number }) {
 const isOwner = true;
 const isPublic = true;
 
-const BOOKS_PER_PAGE = 8;
+const BOOKS_PER_PAGE = 10;
 
 const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
 
@@ -736,29 +735,6 @@ export default function PerfilPage() {
           />
         ) : null
       ) : null}
-
-      <section className="rounded-xl border border-gray-200 bg-white p-6">
-        <SectionHeader title="Importar Goodreads" />
-        <div className="mt-4 rounded-xl border border-gray-200 px-6 py-10 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 3v12" />
-              <path d="m7 8 5-5 5 5" />
-              <path d="M5 21h14" />
-            </svg>
-          </div>
-          <h3 className="text-sm font-semibold text-gray-800">Importe sua biblioteca do Goodreads</h3>
-          <p className="mt-1 text-xs text-gray-500">
-            Faça upload do CSV exportado do Goodreads para adicionar seus livros à estante.
-          </p>
-          <button
-            type="button"
-            className="mt-5 inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-          >
-            Selecionar arquivo CSV
-          </button>
-        </div>
-      </section>
 
       <ShareCapsuleModal
         open={shareCapsuleOpen}
