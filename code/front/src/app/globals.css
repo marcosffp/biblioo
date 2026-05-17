@@ -50,6 +50,24 @@ select:focus-visible {
   box-shadow: none;
 }
 
+@keyframes dice-shake {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  12%       { transform: rotate(-10deg) scale(1.06); }
+  25%       { transform: rotate(9deg) scale(1.07); }
+  37%       { transform: rotate(-7deg) scale(1.05); }
+  50%       { transform: rotate(6deg) scale(1.05); }
+  62%       { transform: rotate(-4deg) scale(1.03); }
+  75%       { transform: rotate(3deg) scale(1.02); }
+  87%       { transform: rotate(-1deg) scale(1.01); }
+}
+
+@layer utilities {
+  .animate-dice-shake {
+    animation: dice-shake 0.55s ease-in-out infinite;
+    transform-origin: center;
+  }
+}
+
 @keyframes flame-flicker {
   0%, 100% { transform: scale(1) rotate(-2deg); }
   20%       { transform: scale(1.18) rotate(1.5deg); }
