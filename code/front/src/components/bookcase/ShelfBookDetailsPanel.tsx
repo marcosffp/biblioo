@@ -12,6 +12,7 @@ interface ShelfBookDetailsPanelProps {
   onStepPage: (delta: number) => void;
   onSetPage?: (page: number) => void;
   onRemoveFromShelf: () => void;
+  canRemove?: boolean;
   reviewRating: number;
   reviewComment: string;
   reviewExists: boolean;
@@ -188,6 +189,7 @@ export function ShelfBookDetailsPanel({
   onStepPage,
   onSetPage,
   onRemoveFromShelf,
+  canRemove = true,
   reviewRating,
   reviewComment,
   reviewExists,
@@ -291,6 +293,17 @@ export function ShelfBookDetailsPanel({
             className="items-center"
             titleClassName="text-sm font-semibold text-[var(--text-secondary)]"
           />
+          {canRemove ? (
+            <button
+              type="button"
+              onClick={onRemoveFromShelf}
+              disabled={isRemovingFromShelf}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--danger-200)] px-3 py-1.5 text-sm font-medium text-[var(--danger-600)] transition hover:bg-[var(--danger-50)] hover:text-[var(--danger-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger-300)] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Trash2 size={14} />
+              {isRemovingFromShelf ? "Removendo..." : "Remover da estante"}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -520,17 +533,6 @@ export function ShelfBookDetailsPanel({
           ) : null}
         </section>
 
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            onClick={onRemoveFromShelf}
-            disabled={isRemovingFromShelf}
-            className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-2 py-1 text-xs font-medium text-[var(--danger-600)] transition hover:bg-[var(--danger-50)] hover:text-[var(--danger-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger-300)] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Trash2 size={14} />
-            {isRemovingFromShelf ? "Removendo..." : "Remover da estante"}
-          </button>
-        </div>
       </div>
     </div>
   );

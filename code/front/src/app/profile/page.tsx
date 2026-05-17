@@ -33,6 +33,7 @@ import {
   createBookReview,
   getMyBookReview,
   getShelfItemById,
+  removeBookFromShelf,
   updateBookReview,
   updateShelfItemProgress,
 } from "@/services/bookcase";
@@ -98,6 +99,7 @@ export default function PerfilPage() {
   const [reviewSuccessMessage, setReviewSuccessMessage] = React.useState("");
   const [reviewError, setReviewError] = React.useState("");
   const [isSavingReview, setIsSavingReview] = React.useState(false);
+  const [isRemovingBookFromShelf, setIsRemovingBookFromShelf] = React.useState(false);
 
   const [allShelfItems, setAllShelfItems] = React.useState<ShelfItemWithShelfId[]>([]);
   const [currentPage, setCurrentPage] = React.useState(0);
@@ -305,6 +307,39 @@ export default function PerfilPage() {
     setReviewCommentDraft("");
     setReviewSuccessMessage("");
     setReviewError("");
+  };
+
+  const handleRemoveFromShelf = () => {
+    if (!selectedShelfBook) {
+      setBookDetailsError("Não foi possível identificar o item da estante.");
+      return;
+    }
+
+    const { shelfId, shelfItemId } = selectedShelfBook;
+
+    async function removeAction() {
+      setIsRemovingBookFromShelf(true);
+      setBookDetailsError("");
+      try {
+        await removeBookFromShelf(shelfId, shelfItemId);
+
+        setShelfBooks((books) => books.filter((b) => b.shelfItemId !== shelfItemId));
+        setAllShelfItems((items) => items.filter((i) => i.id !== shelfItemId));
+        handleCloseShelfBookDetails();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faça login para remover livros da estante.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Não foi possível remover o livro da estante.");
+        }
+      } finally {
+        setIsRemovingBookFromShelf(false);
+      }
+    }
+
+    void removeAction();
   };
 
   const handlePageChange = async (newPage: number) => {
@@ -754,7 +789,7 @@ export default function PerfilPage() {
         onSelectStatus={handleSelectShelfBookStatus}
         onStepPage={handleStepShelfBookPage}
         onSetPage={handleSetShelfBookPage}
-        onRemoveFromShelf={() => undefined}
+        onRemoveFromShelf={handleRemoveFromShelf}
         reviewRating={reviewRatingDraft}
         reviewComment={reviewCommentDraft}
         reviewExists={typeof activeReviewId === "number"}
@@ -766,7 +801,7 @@ export default function PerfilPage() {
         isSavingReview={isSavingReview}
         isLoadingReview={false}
         isSaving={isSavingShelfBookDetails}
-        isRemovingFromShelf={false}
+        isRemovingFromShelf={isRemovingBookFromShelf}
         errorMessage={bookDetailsError}
       />
     </AppShell>

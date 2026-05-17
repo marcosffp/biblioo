@@ -490,6 +490,7 @@ export default function SeguidorProfilePage() {
         onStepPage={noop}
         onSetPage={noop}
         onRemoveFromShelf={noop}
+        canRemove={false}
         reviewRating={0}
         reviewComment=""
         reviewExists={false}

@@ -19,6 +19,7 @@ interface BookcaseResultsProps {
   isInsideShelf: boolean;
   filteredBooks: ShelfBook[];
   onOpenBookDetails: (book: ShelfBook) => void;
+  onRemoveBook?: (book: ShelfBook) => void;
   rootViewMode: RootViewMode;
   filteredShelves: BackendShelfSummaryResponse[];
   onEnterShelf: (shelf: BackendShelfSummaryResponse) => void;
@@ -84,6 +85,7 @@ export function BookcaseResults({
   isInsideShelf,
   filteredBooks,
   onOpenBookDetails,
+  onRemoveBook,
   rootViewMode,
   filteredShelves,
   onEnterShelf,
@@ -101,6 +103,7 @@ export function BookcaseResults({
 }: Readonly<BookcaseResultsProps>) {
   const [openShelfMenuId, setOpenShelfMenuId] = useState<number | null>(null);
   const [openCollectionMenuId, setOpenCollectionMenuId] = useState<number | null>(null);
+  const [openBookMenuId, setOpenBookMenuId] = useState<string | null>(null);
   const [animatedProgressPercent, setAnimatedProgressPercent] = useState(0);
 
   const listVariants = {
@@ -169,20 +172,21 @@ export function BookcaseResults({
   }, [readingProgressPercent]);
 
   useEffect(() => {
-    if (openShelfMenuId === null && openCollectionMenuId === null) {
+    if (openShelfMenuId === null && openCollectionMenuId === null && openBookMenuId === null) {
       return;
     }
 
     const handleWindowClick = () => {
       setOpenShelfMenuId(null);
       setOpenCollectionMenuId(null);
+      setOpenBookMenuId(null);
     };
 
     window.addEventListener("click", handleWindowClick);
     return () => {
       window.removeEventListener("click", handleWindowClick);
     };
-  }, [openShelfMenuId, openCollectionMenuId]);
+  }, [openShelfMenuId, openCollectionMenuId, openBookMenuId]);
 
   if (loadError) {
     return (
@@ -209,7 +213,7 @@ export function BookcaseResults({
         variants={listVariants}
       >
         {filteredBooks.map((book) => (
-          <motion.div key={book.id} variants={itemVariants} className="group">
+          <motion.div key={book.id} variants={itemVariants} className="group relative">
             <ProfileShelfBookCard
               title={book.title}
               author={book.author}
@@ -224,6 +228,55 @@ export function BookcaseResults({
               showPageCount={true}
               onClick={() => onOpenBookDetails(book)}
             />
+
+            <div
+              className="absolute right-1.5 top-1.5"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setOpenBookMenuId((id) => (id === book.id ? null : book.id))}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:bg-black/60"
+                aria-label={`Mais ações para ${book.title}`}
+              >
+                <MoreHorizontal size={14} />
+              </button>
+
+              {openBookMenuId === book.id ? (
+                <div
+                  className="absolute right-0 z-30 mt-1 w-44 rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-1 shadow-[var(--shadow-soft)]"
+                  role="menu"
+                >
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-2 text-sm text-[var(--text-primary)] transition hover:bg-[var(--bg-soft)]"
+                    role="menuitem"
+                    onClick={() => {
+                      setOpenBookMenuId(null);
+                      onOpenBookDetails(book);
+                    }}
+                  >
+                    <BookOpen size={14} />
+                    <span>Ver detalhes</span>
+                  </button>
+
+                  {onRemoveBook ? (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-2 text-sm text-[var(--danger-600)] transition hover:bg-[var(--bg-soft)]"
+                      role="menuitem"
+                      onClick={() => {
+                        setOpenBookMenuId(null);
+                        onRemoveBook(book);
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      <span>Remover</span>
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </motion.div>
         ))}
       </motion.div>
