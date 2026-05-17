@@ -43,6 +43,8 @@ import {
   type UserProfileResponse,
 } from "@/services/profile";
 
+const BOOKS_PER_PAGE = 10;
+
 const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
 
 type PanelShelfBook = ShelfBook & { shelfId?: number };
@@ -82,6 +84,7 @@ export default function SeguidorProfilePage() {
   const [dna, setDna] = React.useState<DnaResponse | DnaProgressResponse | null>(null);
   const [isShelfBookDetailsOpen, setIsShelfBookDetailsOpen] = React.useState(false);
   const [selectedShelfBook, setSelectedShelfBook] = React.useState<DisplayShelfBook | null>(null);
+  const [currentPage, setCurrentPage] = React.useState(0);
 
   const goalTarget = 24;
   const currentYear = new Date().getFullYear();
@@ -403,36 +406,61 @@ export default function SeguidorProfilePage() {
               ]}
             />
 
-            <ReadingGoalSection current={booksRead} target={goalTarget} year={currentYear} />
-
-            <LiteraryDnaSection dna={dna} />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ReadingGoalSection current={booksRead} target={goalTarget} year={currentYear} />
+              <LiteraryDnaSection dna={dna} isLoading={isLoading} />
+            </div>
 
             <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
             {activeTab === "Biblioteca" ? (
-              <section className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              <section>
                 {shelfBooks.length > 0 ? (
-                  shelfBooks.map((book) => (
-                    <ProfileShelfBookCard
-                      key={book.shelfItemId}
-                      title={book.title}
-                      author={book.author}
-                      coverUrl={book.coverUrl}
-                      userRating={book.rating}
-                      progressPercent={book.progress}
-                      onClick={() => handleOpenShelfBookDetails(book)}
-                    />
-                  ))
-                ) : (
+                  <>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4">
+                      {shelfBooks.slice(currentPage * BOOKS_PER_PAGE, (currentPage + 1) * BOOKS_PER_PAGE).map((book) => (
+                        <ProfileShelfBookCard
+                          key={book.shelfItemId}
+                          title={book.title}
+                          author={book.author}
+                          coverUrl={book.coverUrl}
+                          userRating={book.rating}
+                          progressPercent={book.progress}
+                          onClick={() => handleOpenShelfBookDetails(book)}
+                        />
+                      ))}
+                    </div>
+
+                    {Math.ceil(shelfBooks.length / BOOKS_PER_PAGE) > 1 && (
+                      <div className="mt-6 flex items-center justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                          disabled={currentPage === 0}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          ← Anterior
+                        </button>
+                        <span className="text-sm text-muted-foreground">
+                          Página {currentPage + 1} de {Math.ceil(shelfBooks.length / BOOKS_PER_PAGE)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((p) => Math.min(Math.ceil(shelfBooks.length / BOOKS_PER_PAGE) - 1, p + 1))}
+                          disabled={currentPage >= Math.ceil(shelfBooks.length / BOOKS_PER_PAGE) - 1}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Próxima →
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : !isLoading ? (
                   <EmptyState
                     title="Biblioteca vazia"
-                    description={
-                      isOwnProfile
-                        ? "Adicione livros para acompanhar progresso e metas no perfil."
-                        : "Este usuário ainda não adicionou livros visíveis na biblioteca."
-                    }
+                    description="Este usuário ainda não adicionou livros visíveis na biblioteca."
                   />
-                )}
+                ) : null}
               </section>
             ) : activeTab === "Atividade" ? (
               profile ? (
