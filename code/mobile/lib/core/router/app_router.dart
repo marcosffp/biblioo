@@ -1,6 +1,7 @@
 import 'package:biblioo/core/shell/main_shell.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
+import 'package:biblioo/screens/assistant/assistant_screen.dart';
 import 'package:biblioo/screens/community/community_list_screen.dart';
 import 'package:biblioo/screens/community/community_detail_screen.dart';
 import 'package:biblioo/screens/shelf/biblioteca_screen.dart';
@@ -12,8 +13,6 @@ import 'package:biblioo/screens/notification/notification_screen.dart';
 import 'package:biblioo/screens/profile/edit_profile_screen.dart';
 import 'package:biblioo/screens/profile/profile_screen.dart';
 import 'package:biblioo/screens/profile/settings_screen.dart';
-import 'package:biblioo/screens/recommendation/dice_screen.dart';
-import 'package:biblioo/screens/recommendation/recommendation_screen.dart';
 import 'package:biblioo/screens/book/book_screen.dart';
 import 'package:biblioo/screens/search/book_search_screen.dart';
 import 'package:flutter/material.dart';
@@ -117,18 +116,12 @@ final appRouter = GoRouter(
           ],
         ),
 
-        // Tab 1 — Para Você
+        // Tab 1 — Bibi (assistente de IA)
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/recommendation',
-              builder: (context, state) => const RecommendationScreen(),
-              routes: [
-                GoRoute(
-                  path: 'dice',
-                  builder: (context, state) => const DiceScreen(),
-                ),
-              ],
+              path: '/assistant',
+              builder: (context, state) => const AssistantScreen(),
             ),
           ],
         ),

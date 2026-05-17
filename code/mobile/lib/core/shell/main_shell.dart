@@ -26,7 +26,7 @@ class MainShell extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.auto_awesome_outlined),
             selectedIcon: Icon(Icons.auto_awesome),
-            label: 'Para Você',
+            label: 'Bibi',
           ),
           NavigationDestination(
             icon: Icon(Icons.local_library_outlined),

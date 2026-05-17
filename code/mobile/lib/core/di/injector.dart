@@ -33,6 +33,10 @@ import 'package:biblioo/features/feed/data/feed_repository.dart';
 import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
 import 'package:biblioo/features/notification/data/notification_remote_datasource.dart';
 import 'package:biblioo/features/notification/data/notification_repository.dart';
+import 'package:biblioo/features/assistant/bloc/assistant_bloc.dart';
+import 'package:biblioo/features/assistant/data/assistant_local_datasource.dart';
+import 'package:biblioo/features/assistant/data/assistant_remote_datasource.dart';
+import 'package:biblioo/features/assistant/data/assistant_repository.dart';
 import 'package:biblioo/features/user/bloc/user_search_bloc.dart';
 import 'package:biblioo/features/user/data/user_local_datasource.dart';
 import 'package:biblioo/features/user/data/user_remote_datasource.dart';
@@ -120,6 +124,14 @@ class Injector {
   NotificationRepository get notificationRepo =>
       NotificationRepository(_notificationRemote);
 
+  // ── assistant ─────────────────────────────────────────
+  AssistantLocalDatasource get _assistantLocal =>
+      AssistantLocalDatasource(_prefs);
+  AssistantRemoteDatasource get _assistantRemote =>
+      AssistantRemoteDatasource(_dio);
+  AssistantRepository get assistantRepo =>
+      AssistantRepository(_assistantRemote, _assistantLocal);
+
   // ── providers ─────────────────────────────────────────
   List<BlocProvider> get providers => [
     BlocProvider<ThemeModeCubit>(create: (_) => ThemeModeCubit(_prefs)),
@@ -136,6 +148,9 @@ class Injector {
     BlocProvider<PostBloc>(create: (_) => PostBloc(feedRepo)),
     BlocProvider<NotificationBloc>(
       create: (_) => NotificationBloc(notificationRepo),
+    ),
+    BlocProvider<AssistantBloc>(
+      create: (_) => AssistantBloc(assistantRepo),
     ),
   ];
 }
