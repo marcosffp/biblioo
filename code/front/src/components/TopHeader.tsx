@@ -691,6 +691,14 @@ export function TopHeader({
                 >
                   Meu perfil
                 </Link>
+                <Link
+                  href="/settings"
+                  role="menuitem"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="block px-4 py-2.5 text-sm text-[var(--deep-green)] hover:bg-emerald-50"
+                >
+                  Configurações
+                </Link>
                 <button
                   type="button"
                   role="menuitem"
