@@ -54,14 +54,16 @@ import {
 
 function FireIcon({ count }: { count: number }) {
   if (count === 0) return <Flame size={16} className="text-muted-foreground/30" />;
-  if (count <= 3) return <Flame size={16} className="text-yellow-400" />;
-  if (count <= 10) return <Flame size={16} className="text-orange-400" />;
-  if (count <= 20) return <Flame size={16} className="text-orange-500 animate-pulse" />;
-  return <Flame size={16} className="text-red-500 animate-pulse" />;
+  if (count <= 3)  return <Flame size={16} className="animate-flame-slow text-yellow-400" />;
+  if (count <= 10) return <Flame size={16} className="animate-flame-slow text-orange-400" />;
+  if (count <= 20) return <Flame size={16} className="animate-flame text-orange-500" />;
+  return <Flame size={16} className="animate-flame text-red-500" />;
 }
 
 const isOwner = true;
 const isPublic = true;
+
+const BOOKS_PER_PAGE = 8;
 
 const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
 
@@ -97,6 +99,10 @@ export default function PerfilPage() {
   const [reviewSuccessMessage, setReviewSuccessMessage] = React.useState("");
   const [reviewError, setReviewError] = React.useState("");
   const [isSavingReview, setIsSavingReview] = React.useState(false);
+
+  const [allShelfItems, setAllShelfItems] = React.useState<ShelfItemWithShelfId[]>([]);
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const [isFetchingPage, setIsFetchingPage] = React.useState(false);
 
   const [goalTarget, setGoalTarget] = React.useState<number>(() => {
     if (typeof window === "undefined") return 24;
@@ -202,8 +208,10 @@ export default function PerfilPage() {
           // DNA é opcional
         }
 
+        setAllShelfItems(uniqueItems);
+
         const shelfBookItems = await Promise.all(
-          uniqueItems.slice(0, 8).map(async (item) => {
+          uniqueItems.slice(0, BOOKS_PER_PAGE).map(async (item) => {
             try {
               const [book, detailedItem, myReview] = await Promise.all([
                 getBookById(item.bookId, accessToken),
@@ -298,6 +306,64 @@ export default function PerfilPage() {
     setReviewCommentDraft("");
     setReviewSuccessMessage("");
     setReviewError("");
+  };
+
+  const handlePageChange = async (newPage: number) => {
+    const token = getAccessToken();
+    if (!token) return;
+    setCurrentPage(newPage);
+    setIsFetchingPage(true);
+    try {
+      const pageItems = allShelfItems.slice(newPage * BOOKS_PER_PAGE, (newPage + 1) * BOOKS_PER_PAGE);
+      const books = await Promise.all(
+        pageItems.map(async (item) => {
+          try {
+            const [book, detailedItem, myReview] = await Promise.all([
+              getBookById(item.bookId, token),
+              getShelfItemById(item.shelfId, item.id),
+              getMyBookReview(item.bookId),
+            ]);
+            const author = book.authors && book.authors.length > 0 ? book.authors.join(", ") : "Autor desconhecido";
+            return {
+              shelfId: item.shelfId,
+              shelfItemId: item.id,
+              id: item.bookId.toString(),
+              bookId: item.bookId,
+              title: item.bookTitle,
+              author,
+              coverUrl: item.bookCoverUrl ?? book.coverUrl ?? undefined,
+              rating: myReview?.rating ?? book.averageRating ?? undefined,
+              synopsis: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
+              description: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
+              readerCount: book.readerCount ?? undefined,
+              progress: item.progressPercent ?? undefined,
+              readingStatus: mapBackendReadingStatus(item.status),
+              currentPage: detailedItem?.currentPage ?? undefined,
+              totalPages: detailedItem?.totalPages ?? book.pageCount ?? undefined,
+            } as DisplayShelfBook;
+          } catch {
+            return {
+              shelfId: item.shelfId,
+              shelfItemId: item.id,
+              id: item.bookId.toString(),
+              bookId: item.bookId,
+              title: item.bookTitle,
+              author: "Autor desconhecido",
+              coverUrl: item.bookCoverUrl ?? undefined,
+              rating: undefined,
+              synopsis: undefined,
+              description: undefined,
+              readerCount: undefined,
+              progress: item.progressPercent ?? undefined,
+              readingStatus: mapBackendReadingStatus(item.status),
+            } as DisplayShelfBook;
+          }
+        }),
+      );
+      setShelfBooks(books);
+    } finally {
+      setIsFetchingPage(false);
+    }
   };
 
   const applyShelfItemUpdate = (updatedItem: { id: number; status: string; progressPercent?: number | null; currentPage?: number | null; totalPages?: number | null }) => {
@@ -558,9 +624,10 @@ export default function PerfilPage() {
           { label: "Páginas lidas", value: pagesRead.toLocaleString("pt-BR"), icon: <BookOpenCheck size={16} /> },
           {
             label: "Dias p/ livro",
-            value: dna && "avgDaysPerBook" in dna && (dna as DnaResponse).avgDaysPerBook != null
-              ? `${Math.round((dna as DnaResponse).avgDaysPerBook!)}d`
-              : "—",
+            value:
+              dna && "avgDaysPerBook" in dna && (dna as DnaResponse).avgDaysPerBook != null
+                ? `${Math.round((dna as DnaResponse).avgDaysPerBook!)}d`
+                : "—",
             icon: <FireIcon count={booksRead} />,
           },
           { label: "Leitores alcançados", value: readersReached.toLocaleString("pt-BR"), icon: <Users size={16} /> },
@@ -600,27 +667,53 @@ export default function PerfilPage() {
 
       {activeTab === "Biblioteca" ? (
         <section>
-          {shelfBooks.length > 0 ? (
-            <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4">
-              {shelfBooks.map((book) => (
-                <ProfileShelfBookCard
-                  key={book.shelfItemId}
-                  title={book.title}
-                  author={book.author}
-                  coverUrl={book.coverUrl}
-                  progressPercent={book.progress}
-                  userRating={book.rating}
-                  onClick={() => handleOpenShelfBookDetails(book)}
-                />
-              ))}
-            </section>
-          ) : (
+          {allShelfItems.length > 0 ? (
+            <>
+              <section className={`grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4 transition-opacity duration-200 ${isFetchingPage ? "pointer-events-none opacity-50" : ""}`}>
+                {shelfBooks.map((book) => (
+                  <ProfileShelfBookCard
+                    key={book.shelfItemId}
+                    title={book.title}
+                    author={book.author}
+                    coverUrl={book.coverUrl}
+                    progressPercent={book.progress}
+                    userRating={book.rating}
+                    onClick={() => handleOpenShelfBookDetails(book)}
+                  />
+                ))}
+              </section>
+
+              {Math.ceil(allShelfItems.length / BOOKS_PER_PAGE) > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 0 || isFetchingPage}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="text-sm text-muted-foreground">
+                    Página {currentPage + 1} de {Math.ceil(allShelfItems.length / BOOKS_PER_PAGE)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= Math.ceil(allShelfItems.length / BOOKS_PER_PAGE) - 1 || isFetchingPage}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Próxima →
+                  </button>
+                </div>
+              )}
+            </>
+          ) : !isLoading ? (
             <EmptyState
               title="Sua biblioteca está vazia"
               description="Adicione livros para acompanhar progresso e metas no seu perfil."
               action={<Button className="!mt-0 !h-11 !w-auto rounded-2xl px-6 shadow-sm hover:shadow-md">Explorar livros</Button>}
             />
-          )}
+          ) : null}
         </section>
       ) : activeTab === "Atividade" ? (
         profile ? (

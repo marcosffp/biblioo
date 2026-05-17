@@ -380,7 +380,6 @@ export default function EditarPerfilPage() {
           <div className="mt-4 grid gap-4">
             <label className="flex items-center justify-between rounded-md border border-gray-200 bg-white p-4">
               <div>
-                <div className="text-sm font-semibold text-gray-900">Meta de leitura</div>
                 <p className="mt-1 text-xs text-gray-500">Mostrar ou ocultar o card de meta.</p>
               </div>
               <input
