@@ -13,6 +13,8 @@ import 'package:biblioo/screens/notification/notification_screen.dart';
 import 'package:biblioo/screens/profile/edit_profile_screen.dart';
 import 'package:biblioo/screens/profile/profile_screen.dart';
 import 'package:biblioo/screens/profile/settings_screen.dart';
+import 'package:biblioo/screens/recommendation/dice_screen.dart';
+import 'package:biblioo/screens/recommendation/recommendation_screen.dart';
 import 'package:biblioo/screens/book/book_screen.dart';
 import 'package:biblioo/screens/search/book_search_screen.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +49,18 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationScreen(),
+    ),
+
+    // ── RECOMENDACOES (sem bottom nav) ──────────────────
+    GoRoute(
+      path: '/recommendation',
+      builder: (context, state) => const RecommendationScreen(),
+      routes: [
+        GoRoute(
+          path: 'dice',
+          builder: (context, state) => const DiceScreen(),
+        ),
+      ],
     ),
 
     // ── LIVRO (fora do shell, exibido em tela própria) ───
