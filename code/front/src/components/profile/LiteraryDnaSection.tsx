@@ -21,6 +21,46 @@ function isDnaComputed(dna: DnaResponse | DnaProgressResponse): dna is DnaRespon
   return "dominantArchetypeLabel" in dna;
 }
 
+function useCountUp(target: number, active: boolean, duration = 750): number {
+  const [value, setValue] = React.useState(0);
+  React.useEffect(() => {
+    if (!active) { setValue(0); return; }
+    const start = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      setValue(Math.round(target * p));
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else setValue(target);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, active, duration]);
+  return value;
+}
+
+function ThemeRow({
+  theme,
+  percentage,
+  color,
+  animated,
+  delay,
+}: Readonly<{ theme: string; percentage: number; color: string; animated: boolean; delay: number }>) {
+  const count = useCountUp(Math.round(percentage), animated, 750);
+  return (
+    <div
+      className={`flex items-center gap-2 text-xs transition-all duration-500 ${
+        animated ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />
+      <span className="text-foreground/80">{theme}</span>
+      <span className="ml-1 tabular-nums font-medium text-muted-foreground">{count}%</span>
+    </div>
+  );
+}
+
 function buildSegments(
   themes: { theme: string; percentage: number }[],
   circumference: number,
@@ -195,15 +235,6 @@ export function LiteraryDnaSection({
     .map((k) => ARCHETYPE_LABELS[k] ?? k)
     .filter(Boolean);
 
-  const traitParts = [
-    ...secondaryLabels,
-    dna.rereadCount > 0 ? `${dna.rereadCount}× relido` : null,
-    dna.abandonedCount > 0
-      ? `${dna.abandonedCount} abandonado${dna.abandonedCount !== 1 ? "s" : ""}`
-      : null,
-    dna.mostAbandonedGenre ? `evita ${dna.mostAbandonedGenre}` : null,
-  ].filter(Boolean) as string[];
-
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <DnaCardHeader />
@@ -229,25 +260,16 @@ export function LiteraryDnaSection({
           {themes.length > 0 && (
             <div className="mt-3 space-y-1.5">
               {themes.slice(0, 3).map((t, i) => (
-                <div key={t.theme} className="flex items-center gap-2 text-xs">
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ background: SEGMENT_COLORS[i % SEGMENT_COLORS.length] ?? "#3FC3A7" }}
-                  />
-                  <span className="text-foreground/80">{t.theme}</span>
-                  <span className="ml-auto tabular-nums text-muted-foreground">
-                    {Math.round(t.percentage)}%
-                  </span>
-                </div>
+                <ThemeRow
+                  key={t.theme}
+                  theme={t.theme}
+                  percentage={t.percentage}
+                  color={SEGMENT_COLORS[i % SEGMENT_COLORS.length] ?? "#3FC3A7"}
+                  animated={animated}
+                  delay={200 + i * 100}
+                />
               ))}
             </div>
-          )}
-
-          {/* 4 — secondary traits as plain muted text */}
-          {traitParts.length > 0 && (
-            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground/60">
-              {traitParts.join(" · ")}
-            </p>
           )}
         </div>
       </div>
