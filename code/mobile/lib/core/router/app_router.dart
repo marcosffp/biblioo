@@ -51,16 +51,10 @@ final appRouter = GoRouter(
       builder: (context, state) => const NotificationScreen(),
     ),
 
-    // ── RECOMENDACOES (sem bottom nav) ──────────────────
+    // ── ASSISTENTE (sem bottom nav — acessível via FAB) ─
     GoRoute(
-      path: '/recommendation',
-      builder: (context, state) => const RecommendationScreen(),
-      routes: [
-        GoRoute(
-          path: 'dice',
-          builder: (context, state) => const DiceScreen(),
-        ),
-      ],
+      path: '/assistant',
+      builder: (context, state) => const AssistantScreen(),
     ),
 
     // ── LIVRO (fora do shell, exibido em tela própria) ───
@@ -130,12 +124,18 @@ final appRouter = GoRouter(
           ],
         ),
 
-        // Tab 1 — Bibi (assistente de IA)
+        // Tab 1 — Para Você (recomendações)
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/assistant',
-              builder: (context, state) => const AssistantScreen(),
+              path: '/recommendation',
+              builder: (context, state) => const RecommendationScreen(),
+              routes: [
+                GoRoute(
+                  path: 'dice',
+                  builder: (context, state) => const DiceScreen(),
+                ),
+              ],
             ),
           ],
         ),
