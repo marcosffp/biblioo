@@ -17,7 +17,10 @@ class AssistantRemoteDatasource {
       },
     );
 
-    final data = response.data!;
+    final data = response.data;
+    if (data == null) {
+      throw Exception('Empty response body from /assistant/chat');
+    }
     return (
       reply: data['reply'] as String,
       conversationId: data['conversationId'] as String,

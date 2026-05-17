@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:biblioo/features/assistant/data/assistant_repository.dart';
 import 'package:biblioo/features/assistant/domain/chat_message.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'assistant_event.dart';
 import 'assistant_state.dart';
 
-String _newId() => DateTime.now().microsecondsSinceEpoch.toString();
+int _idCounter = 0;
+String _newId() =>
+    '${DateTime.now().microsecondsSinceEpoch}_${_idCounter++}';
 
 final _welcomeMessage = ChatMessage(
   id: 'welcome',
@@ -54,6 +59,14 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     final withUser = [...state.messages, userMsg];
     emit(state.copyWith(messages: withUser, isLoading: true, clearError: true));
 
+    // Best-effort: persist the user message before awaiting the network so a
+    // crash mid-request doesn't drop the question.
+    unawaited(
+      _repository
+          .persist(withUser, state.conversationId)
+          .catchError((_) {}),
+    );
+
     try {
       final result = await _repository.sendMessage(
         event.text,
@@ -78,7 +91,9 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
     } on Exception catch (e, st) {
       debugPrint('[AssistantBloc] sendMessage error: $e\n$st');
 
-      final errorMsg = _isRateLimit(e)
+      final isRateLimit =
+          e is DioException && e.response?.statusCode == 429;
+      final errorMsg = isRateLimit
           ? 'Limite de mensagens atingido. Aguarde um momento e tente novamente.'
           : 'Não consegui processar sua mensagem. Tente novamente.';
 
@@ -96,12 +111,5 @@ class AssistantBloc extends Bloc<AssistantEvent, AssistantState> {
   ) async {
     await _repository.clearHistory();
     emit(AssistantState(messages: [_welcomeMessage]));
-  }
-
-  bool _isRateLimit(Object e) {
-    final msg = e.toString().toLowerCase();
-    return msg.contains('429') ||
-        msg.contains('ratelimit') ||
-        msg.contains('rate limit');
   }
 }

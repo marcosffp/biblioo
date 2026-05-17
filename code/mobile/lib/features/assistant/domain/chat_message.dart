@@ -10,13 +10,4 @@ class ChatMessage {
     required this.content,
     required this.timestamp,
   });
-
-  ChatMessage copyWith({String? content}) {
-    return ChatMessage(
-      id: id,
-      isUser: isUser,
-      content: content ?? this.content,
-      timestamp: timestamp,
-    );
-  }
 }

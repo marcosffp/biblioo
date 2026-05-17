@@ -33,7 +33,8 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   // Typewriter state
   String? _typewritingId;
-  int _typewritingChars = 0;
+  final ValueNotifier<int> _typewritingChars = ValueNotifier<int>(0);
+  int _typewritingTotal = 0;
   Timer? _typewriterTimer;
 
   // Dots animation
@@ -45,7 +46,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     _dotsController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
-    )..repeat();
+    );
 
     _scrollController.addListener(_onScroll);
     context.read<AssistantBloc>().add(AssistantInitialized());
@@ -56,6 +57,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     _controller.dispose();
     _scrollController.dispose();
     _typewriterTimer?.cancel();
+    _typewritingChars.dispose();
     _dotsController.dispose();
     super.dispose();
   }
@@ -63,7 +65,10 @@ class _AssistantScreenState extends State<AssistantScreen>
   void _onScroll() {
     final pos = _scrollController.position;
     final distFromBottom = pos.maxScrollExtent - pos.pixels;
-    setState(() => _isAtBottom = distFromBottom < 80);
+    final next = distFromBottom < 80;
+    if (next != _isAtBottom) {
+      setState(() => _isAtBottom = next);
+    }
   }
 
   void _scrollToBottom({bool instant = false}) {
@@ -79,27 +84,27 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   void _startTypewriter(String id, int totalLength) {
     _typewriterTimer?.cancel();
-    setState(() {
-      _typewritingId = id;
-      _typewritingChars = 0;
-    });
+    _typewritingTotal = totalLength;
+    _typewritingChars.value = 0;
+    // setState only for _typewritingId (read at build time by the bubble).
+    setState(() => _typewritingId = id);
 
     _typewriterTimer = Timer.periodic(
       const Duration(milliseconds: _typewriterIntervalMs),
       (_) {
         if (!mounted) return;
-        if (_typewritingChars >= totalLength) {
+        if (_typewritingChars.value >= _typewritingTotal) {
           _typewriterTimer?.cancel();
-          setState(() {
-            _typewritingId = null;
-            _typewritingChars = 0;
-          });
+          _typewritingChars.value = 0;
+          setState(() => _typewritingId = null);
           return;
         }
-        setState(() {
-          _typewritingChars =
-              math.min(_typewritingChars + _typewriterCharsPerTick, totalLength);
-        });
+        // No setState — only the ValueListenableBuilder wrapped around the
+        // animating bubble's content reacts to this change.
+        _typewritingChars.value = math.min(
+          _typewritingChars.value + _typewriterCharsPerTick,
+          _typewritingTotal,
+        );
         if (_isAtBottom) _scrollToBottom();
       },
     );
@@ -150,8 +155,17 @@ class _AssistantScreenState extends State<AssistantScreen>
     return BlocConsumer<AssistantBloc, AssistantState>(
       listenWhen: (prev, curr) =>
           curr.messages.length > prev.messages.length ||
-          curr.error != prev.error,
+          curr.error != prev.error ||
+          curr.isLoading != prev.isLoading,
       listener: (context, state) {
+        // Toggle dots animation to match isLoading — keeps the controller
+        // idle (zero rebuilds) when no typing indicator is shown.
+        if (state.isLoading && !_dotsController.isAnimating) {
+          _dotsController.repeat();
+        } else if (!state.isLoading && _dotsController.isAnimating) {
+          _dotsController.stop();
+        }
+
         if (state.error != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -369,10 +383,23 @@ class _AssistantScreenState extends State<AssistantScreen>
     final isUser = msg.isUser;
     final isAnimating = _typewritingId == msg.id;
 
-    String displayContent = msg.content;
-    if (isAnimating) {
-      displayContent = msg.content.substring(0, _typewritingChars);
-    }
+    final Widget content = isAnimating
+        ? ValueListenableBuilder<int>(
+            valueListenable: _typewritingChars,
+            builder: (_, chars, _) {
+              final clamped = math.min(chars, msg.content.length);
+              return _MessageContent(
+                content: msg.content.substring(0, clamped),
+                isUser: isUser,
+                isAnimating: true,
+              );
+            },
+          )
+        : _MessageContent(
+            content: msg.content,
+            isUser: isUser,
+            isAnimating: false,
+          );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -415,11 +442,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                   ),
                 ],
               ),
-              child: _MessageContent(
-                content: displayContent,
-                isUser: isUser,
-                isAnimating: isAnimating,
-              ),
+              child: content,
             ),
           ),
           if (isUser) const SizedBox(width: 6),
@@ -562,18 +585,15 @@ class _AssistantScreenState extends State<AssistantScreen>
               builder: (_, value, _) {
                 final canSend =
                     value.text.trim().isNotEmpty && !state.isLoading;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  child: IconButton.filled(
-                    onPressed: canSend
-                        ? () => _sendMessage(_controller.text)
-                        : null,
-                    icon: const Icon(Icons.send_rounded),
-                    style: IconButton.styleFrom(
-                      backgroundColor: canSend ? cs.primary : cs.outline,
-                      foregroundColor: cs.onPrimary,
-                      minimumSize: const Size(44, 44),
-                    ),
+                return IconButton.filled(
+                  onPressed: canSend
+                      ? () => _sendMessage(_controller.text)
+                      : null,
+                  icon: const Icon(Icons.send_rounded),
+                  style: IconButton.styleFrom(
+                    backgroundColor: canSend ? cs.primary : cs.outline,
+                    foregroundColor: cs.onPrimary,
+                    minimumSize: const Size(44, 44),
                   ),
                 );
               },
@@ -656,15 +676,24 @@ class _MessageContent extends StatelessWidget {
                   Expanded(
                     child: RichText(
                       text: TextSpan(
-                        children: _inlineSpans(block.items[i], textColor),
+                        children: [
+                          ..._inlineSpans(block.items[i], textColor),
+                          if (showCursor && i == block.items.length - 1)
+                            WidgetSpan(
+                              child: Container(
+                                width: 2,
+                                height: 14,
+                                margin: const EdgeInsets.only(left: 1),
+                                color: textColor,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          if (showCursor)
-            Container(width: 2, height: 14, color: textColor),
         ],
       );
     }
