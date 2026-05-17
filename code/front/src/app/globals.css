@@ -50,6 +50,32 @@ select:focus-visible {
   box-shadow: none;
 }
 
+@keyframes flame-flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  20%       { transform: scale(1.18) rotate(1.5deg); }
+  40%       { transform: scale(0.92) rotate(-1.5deg); }
+  60%       { transform: scale(1.1)  rotate(2deg); }
+  80%       { transform: scale(0.97) rotate(-1deg); }
+}
+
+@keyframes flame-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1; }
+  50%       { transform: scale(1.2); opacity: 0.75; }
+}
+
+@layer utilities {
+  .animate-flame {
+    animation: flame-flicker 0.7s ease-in-out infinite;
+    display: inline-block;
+    transform-origin: bottom center;
+  }
+  .animate-flame-slow {
+    animation: flame-pulse 2s ease-in-out infinite;
+    display: inline-block;
+    transform-origin: bottom center;
+  }
+}
+
 .icon-star,
 .icon-star-half {
   display: inline-block;
