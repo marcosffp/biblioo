@@ -15,8 +15,11 @@ const bodyFont = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Biblioo | Frontend Foundation",
-  description: "Base inicial do frontend web do Biblioo.",
+  title: "Biblioo",
+  description: "Organize, descubra e compartilhe histórias.",
+  icons: {
+    icon: "/biblioo-logo.png",
+  },
 };
 
 export default function RootLayout({

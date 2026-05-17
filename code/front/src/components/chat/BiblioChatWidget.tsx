@@ -411,7 +411,14 @@ const BiblioChatWidget = () => {
       >
         <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping" />
         <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/40 ring-4 ring-background group-hover:scale-110 transition-transform">
-          <Image src="/biblioo-carinha-branca-logo.png" alt="Bibo" width={40} height={40} className="object-contain" />
+          <Image
+            src="/biblioo-carinha-branca-logo.png"
+            alt="Bibo"
+            width={40}
+            height={40}
+            className="object-contain"
+            style={{ width: "auto", height: "auto" }}
+          />
           <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-premium ring-2 ring-background">
             <Sparkles className="h-3 w-3 text-premium-foreground" />
           </span>
@@ -440,7 +447,14 @@ const BiblioChatWidget = () => {
           <div className="relative flex items-center gap-3">
             <div className="relative">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/20 ring-2 ring-background/30 backdrop-blur overflow-hidden">
-                <Image src="/biblioo-carinha-branca-logo.png" alt="Bibo" width={32} height={32} className="object-contain" />
+                <Image
+                  src="/biblioo-carinha-branca-logo.png"
+                  alt="Bibo"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                  style={{ width: "auto", height: "auto" }}
+                />
               </div>
               {/* Pulse on green dot while typing */}
               <span
@@ -563,7 +577,14 @@ const BiblioChatWidget = () => {
               >
                 {m.role === "assistant" && (
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark overflow-hidden">
-                    <Image src="/biblioo-carinha-branca-logo.png" alt="Bibo" width={20} height={20} className="object-contain" />
+                    <Image
+                      src="/biblioo-carinha-branca-logo.png"
+                      alt="Bibo"
+                      width={20}
+                      height={20}
+                      className="object-contain"
+                      style={{ width: "auto", height: "auto" }}
+                    />
                   </div>
                 )}
                 <div
@@ -587,7 +608,14 @@ const BiblioChatWidget = () => {
           {isTyping && (
             <div className="flex gap-2 animate-fade-in">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark overflow-hidden">
-                <Image src="/biblioo-carinha-branca-logo.png" alt="Bibo" width={20} height={20} className="object-contain" />
+                <Image
+                  src="/biblioo-carinha-branca-logo.png"
+                  alt="Bibo"
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                  style={{ width: "auto", height: "auto" }}
+                />
               </div>
               <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-3.5 py-2.5 shadow-sm">
                 <div className="flex gap-1">
