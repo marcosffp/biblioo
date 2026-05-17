@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
-import { Activity, BookOpen, BookOpenCheck, MessageSquare, Sparkles, Users } from "lucide-react";
+import { Activity, BookOpen, BookOpenCheck, Flame, MessageSquare, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -51,6 +51,14 @@ import {
   type ProfilePreferences,
   type UserProfileResponse,
 } from "@/services/profile";
+
+function FireIcon({ count }: { count: number }) {
+  if (count === 0) return <Flame size={16} className="text-muted-foreground/30" />;
+  if (count <= 3) return <Flame size={16} className="text-yellow-400" />;
+  if (count <= 10) return <Flame size={16} className="text-orange-400" />;
+  if (count <= 20) return <Flame size={16} className="text-orange-500 animate-pulse" />;
+  return <Flame size={16} className="text-red-500 animate-pulse" />;
+}
 
 const isOwner = true;
 const isPublic = true;
@@ -549,9 +557,11 @@ export default function PerfilPage() {
           { label: "Livros lidos", value: booksRead, icon: <BookOpen size={16} /> },
           { label: "Páginas lidas", value: pagesRead.toLocaleString("pt-BR"), icon: <BookOpenCheck size={16} /> },
           {
-            label: "Status",
-            value: booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora",
-            icon: <Sparkles size={16} />,
+            label: "Dias p/ livro",
+            value: dna && "avgDaysPerBook" in dna && (dna as DnaResponse).avgDaysPerBook != null
+              ? `${Math.round((dna as DnaResponse).avgDaysPerBook!)}d`
+              : "—",
+            icon: <FireIcon count={booksRead} />,
           },
           { label: "Leitores alcançados", value: readersReached.toLocaleString("pt-BR"), icon: <Users size={16} /> },
         ]}
@@ -568,7 +578,7 @@ export default function PerfilPage() {
             />
           )}
           {preferences.showDnaLiterario && (
-            <LiteraryDnaSection dna={dna} />
+            <LiteraryDnaSection dna={dna} isLoading={isLoading} />
           )}
         </div>
       )}

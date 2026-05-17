@@ -1,22 +1,30 @@
 import React from "react";
-import { StatHighlight } from "@/components";
 
 type ProfileStatItem = {
   label: string;
   value: React.ReactNode;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
 };
 
-type ProfileStatsGridProps = {
-  items: ProfileStatItem[];
-};
-
-export function ProfileStatsGrid({ items }: ProfileStatsGridProps) {
+export function ProfileStatsGrid({ items }: Readonly<{ items: ProfileStatItem[] }>) {
   return (
-    <section className="mt-6 grid gap-4 md:grid-cols-4">
-      {items.map((item) => (
-        <StatHighlight key={item.label} label={item.label} value={item.value} icon={item.icon} />
+    <section className="mt-6 flex overflow-hidden rounded-xl border border-border bg-card">
+      {items.map((item, i) => (
+        <React.Fragment key={String(item.label)}>
+          {i > 0 && <div aria-hidden="true" className="w-px self-stretch bg-border" />}
+          <div className="flex flex-1 flex-col items-center justify-center gap-1.5 px-4 py-4">
+            <div className="flex items-center gap-1.5">
+              {item.icon}
+              <span className="text-xl font-bold tabular-nums text-foreground">{item.value}</span>
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {item.label}
+            </span>
+          </div>
+        </React.Fragment>
       ))}
     </section>
   );
 }
+
+export default ProfileStatsGrid;

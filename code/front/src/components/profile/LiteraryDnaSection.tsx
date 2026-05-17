@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Flame } from "lucide-react";
 import type { DnaResponse, DnaProgressResponse } from "@/services/profile";
 
 const SEGMENT_COLORS = ["#3FC3A7", "#818cf8", "#f59e0b", "#fb7185", "#34d399"];
@@ -267,7 +268,16 @@ export function LiteraryDnaSection({ dna, isLoading = false }: Readonly<Literary
         <StatRow dot="#3FC3A7" label="Livros lidos" value={String(dna.booksReadCount)} valueClass="text-teal-300 font-semibold" />
         <StatRow dot="#ffffff30" label="Páginas lidas" value={formatNumber(dna.totalPagesRead)} />
         {dna.avgDaysPerBook != null && (
-          <StatRow dot="#f97316" label="Dias por livro" value={`${Math.round(dna.avgDaysPerBook)} dias`} valueClass="text-orange-400 font-semibold" />
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2 text-xs text-[#7fb8a8]">
+              <span className="inline-block h-2 w-2 rounded-sm" style={{ background: "#f97316" }} />
+              Dias por livro
+            </span>
+            <div className="flex items-center gap-1.5 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1">
+              <Flame size={11} className="text-orange-400" />
+              <span className="text-xs font-bold text-orange-400">{Math.round(dna.avgDaysPerBook)}d</span>
+            </div>
+          </div>
         )}
         <StatRow dot="#f59e0b" label="Gênero favorito" value={topGenre} valueClass="text-amber-400 font-semibold" />
         {dna.rereadCount > 0 && (
