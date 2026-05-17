@@ -2,17 +2,19 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
-import { BookMarked, BookOpen, MessageSquare, MoreHorizontal, Sparkles, Users } from "lucide-react";
+import { Activity, BookMarked, BookOpen, MessageSquare, MoreHorizontal, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
   EmptyState,
-  ProfileFollowersPanel,
   ProfileHeaderCard,
   ProfileShelfBookCard,
   ProfileStatsGrid,
   ProfileTabs,
   UnfollowPrivateConfirmModal,
+  UserActivityFeed,
+  UserReviewsTab,
+  UserCommunitiesTab,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
 import { ReadingGoalSection } from "@/components/profile/ReadingGoalSection";
@@ -20,11 +22,12 @@ import { LiteraryDnaSection } from "@/components/profile/LiteraryDnaSection";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
 import { mapBackendReadingStatus } from "@/utils/bookcase-filters";
 import { humanizeUsername } from "@/utils/format";
-import type { DisplayShelfBook, GenreDistribution, ShelfItemWithShelfId } from "@/types/profile";
+import type { DisplayShelfBook, ShelfItemWithShelfId } from "@/types/profile";
 import { getAccessToken } from "@/services/auth";
 import {
   followUser,
   getBookById,
+  getDnaByUserId,
   getMyProfile,
   getProfileByUsername,
   listFollowersByUsername,
@@ -33,12 +36,16 @@ import {
   listShelvesByUserId,
   listMyFollowing,
   listShelfItemsByUserId,
-  type UserSummaryResponse,
   unfollowUser,
+  type DnaResponse,
+  type DnaProgressResponse,
+  type UserSummaryResponse,
   type UserProfileResponse,
 } from "@/services/profile";
 
-const tabs = ["Biblioteca", "Comunidades", "Resenhas"] as const;
+const BOOKS_PER_PAGE = 10;
+
+const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
 
 type PanelShelfBook = ShelfBook & { shelfId?: number };
 
@@ -74,12 +81,13 @@ export default function SeguidorProfilePage() {
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
   const [readersReached, setReadersReached] = React.useState(0);
-  const [authorItems, setAuthorItems] = React.useState<GenreDistribution[]>([]);
-  const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
+  const [dna, setDna] = React.useState<DnaResponse | DnaProgressResponse | null>(null);
   const [isShelfBookDetailsOpen, setIsShelfBookDetailsOpen] = React.useState(false);
   const [selectedShelfBook, setSelectedShelfBook] = React.useState<DisplayShelfBook | null>(null);
+  const [currentPage, setCurrentPage] = React.useState(0);
 
   const goalTarget = 24;
+  const currentYear = new Date().getFullYear();
 
   React.useEffect(() => {
     if (!username) {
@@ -116,8 +124,6 @@ export default function SeguidorProfilePage() {
         let computedBooksRead = 0;
         let computedPagesRead = 0;
         let computedReadersReached = 0;
-        let computedAuthorItems: GenreDistribution[] = [];
-        let computedFavoriteAuthors: string[] = [];
         let computedShelfBooks: DisplayShelfBook[] = [];
 
         if (!loadedProfile.restricted) {
@@ -172,19 +178,6 @@ export default function SeguidorProfilePage() {
             (total, entry) => total + Math.max(0, entry.readerCount ?? 0),
             0,
           );
-
-          const authorCountMap = new Map<string, number>();
-          pageCountEntries.forEach((entry) => {
-            entry.authors.forEach((author) => {
-              if (author?.trim()) {
-                authorCountMap.set(author, (authorCountMap.get(author) ?? 0) + 1);
-              }
-            });
-          });
-
-          const sortedAuthors = Array.from(authorCountMap.entries()).sort((a, b) => b[1] - a[1]);
-          computedAuthorItems = sortedAuthors.slice(0, 6).map(([label, value]) => ({ label, value }));
-          computedFavoriteAuthors = sortedAuthors.slice(0, 5).map(([name]) => name);
 
           computedShelfBooks = await Promise.all(
             uniqueItems.map(async (item) => {
@@ -245,9 +238,16 @@ export default function SeguidorProfilePage() {
         setBooksRead(computedBooksRead);
         setPagesRead(computedPagesRead);
         setReadersReached(computedReadersReached);
-        setAuthorItems(computedAuthorItems);
-        setFavoriteAuthors(computedFavoriteAuthors);
         setShelfBooks(computedShelfBooks);
+
+        if (!loadedProfile.restricted) {
+          try {
+            const dnaData = await getDnaByUserId(loadedProfile.id, accessToken);
+            if (!cancelled) setDna(dnaData);
+          } catch {
+            // DNA é opcional
+          }
+        }
       } catch {
         if (!cancelled) setError("Não foi possível carregar o perfil deste usuário.");
       } finally {
@@ -347,6 +347,7 @@ export default function SeguidorProfilePage() {
   const readerStatusLabel = booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora";
   const tabIcons = {
     Biblioteca: BookOpen,
+    Atividade: Activity,
     Comunidades: Users,
     Resenhas: MessageSquare,
   };
@@ -405,66 +406,96 @@ export default function SeguidorProfilePage() {
               ]}
             />
 
-            <ReadingGoalSection current={booksRead} target={goalTarget} />
-
-            <LiteraryDnaSection
-              authorItems={authorItems}
-              favoriteAuthors={favoriteAuthors}
-              subtitle="Perfil de leitura"
-              emptyMessage="Ainda não há dados suficientes para montar o DNA literário."
-            />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ReadingGoalSection current={booksRead} target={goalTarget} year={currentYear} />
+              <LiteraryDnaSection dna={dna} isLoading={isLoading} />
+            </div>
 
             <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
             {activeTab === "Biblioteca" ? (
-              <section className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              <section>
                 {shelfBooks.length > 0 ? (
-                  shelfBooks.map((book) => (
-                    <ProfileShelfBookCard
-                      key={book.shelfItemId}
-                      title={book.title}
-                      author={book.author}
-                      coverUrl={book.coverUrl}
-                      userRating={book.rating}
-                      progressPercent={book.progress}
-                      onClick={() => handleOpenShelfBookDetails(book)}
-                    />
-                  ))
-                ) : (
+                  <>
+                    <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4">
+                      {shelfBooks.slice(currentPage * BOOKS_PER_PAGE, (currentPage + 1) * BOOKS_PER_PAGE).map((book) => (
+                        <ProfileShelfBookCard
+                          key={book.shelfItemId}
+                          title={book.title}
+                          author={book.author}
+                          coverUrl={book.coverUrl}
+                          userRating={book.rating}
+                          progressPercent={book.progress}
+                          onClick={() => handleOpenShelfBookDetails(book)}
+                        />
+                      ))}
+                    </div>
+
+                    {Math.ceil(shelfBooks.length / BOOKS_PER_PAGE) > 1 && (
+                      <div className="mt-6 flex items-center justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                          disabled={currentPage === 0}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          ← Anterior
+                        </button>
+                        <span className="text-sm text-muted-foreground">
+                          Página {currentPage + 1} de {Math.ceil(shelfBooks.length / BOOKS_PER_PAGE)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage((p) => Math.min(Math.ceil(shelfBooks.length / BOOKS_PER_PAGE) - 1, p + 1))}
+                          disabled={currentPage >= Math.ceil(shelfBooks.length / BOOKS_PER_PAGE) - 1}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Próxima →
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : !isLoading ? (
                   <EmptyState
                     title="Biblioteca vazia"
-                    description={
-                      isOwnProfile
-                        ? "Adicione livros para acompanhar progresso e metas no perfil."
-                        : "Este usuário ainda não adicionou livros visíveis na biblioteca."
-                    }
+                    description="Este usuário ainda não adicionou livros visíveis na biblioteca."
                   />
-                )}
+                ) : null}
               </section>
+            ) : activeTab === "Atividade" ? (
+              profile ? (
+                <UserActivityFeed
+                  userId={profile.id}
+                  authorName={displayName}
+                  authorAvatarUrl={profile.avatarUrl ?? null}
+                  isOwnProfile={isOwnProfile}
+                />
+              ) : null
             ) : activeTab === "Comunidades" ? (
-              <section className="grid gap-4 lg:grid-cols-2">
-                <ProfileFollowersPanel
-                  title="Seguidores"
-                  emptyLabel="Nenhum seguidor visível."
-                  users={followersUsers.slice(0, 8).map((user) => ({
-                    id: user.id,
-                    username: user.username,
-                    sideLabel: myFollowingUsernames.includes(user.username.toLowerCase()) ? "Você segue" : "",
-                  }))}
-                />
-
-                <ProfileFollowersPanel
-                  title="Seguindo"
-                  emptyLabel="Não segue nenhum usuário visível."
-                  users={followingUsers.slice(0, 8).map((user) => ({ id: user.id, username: user.username, sideLabel: "Leitor" }))}
-                />
-              </section>
-            ) : (
-              <EmptyState
-                title="Sem resenhas publicadas"
-                description="As resenhas deste usuário aparecerão aqui quando forem publicadas."
+              <UserCommunitiesTab
+                isOwnProfile={isOwnProfile}
+                followersUsers={followersUsers.slice(0, 8).map((user) => ({
+                  id: user.id,
+                  username: user.username,
+                  sideLabel: myFollowingUsernames.includes(user.username.toLowerCase()) ? "Você segue" : "",
+                }))}
+                followingUsers={followingUsers.slice(0, 8).map((user) => ({
+                  id: user.id,
+                  username: user.username,
+                  sideLabel: "Leitor",
+                }))}
+                myFollowingUsernames={myFollowingUsernames}
               />
-            )}
+            ) : activeTab === "Resenhas" ? (
+              profile ? (
+                <UserReviewsTab
+                  userId={profile.id}
+                  authorName={displayName}
+                  authorAvatarUrl={profile.avatarUrl ?? null}
+                  emptyMessage="As resenhas deste usuário aparecerão aqui quando forem publicadas."
+                />
+              ) : null
+            ) : null}
           </>
         )}
 
@@ -487,6 +518,7 @@ export default function SeguidorProfilePage() {
         onStepPage={noop}
         onSetPage={noop}
         onRemoveFromShelf={noop}
+        canRemove={false}
         reviewRating={0}
         reviewComment=""
         reviewExists={false}

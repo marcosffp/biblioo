@@ -75,6 +75,7 @@ export default function EstantePage() {
     handleOpenShelfBookDetails,
     handleOpenSuggestionBookById,
     handleRemoveSelectedShelfBook,
+    handleRemoveShelfBook,
     handleSelectShelfBookStatus,
     handleSaveCollectionShelves,
     handleSaveBookReview,
@@ -426,6 +427,7 @@ export default function EstantePage() {
         isInsideShelf={isInsideShelf}
         filteredBooks={filteredBooks}
         onOpenBookDetails={handleOpenShelfBookDetails}
+        onRemoveBook={handleRemoveShelfBook}
         rootViewMode={rootViewMode}
         filteredShelves={filteredShelves}
         onEnterShelf={handleEnterShelf}

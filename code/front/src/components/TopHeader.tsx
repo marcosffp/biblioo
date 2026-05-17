@@ -295,7 +295,7 @@ function TopHeaderSearchBar({ searchPlaceholder }: Readonly<TopHeaderSearchBarPr
           <label htmlFor="global-search" className="relative block w-full" aria-label="Busca global">
             <Search
               size={17}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
               aria-hidden="true"
             />
             <input
@@ -606,12 +606,12 @@ export function TopHeader({
   return (
     <header
       className={
-        `fixed top-0 left-0 right-0 z-50 h-16 border-b border-emerald-100/80 bg-white/80 shadow-[0_8px_24px_rgba(31,61,58,0.08)] backdrop-blur-xl ${className ?? ""}`.trim()
+        `fixed top-0 left-0 right-0 z-50 h-16 border-b border-[#156b50]/60 bg-[#1a8162] shadow-[0_4px_16px_rgba(13,87,64,0.28)] ${className ?? ""}`.trim()
       }
     >
       <div className="h-full w-full px-2 sm:px-4 lg:px-6 flex items-center gap-4 sm:gap-6">
-        <div className="flex items-center gap-2 min-w-fit text-[var(--deep-green)]">
-          <img className="h-8 w-17" src="/biblioo-logo.png" alt="Biblioo" />
+        <div className="flex items-center gap-2 min-w-fit">
+          <img className="block h-8 w-auto min-w-[90px] object-contain object-left" src="/biblioo-logo-branca.png" alt="Biblioo" />
         </div>
 
         <TopHeaderSearchBar searchPlaceholder={searchPlaceholder} />
@@ -621,14 +621,14 @@ export function TopHeader({
             <button
               type="button"
               onClick={handleBellClick}
-              className="relative h-10 w-10 rounded-full text-[var(--deep-green)] hover:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-emerald-200 transition-colors"
+              className="relative h-10 w-10 rounded-full text-white hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/30 transition-colors"
               aria-label="Notificações"
               aria-expanded={isNotificationsOpen}
               aria-haspopup="dialog"
             >
               <Bell size={18} className="mx-auto" aria-hidden="true" />
               {hasAnyNotifications ? (
-                <span className="absolute right-1.5 top-1.5 h-4 min-w-4 px-1 rounded-full bg-emerald-500 text-white text-[10px] font-semibold leading-4 text-center">
+                <span className="absolute right-1.5 top-1.5 h-4 min-w-4 px-1 rounded-full bg-white text-[#1a8162] text-[10px] font-semibold leading-4 text-center">
                   {shownNotificationsCount}
                 </span>
               ) : null}
@@ -664,7 +664,7 @@ export function TopHeader({
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen((previous) => !previous)}
-              className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-sm hover:bg-emerald-200 transition-colors overflow-hidden flex items-center justify-center"
+              className="h-10 w-10 rounded-full bg-white/20 text-white font-semibold text-sm hover:bg-white/30 transition-colors overflow-hidden flex items-center justify-center ring-2 ring-white/20"
               aria-label="Abrir menu do perfil"
               aria-expanded={isProfileMenuOpen}
               aria-haspopup="menu"
@@ -690,6 +690,14 @@ export function TopHeader({
                   className="block px-4 py-2.5 text-sm text-[var(--deep-green)] hover:bg-emerald-50"
                 >
                   Meu perfil
+                </Link>
+                <Link
+                  href="/settings"
+                  role="menuitem"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="block px-4 py-2.5 text-sm text-[var(--deep-green)] hover:bg-emerald-50"
+                >
+                  Configurações
                 </Link>
                 <button
                   type="button"

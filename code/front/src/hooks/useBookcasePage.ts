@@ -916,6 +916,58 @@ export function useBookcasePage() {
     void removeSelectedShelfBookAction();
   };
 
+  const handleRemoveShelfBook = (book: ShelfBook) => {
+    if (selectedShelfId === null || typeof book.shelfItemId !== "number") {
+      setBookDetailsError("Não foi possível identificar o item da estante.");
+      return;
+    }
+
+    const activeShelfId = selectedShelfId;
+    const activeItemId = Number(book.shelfItemId);
+
+    async function removeShelfBookAction() {
+      setIsRemovingBookFromShelf(true);
+      setBookDetailsError("");
+
+      try {
+        await removeBookFromShelf(activeShelfId, activeItemId);
+
+        setShelfBooks((currentBooks) => {
+          const nextBooks = currentBooks.filter((b) => b.shelfItemId !== activeItemId);
+
+          setShelves((currentShelves) =>
+            currentShelves.map((shelf) =>
+              shelf.id === activeShelfId
+                ? {
+                    ...shelf,
+                    itemCount: Math.max(0, shelf.itemCount - 1),
+                    coverPreview: nextBooks
+                      .map((b) => b.coverUrl)
+                      .filter((coverUrl): coverUrl is string => typeof coverUrl === "string" && coverUrl.length > 0)
+                      .slice(0, 4),
+                  }
+                : shelf,
+            ),
+          );
+
+          return nextBooks;
+        });
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faça login para remover livros da estante.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Não foi possível remover o livro da estante.");
+        }
+      } finally {
+        setIsRemovingBookFromShelf(false);
+      }
+    }
+
+    void removeShelfBookAction();
+  };
+
   const handleSelectShelfBookStatus = (nextStatus: Exclude<ReadingStatus, "todos">) => {
     if (!selectedShelfBook || selectedShelfId === null || typeof selectedShelfBook.shelfItemId !== "number") {
       setBookDetailsError("Não foi possível identificar o item da estante.");
@@ -1747,6 +1799,7 @@ export function useBookcasePage() {
     handleSaveShelfEdit,
     handleSaveProgress,
     handleRemoveSelectedShelfBook,
+    handleRemoveShelfBook,
     handleStepShelfBookPage,
     handleSetShelfBookPage,
     handleSuggestionSelect,

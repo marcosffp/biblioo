@@ -16,7 +16,7 @@ export function ProfileTabs<TTab extends string>({
 }: ProfileTabsProps<TTab>) {
     return (
         <section className="rounded-xl border border-gray-200 bg-gray-100 p-1.5">
-            <div className={`grid gap-1 ${tabs.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            <div className={`grid gap-1 ${tabs.length === 2 ? "grid-cols-2" : tabs.length === 4 ? "grid-cols-4" : "grid-cols-3"}`}>
                 {tabs.map((tab) => {
                     const active = activeTab === tab;
                     const IconComponent: LucideIcon = iconByTab[tab];

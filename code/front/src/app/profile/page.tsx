@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
-import { BookOpen, BookOpenCheck, MessageSquare, Sparkles, Users } from "lucide-react";
+import { Activity, BookOpen, BookOpenCheck, Flame, MessageSquare, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -11,7 +11,10 @@ import {
   ProfileShelfBookCard,
   ProfileStatsGrid,
   ProfileTabs,
-  SectionHeader,
+  UserActivityFeed,
+  UserReviewsTab,
+  UserCommunitiesTab,
+  ShareCapsuleModal,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
 import { ReadingGoalSection } from "@/components/profile/ReadingGoalSection";
@@ -22,7 +25,7 @@ import {
   mapBackendReadingStatus,
   mapFrontendReadingStatus,
 } from "@/utils/bookcase-filters";
-import type { DisplayShelfBook, GenreDistribution, ShelfItemWithShelfId } from "@/types/profile";
+import type { DisplayShelfBook, ShelfItemWithShelfId } from "@/types/profile";
 import { getAccessToken } from "@/services/auth";
 import {
   BookcaseApiError,
@@ -30,6 +33,7 @@ import {
   createBookReview,
   getMyBookReview,
   getShelfItemById,
+  removeBookFromShelf,
   updateBookReview,
   updateShelfItemProgress,
 } from "@/services/bookcase";
@@ -38,21 +42,35 @@ import {
   getFollowersCount,
   getFollowingCount,
   getMyProfile,
+  getMyDna,
   getProfilePreferences,
   listMyShelves,
   listShelfItems,
+  type DnaResponse,
+  type DnaProgressResponse,
   type ProfilePreferences,
   type UserProfileResponse,
 } from "@/services/profile";
 
+function FireIcon({ count }: { count: number }) {
+  if (count === 0) return <Flame size={16} className="text-muted-foreground/30" />;
+  if (count <= 3)  return <Flame size={16} className="animate-flame-slow text-yellow-400" />;
+  if (count <= 10) return <Flame size={16} className="animate-flame-slow text-orange-400" />;
+  if (count <= 20) return <Flame size={16} className="animate-flame text-orange-500" />;
+  return <Flame size={16} className="animate-flame text-red-500" />;
+}
+
 const isOwner = true;
 const isPublic = true;
 
-const tabs = ["Biblioteca", "Comunidades", "Resenhas"] as const;
+const BOOKS_PER_PAGE = 10;
+
+const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
 
 
 export default function PerfilPage() {
   const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Biblioteca");
+  const [shareCapsuleOpen, setShareCapsuleOpen] = React.useState(false);
   const [isPublicProfile, setIsPublicProfile] = React.useState(isPublic);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -63,7 +81,7 @@ export default function PerfilPage() {
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
   const [readersReached, setReadersReached] = React.useState(0);
-  const [authorItems, setAuthorItems] = React.useState<GenreDistribution[]>([]);
+  const [dna, setDna] = React.useState<DnaResponse | DnaProgressResponse | null>(null);
   const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
   const [preferences, setPreferences] = React.useState<ProfilePreferences>({
     displayName: null,
@@ -81,8 +99,18 @@ export default function PerfilPage() {
   const [reviewSuccessMessage, setReviewSuccessMessage] = React.useState("");
   const [reviewError, setReviewError] = React.useState("");
   const [isSavingReview, setIsSavingReview] = React.useState(false);
+  const [isRemovingBookFromShelf, setIsRemovingBookFromShelf] = React.useState(false);
 
-  const goalTarget = 24;
+  const [allShelfItems, setAllShelfItems] = React.useState<ShelfItemWithShelfId[]>([]);
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const [isFetchingPage, setIsFetchingPage] = React.useState(false);
+
+  const [goalTarget, setGoalTarget] = React.useState<number>(() => {
+    if (typeof window === "undefined") return 24;
+    return parseInt(localStorage.getItem("biblioo.profile.goal.target") ?? "24", 10) || 24;
+  });
+  const [goalEditOpen, setGoalEditOpen] = React.useState(false);
+  const currentYear = new Date().getFullYear();
 
   React.useEffect(() => {
     const accessToken = getAccessToken();
@@ -152,10 +180,10 @@ export default function PerfilPage() {
             }
           });
         });
-
-        const sortedAuthors = Array.from(authorCountMap.entries()).sort((a, b) => b[1] - a[1]);
-        const computedAuthorItems = sortedAuthors.slice(0, 6).map(([label, value]) => ({ label, value }));
-        const computedFavoriteAuthors = sortedAuthors.slice(0, 5).map(([name]) => name);
+        const computedFavoriteAuthors = Array.from(authorCountMap.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([name]) => name);
 
         const [followers, following] = await Promise.all([
           getFollowersCount(loadedProfile.username, accessToken),
@@ -172,11 +200,19 @@ export default function PerfilPage() {
         setBooksRead(completedCount);
         setPagesRead(computedPagesRead);
         setReadersReached(computedReadersReached);
-        setAuthorItems(computedAuthorItems);
         setFavoriteAuthors(computedFavoriteAuthors);
 
+        try {
+          const dnaData = await getMyDna(accessToken);
+          if (!cancelled) setDna(dnaData);
+        } catch {
+          // DNA é opcional
+        }
+
+        setAllShelfItems(uniqueItems);
+
         const shelfBookItems = await Promise.all(
-          uniqueItems.slice(0, 8).map(async (item) => {
+          uniqueItems.slice(0, BOOKS_PER_PAGE).map(async (item) => {
             try {
               const [book, detailedItem, myReview] = await Promise.all([
                 getBookById(item.bookId, accessToken),
@@ -271,6 +307,97 @@ export default function PerfilPage() {
     setReviewCommentDraft("");
     setReviewSuccessMessage("");
     setReviewError("");
+  };
+
+  const handleRemoveFromShelf = () => {
+    if (!selectedShelfBook) {
+      setBookDetailsError("Não foi possível identificar o item da estante.");
+      return;
+    }
+
+    const { shelfId, shelfItemId } = selectedShelfBook;
+
+    async function removeAction() {
+      setIsRemovingBookFromShelf(true);
+      setBookDetailsError("");
+      try {
+        await removeBookFromShelf(shelfId, shelfItemId);
+
+        setShelfBooks((books) => books.filter((b) => b.shelfItemId !== shelfItemId));
+        setAllShelfItems((items) => items.filter((i) => i.id !== shelfItemId));
+        handleCloseShelfBookDetails();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faça login para remover livros da estante.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Não foi possível remover o livro da estante.");
+        }
+      } finally {
+        setIsRemovingBookFromShelf(false);
+      }
+    }
+
+    void removeAction();
+  };
+
+  const handlePageChange = async (newPage: number) => {
+    const token = getAccessToken();
+    if (!token) return;
+    setCurrentPage(newPage);
+    setIsFetchingPage(true);
+    try {
+      const pageItems = allShelfItems.slice(newPage * BOOKS_PER_PAGE, (newPage + 1) * BOOKS_PER_PAGE);
+      const books = await Promise.all(
+        pageItems.map(async (item) => {
+          try {
+            const [book, detailedItem, myReview] = await Promise.all([
+              getBookById(item.bookId, token),
+              getShelfItemById(item.shelfId, item.id),
+              getMyBookReview(item.bookId),
+            ]);
+            const author = book.authors && book.authors.length > 0 ? book.authors.join(", ") : "Autor desconhecido";
+            return {
+              shelfId: item.shelfId,
+              shelfItemId: item.id,
+              id: item.bookId.toString(),
+              bookId: item.bookId,
+              title: item.bookTitle,
+              author,
+              coverUrl: item.bookCoverUrl ?? book.coverUrl ?? undefined,
+              rating: myReview?.rating ?? book.averageRating ?? undefined,
+              synopsis: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
+              description: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
+              readerCount: book.readerCount ?? undefined,
+              progress: item.progressPercent ?? undefined,
+              readingStatus: mapBackendReadingStatus(item.status),
+              currentPage: detailedItem?.currentPage ?? undefined,
+              totalPages: detailedItem?.totalPages ?? book.pageCount ?? undefined,
+            } as DisplayShelfBook;
+          } catch {
+            return {
+              shelfId: item.shelfId,
+              shelfItemId: item.id,
+              id: item.bookId.toString(),
+              bookId: item.bookId,
+              title: item.bookTitle,
+              author: "Autor desconhecido",
+              coverUrl: item.bookCoverUrl ?? undefined,
+              rating: undefined,
+              synopsis: undefined,
+              description: undefined,
+              readerCount: undefined,
+              progress: item.progressPercent ?? undefined,
+              readingStatus: mapBackendReadingStatus(item.status),
+            } as DisplayShelfBook;
+          }
+        }),
+      );
+      setShelfBooks(books);
+    } finally {
+      setIsFetchingPage(false);
+    }
   };
 
   const applyShelfItemUpdate = (updatedItem: { id: number; status: string; progressPercent?: number | null; currentPage?: number | null; totalPages?: number | null }) => {
@@ -478,6 +605,7 @@ export default function PerfilPage() {
 
   const tabIcons = {
     Biblioteca: BookOpen,
+    Atividade: Activity,
     Comunidades: Users,
     Resenhas: MessageSquare,
   };
@@ -500,28 +628,27 @@ export default function PerfilPage() {
         followingHref="/profile/following"
         action={
           isOwner ? (
-            <Link
-              href="/profile/edit"
-              className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-              Editar perfil
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-              Seguir
-            </button>
-          )
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShareCapsuleOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary-dark px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(19,147,122,0.22)] transition-all hover:-translate-y-px hover:bg-primary hover:shadow-[0_12px_24px_rgba(19,147,122,0.30)]"
+              >
+                <Sparkles size={14} />
+                Compartilhar cápsula
+              </button>
+              <Link
+                href="/profile/edit"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+                Editar perfil
+              </Link>
+            </div>
+          ) : null
         }
       />
 
@@ -530,84 +657,130 @@ export default function PerfilPage() {
           { label: "Livros lidos", value: booksRead, icon: <BookOpen size={16} /> },
           { label: "Páginas lidas", value: pagesRead.toLocaleString("pt-BR"), icon: <BookOpenCheck size={16} /> },
           {
-            label: "Status",
-            value: booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora",
-            icon: <Sparkles size={16} />,
+            label: "Dias p/ livro",
+            value:
+              dna && "avgDaysPerBook" in dna && (dna as DnaResponse).avgDaysPerBook != null
+                ? `${Math.round((dna as DnaResponse).avgDaysPerBook!)}d`
+                : "—",
+            icon: <FireIcon count={booksRead} />,
           },
           { label: "Leitores alcançados", value: readersReached.toLocaleString("pt-BR"), icon: <Users size={16} /> },
         ]}
       />
 
-      {preferences.showReadingGoal ? (
-        <ReadingGoalSection current={booksRead} target={goalTarget} />
-      ) : null}
+      {(preferences.showReadingGoal || preferences.showDnaLiterario) && (
+        <div className={`grid gap-4 ${preferences.showReadingGoal && preferences.showDnaLiterario ? "lg:grid-cols-2" : ""}`}>
+          {preferences.showReadingGoal && (
+            <ReadingGoalSection
+              current={booksRead}
+              target={goalTarget}
+              year={currentYear}
+              onEdit={() => setGoalEditOpen(true)}
+            />
+          )}
+          {preferences.showDnaLiterario && (
+            <LiteraryDnaSection dna={dna} isLoading={isLoading} />
+          )}
+        </div>
+      )}
 
-      {preferences.showDnaLiterario ? (
-        <LiteraryDnaSection authorItems={authorItems} favoriteAuthors={favoriteAuthors} />
-      ) : null}
+      {goalEditOpen && (
+        <GoalEditModal
+          currentTarget={goalTarget}
+          year={currentYear}
+          onSave={(next: number) => {
+            setGoalTarget(next);
+            localStorage.setItem("biblioo.profile.goal.target", String(next));
+            setGoalEditOpen(false);
+          }}
+          onClose={() => setGoalEditOpen(false)}
+        />
+      )}
 
       <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
 
       {activeTab === "Biblioteca" ? (
         <section>
-          {shelfBooks.length > 0 ? (
-            <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4">
-              {shelfBooks.map((book) => (
-                <ProfileShelfBookCard
-                  key={book.shelfItemId}
-                  title={book.title}
-                  author={book.author}
-                  coverUrl={book.coverUrl}
-                  progressPercent={book.progress}
-                  userRating={book.rating}
-                  onClick={() => handleOpenShelfBookDetails(book)}
-                />
-              ))}
-            </section>
-          ) : (
+          {allShelfItems.length > 0 ? (
+            <>
+              <section className={`grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4 transition-opacity duration-200 ${isFetchingPage ? "pointer-events-none opacity-50" : ""}`}>
+                {shelfBooks.map((book) => (
+                  <ProfileShelfBookCard
+                    key={book.shelfItemId}
+                    title={book.title}
+                    author={book.author}
+                    coverUrl={book.coverUrl}
+                    progressPercent={book.progress}
+                    userRating={book.rating}
+                    onClick={() => handleOpenShelfBookDetails(book)}
+                  />
+                ))}
+              </section>
+
+              {Math.ceil(allShelfItems.length / BOOKS_PER_PAGE) > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 0 || isFetchingPage}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="text-sm text-muted-foreground">
+                    Página {currentPage + 1} de {Math.ceil(allShelfItems.length / BOOKS_PER_PAGE)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= Math.ceil(allShelfItems.length / BOOKS_PER_PAGE) - 1 || isFetchingPage}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Próxima →
+                  </button>
+                </div>
+              )}
+            </>
+          ) : !isLoading ? (
             <EmptyState
               title="Sua biblioteca está vazia"
               description="Adicione livros para acompanhar progresso e metas no seu perfil."
               action={<Button className="!mt-0 !h-11 !w-auto rounded-2xl px-6 shadow-sm hover:shadow-md">Explorar livros</Button>}
             />
-          )}
+          ) : null}
         </section>
+      ) : activeTab === "Atividade" ? (
+        profile ? (
+          <UserActivityFeed
+            userId={profile.id}
+            authorName={profileName}
+            authorAvatarUrl={profile.avatarUrl ?? null}
+            isOwnProfile
+          />
+        ) : null
       ) : activeTab === "Comunidades" ? (
-        <EmptyState
-          title="Nenhuma comunidade ainda"
-          description="Encontre clubes e conversas para compartilhar suas leituras."
-          action={<Button>Explorar comunidades</Button>}
-        />
-      ) : (
-        <EmptyState
-          title="Sem resenhas publicadas"
-          description="Escreva uma resenha para registrar suas leituras favoritas."
-          action={<Button>Escrever resenha</Button>}
-        />
-      )}
+        <UserCommunitiesTab isOwnProfile />
+      ) : activeTab === "Resenhas" ? (
+        profile ? (
+          <UserReviewsTab
+            userId={profile.id}
+            authorName={profileName}
+            authorAvatarUrl={profile.avatarUrl ?? null}
+            emptyMessage="Escreva sua primeira resenha para que ela apareça aqui."
+          />
+        ) : null
+      ) : null}
 
-      <section className="rounded-xl border border-gray-200 bg-white p-6">
-        <SectionHeader title="Importar Goodreads" />
-        <div className="mt-4 rounded-xl border border-gray-200 px-6 py-10 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 3v12" />
-              <path d="m7 8 5-5 5 5" />
-              <path d="M5 21h14" />
-            </svg>
-          </div>
-          <h3 className="text-sm font-semibold text-gray-800">Importe sua biblioteca do Goodreads</h3>
-          <p className="mt-1 text-xs text-gray-500">
-            Faça upload do CSV exportado do Goodreads para adicionar seus livros à estante.
-          </p>
-          <button
-            type="button"
-            className="mt-5 inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-          >
-            Selecionar arquivo CSV
-          </button>
-        </div>
-      </section>
+      <ShareCapsuleModal
+        open={shareCapsuleOpen}
+        onClose={() => setShareCapsuleOpen(false)}
+        userName={profileName}
+        userHandle={profileHandle}
+        avatarUrl={profile?.avatarUrl ?? null}
+        booksRead={booksRead}
+        pagesRead={pagesRead}
+        favoriteAuthors={favoriteAuthors}
+      />
 
       <ShelfBookDetailsPanel
         isOpen={isShelfBookDetailsOpen}
@@ -616,7 +789,7 @@ export default function PerfilPage() {
         onSelectStatus={handleSelectShelfBookStatus}
         onStepPage={handleStepShelfBookPage}
         onSetPage={handleSetShelfBookPage}
-        onRemoveFromShelf={() => undefined}
+        onRemoveFromShelf={handleRemoveFromShelf}
         reviewRating={reviewRatingDraft}
         reviewComment={reviewCommentDraft}
         reviewExists={typeof activeReviewId === "number"}
@@ -628,9 +801,79 @@ export default function PerfilPage() {
         isSavingReview={isSavingReview}
         isLoadingReview={false}
         isSaving={isSavingShelfBookDetails}
-        isRemovingFromShelf={false}
+        isRemovingFromShelf={isRemovingBookFromShelf}
         errorMessage={bookDetailsError}
       />
     </AppShell>
+  );
+}
+
+// ─── Goal Edit Modal ──────────────────────────────────────────────────────────
+
+function GoalEditModal({
+  currentTarget,
+  year,
+  onSave,
+  onClose,
+}: Readonly<{
+  currentTarget: number;
+  year: number;
+  onSave: (v: number) => void;
+  onClose: () => void;
+}>) {
+  const [value, setLocalValue] = React.useState(currentTarget);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const n = Math.max(1, Math.min(365, value));
+    onSave(n);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-base font-semibold text-foreground">
+          Meta de leitura {year}
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Quantos livros você quer ler em {year}?
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-5">
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={value}
+            onChange={(e) => setLocalValue(Number(e.target.value))}
+            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center text-3xl font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            autoFocus
+          />
+          <p className="mt-1.5 text-center text-xs text-muted-foreground">livros</p>
+
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-border py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            >
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

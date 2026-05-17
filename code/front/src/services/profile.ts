@@ -68,6 +68,38 @@ export type UserReviewResponse = {
   rating: number;
 };
 
+export type ThemeEntry = {
+  theme: string;
+  percentage: number;
+};
+
+export type DnaResponse = {
+  userId: number;
+  status: "COMPUTED";
+  booksReadCount: number;
+  complexityScore: number | null;
+  complexityLabel: string | null;
+  avgDaysPerBook: number | null;
+  rereadRate: number;
+  rereadCount: number;
+  abandonedCount: number;
+  centralThemes: ThemeEntry[];
+  dominantArchetype: string | null;
+  dominantArchetypeLabel: string | null;
+  secondaryArchetypes: string[];
+  mostAbandonedGenre: string | null;
+  avgTimePerBookDays: number | null;
+  totalPagesRead: number;
+  pagesByYear: Record<string, number>;
+  calculatedAt: string | null;
+};
+
+export type DnaProgressResponse = {
+  booksRead: number;
+  booksRequired: number;
+  message: string;
+};
+
 export type ProfilePreferences = {
   displayName?: string | null;
   showReadingGoal: boolean;
@@ -294,6 +326,33 @@ export async function listUserReviewsByUserId(
   }
 
   return reviews;
+}
+
+export async function getMyDna(token?: string | null): Promise<DnaResponse | DnaProgressResponse> {
+  const response = await fetch(`${API_BASE_URL}/dna`, {
+    headers: bearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("load_dna_failed");
+  }
+
+  return (await response.json()) as DnaResponse | DnaProgressResponse;
+}
+
+export async function getDnaByUserId(
+  userId: number,
+  token?: string | null,
+): Promise<DnaResponse | DnaProgressResponse> {
+  const response = await fetch(`${API_BASE_URL}/dna/${userId}`, {
+    headers: optionalBearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("load_dna_failed");
+  }
+
+  return (await response.json()) as DnaResponse | DnaProgressResponse;
 }
 
 async function fetchFollowCount(url: string, token?: string | null): Promise<number> {

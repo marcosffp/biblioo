@@ -41,7 +41,7 @@ const WELCOME_MESSAGE: Message = {
   id: "welcome",
   role: "assistant",
   content:
-    "Olá! Eu sou a Bibi, sua assistente literária 📖✨ Posso recomendar livros, organizar sua estante ou encontrar leituras parecidas com as suas favoritas. Por onde começamos?",
+    "Olá! Eu sou a Bibo, sua assistente literária 📖✨ Posso recomendar livros, organizar sua estante ou encontrar leituras parecidas com as suas favoritas. Por onde começamos?",
   timestamp: new Date(),
 };
 
@@ -395,7 +395,8 @@ const BiblioChatWidget = () => {
   };
 
   const chatItems = groupByDate(messages);
-  const hasOnlyWelcome = messages.length <= 1;
+  const lastMessage = messages[messages.length - 1];
+  const showSuggestions = lastMessage?.role === "assistant" && !isTyping && !typingEffect;
 
   return (
     <>
@@ -406,17 +407,24 @@ const BiblioChatWidget = () => {
           "fixed bottom-6 right-6 z-50 group transition-all duration-300 ease-out",
           open && "scale-0 opacity-0 pointer-events-none",
         )}
-        aria-label="Abrir chat com a Bibi"
+        aria-label="Abrir chat com a Bibo"
       >
         <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping" />
         <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/40 ring-4 ring-background group-hover:scale-110 transition-transform">
-          <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={40} height={40} className="object-contain" />
+          <Image
+            src="/biblioo-carinha-branca-logo.png"
+            alt="Bibo"
+            width={40}
+            height={40}
+            className="object-contain"
+            style={{ width: "auto", height: "auto" }}
+          />
           <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-premium ring-2 ring-background">
             <Sparkles className="h-3 w-3 text-premium-foreground" />
           </span>
         </span>
         <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-foreground/90 px-3 py-1.5 text-xs font-medium text-background opacity-0 group-hover:opacity-100 transition-opacity">
-          Conversar com a Bibi
+          Conversar com a Bibo
         </span>
       </button>
 
@@ -439,7 +447,14 @@ const BiblioChatWidget = () => {
           <div className="relative flex items-center gap-3">
             <div className="relative">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-background/20 ring-2 ring-background/30 backdrop-blur overflow-hidden">
-                <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={32} height={32} className="object-contain" />
+                <Image
+                  src="/biblioo-carinha-branca-logo.png"
+                  alt="Bibo"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                  style={{ width: "auto", height: "auto" }}
+                />
               </div>
               {/* Pulse on green dot while typing */}
               <span
@@ -450,7 +465,7 @@ const BiblioChatWidget = () => {
               />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-display text-base leading-tight">Bibi</h3>
+              <h3 className="font-display text-base leading-tight">Bibo</h3>
               <p className="text-[11px] opacity-90 leading-tight">
                 {isTyping ? "digitando..." : "Sua assistente literária"}
               </p>
@@ -562,7 +577,14 @@ const BiblioChatWidget = () => {
               >
                 {m.role === "assistant" && (
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark overflow-hidden">
-                    <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={20} height={20} className="object-contain" />
+                    <Image
+                      src="/biblioo-carinha-branca-logo.png"
+                      alt="Bibo"
+                      width={20}
+                      height={20}
+                      className="object-contain"
+                      style={{ width: "auto", height: "auto" }}
+                    />
                   </div>
                 )}
                 <div
@@ -586,7 +608,14 @@ const BiblioChatWidget = () => {
           {isTyping && (
             <div className="flex gap-2 animate-fade-in">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark overflow-hidden">
-                <Image src="/biblioo-carinha-branca-logo.png" alt="Bibi" width={20} height={20} className="object-contain" />
+                <Image
+                  src="/biblioo-carinha-branca-logo.png"
+                  alt="Bibo"
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                  style={{ width: "auto", height: "auto" }}
+                />
               </div>
               <div className="bg-card border border-border rounded-2xl rounded-bl-sm px-3.5 py-2.5 shadow-sm">
                 <div className="flex gap-1">
@@ -598,7 +627,7 @@ const BiblioChatWidget = () => {
             </div>
           )}
 
-          {hasOnlyWelcome && (
+          {showSuggestions && (
             <div className="pt-2 space-y-1.5">
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium px-1">
                 Sugestões
@@ -641,7 +670,7 @@ const BiblioChatWidget = () => {
             <input
               value={input}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
-              placeholder="Pergunte algo à Bibi..."
+              placeholder="Pergunte algo à Bibo..."
               className="flex-1 border-0 bg-transparent outline-none px-0 h-9 text-sm placeholder:text-muted-foreground disabled:opacity-50"
               disabled={isTyping}
             />
@@ -655,7 +684,7 @@ const BiblioChatWidget = () => {
             </Button>
           </div>
           <p className="text-[10px] text-muted-foreground text-center mt-2">
-            A Bibi pode cometer erros. Confirme informações importantes.
+            A Bibo pode cometer erros. Confirme informações importantes.
           </p>
         </form>
       </div>

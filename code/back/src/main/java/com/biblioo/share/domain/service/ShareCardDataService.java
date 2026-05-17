@@ -82,10 +82,21 @@ public class ShareCardDataService {
                   })
               .toList();
 
-      int maxCovers = Math.min(3, selectedBooks.size());
+      // Prefer books that actually have a cover URL, falling back to books 4 and 5
+      List<Integer> coverCandidates =
+          IntStream.range(0, bookInfos.size())
+              .filter(
+                  i -> {
+                    String url = bookInfos.get(i).coverUrl();
+                    return url != null && !url.isBlank();
+                  })
+              .boxed()
+              .limit(3)
+              .collect(Collectors.toList());
+
       var coverFutures =
-          IntStream.range(0, maxCovers)
-              .mapToObj(
+          coverCandidates.stream()
+              .map(
                   i ->
                       executor.<BufferedImage>submit(
                           () -> fetchCover(bookInfos.get(i).coverUrl())))
