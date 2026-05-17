@@ -23,7 +23,6 @@ export default function EditarPerfilPage() {
 
   const [displayName, setDisplayName] = React.useState("Usuário");
   const [username, setUsername] = React.useState("usuario");
-  const [email, setEmail] = React.useState<string | null>(null);
   const [bio, setBio] = React.useState("");
   const [isPublicProfile, setIsPublicProfile] = React.useState(true);
   const [showReadingGoal, setShowReadingGoal] = React.useState(true);
@@ -70,7 +69,6 @@ export default function EditarPerfilPage() {
 
         setUsername(profile.username);
         setDisplayName(preferences.displayName?.trim() ? preferences.displayName : profile.username);
-        setEmail(profile.email ?? null);
         setBio(profile.bio ?? "");
         setIsPublicProfile(!profile.isPrivate);
         setShowReadingGoal(preferences.showReadingGoal);
@@ -407,48 +405,17 @@ export default function EditarPerfilPage() {
         </section>
 
         <section className="mt-6 rounded-lg border border-gray-200 bg-white px-8 py-6">
-          <div className="text-base font-semibold text-gray-900">Conta</div>
-          <div className="mt-4 grid gap-4">
-            <div className="rounded-md border border-gray-200 bg-white px-4 py-4 flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">E-mail</div>
-                <div className="mt-1 text-xs text-gray-400">{email ?? "-"}</div>
-              </div>
-              <button
-                type="button"
-                className="rounded-md border border-gray-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
-              >
-                Alterar
-              </button>
-            </div>
-
-            <div className="rounded-md border border-gray-200 bg-white px-4 py-4 flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-gray-900">Senha</div>
-                <div className="mt-1 text-xs text-gray-400">••••••••</div>
-              </div>
-              <button
-                type="button"
-                className="rounded-md border border-gray-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
-              >
-                Alterar
-              </button>
-            </div>
-          </div>
+          <div className="text-base font-semibold text-gray-900">Conta e segurança</div>
+          <p className="mt-1 text-sm text-gray-500">
+            Gerencie e-mail, senha e exclusão de conta em{" "}
+            <a href="/settings" className="font-medium text-emerald-600 hover:underline">
+              Configurações
+            </a>
+            .
+          </p>
         </section>
 
-        <section className="mt-6 rounded-lg border border-red-200 bg-white px-8 py-6">
-          <div className="flex items-center gap-2 text-red-600 font-semibold">
-            <span aria-hidden>�a�</span>
-            <span>Zona de perigo</span>
-          </div>
-          <button
-            type="button"
-            className="mt-4 rounded-md bg-red-600 px-5 py-2 text-sm font-semibold text-white hover:bg-red-700"
-          >
-            Excluir conta
-          </button>
-        </section>
+
       </div>
     </AppShell>
   );
