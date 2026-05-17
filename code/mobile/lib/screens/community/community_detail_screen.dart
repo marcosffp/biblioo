@@ -121,7 +121,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   bool get _shouldShowVotingTab {
     final community = _community;
     if (community == null || !community.isMember) return false;
-    return _canManageVoting || _hasVotingHistory;
+    return true;
   }
 
   @override
@@ -531,6 +531,19 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
           widget.communityId,
       authorId: _asInt(data['authorId']) ?? fallback?.authorId ?? 0,
       content: data['content']?.toString() ?? fallback?.content ?? '',
+      type: resolveCommunityMessageType(
+        data['type']?.toString() ??
+            (fallback == null
+                ? null
+                : serializeCommunityMessageType(fallback.type)),
+        content: data['content']?.toString() ?? fallback?.content,
+        images: _toStringList(data['images'], fallback: fallback?.images),
+        gifUrl: data['gifUrl'] as String? ?? fallback?.gifUrl,
+        tags: _toStringList(data['tags'], fallback: fallback?.tags),
+        parentMessageId:
+            _asInt(data['parentMessageId']) ?? fallback?.parentMessageId,
+        deleted: (data['deleted'] as bool?) ?? fallback?.deleted,
+      ),
       parentMessageId:
           _asInt(data['parentMessageId']) ?? fallback?.parentMessageId,
       tags: _toStringList(data['tags'], fallback: fallback?.tags),

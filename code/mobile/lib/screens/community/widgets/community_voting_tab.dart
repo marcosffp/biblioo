@@ -33,20 +33,25 @@ class CommunityVotingTab extends StatelessWidget {
         } else if (state is CommunityVotingLoadedWithActive) {
           content = _buildVotingContent(context, state.activeVoting, isOwner);
         } else if (state is CommunityVotingLoadedNoActive) {
-          content = Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildPastVotingsContent(context, state.votings, isOwner),
-              if (isOwner) ...[
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => CreateVotingSheet.show(context, communityId),
-                  icon: const Icon(Icons.add_chart_rounded),
-                  label: const Text('Criar nova votação'),
-                ),
+          if (state.votings.isEmpty) {
+            content = _buildEmptyState(context);
+          } else {
+            content = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPastVotingsContent(context, state.votings, isOwner),
+                if (isOwner) ...[
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: () =>
+                        CreateVotingSheet.show(context, communityId),
+                    icon: const Icon(Icons.add_chart_rounded),
+                    label: const Text('Criar nova votação'),
+                  ),
+                ],
               ],
-            ],
-          );
+            );
+          }
         } else if (state is CommunityVotingError) {
           content = _buildErrorState(context, state.message);
         } else {
@@ -594,15 +599,31 @@ class CommunityVotingTab extends StatelessWidget {
                           Expanded(
                             child: FilledButton.icon(
                               onPressed: () {
-                                context.read<CommunityVotingBloc>().add(
-                                  CommunityVotingApproveRequested(
-                                    communityId: communityId,
-                                    votingId: voting.id,
-                                  ),
-                                );
+                                final hasTie = _hasTie(voting);
+                                final needsAdminChoice =
+                                    hasTie &&
+                                    voting.tieBreakRule ==
+                                        TieBreakRule.adminChoice;
+
+                                if (needsAdminChoice) {
+                                  _showChooseWinnerDialog(context, voting);
+                                } else {
+                                  context.read<CommunityVotingBloc>().add(
+                                    CommunityVotingApproveRequested(
+                                      communityId: communityId,
+                                      votingId: voting.id,
+                                    ),
+                                  );
+                                }
                               },
                               icon: const Icon(Icons.check_circle_rounded),
-                              label: const Text('Aprovar'),
+                              label: Text(
+                                _hasTie(voting) &&
+                                        voting.tieBreakRule ==
+                                            TieBreakRule.adminChoice
+                                    ? 'Escolher vencedor'
+                                    : 'Aprovar',
+                              ),
                             ),
                           ),
                         ],

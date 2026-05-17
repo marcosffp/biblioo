@@ -75,6 +75,10 @@ class CommunityChatTab extends StatelessWidget {
   });
 
   bool _shouldGroup(CommunityMessage a, CommunityMessage b) {
+    if (a.type != CommunityMessageType.user ||
+        b.type != CommunityMessageType.user) {
+      return false;
+    }
     if (a.authorId != b.authorId) return false;
     final diff = a.createdAt.difference(b.createdAt).inMinutes.abs();
     return diff <= 5;
@@ -203,7 +207,6 @@ class _StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     final Color color;
     final String title;
 
@@ -523,6 +526,15 @@ class _ChatBubbleState extends State<_ChatBubble> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isSystemMessage =
+        widget.message.type != CommunityMessageType.user ||
+        _looksLikeSystemEvent(widget.message);
+
+    if (isSystemMessage) {
+      return _SystemEventMessage(
+        text: _systemEventText(widget.message, widget.authorName),
+      );
+    }
     final bubbleColor = widget.isMine
         ? theme.colorScheme.primary
         : theme.colorScheme.surface;
@@ -1014,6 +1026,79 @@ class _ChatBubbleState extends State<_ChatBubble> {
           ),
         );
       },
+    );
+  }
+
+  String _systemEventText(CommunityMessage message, String authorName) {
+    switch (message.type) {
+      case CommunityMessageType.memberJoined:
+        return '$authorName entrou na comunidade';
+      case CommunityMessageType.memberLeft:
+        return '$authorName saiu da comunidade';
+      case CommunityMessageType.user:
+      default:
+        return message.content.isEmpty
+            ? 'Atualizacao da comunidade'
+            : message.content;
+    }
+  }
+
+  bool _looksLikeSystemEvent(CommunityMessage message) {
+    if (message.type != CommunityMessageType.user) {
+      return false;
+    }
+
+    if (message.deleted) {
+      return false;
+    }
+
+    final hasMedia =
+        message.images.isNotEmpty ||
+        (message.gifUrl != null && message.gifUrl!.isNotEmpty);
+    if (hasMedia) {
+      return false;
+    }
+
+    return message.content.trim().isEmpty &&
+        message.tags.isEmpty &&
+        message.parentMessageId == null;
+  }
+}
+
+class _SystemEventMessage extends StatelessWidget {
+  final String text;
+
+  const _SystemEventMessage({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final lineColor = theme.colorScheme.outlineVariant.withValues(
+      alpha: isDark ? 0.5 : 0.75,
+    );
+    final textColor = theme.colorScheme.onSurfaceVariant.withValues(
+      alpha: isDark ? 0.8 : 0.95,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: lineColor, thickness: 1)),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Divider(color: lineColor, thickness: 1)),
+        ],
+      ),
     );
   }
 }

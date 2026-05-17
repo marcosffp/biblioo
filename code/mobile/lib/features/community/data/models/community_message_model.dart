@@ -6,6 +6,7 @@ class CommunityMessageModel {
   final int communityId;
   final int authorId;
   final String content;
+  final CommunityMessageType type;
   final int? parentMessageId;
   final List<String> tags;
   final List<String> images;
@@ -22,6 +23,7 @@ class CommunityMessageModel {
     required this.communityId,
     required this.authorId,
     required this.content,
+    required this.type,
     this.parentMessageId,
     required this.tags,
     required this.images,
@@ -40,6 +42,19 @@ class CommunityMessageModel {
         communityId: (json['communityId'] as num).toInt(),
         authorId: (json['authorId'] as num).toInt(),
         content: (json['content'] as String?) ?? '',
+        type: resolveCommunityMessageType(
+          json['type']?.toString(),
+          content: json['content'] as String?,
+          images: ((json['images'] as List<dynamic>?) ?? const [])
+              .map((e) => e.toString())
+              .toList(),
+          gifUrl: json['gifUrl'] as String?,
+          tags: ((json['tags'] as List<dynamic>?) ?? const [])
+              .map((e) => e.toString())
+              .toList(),
+          parentMessageId: (json['parentMessageId'] as num?)?.toInt(),
+          deleted: json['deleted'] as bool?,
+        ),
         parentMessageId: (json['parentMessageId'] as num?)?.toInt(),
         tags: ((json['tags'] as List<dynamic>?) ?? const [])
             .map((e) => e.toString())
@@ -64,6 +79,19 @@ class CommunityMessageModel {
         communityId: (json['communityId'] as num).toInt(),
         authorId: (json['authorId'] as num).toInt(),
         content: (json['content'] as String?) ?? '',
+        type: resolveCommunityMessageType(
+          json['type']?.toString(),
+          content: json['content'] as String?,
+          images: ((json['images'] as List<dynamic>?) ?? const [])
+              .map((e) => e.toString())
+              .toList(),
+          gifUrl: json['gifUrl'] as String?,
+          tags: ((json['tags'] as List<dynamic>?) ?? const [])
+              .map((e) => e.toString())
+              .toList(),
+          parentMessageId: (json['parentMessageId'] as num?)?.toInt(),
+          deleted: json['deleted'] as bool?,
+        ),
         parentMessageId: (json['parentMessageId'] as num?)?.toInt(),
         tags: ((json['tags'] as List<dynamic>?) ?? const [])
             .map((e) => e.toString())
@@ -87,6 +115,7 @@ class CommunityMessageModel {
     'communityId': communityId,
     'authorId': authorId,
     'content': content,
+    'type': serializeCommunityMessageType(type),
     'parentMessageId': parentMessageId,
     'tags': tags,
     'images': images,
@@ -104,6 +133,7 @@ class CommunityMessageModel {
     communityId: communityId,
     authorId: authorId,
     content: content,
+    type: type,
     parentMessageId: parentMessageId,
     tags: tags,
     images: images,
