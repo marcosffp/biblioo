@@ -58,3 +58,4 @@ export * from "./feed/CreateReviewModal";
 export * from "./feed/EditReviewModal";
 export * from "./feed/CreatePostModal";
 export * from "./CommentsSection";
+export * from "./ClientPortal";

@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
-import { BookOpen, Calendar, Check, Copy, Globe, Inbox, Link, Loader2, Lock, Trash2, UserPlus, Users, X } from "lucide-react";
+import { BookOpen, Calendar, Check, Copy, Globe, Inbox, Link, Loader2, Lock, Star, Trash2, UserPlus, Users, X } from "lucide-react";
 import { searchUsersByUsername, type UserSummaryResponse } from "@/services/profile";
 import { approveCommunityJoinRequest, generateCommunityInviteLink, getCommunityInviteLink, listPendingCommunityJoinRequests, rejectCommunityJoinRequest, revokeCommunityInviteLink, type PendingCommunityJoinRequestResponse } from "@/services/community";
+import { getBookById, type BackendBookResponse } from "@/services/bookcase";
 import type { Community, CommunityMember } from "../../hooks/useCommunity";
 import { ConfirmActionModal } from "./ConfirmActionModal";
 import { parseBookTitle } from "@/utils/book-utils";
@@ -313,8 +314,6 @@ export function CommunityInfoPanel({
   const [isLeaving, setIsLeaving] = React.useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
   // Invite inline
   const [isInviteOpen, setIsInviteOpen] = React.useState(false);
   const [inviteSearchTerm, setInviteSearchTerm] = React.useState("");
@@ -329,6 +328,22 @@ export function CommunityInfoPanel({
   const [isLoadingJoinRequests, setIsLoadingJoinRequests] = React.useState(false);
   const [processingJoinRequestId, setProcessingJoinRequestId] = React.useState<number | null>(null);
   const [joinRequestsError, setJoinRequestsError] = React.useState("");
+
+  const [bookDetails, setBookDetails] = React.useState<BackendBookResponse | null>(null);
+  const [bookLoading, setBookLoading] = React.useState(false);
+  const [isSynopsisExpanded, setIsSynopsisExpanded] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setBookLoading(true);
+    setBookDetails(null);
+    setIsSynopsisExpanded(false);
+    getBookById(community.bookId)
+      .then((book) => { if (!cancelled) setBookDetails(book); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setBookLoading(false); });
+    return () => { cancelled = true; };
+  }, [community.bookId]);
 
   React.useEffect(() => {
     if (!isInviteOpen) {
@@ -454,13 +469,6 @@ export function CommunityInfoPanel({
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setEditableCoverUrl(reader.result as string);
-    reader.readAsDataURL(file);
-  };
 
   const handleSave = () => {
     if (editableName.trim().length < 3) return;
@@ -485,7 +493,7 @@ export function CommunityInfoPanel({
   };
 
   return (
-    <aside className="flex h-full w-[320px] shrink-0 flex-col overflow-y-auto border-l border-border bg-card">
+    <aside className="flex h-full w-[320px] shrink-0 flex-col overflow-y-auto border-l border-border bg-card animate-slide-in-right">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border p-4">
         <h3 className="text-sm font-semibold text-foreground">Informações do grupo</h3>
@@ -600,11 +608,82 @@ export function CommunityInfoPanel({
 
       {/* Leitura atual */}
       <div className="border-b border-border px-4 py-4">
-        <p className="mb-2 text-xs font-semibold text-muted-foreground">Leitura atual</p>
-        <div className="rounded-xl bg-emerald-50/70 p-3">
-          <p className="text-sm font-semibold text-foreground">{title}</p>
-          <p className="text-xs text-emerald-600">{author}</p>
-        </div>
+        <p className="mb-3 text-xs font-semibold text-muted-foreground">Leitura atual</p>
+
+        {bookLoading ? (
+          <div className="h-28 animate-pulse rounded-xl bg-muted/60" />
+        ) : bookDetails ? (
+          <div className="overflow-hidden rounded-xl border border-emerald-100 bg-emerald-50/40">
+            {/* capa + metadados */}
+            <div className="flex gap-3 p-3">
+              {bookDetails.coverUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={bookDetails.coverUrl}
+                  alt={bookDetails.title}
+                  className="h-24 w-16 shrink-0 rounded-lg object-cover shadow-sm"
+                />
+              ) : (
+                <div className="flex h-24 w-16 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+                  <BookOpen className="h-7 w-7 text-emerald-400" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-sm font-semibold leading-tight text-foreground">
+                  {bookDetails.title}
+                </p>
+                <p className="mt-0.5 text-xs text-emerald-700">
+                  {bookDetails.authors?.join(", ") || author}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {bookDetails.averageRating ? (
+                    <span className="flex items-center gap-0.5 text-xs text-amber-600">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      {bookDetails.averageRating.toFixed(1)}
+                    </span>
+                  ) : null}
+                  {bookDetails.pageCount ? (
+                    <span className="text-xs text-muted-foreground">
+                      {bookDetails.pageCount} pág.
+                    </span>
+                  ) : null}
+                  {bookDetails.readerCount ? (
+                    <span className="text-xs text-muted-foreground">
+                      {bookDetails.readerCount.toLocaleString("pt-BR")} leitores
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {/* sinopse */}
+            {(bookDetails.synopsis ?? bookDetails.description) ? (() => {
+              const synopsisText = bookDetails.synopsis ?? bookDetails.description ?? "";
+              const isLong = synopsisText.length > 200;
+              return (
+                <div className="border-t border-emerald-100 px-3 pb-3 pt-2">
+                  <p className={`text-xs leading-relaxed text-muted-foreground ${isSynopsisExpanded ? "" : "line-clamp-3"}`}>
+                    {synopsisText}
+                  </p>
+                  {isLong ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsSynopsisExpanded((v) => !v)}
+                      className="mt-1.5 text-[11px] font-medium text-emerald-600 hover:text-emerald-700"
+                    >
+                      {isSynopsisExpanded ? "Ler menos" : "Ler mais"}
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })() : null}
+          </div>
+        ) : (
+          <div className="rounded-xl bg-emerald-50/70 p-3">
+            <p className="text-sm font-semibold text-foreground">{title}</p>
+            <p className="text-xs text-emerald-600">{author}</p>
+          </div>
+        )}
       </div>
 
       {/* Membros */}

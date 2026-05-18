@@ -46,7 +46,7 @@ export function BookCard({
           height={coverSize}
         />
       ) : (
-        <BookCoverPlaceholder size={coverSize} />
+        <BookCoverPlaceholder size={coverSize} title={title} author={author} />
       )}
 
       <div className="flex-1 w-full">

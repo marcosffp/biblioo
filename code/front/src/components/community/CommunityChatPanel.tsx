@@ -386,30 +386,31 @@ export function CommunityChatPanel({
           {messages.map((message) => {
             if (message.isSystem) {
               return (
-                <div key={message.id} className="flex justify-center py-2">
+                <div key={message.id} className="flex justify-center py-2 animate-fade-in-up">
                   <span className="rounded-full bg-muted/60 px-3 py-1 text-[11px] text-muted-foreground">{message.text}</span>
                 </div>
               );
             }
 
             return (
-              <div key={message.id} className={`group flex ${message.isMine ? "justify-end" : "justify-start"}`}>
+              <div key={message.id} className={`group flex ${message.isMine ? "justify-end animate-msg-in-right" : "justify-start animate-msg-in-left"}`}>
                 <div className={`flex max-w-[66%] items-end gap-1.5 ${message.isMine ? "flex-row" : "flex-row-reverse"}`}>
                   {/* Heart reaction */}
                   <button
                     type="button"
+                    key={`heart-${message.id}-${String(message.hasHeartReaction)}`}
                     onClick={() => { void toggleHeart(message.id); }}
                     disabled={message.id.startsWith("temp-") || Boolean(message.isDeleted)}
-                    className={`inline-flex h-7 min-w-7 shrink-0 items-center justify-center gap-0.5 rounded-full border px-1.5 shadow-sm transition-all ${
+                    className={`inline-flex h-7 min-w-7 shrink-0 items-center justify-center gap-0.5 rounded-full border px-1.5 shadow-sm transition-all active:scale-90 ${
                       Boolean(message.hasHeartReaction) || (message.heartCount ?? 0) > 0
-                        ? "border-red-200 bg-red-50 text-red-600"
-                        : "border-border/70 bg-white text-muted-foreground hover:bg-slate-50"
+                        ? "border-red-200 bg-red-50 text-red-500 animate-heart-pop"
+                        : "border-border/70 bg-white text-muted-foreground hover:border-red-200 hover:text-red-400 hover:bg-red-50"
                     } ${Boolean(message.hasHeartReaction) || (message.heartCount ?? 0) > 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"} disabled:cursor-not-allowed disabled:opacity-60`}
                     aria-label="Reagir com coração"
                   >
                     <Heart className="h-4 w-4" fill={message.hasHeartReaction ? "currentColor" : "none"} />
                     {(message.heartCount ?? 0) > 0 ? (
-                      <span className="text-[9px] font-medium leading-none text-muted-foreground">{message.heartCount}</span>
+                      <span className="text-[9px] font-medium leading-none">{message.heartCount}</span>
                     ) : null}
                   </button>
 
@@ -418,7 +419,7 @@ export function CommunityChatPanel({
                     <button
                       type="button"
                       onClick={() => { setReplyingTo(message); inputRef.current?.focus(); }}
-                      className="opacity-0 group-hover:opacity-100 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-white text-muted-foreground shadow-sm transition-all hover:bg-slate-50"
+                      className="opacity-0 group-hover:opacity-100 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-white text-muted-foreground shadow-sm transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
                       aria-label="Responder mensagem"
                     >
                       <Reply className="h-3.5 w-3.5" />
@@ -452,7 +453,7 @@ export function CommunityChatPanel({
                         </button>
 
                         {openedMessageMenuId === message.id ? (
-                          <div className="absolute right-0 top-7 z-10 min-w-[140px] rounded-xl border border-border bg-white p-1.5 text-foreground shadow-lg">
+                          <div className="absolute right-0 top-7 z-10 min-w-[140px] rounded-xl border border-border bg-white p-1.5 text-foreground shadow-lg animate-pop-in">
                             <button
                               type="button"
                               onClick={() => startEditing(message)}
@@ -571,7 +572,7 @@ export function CommunityChatPanel({
 
       <div className="border-t border-border/80 bg-[#fbfcfc] px-3 py-2">
         {typingUsers.length > 0 ? (
-          <div className="mb-1.5 flex items-center gap-2 px-1">
+          <div className="mb-1.5 flex items-center gap-2 px-1 animate-fade-in-up">
             <div className="flex -space-x-1.5">
               {typingUsers.slice(0, 3).map((u) =>
                 u.avatarUrl ? (
@@ -584,20 +585,27 @@ export function CommunityChatPanel({
                 ) : (
                   <div
                     key={u.userId}
-                    className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[8px] font-semibold text-slate-500"
+                    className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-emerald-100 text-[8px] font-semibold text-emerald-600"
                   >
                     {u.username.charAt(0).toUpperCase()}
                   </div>
                 ),
               )}
             </div>
-            <p className="animate-pulse text-[11px] text-muted-foreground">
-              {typingUsers.length === 1
-                ? `${typingUsers[0].username} está digitando...`
-                : typingUsers.length === 2
-                  ? `${typingUsers[0].username} e ${typingUsers[1].username} estão digitando...`
-                  : "Várias pessoas estão digitando..."}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-typing-dot-1" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-typing-dot-2" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-typing-dot-3" />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {typingUsers.length === 1
+                  ? `${typingUsers[0].username} está digitando`
+                  : typingUsers.length === 2
+                    ? `${typingUsers[0].username} e ${typingUsers[1].username} estão digitando`
+                    : "Várias pessoas estão digitando"}
+              </p>
+            </div>
           </div>
         ) : null}
 
@@ -690,7 +698,7 @@ export function CommunityChatPanel({
           </button>
 
           {isMoreOptionsOpen ? (
-            <div className="absolute bottom-12 left-0 z-10 w-52 rounded-2xl border border-border bg-white p-1.5 shadow-lg">
+            <div className="absolute bottom-12 left-0 z-10 w-52 rounded-2xl border border-border bg-white p-1.5 shadow-lg animate-pop-in">
               <button
                 type="button"
                 onClick={() => {
@@ -739,7 +747,7 @@ export function CommunityChatPanel({
             }}
             onKeyDown={handleKeyDown}
             placeholder={replyingTo ? `Responder a ${replyingTo.userName}...` : "Digite uma mensagem..."}
-            className="h-10 flex-1 rounded-full border border-border bg-white px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-colors focus:border-border focus:ring-2 focus:ring-black/5"
+            className="h-10 flex-1 rounded-full border border-border bg-white px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/15"
           />
 
           <button
@@ -748,7 +756,7 @@ export function CommunityChatPanel({
               void handleSend();
             }}
             disabled={(!newMessage.trim() && selectedImages.length === 0 && !selectedGif) || isSendingMessage}
-            className="rounded-full bg-primary text-white p-2.5 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-primary p-2.5 text-primary-foreground transition-all hover:scale-105 hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Enviar mensagem"
           >
             <Send className="h-5 w-5" />

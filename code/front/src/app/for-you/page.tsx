@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, Shuffle, Star, Users } from "lucide-react";
-import { AppShell, BookCoverPlaceholder, Button, PageHeader, SkeletonBlock } from "@/components";
+import { BookOpen, ChevronLeft, ChevronRight, Star, Users } from "lucide-react";
+import { AppShell, BookCoverPlaceholder, PageHeader, SkeletonBlock } from "@/components";
 import { BookDetailsCard } from "@/components/BookDetailsCard";
 import {
   addBookToShelf,
@@ -26,6 +26,112 @@ import {
 } from "@/services/recommendations";
 
 // ─── sub-components ───────────────────────────────────────────────────────────
+
+const DICE_DOTS: Record<1 | 2 | 3 | 4 | 5 | 6, [number, number][]> = {
+  1: [[50, 50]],
+  2: [[30, 30], [70, 70]],
+  3: [[30, 30], [50, 50], [70, 70]],
+  4: [[30, 30], [70, 30], [30, 70], [70, 70]],
+  5: [[30, 30], [70, 30], [50, 50], [30, 70], [70, 70]],
+  6: [[30, 28], [70, 28], [30, 50], [70, 50], [30, 72], [70, 72]],
+};
+
+function DiceFace({ value }: { value: 1 | 2 | 3 | 4 | 5 | 6 }) {
+  return (
+    <svg viewBox="0 0 100 100" className="h-9 w-9" aria-hidden="true">
+      <rect
+        x="5" y="5" width="90" height="90" rx="20"
+        fill="rgba(255,255,255,0.15)"
+        stroke="rgba(255,255,255,0.95)"
+        strokeWidth="5"
+      />
+      {DICE_DOTS[value].map(([cx, cy], i) => (
+        // eslint-disable-next-line react/no-array-index-key
+        <circle key={i} cx={cx} cy={cy} r="10" fill="white" />
+      ))}
+    </svg>
+  );
+}
+
+type DicePhase = "idle" | "rolling" | "stopping";
+
+function DiceRollButton({
+  rolling,
+  onRoll,
+  onAnimationStart,
+  onAnimationComplete,
+}: {
+  rolling: boolean;
+  onRoll: () => void;
+  onAnimationStart?: () => void;
+  onAnimationComplete?: () => void;
+}) {
+  const [face, setFace] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [phase, setPhase] = useState<DicePhase>("idle");
+
+  useEffect(() => {
+    if (rolling && phase === "idle") {
+      setPhase("rolling");
+      onAnimationStart?.();
+    }
+  }, [rolling, phase, onAnimationStart]);
+
+  useEffect(() => {
+    if (!rolling && phase === "rolling") setPhase("stopping");
+  }, [rolling, phase]);
+
+  // fast cycling while API is loading
+  useEffect(() => {
+    if (phase !== "rolling") return;
+    const id = setInterval(() => setFace((f) => ((f % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6), 80);
+    return () => clearInterval(id);
+  }, [phase]);
+
+  // exponential slowdown after API resolves
+  useEffect(() => {
+    if (phase !== "stopping") return;
+    let timer: ReturnType<typeof setTimeout>;
+    let delay = 140;
+    let count = 0;
+    const step = () => {
+      setFace((f) => ((f % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6);
+      count++;
+      if (count >= 5) {
+        setPhase("idle");
+        onAnimationComplete?.();
+        return;
+      }
+      delay = Math.round(delay * 1.8);
+      timer = setTimeout(step, delay);
+    };
+    timer = setTimeout(step, delay);
+    return () => clearTimeout(timer);
+  }, [phase, onAnimationComplete]);
+
+  const isAnimating = phase !== "idle";
+
+  return (
+    <button
+      type="button"
+      onClick={onRoll}
+      disabled={isAnimating}
+      aria-label={isAnimating ? "Sorteando livro..." : "Sortear um livro aleatório"}
+      className={[
+        "flex flex-col items-center gap-1.5 rounded-xl border px-5 py-3 text-xs font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed",
+        isAnimating
+          ? "animate-dice-glow border-white/60 bg-white/20"
+          : "border-white/30 bg-white/10 hover:bg-white/20 hover:border-white/50",
+      ].join(" ")}
+    >
+      <span className={isAnimating ? "animate-dice-roll" : "transition-transform duration-300"}>
+        <DiceFace value={face} />
+      </span>
+      <span className="tracking-wide uppercase">
+        {isAnimating ? "Sorteando..." : "Sortear"}
+      </span>
+    </button>
+  );
+}
 
 function RatingBadge({ value }: { value?: number | null }) {
   if (!value) return null;
@@ -54,8 +160,8 @@ function RecBookCard({
         {book.coverUrl ? (
           <img src={book.coverUrl} alt={book.title} className="h-56 w-full object-cover" />
         ) : (
-          <div className="flex h-56 w-full items-center justify-center bg-[var(--bg-soft)]">
-            <BookCoverPlaceholder size={72} />
+          <div className="h-56 w-full overflow-hidden">
+            <BookCoverPlaceholder title={book.title} />
           </div>
         )}
         <div className="absolute left-2 top-2">
@@ -193,6 +299,24 @@ function HeroBanner({
   onRoll: () => void;
   onBookClick: (id: number) => void;
 }) {
+  // visibleBook only updates when the dice animation finishes
+  const [visibleBook, setVisibleBook] = useState<DiceRollBook | null>(null);
+  const [animating, setAnimating] = useState(false);
+  const pendingRef = useRef<DiceRollBook | null>(null);
+
+  useEffect(() => { pendingRef.current = book; }, [book]);
+
+  // initial load: show the book immediately (no dice animation on first render)
+  useEffect(() => {
+    if (book && !visibleBook && !rolling) setVisibleBook(book);
+  }, [book, visibleBook, rolling]);
+
+  const handleStart = useCallback(() => setAnimating(true), []);
+  const handleComplete = useCallback(() => {
+    setAnimating(false);
+    setVisibleBook(pendingRef.current);
+  }, []);
+
   if (loading) {
     return <SkeletonBlock lines={4} className="h-44 rounded-2xl" />;
   }
@@ -200,78 +324,84 @@ function HeroBanner({
   return (
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--brand-700,#0d6e5c)] to-[var(--brand-500,#13937a)] p-6 text-white">
       <div className="flex items-center gap-6">
+
+        {/* cover — blurs while dice is rolling */}
         <button
           type="button"
-          onClick={() => book && onBookClick(book.id)}
-          disabled={!book}
+          onClick={() => visibleBook && !animating && onBookClick(visibleBook.id)}
+          disabled={!visibleBook || animating}
           className="shrink-0 disabled:cursor-default"
-          aria-label={book ? `Ver detalhes de ${book.title}` : undefined}
+          aria-label={visibleBook ? `Ver detalhes de ${visibleBook.title}` : undefined}
         >
-          {book?.coverUrl ? (
-            <img
-              src={book.coverUrl}
-              alt={book.title}
-              className="h-36 w-24 rounded-lg object-cover shadow-lg transition hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-36 w-24 items-center justify-center rounded-lg bg-white/10">
-              <BookOpen className="h-10 w-10 text-white/50" />
-            </div>
-          )}
+          <div className={`transition-all duration-500 ${animating ? "opacity-25 blur-sm scale-95" : "opacity-100 blur-0 scale-100"}`}>
+            {visibleBook?.coverUrl ? (
+              <img
+                src={visibleBook.coverUrl}
+                alt={visibleBook.title}
+                className="h-36 w-24 rounded-lg object-cover shadow-lg transition hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-36 w-24 items-center justify-center rounded-lg bg-white/10">
+                <BookOpen className="h-10 w-10 text-white/50" />
+              </div>
+            )}
+          </div>
         </button>
 
+        {/* book info — fades + slides while dice is rolling */}
         <div className="min-w-0 flex-1">
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/60">
             Recomendação do dia
           </p>
-          {book ? (
-            <>
-              <button
-                type="button"
-                onClick={() => onBookClick(book.id)}
-                className="mb-1 text-left text-2xl font-bold leading-tight hover:underline"
-              >
-                {book.title}
-              </button>
-              <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-white/75">
-                {book.averageRating ? (
-                  <span className="flex items-center gap-1">
-                    <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
-                    {book.averageRating.toFixed(1)}
-                  </span>
-                ) : null}
-                {book.pageCount ? (
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="h-3.5 w-3.5" />
-                    {book.pageCount} páginas
-                  </span>
-                ) : null}
-                {book.readerCount ? (
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" />
-                    {book.readerCount.toLocaleString("pt-BR")} leitores
-                  </span>
-                ) : null}
-              </div>
-              {book.description && (
-                <p className="line-clamp-2 text-sm text-white/65">{book.description}</p>
-              )}
-            </>
-          ) : (
-            <p className="text-white/60">Nenhum livro disponível no momento.</p>
-          )}
+          <div className={`transition-all duration-500 ${animating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"}`}>
+            {visibleBook ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onBookClick(visibleBook.id)}
+                  disabled={animating}
+                  className="mb-1 text-left text-2xl font-bold leading-tight hover:underline disabled:pointer-events-none"
+                >
+                  {visibleBook.title}
+                </button>
+                <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-white/75">
+                  {visibleBook.averageRating ? (
+                    <span className="flex items-center gap-1">
+                      <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
+                      {visibleBook.averageRating.toFixed(1)}
+                    </span>
+                  ) : null}
+                  {visibleBook.pageCount ? (
+                    <span className="flex items-center gap-1">
+                      <BookOpen className="h-3.5 w-3.5" />
+                      {visibleBook.pageCount} páginas
+                    </span>
+                  ) : null}
+                  {visibleBook.readerCount ? (
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" />
+                      {visibleBook.readerCount.toLocaleString("pt-BR")} leitores
+                    </span>
+                  ) : null}
+                </div>
+                {visibleBook.description && (
+                  <p className="line-clamp-2 text-sm text-white/65">{visibleBook.description}</p>
+                )}
+              </>
+            ) : (
+              <p className="text-white/60">Nenhum livro disponível no momento.</p>
+            )}
+          </div>
         </div>
 
+        {/* dice button */}
         <div className="shrink-0">
-          <Button
-            variant="outline"
-            className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:border-white/50"
-            onClick={onRoll}
-            disabled={rolling}
-          >
-            <Shuffle className="h-4 w-4" />
-            {rolling ? "Sorteando..." : "Sortear livro"}
-          </Button>
+          <DiceRollButton
+            rolling={rolling}
+            onRoll={onRoll}
+            onAnimationStart={handleStart}
+            onAnimationComplete={handleComplete}
+          />
         </div>
       </div>
     </div>

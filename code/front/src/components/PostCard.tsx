@@ -8,6 +8,7 @@ import { BookDetailsCard } from "./BookDetailsCard";
 import { CommentsSection } from "./CommentsSection";
 import { getBookById } from "@/services/bookcase";
 import { togglePostLike } from "@/services/feed";
+import { ClientPortal } from "./ClientPortal";
 
 export interface PostCardProps {
   postId?: number;
@@ -56,6 +57,7 @@ export function PostCard({
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(likes);
   const [likePending, setLikePending] = useState(false);
+  const [heartKey, setHeartKey] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [commentCount, setCommentCount] = useState(comments);
 
@@ -85,6 +87,7 @@ export function PostCard({
     if (!postId || likePending) return;
     const prevLiked = liked;
     const prevCount = likeCount;
+    if (!prevLiked) setHeartKey((k) => k + 1);
     setLiked(!prevLiked);
     setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1);
     setLikePending(true);
@@ -109,150 +112,159 @@ export function PostCard({
 
   return (
     <>
-    <article
-      className={`rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 ${className ?? ""}`.trim()}
-    >
-      <div className="flex items-start justify-between">
-        <UserBadge name={author} subtitle={authorHandle} avatarUrl={avatarUrl} />
-        {time ? <span className="text-xs text-gray-400">{time}</span> : null}
-      </div>
-
-      {/* Referenced book */}
-      {hasBook && (
-        <button
-          type="button"
-          onClick={handleOpenBookModal}
-          className="mt-3 w-full text-left flex items-center gap-3 rounded-lg border border-emerald-100 bg-emerald-50 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 px-3 py-2 transition-colors"
-        >
-          <div className="h-12 w-8 shrink-0 overflow-hidden rounded">
-            {bookCoverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={bookCoverUrl} alt={bookTitle ?? ""} className="h-full w-full object-cover" />
-            ) : (
-              <BookCoverPlaceholder />
-            )}
-          </div>
-          <div className="min-w-0">
-            {bookTitle ? (
-              <p className="truncate text-sm font-semibold text-gray-900">{bookTitle}</p>
-            ) : (
-              <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
-            )}
-            {bookAuthors && bookAuthors.length > 0 && (
-              <p className="truncate text-xs text-emerald-700">{bookAuthors.join(", ")}</p>
-            )}
-          </div>
-        </button>
-      )}
-
-      {/* Post content with optional spoiler gate */}
-      {hasSpoiler && !spoilerRevealed ? (
-        <div className="mt-3 flex flex-col items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-4">
-          <AlertTriangle size={18} className="text-amber-500" aria-hidden />
-          <p className="text-sm font-medium text-amber-800">Este post contém spoilers</p>
-          <button
-            type="button"
-            onClick={() => setSpoilerRevealed(true)}
-            className="mt-1 rounded-lg bg-amber-400 px-4 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 transition-colors"
-          >
-            Revelar conteúdo
-          </button>
+      <article
+        className={`group/card rounded-2xl border border-[var(--border-soft)] bg-white shadow-sm transition-all duration-200 hover:shadow-md ${className ?? ""}`.trim()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-4 pb-3">
+          <UserBadge name={author} subtitle={authorHandle} avatarUrl={avatarUrl} />
+          {time ? (
+            <span className="mt-0.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-400">
+              {time}
+            </span>
+          ) : null}
         </div>
-      ) : (
-        <>
-          {content && (
-            <p className="mt-3 text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line">
-              {content}
-            </p>
-          )}
 
-          {images && images.length > 0 && (
-            <div
-              className={`mt-3 grid gap-2 ${images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+        <div className="px-4 pb-4">
+          {/* Referenced book */}
+          {hasBook && (
+            <button
+              type="button"
+              onClick={handleOpenBookModal}
+              className="mb-3 flex w-full items-center gap-3 rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50/60 px-3 py-2.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-sm"
             >
-              {images.map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={i}
-                  src={src}
-                  alt={`Imagem ${i + 1}`}
-                  className="w-full rounded-lg object-cover max-h-64"
-                />
-              ))}
+              <div className="h-14 w-10 shrink-0 overflow-hidden rounded-lg shadow-sm">
+                {bookCoverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={bookCoverUrl} alt={bookTitle ?? ""} className="h-full w-full object-cover" />
+                ) : (
+                  <BookCoverPlaceholder title={bookTitle ?? undefined} author={bookAuthors?.[0] ?? undefined} />
+                )}
+              </div>
+              <div className="min-w-0">
+                {bookTitle ? (
+                  <p className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{bookTitle}</p>
+                ) : (
+                  <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+                )}
+                {bookAuthors && bookAuthors.length > 0 && (
+                  <p className="mt-0.5 truncate text-xs text-emerald-700">{bookAuthors.join(", ")}</p>
+                )}
+              </div>
+            </button>
+          )}
+
+          {/* Post content */}
+          {hasSpoiler && !spoilerRevealed ? (
+            <div className="flex flex-col items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100">
+                <AlertTriangle size={18} className="text-amber-500" aria-hidden />
+              </div>
+              <p className="text-sm font-semibold text-amber-800">Este post contém spoilers</p>
+              <button
+                type="button"
+                onClick={() => setSpoilerRevealed(true)}
+                className="rounded-full bg-amber-400 px-5 py-1.5 text-xs font-bold text-white transition-all hover:bg-amber-500 active:scale-95"
+              >
+                Revelar
+              </button>
             </div>
+          ) : (
+            <>
+              {content && (
+                <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-200 whitespace-pre-line">
+                  {content}
+                </p>
+              )}
+
+              {images && images.length > 0 && (
+                <div className={`mt-3 grid gap-1.5 overflow-hidden rounded-xl ${images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                  {images.map((src, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={i}
+                      src={src}
+                      alt={`Imagem ${i + 1}`}
+                      className="w-full rounded-xl object-cover max-h-72"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {gifUrl && !(images && images.length > 0) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={gifUrl} alt="GIF" className="mt-3 max-h-64 w-full rounded-xl object-cover" />
+              )}
+            </>
           )}
 
-          {gifUrl && !(images && images.length > 0) && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={gifUrl} alt="GIF" className="mt-3 max-h-64 rounded-lg" />
-          )}
-        </>
-      )}
+          {/* Footer actions */}
+          <div className="mt-3 flex items-center gap-0.5 border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              onClick={() => void handleLike()}
+              disabled={!postId || likePending}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all active:scale-95 disabled:cursor-default ${
+                liked
+                  ? "bg-rose-50 text-rose-500"
+                  : "text-gray-400 hover:bg-rose-50 hover:text-rose-500"
+              }`}
+            >
+              <Heart
+                key={heartKey}
+                size={15}
+                fill={liked ? "currentColor" : "none"}
+                className={liked ? "animate-heart-pop" : ""}
+              />
+              <span>{likeCount}</span>
+            </button>
 
-      {/* Footer actions */}
-      <div className="mt-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-        <button
-          type="button"
-          onClick={handleLike}
-          disabled={!postId || likePending}
-          className={`inline-flex items-center gap-1.5 transition-colors disabled:cursor-default ${
-            liked
-              ? "text-rose-500 dark:text-rose-400"
-              : "hover:text-rose-500 dark:hover:text-rose-400"
-          }`}
-        >
-          <Heart
-            size={16}
-            fill={liked ? "currentColor" : "none"}
-            className="transition-transform active:scale-125"
+            <button
+              type="button"
+              onClick={() => setShowComments((v) => !v)}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all active:scale-95 ${
+                showComments
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "text-gray-400 hover:bg-emerald-50 hover:text-emerald-600"
+              }`}
+            >
+              <MessageCircle size={15} fill={showComments ? "currentColor" : "none"} />
+              <span>{commentCount}</span>
+            </button>
+
+            <button
+              type="button"
+              aria-label="Compartilhar"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-gray-400 transition-all hover:bg-slate-50 hover:text-gray-600 active:scale-95"
+            >
+              <Share2 size={15} />
+            </button>
+          </div>
+
+          {showComments && postId !== undefined && (
+            <CommentsSection
+              contentId={postId}
+              contentType="POST"
+              onCommentAdded={() => setCommentCount((c) => c + 1)}
+            />
+          )}
+        </div>
+      </article>
+
+      {bookModalOpen && (
+        <ClientPortal>
+          <BookDetailsCard
+            isOpen={bookModalOpen}
+            title={bookTitle ?? ""}
+            author={bookAuthors?.join(", ") ?? ""}
+            coverUrl={bookCoverUrl ?? undefined}
+            synopsis={bookSynopsis ?? undefined}
+            onClose={() => setBookModalOpen(false)}
+            onAddToShelf={() => {}}
+            availableShelves={[]}
           />
-          <span>{likeCount}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setShowComments((v) => !v)}
-          className={`inline-flex items-center gap-1.5 transition-colors ${
-            showComments
-              ? "text-emerald-600 dark:text-emerald-400"
-              : "hover:text-emerald-600 dark:hover:text-emerald-400"
-          }`}
-        >
-          <MessageCircle size={16} fill={showComments ? "currentColor" : "none"} />
-          <span>{commentCount}</span>
-        </button>
-
-        <button
-          type="button"
-          aria-label="Compartilhar"
-          className="ml-auto hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-        >
-          <Share2 size={16} />
-        </button>
-      </div>
-
-      {showComments && postId !== undefined && (
-        <CommentsSection
-          contentId={postId}
-          contentType="POST"
-          initialCount={commentCount}
-          onCommentAdded={() => setCommentCount((c) => c + 1)}
-        />
+        </ClientPortal>
       )}
-    </article>
-
-    {bookModalOpen && (
-      <BookDetailsCard
-        isOpen={bookModalOpen}
-        title={bookTitle ?? ""}
-        author={bookAuthors?.join(", ") ?? ""}
-        coverUrl={bookCoverUrl ?? undefined}
-        synopsis={bookSynopsis ?? undefined}
-        onClose={() => setBookModalOpen(false)}
-        onAddToShelf={() => {}}
-        availableShelves={[]}
-      />
-    )}
     </>
   );
 }

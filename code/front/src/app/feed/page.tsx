@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { TrendingUp } from "lucide-react";
 import {
   AppShell,
-  CreatePostModal,
   EditReviewModal,
   EmptyState,
   FeedComposeCard,
@@ -42,7 +41,6 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPostModal, setShowPostModal] = useState(false);
   const [editingReview, setEditingReview] = useState<EditingReview | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -83,16 +81,7 @@ export default function FeedPage() {
       <div className="flex items-start gap-8">
         {/* Coluna principal do feed */}
         <div className="min-w-0 flex-1">
-          <FeedComposeCard
-            onOpenPost={() => setShowPostModal(true)}
-          />
-
-          {showPostModal && (
-            <CreatePostModal
-              onClose={() => setShowPostModal(false)}
-              onPublished={() => { void loadFeed(); }}
-            />
-          )}
+          <FeedComposeCard onPublished={() => { void loadFeed(); }} />
 
           {editingReview && (
             <EditReviewModal
@@ -123,67 +112,70 @@ export default function FeedPage() {
               />
             ) : (
               <>
-                {items.map((item) => {
+                {items.map((item, index) => {
                   const authorName = item.authorUsername ?? `Usuário ${item.authorId}`;
                   const time = formatFeedTime(item.createdAt);
+                  const delay = `${Math.min(index, 8) * 55}ms`;
 
                   if (item.contentType === "REVIEW") {
                     const { bookId, bookTitle, bookAuthors, bookCoverUrl, rating, text, likeCount, commentCount, hasSpoiler } =
                       item.content;
                     const isOwn = currentUserId !== null && String(item.authorId) === currentUserId;
                     return (
-                      <ReviewFeedCard
-                        key={`review-${item.contentId}`}
-                        reviewId={item.contentId}
-                        authorName={authorName}
-                        authorAvatarUrl={item.authorAvatarUrl}
-                        time={time}
-                        bookId={bookId}
-                        bookTitle={bookTitle ?? "Livro"}
-                        bookAuthors={bookAuthors}
-                        bookCoverUrl={bookCoverUrl}
-                        rating={rating ?? 0}
-                        reviewText={text}
-                        images={item.content.images}
-                        gifUrl={item.content.gifUrl}
-                        likes={likeCount}
-                        comments={commentCount}
-                        hasSpoiler={hasSpoiler ?? false}
-                        isOwn={isOwn}
-                        onEdit={() => setEditingReview({
-                          id: item.contentId,
-                          rating: rating ?? 0,
-                          text: text ?? "",
-                          bookTitle: bookTitle ?? "Livro",
-                          bookCoverUrl,
-                          bookAuthors,
-                        })}
-                        onDelete={async () => {
-                          await deleteBookReview(item.contentId);
-                          void loadFeed();
-                        }}
-                      />
+                      <div key={`review-${item.contentId}`} className="animate-fade-in-up" style={{ animationDelay: delay }}>
+                        <ReviewFeedCard
+                          reviewId={item.contentId}
+                          authorName={authorName}
+                          authorAvatarUrl={item.authorAvatarUrl}
+                          time={time}
+                          bookId={bookId}
+                          bookTitle={bookTitle ?? "Livro"}
+                          bookAuthors={bookAuthors}
+                          bookCoverUrl={bookCoverUrl}
+                          rating={rating ?? 0}
+                          reviewText={text}
+                          images={item.content.images}
+                          gifUrl={item.content.gifUrl}
+                          likes={likeCount}
+                          comments={commentCount}
+                          hasSpoiler={hasSpoiler ?? false}
+                          isOwn={isOwn}
+                          onEdit={() => setEditingReview({
+                            id: item.contentId,
+                            rating: rating ?? 0,
+                            text: text ?? "",
+                            bookTitle: bookTitle ?? "Livro",
+                            bookCoverUrl,
+                            bookAuthors,
+                          })}
+                          onDelete={async () => {
+                            await deleteBookReview(item.contentId);
+                            void loadFeed();
+                          }}
+                        />
+                      </div>
                     );
                   }
 
                   return (
-                    <PostCard
-                      key={`post-${item.contentId}`}
-                      postId={item.contentId}
-                      author={authorName}
-                      avatarUrl={item.authorAvatarUrl ?? undefined}
-                      time={time}
-                      content={item.content.text ?? ""}
-                      likes={item.content.likeCount}
-                      comments={item.content.commentCount}
-                      bookId={item.content.bookId}
-                      bookTitle={item.content.bookTitle}
-                      bookAuthors={item.content.bookAuthors}
-                      bookCoverUrl={item.content.bookCoverUrl}
-                      images={item.content.images}
-                      gifUrl={item.content.gifUrl}
-                      hasSpoiler={item.content.hasSpoiler ?? false}
-                    />
+                    <div key={`post-${item.contentId}`} className="animate-fade-in-up" style={{ animationDelay: delay }}>
+                      <PostCard
+                        postId={item.contentId}
+                        author={authorName}
+                        avatarUrl={item.authorAvatarUrl ?? undefined}
+                        time={time}
+                        content={item.content.text ?? ""}
+                        likes={item.content.likeCount}
+                        comments={item.content.commentCount}
+                        bookId={item.content.bookId}
+                        bookTitle={item.content.bookTitle}
+                        bookAuthors={item.content.bookAuthors}
+                        bookCoverUrl={item.content.bookCoverUrl}
+                        images={item.content.images}
+                        gifUrl={item.content.gifUrl}
+                        hasSpoiler={item.content.hasSpoiler ?? false}
+                      />
+                    </div>
                   );
                 })}
 
