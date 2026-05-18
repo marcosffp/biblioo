@@ -8,8 +8,19 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: shell,
+      // FAB flutuante da Bibi — acessível de qualquer aba (igual ao web)
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'bibi_fab',
+        onPressed: () => context.push('/assistant'),
+        backgroundColor: cs.primary,
+        foregroundColor: cs.onPrimary,
+        tooltip: 'Falar com a Bibi',
+        child: const Icon(Icons.auto_awesome),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (index) => shell.goBranch(
@@ -24,8 +35,8 @@ class MainShell extends StatelessWidget {
             label: 'Início',
           ),
           NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome),
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore),
             label: 'Para Você',
           ),
           NavigationDestination(

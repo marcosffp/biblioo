@@ -33,6 +33,14 @@ import 'package:biblioo/features/feed/data/feed_repository.dart';
 import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
 import 'package:biblioo/features/notification/data/notification_remote_datasource.dart';
 import 'package:biblioo/features/notification/data/notification_repository.dart';
+import 'package:biblioo/features/recommendation/bloc/recommendation_bloc.dart';
+import 'package:biblioo/features/recommendation/data/recommendation_local_datasource.dart';
+import 'package:biblioo/features/recommendation/data/recommendation_remote_datasource.dart';
+import 'package:biblioo/features/recommendation/data/recommendation_repository.dart';
+import 'package:biblioo/features/assistant/bloc/assistant_bloc.dart';
+import 'package:biblioo/features/assistant/data/assistant_local_datasource.dart';
+import 'package:biblioo/features/assistant/data/assistant_remote_datasource.dart';
+import 'package:biblioo/features/assistant/data/assistant_repository.dart';
 import 'package:biblioo/features/user/bloc/user_search_bloc.dart';
 import 'package:biblioo/features/user/data/user_local_datasource.dart';
 import 'package:biblioo/features/user/data/user_remote_datasource.dart';
@@ -120,6 +128,22 @@ class Injector {
   NotificationRepository get notificationRepo =>
       NotificationRepository(_notificationRemote);
 
+  // ── recommendation ───────────────────────────────────
+  RecommendationLocalDatasource get _recommendationLocal =>
+      RecommendationLocalDatasource(_prefs);
+  RecommendationRemoteDatasource get _recommendationRemote =>
+      RecommendationRemoteDatasource(_dio);
+  RecommendationRepository get recommendationRepo =>
+      RecommendationRepository(_recommendationRemote, _recommendationLocal);
+
+  // ── assistant ─────────────────────────────────────────
+  AssistantLocalDatasource get _assistantLocal =>
+      AssistantLocalDatasource(_prefs);
+  AssistantRemoteDatasource get _assistantRemote =>
+      AssistantRemoteDatasource(_dio);
+  AssistantRepository get assistantRepo =>
+      AssistantRepository(_assistantRemote, _assistantLocal);
+
   // ── providers ─────────────────────────────────────────
   List<BlocProvider> get providers => [
     BlocProvider<ThemeModeCubit>(create: (_) => ThemeModeCubit(_prefs)),
@@ -136,6 +160,12 @@ class Injector {
     BlocProvider<PostBloc>(create: (_) => PostBloc(feedRepo)),
     BlocProvider<NotificationBloc>(
       create: (_) => NotificationBloc(notificationRepo),
+    ),
+    BlocProvider<AssistantBloc>(
+      create: (_) => AssistantBloc(assistantRepo),
+    ),
+    BlocProvider<RecommendationBloc>(
+      create: (_) => RecommendationBloc(recommendationRepo),
     ),
   ];
 }

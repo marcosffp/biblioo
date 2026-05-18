@@ -1,6 +1,7 @@
 import 'package:biblioo/core/shell/main_shell.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
+import 'package:biblioo/screens/assistant/assistant_screen.dart';
 import 'package:biblioo/screens/community/community_list_screen.dart';
 import 'package:biblioo/screens/community/community_detail_screen.dart';
 import 'package:biblioo/screens/shelf/biblioteca_screen.dart';
@@ -48,6 +49,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/notifications',
       builder: (context, state) => const NotificationScreen(),
+    ),
+
+    // ── ASSISTENTE (sem bottom nav — acessível via FAB) ─
+    GoRoute(
+      path: '/assistant',
+      builder: (context, state) => const AssistantScreen(),
     ),
 
     // ── LIVRO (fora do shell, exibido em tela própria) ───
@@ -117,7 +124,7 @@ final appRouter = GoRouter(
           ],
         ),
 
-        // Tab 1 — Para Você
+        // Tab 1 — Para Você (recomendações)
         StatefulShellBranch(
           routes: [
             GoRoute(
