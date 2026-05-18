@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:biblioo/shared/widgets/bibi_fab.dart';
 
 class MainShell extends StatelessWidget {
   final StatefulNavigationShell shell;
@@ -8,19 +9,14 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
+    final showGlobalBibi =
+        isCurrentRoute && !_tabHasPrimaryFab(shell.currentIndex);
 
     return Scaffold(
       body: shell,
       // FAB flutuante da Bibi — acessível de qualquer aba (igual ao web)
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'bibi_fab',
-        onPressed: () => context.push('/assistant'),
-        backgroundColor: cs.primary,
-        foregroundColor: cs.onPrimary,
-        tooltip: 'Falar com a Bibi',
-        child: const Icon(Icons.auto_awesome),
-      ),
+      floatingActionButton: showGlobalBibi ? const BibiFab() : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (index) => shell.goBranch(
@@ -58,4 +54,6 @@ class MainShell extends StatelessWidget {
       ),
     );
   }
+
+  bool _tabHasPrimaryFab(int index) => index == 0 || index == 2;
 }

@@ -9,6 +9,7 @@ import 'package:biblioo/features/shelf/bloc/shelf_event.dart';
 import 'package:biblioo/screens/collection/widgets/collection_statistics_section.dart';
 import 'package:biblioo/screens/shelf/widgets/shelf_card.dart';
 import 'package:biblioo/screens/shelf/widgets/create_shelf_sheet.dart';
+import 'package:biblioo/shared/widgets/bibi_fab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
@@ -66,7 +67,7 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
                     TextButton(
                       child: const Text('Fechar'),
                       onPressed: () => Navigator.pop(context),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -78,17 +79,17 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
           BlocListener<CollectionBloc, CollectionState>(
             listenWhen: (_, current) => current is CollectionMutationSuccess,
             listener: (context, _) {
-              context
-                  .read<CollectionBloc>()
-                  .add(CollectionStatisticsRequested(widget.collection.id));
+              context.read<CollectionBloc>().add(
+                CollectionStatisticsRequested(widget.collection.id),
+              );
             },
           ),
           BlocListener<ShelfBloc, ShelfState>(
             listenWhen: (_, current) => current is ShelfMutationSuccess,
             listener: (context, _) {
-              context
-                  .read<CollectionBloc>()
-                  .add(CollectionStatisticsRequested(widget.collection.id));
+              context.read<CollectionBloc>().add(
+                CollectionStatisticsRequested(widget.collection.id),
+              );
             },
           ),
         ],
@@ -104,15 +105,17 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
                 builder: (context, state) {
                   if (state is CollectionStatisticsLoaded) {
                     return CollectionStatisticsSection(
-                        statistics: state.statistics);
+                      statistics: state.statistics,
+                    );
                   }
                   if (state is CollectionStatisticsError) {
                     return Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
                         state.message,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: theme.colorScheme.error),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
                       ),
                     );
                   }
@@ -130,13 +133,17 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Row(
                   children: [
-                    Icon(Icons.collections_bookmark_outlined,
-                        size: 18, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.collections_bookmark_outlined,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       'Estantes',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -151,8 +158,9 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
                   current is ShelfError,
               builder: (context, state) {
                 if (state is ShelfLoaded) {
-                  final collectionShelfIds =
-                      collection.shelfPreviews.map((p) => p.id).toSet();
+                  final collectionShelfIds = collection.shelfPreviews
+                      .map((p) => p.id)
+                      .toSet();
                   final shelvesInCollection = state.shelves
                       .where((s) => collectionShelfIds.contains(s.id))
                       .toList();
@@ -163,20 +171,24 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.collections_bookmark_outlined,
-                                size: 64,
-                                color: theme.colorScheme.onSurfaceVariant),
+                            Icon(
+                              Icons.collections_bookmark_outlined,
+                              size: 64,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                             const SizedBox(height: 16),
                             Text(
                               'Coleção vazia.',
                               style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant),
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Adicione estantes clicando em +',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant),
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
@@ -187,16 +199,13 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
                   return SliverPadding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final shelf = shelvesInCollection[index];
-                          return _ShelfRow(
-                            shelf: shelf,
-                            collectionId: collection.id,
-                          );
-                        },
-                        childCount: shelvesInCollection.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final shelf = shelvesInCollection[index];
+                        return _ShelfRow(
+                          shelf: shelf,
+                          collectionId: collection.id,
+                        );
+                      }, childCount: shelvesInCollection.length),
                     ),
                   );
                 }
@@ -226,10 +235,18 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddShelfDialog(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Adicionar Estante'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const BibiFab(mini: true),
+          const SizedBox(height: 8),
+          FloatingActionButton.extended(
+            onPressed: () => _showAddShelfDialog(context),
+            icon: const Icon(Icons.add),
+            label: const Text('Adicionar Estante'),
+          ),
+        ],
       ),
     );
   }
@@ -244,11 +261,13 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
       final fresh = colState.collections
           .where((c) => c.id == widget.collection.id)
           .firstOrNull;
-      collectionShelfIds = fresh?.shelfPreviews.map((p) => p.id).toSet() ??
+      collectionShelfIds =
+          fresh?.shelfPreviews.map((p) => p.id).toSet() ??
           widget.collection.shelfPreviews.map((p) => p.id).toSet();
     } else {
-      collectionShelfIds =
-          widget.collection.shelfPreviews.map((p) => p.id).toSet();
+      collectionShelfIds = widget.collection.shelfPreviews
+          .map((p) => p.id)
+          .toSet();
     }
     final availableShelves = shelfBlocState.shelves
         .where((s) => !collectionShelfIds.contains(s.id))
@@ -257,7 +276,8 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) {
         if (availableShelves.isEmpty) {
           return const Padding(
@@ -274,10 +294,12 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
               title: Text(shelf.name),
               subtitle: Text('${shelf.itemCount} livros'),
               onTap: () {
-                context.read<CollectionBloc>().add(CollectionAddShelfRequested(
-                      collectionId: widget.collection.id,
-                      shelfId: shelf.id,
-                    ));
+                context.read<CollectionBloc>().add(
+                  CollectionAddShelfRequested(
+                    collectionId: widget.collection.id,
+                    shelfId: shelf.id,
+                  ),
+                );
                 Navigator.pop(ctx);
                 Navigator.pop(context);
               },
@@ -304,19 +326,21 @@ class _ShelfRow extends StatelessWidget {
           shelf: shelf,
           onTap: () {
             Navigator.of(context)
-                .push(MaterialPageRoute(
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<ShelfBloc>(),
-                    child: ShelfDetailScreenContent(shelf: shelf),
+                .push(
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: context.read<ShelfBloc>(),
+                      child: ShelfDetailScreenContent(shelf: shelf),
+                    ),
                   ),
-                ))
+                )
                 .then((_) {
-              if (context.mounted) {
-                context
-                    .read<CollectionBloc>()
-                    .add(CollectionStatisticsRequested(collectionId));
-              }
-            });
+                  if (context.mounted) {
+                    context.read<CollectionBloc>().add(
+                      CollectionStatisticsRequested(collectionId),
+                    );
+                  }
+                });
           },
           onEdit: () => _showEditSheet(context),
           onDelete: () => _confirmRemove(context),
@@ -327,10 +351,12 @@ class _ShelfRow extends StatelessWidget {
           child: IconButton(
             icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
             onPressed: () {
-              context.read<CollectionBloc>().add(CollectionRemoveShelfRequested(
-                    collectionId: collectionId,
-                    shelfId: shelf.id,
-                  ));
+              context.read<CollectionBloc>().add(
+                CollectionRemoveShelfRequested(
+                  collectionId: collectionId,
+                  shelfId: shelf.id,
+                ),
+              );
               Navigator.pop(context);
             },
           ),
@@ -371,11 +397,11 @@ class _ShelfRow extends StatelessWidget {
             onPressed: () {
               Navigator.pop(dialogCtx);
               context.read<CollectionBloc>().add(
-                    CollectionRemoveShelfRequested(
-                      collectionId: collectionId,
-                      shelfId: shelf.id,
-                    ),
-                  );
+                CollectionRemoveShelfRequested(
+                  collectionId: collectionId,
+                  shelfId: shelf.id,
+                ),
+              );
               Navigator.pop(context);
             },
             style: FilledButton.styleFrom(

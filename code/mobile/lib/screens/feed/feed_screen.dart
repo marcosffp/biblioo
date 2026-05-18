@@ -8,6 +8,7 @@ import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
 import 'package:biblioo/features/notification/bloc/notification_event.dart';
 import 'package:biblioo/features/notification/bloc/notification_state.dart';
 import 'package:biblioo/screens/feed/widgets/feed_comments_sheet.dart';
+import 'package:biblioo/shared/widgets/bibi_fab.dart';
 import 'package:biblioo/utils/cooldown_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -166,9 +167,17 @@ class _FeedScreenState extends State<FeedScreen> {
             ),
           ),
         ),
-        floatingActionButton: _FeedFab(
-          onCreatePost: _openCreatePost,
-          onRateBook: () => context.push('/search'),
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            const BibiFab(mini: true),
+            const SizedBox(height: 8),
+            _FeedFab(
+              onCreatePost: _openCreatePost,
+              onRateBook: () => context.push('/search'),
+            ),
+          ],
         ),
       ),
     );

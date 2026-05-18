@@ -11,6 +11,7 @@ class AssistantRemoteDatasource {
   ) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/assistant/chat',
+      options: Options(receiveTimeout: const Duration(seconds: 90)),
       data: {
         'message': message,
         if (conversationId != null) 'conversationId': conversationId,

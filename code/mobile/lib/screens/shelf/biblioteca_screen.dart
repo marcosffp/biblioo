@@ -4,6 +4,7 @@ import 'package:biblioo/features/shelf/bloc/shelf_bloc.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_event.dart';
 import 'package:biblioo/screens/collection/widgets/create_collection_sheet.dart';
 import 'package:biblioo/screens/shelf/widgets/create_shelf_sheet.dart';
+import 'package:biblioo/shared/widgets/bibi_fab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'widgets/biblioteca_tab_bar.dart';
@@ -51,24 +52,29 @@ class _BibliotecaScreenState extends State<BibliotecaScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
-          ShelfTab(),
-          CollectionTab(),
+        children: const [ShelfTab(), CollectionTab()],
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const BibiFab(mini: true),
+          const SizedBox(height: 8),
+          _tabController.index == 0
+              ? FloatingActionButton(
+                  heroTag: 'shelf_create_fab',
+                  onPressed: _showCreateShelfSheet,
+                  tooltip: 'Nova estante',
+                  child: const Icon(Icons.library_add),
+                )
+              : FloatingActionButton(
+                  heroTag: 'collection_create_fab',
+                  onPressed: _showCreateCollectionSheet,
+                  tooltip: 'Nova coleção',
+                  child: const Icon(Icons.bookmark_add_outlined),
+                ),
         ],
       ),
-      floatingActionButton: _tabController.index == 0
-          ? FloatingActionButton(
-              heroTag: 'shelf_create_fab',
-              onPressed: _showCreateShelfSheet,
-              tooltip: 'Nova estante',
-              child: const Icon(Icons.library_add),
-            )
-          : FloatingActionButton(
-              heroTag: 'collection_create_fab',
-              onPressed: _showCreateCollectionSheet,
-              tooltip: 'Nova coleção',
-              child: const Icon(Icons.bookmark_add_outlined),
-            ),
     );
   }
 
@@ -85,16 +91,16 @@ class _BibliotecaScreenState extends State<BibliotecaScreen>
   }
 
   void _showCreateShelfSheet() => _showSheet(
-        BlocProvider.value(
-          value: context.read<ShelfBloc>(),
-          child: const CreateShelfSheet(),
-        ),
-      );
+    BlocProvider.value(
+      value: context.read<ShelfBloc>(),
+      child: const CreateShelfSheet(),
+    ),
+  );
 
   void _showCreateCollectionSheet() => _showSheet(
-        BlocProvider.value(
-          value: context.read<CollectionBloc>(),
-          child: const CreateCollectionSheet(),
-        ),
-      );
+    BlocProvider.value(
+      value: context.read<CollectionBloc>(),
+      child: const CreateCollectionSheet(),
+    ),
+  );
 }
