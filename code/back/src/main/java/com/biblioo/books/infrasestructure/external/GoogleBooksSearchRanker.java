@@ -33,7 +33,8 @@ public class GoogleBooksSearchRanker {
     return books.stream()
         .filter(b -> !isGenericOrLowQuality(b))
         .map(b -> Map.entry(b, titleScore(b.getTitle(), q, words)))
-        .filter(e -> e.getValue() > 0)
+        // Sem filtro por score: livros do mesmo autor/série (ex: LotR para "hobbit")
+        // ficam no final da lista mas não são descartados
         .sorted(Map.Entry.<Book, Integer>comparingByValue().reversed())
         .map(Map.Entry::getKey)
         .limit(MAX_RESULTS)

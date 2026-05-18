@@ -44,6 +44,8 @@ public class BookService implements BookUseCase {
 
   private static final String BOOK_DETAIL_KEY_PREFIX = "biblioo:book-detail::";
   private static final Duration BOOK_DETAIL_TTL = Duration.ofHours(1);
+  private static final int ENRICH_THRESHOLD = 5;
+  private static final int MAX_RESULTS = 15;
 
 
   private final ConcurrentHashMap<String, CompletableFuture<List<BookSearchResult>>> inFlight =
@@ -95,7 +97,7 @@ public class BookService implements BookUseCase {
     try {
       List<BookSearchResult> result = doSearch(key);
       myFuture.complete(result);
-      if (!result.isEmpty() && cache != null) {
+      if (result.size() >= ENRICH_THRESHOLD && cache != null) {
         cache.put(key, result);
       }
       return result;
@@ -120,21 +122,44 @@ public class BookService implements BookUseCase {
                   return new ArrayList<>();
                 });
 
-    List<Book> local = futureLocal.join();
-    if (!local.isEmpty()) return local.stream().map(this::toSearchResult).toList();
+    List<Book> local = new ArrayList<>(futureLocal.join());
 
-    try {
-      List<Book> db = bookQueryHelper.searchByTerm(query);
-      if (!db.isEmpty()) return db.stream().map(this::toSearchResult).toList();
-    } catch (Exception e) {
-      log.warn("DB falhou durante searchByTerm. query='{}'. Causa: {}", query, e.getMessage());
+    // Resultados locais suficientes — retorna sem enriquecer
+    if (local.size() >= ENRICH_THRESHOLD) {
+      return local.stream().map(this::toSearchResult).toList();
     }
 
+    // Sem resultados no OpenSearch: tenta fallback no banco
+    if (local.isEmpty()) {
+      try {
+        List<Book> db = bookQueryHelper.searchByTerm(query);
+        if (!db.isEmpty()) local = new ArrayList<>(db);
+      } catch (Exception e) {
+        log.warn("DB falhou durante searchByTerm. query='{}'. Causa: {}", query, e.getMessage());
+      }
+      if (local.size() >= ENRICH_THRESHOLD) {
+        return local.stream().map(this::toSearchResult).toList();
+      }
+    }
+
+    // Poucos ou nenhum resultado local: enriquece do Google Books e mescla
     try {
-      return enrichService.enrichSync(query).stream().map(this::toSearchResult).toList();
+      List<Book> external = enrichService.enrichSync(query);
+      if (local.isEmpty()) {
+        return external.stream().map(this::toSearchResult).toList();
+      }
+      var localIsbns =
+          local.stream()
+              .map(Book::getIsbn)
+              .filter(java.util.Objects::nonNull)
+              .collect(java.util.stream.Collectors.toSet());
+      external.stream()
+          .filter(b -> b.getIsbn() == null || !localIsbns.contains(b.getIsbn()))
+          .forEach(local::add);
+      return local.stream().limit(MAX_RESULTS).map(this::toSearchResult).toList();
     } catch (Exception e) {
       log.warn("Enriquecimento externo falhou. query='{}'. Causa: {}", query, e.getMessage());
-      return new ArrayList<>();
+      return local.stream().map(this::toSearchResult).toList();
     }
   }
 

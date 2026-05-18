@@ -21,7 +21,9 @@ public class SimilarAuthorsComputeService {
    * {@code minDaysSinceCompleted} dias. Livros sem avaliação são tratados como nota neutra (3
    * estrelas), que está abaixo do limiar padrão de 4 — não geram autor confirmado.
    *
-   * <p>Score = 0.6 + 0.4 × (avgRating / 5.0) → intervalo [0.6, 1.0] (sinal direto e forte).
+   * <p>Score = 0.6 + 0.2 × (user_author_avg − 4) + 0.2 × (book_avg / 5) → intervalo [0.6, 1.0].
+   * O componente user_author_avg torna o score específico por usuário, quebrando a ordem idêntica
+   * que ocorria quando apenas a média global do livro era usada.
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
@@ -33,10 +35,10 @@ public class SimilarAuthorsComputeService {
             .createNativeQuery(
                 """
                 WITH confirmed_authors AS (
-                    SELECT DISTINCT ba.author
+                    SELECT ba.author, AVG(COALESCE(r.rating, 3)) AS user_author_avg
                     FROM shelf_items si
-                    JOIN shelves sh     ON sh.id        = si.shelf_id
-                    JOIN book_authors ba ON ba.book_id   = si.book_id
+                    JOIN shelves sh      ON sh.id       = si.shelf_id
+                    JOIN book_authors ba ON ba.book_id  = si.book_id
                     LEFT JOIN (
                         SELECT rv.book_id, rv.rating
                         FROM reviews rv
@@ -49,23 +51,27 @@ public class SimilarAuthorsComputeService {
                       AND si.finished_at IS NOT NULL
                       AND DATEDIFF(CURRENT_DATE, si.finished_at) > :minDays
                       AND COALESCE(r.rating, 3) >= :minRating
+                    GROUP BY ba.author
                 )
-                SELECT DISTINCT
-                    b.id AS book_id,
-                    0.6 + 0.4 * (COALESCE(b.average_rating, 3.0) / 5.0) AS score
-                FROM book_authors ba
-                JOIN confirmed_authors ca ON ca.author  = ba.author
-                JOIN books b              ON b.id       = ba.book_id
-                WHERE b.id NOT IN (
-                    SELECT si2.book_id
-                    FROM shelf_items si2
-                    JOIN shelves sh2 ON sh2.id = si2.shelf_id
-                    WHERE sh2.user_id    = :userId
-                      AND si2.status    IN ('COMPLETED', 'READING')
-                      AND si2.deleted_at IS NULL
-                      AND sh2.deleted_at IS NULL
-                )
-                ORDER BY score DESC
+                SELECT book_id, score
+                FROM (
+                    SELECT DISTINCT
+                        b.id AS book_id,
+                        0.6 + 0.2 * (ca.user_author_avg - 4) + 0.2 * (COALESCE(b.average_rating, 3.0) / 5.0) AS score
+                    FROM book_authors ba
+                    JOIN confirmed_authors ca ON ca.author  = ba.author
+                    JOIN books b              ON b.id       = ba.book_id
+                    WHERE b.id NOT IN (
+                        SELECT si2.book_id
+                        FROM shelf_items si2
+                        JOIN shelves sh2 ON sh2.id = si2.shelf_id
+                        WHERE sh2.user_id    = :userId
+                          AND si2.status    IN ('COMPLETED', 'READING')
+                          AND si2.deleted_at IS NULL
+                          AND sh2.deleted_at IS NULL
+                    )
+                ) deduped
+                ORDER BY score DESC, (book_id + :userId) % 1000 ASC
                 LIMIT :limit
                 """)
             .setParameter("userId", userId)
@@ -88,7 +94,8 @@ public class SimilarAuthorsComputeService {
    * {@code minRating}) e expõe autores que esses leitores aprovaram mas o usuário nunca leu.
    *
    * <p>Score = 0.3 + 0.4 × (avgRating / 5.0) → intervalo [0.3, 0.7] (expansão de repertório).
-   * A separação de faixas garante que nível 1 sempre precede nível 2 na ordenação final.
+   * Empates são desempatados por {@code (book_id + userId) % 1000} para variar a ordem entre
+   * usuários diferentes sem comprometer a reprodutibilidade por usuário.
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
@@ -159,22 +166,25 @@ public class SimilarAuthorsComputeService {
                     WHERE COALESCE(r.rating, 3) >= :minRating
                       AND ba.author NOT IN (SELECT author FROM user_known_authors)
                 )
-                SELECT DISTINCT
-                    b.id AS book_id,
-                    0.3 + 0.4 * (COALESCE(b.average_rating, 3.0) / 5.0) AS score
-                FROM discovered_authors da
-                JOIN book_authors ba ON ba.author = da.author
-                JOIN books b         ON b.id      = ba.book_id
-                WHERE b.id NOT IN (
-                    SELECT si2.book_id
-                    FROM shelf_items si2
-                    JOIN shelves sh2 ON sh2.id = si2.shelf_id
-                    WHERE sh2.user_id    = :userId
-                      AND si2.status    IN ('COMPLETED', 'READING')
-                      AND si2.deleted_at IS NULL
-                      AND sh2.deleted_at IS NULL
-                )
-                ORDER BY score DESC
+                SELECT book_id, score
+                FROM (
+                    SELECT DISTINCT
+                        b.id AS book_id,
+                        0.3 + 0.4 * (COALESCE(b.average_rating, 3.0) / 5.0) AS score
+                    FROM discovered_authors da
+                    JOIN book_authors ba ON ba.author = da.author
+                    JOIN books b         ON b.id      = ba.book_id
+                    WHERE b.id NOT IN (
+                        SELECT si2.book_id
+                        FROM shelf_items si2
+                        JOIN shelves sh2 ON sh2.id = si2.shelf_id
+                        WHERE sh2.user_id    = :userId
+                          AND si2.status    IN ('COMPLETED', 'READING')
+                          AND si2.deleted_at IS NULL
+                          AND sh2.deleted_at IS NULL
+                    )
+                ) deduped
+                ORDER BY score DESC, (book_id + :userId) % 1000 ASC
                 LIMIT :limit
                 """)
             .setParameter("userId", userId)
@@ -239,7 +249,7 @@ public class SimilarAuthorsComputeService {
                       AND si.deleted_at IS NULL
                       AND sh.deleted_at IS NULL
                 )
-                ORDER BY COALESCE(b.average_rating, 0) DESC, b.id ASC
+                ORDER BY COALESCE(b.average_rating, 0) DESC, (b.id + :userId) % 1000 ASC
                 LIMIT :limit
                 """)
             .setParameter("userId", userId)

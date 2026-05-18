@@ -68,8 +68,10 @@ public class RereadWorthItComputeService {
   }
 
   /**
-   * Fallback para usuários sem histórico ou com todos os livros ainda dentro do intervalo.
-   * Retorna os livros mais bem avaliados globalmente que o usuário ainda não leu.
+   * Fallback para usuários sem leituras maduras (todos dentro do intervalo ideal).
+   * Retorna os livros já lidos pelo usuário ordenados pela nota que ele deu —
+   * são candidatos naturais para releitura, diferente do SimilarAuthors que sugere
+   * livros ainda não lidos.
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
@@ -79,32 +81,35 @@ public class RereadWorthItComputeService {
             .createNativeQuery(
                 """
                 SELECT
-                    b.id                                   AS book_id,
-                    COALESCE(b.average_rating, 3.0) / 5.0  AS score
-                FROM books b
-                WHERE b.id NOT IN (
-                    SELECT si.book_id
-                    FROM shelf_items si
-                    JOIN shelves sh ON sh.id = si.shelf_id
-                    WHERE sh.user_id    = :userId
-                      AND si.status     IN ('COMPLETED', 'READING')
-                      AND si.deleted_at  IS NULL
-                      AND sh.deleted_at  IS NULL
-                )
-                ORDER BY COALESCE(b.average_rating, 0) DESC, b.id ASC
+                    si.book_id,
+                    COALESCE(MAX(r.rating), 3.0) / 5.0 AS score
+                FROM shelf_items si
+                JOIN shelves sh ON sh.id = si.shelf_id
+                LEFT JOIN (
+                    SELECT rv.book_id, rv.rating
+                    FROM reviews rv
+                    JOIN content c ON c.id = rv.id AND c.user_id = :userId AND c.is_deleted = FALSE
+                ) r ON r.book_id = si.book_id
+                WHERE sh.user_id    = :userId
+                  AND si.status     = 'COMPLETED'
+                  AND si.deleted_at  IS NULL
+                  AND sh.deleted_at  IS NULL
+                  AND si.finished_at IS NOT NULL
+                GROUP BY si.book_id
+                ORDER BY COALESCE(MAX(r.rating), 3.0) DESC, (si.book_id + :userId) % 1000 ASC
                 LIMIT :limit
                 """)
             .setParameter("userId", userId)
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info("[RWI] Fallback global: {} livros para userId={}", rows.size(), userId);
+    log.info("[RWI] Fallback (leituras anteriores): {} livros para userId={}", rows.size(), userId);
 
     return rows.stream()
         .map(
             r ->
                 new BookScore(
-                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "fallback_global"))
+                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "fallback_read"))
         .toList();
   }
 

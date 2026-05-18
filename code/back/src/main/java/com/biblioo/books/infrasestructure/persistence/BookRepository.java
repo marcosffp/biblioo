@@ -15,6 +15,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
   Optional<Book> findByIsbn(String isbn);
 
+  List<Book> findByIsbnIn(List<String> isbns);
+
   boolean existsByIsbn(String isbn);
 
   @Query("SELECT b.isbn FROM Book b WHERE b.isbn IN :isbns")
@@ -23,7 +25,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
   @Query(
       value =
           "SELECT * FROM books WHERE MATCH(search_text) AGAINST (:term IN BOOLEAN MODE)"
-              + " ORDER BY title ASC",
+              + " ORDER BY MATCH(search_text) AGAINST (:term) DESC",
       nativeQuery = true)
   List<Book> searchByTerm(@Param("term") String term);
 

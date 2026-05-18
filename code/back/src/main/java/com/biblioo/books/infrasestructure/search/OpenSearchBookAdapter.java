@@ -8,6 +8,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MultiMatchQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TextQueryType;
@@ -44,19 +45,34 @@ public class OpenSearchBookAdapter {
       recover = "searchFallback")
   public List<Book> search(String query) {
     try {
-      var multiMatch =
+      // Para queries curtas (≤3 termos): todos devem estar presentes.
+      // Para queries longas (>3 termos): 75% dos termos devem corresponder.
+      // Isso evita que "harry potter e a pedra filosofal" exija os 6 tokens em
+      // um único campo — o que falha quando o título está armazenado em inglês.
+      var mustClause =
           MultiMatchQuery.of(
               mm ->
                   mm.query(query)
-                      .fields("title^10", "authors^2", "isbn^5", "searchText^1")
-                      .operator(org.opensearch.client.opensearch._types.query_dsl.Operator.And)
-                      .type(TextQueryType.PhrasePrefix));
+                      .fields("title^10", "authors^3", "isbn^8", "description^2", "searchText^1")
+                      .operator(org.opensearch.client.opensearch._types.query_dsl.Operator.Or)
+                      .type(TextQueryType.BestFields)
+                      .minimumShouldMatch("3<75%"));
+
+      // Bônus de score se os termos aparecerem como frase no título
+      var phraseTitleBoost =
+          MatchPhrasePrefixQuery.of(mp -> mp.field("title").query(query).boost(5.0f));
+
+      var boolQuery =
+          BoolQuery.of(
+              bq ->
+                  bq.must(m -> m.multiMatch(mustClause))
+                    .should(s -> s.matchPhrasePrefix(phraseTitleBoost)));
 
       var request =
           SearchRequest.of(
               sr ->
                   sr.index(INDEX_NAME)
-                      .query(q -> q.multiMatch(multiMatch))
+                      .query(q -> q.bool(boolQuery))
                       .size(MAX_SEARCH_RESULTS));
 
       var response = client.search(request, BookDocument.class);
@@ -193,7 +209,8 @@ public class OpenSearchBookAdapter {
       }
 
       long indexed = count();
-      if (indexed > 0) {
+      long inDb = repository.count();
+      if (indexed >= inDb) {
         return;
       }
 

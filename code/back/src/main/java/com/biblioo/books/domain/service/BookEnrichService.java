@@ -41,7 +41,19 @@ public class BookEnrichService {
     var externalBooks = external.search(query);
     if (externalBooks.isEmpty()) return new ArrayList<>();
     var saved = persistNewBooks(externalBooks);
-    return saved.isEmpty() ? new ArrayList<>(externalBooks) : new ArrayList<>(saved);
+    if (!saved.isEmpty()) return new ArrayList<>(saved);
+
+    // Todos os livros já existiam no DB — busca os objetos com ID correto
+    // para que a camada de apresentação consiga navegar para o detalhe do livro
+    var isbns = externalBooks.stream()
+        .map(Book::getIsbn)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+    if (!isbns.isEmpty()) {
+      List<Book> fromDb = repository.findByIsbnIn(isbns);
+      if (!fromDb.isEmpty()) return new ArrayList<>(fromDb);
+    }
+    return new ArrayList<>(externalBooks);
   }
 
   @Async("bookEnrichExecutor")
