@@ -76,7 +76,6 @@ public class AssistantService implements AssistantUseCase {
 
     List<ConversationTurn> history = historyPort.load(convId);
 
-    // Redis expirou — tenta recuperar do MySQL
     if (history.isEmpty()) {
       history = conversationPort.loadTurns(convId);
       if (!history.isEmpty()) {

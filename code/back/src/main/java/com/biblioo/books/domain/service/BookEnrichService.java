@@ -43,8 +43,6 @@ public class BookEnrichService {
     var saved = persistNewBooks(externalBooks);
     if (!saved.isEmpty()) return new ArrayList<>(saved);
 
-    // Todos os livros já existiam no DB — busca os objetos com ID correto
-    // para que a camada de apresentação consiga navegar para o detalhe do livro
     var isbns = externalBooks.stream()
         .map(Book::getIsbn)
         .filter(Objects::nonNull)

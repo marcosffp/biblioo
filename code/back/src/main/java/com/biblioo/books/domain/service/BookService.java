@@ -124,12 +124,10 @@ public class BookService implements BookUseCase {
 
     List<Book> local = new ArrayList<>(futureLocal.join());
 
-    // Resultados locais suficientes — retorna sem enriquecer
     if (local.size() >= ENRICH_THRESHOLD) {
       return local.stream().map(this::toSearchResult).toList();
     }
 
-    // Sem resultados no OpenSearch: tenta fallback no banco
     if (local.isEmpty()) {
       try {
         List<Book> db = bookQueryHelper.searchByTerm(query);
@@ -142,7 +140,6 @@ public class BookService implements BookUseCase {
       }
     }
 
-    // Poucos ou nenhum resultado local: enriquece do Google Books e mescla
     try {
       List<Book> external = enrichService.enrichSync(query);
       if (local.isEmpty()) {
