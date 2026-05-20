@@ -86,6 +86,7 @@ public class CacheConfig implements CachingConfigurer {
         .withCacheConfiguration("rec-rwi", base.entryTtl(Duration.ofMinutes(5)))
         .withCacheConfiguration("trending-communities", base.entryTtl(Duration.ofMinutes(15)))
         .withCacheConfiguration("trending-books",       base.entryTtl(Duration.ofMinutes(15)))
+        .withCacheConfiguration("genres-all",           base.entryTtl(Duration.ofHours(6)))
         .build();
   }
 

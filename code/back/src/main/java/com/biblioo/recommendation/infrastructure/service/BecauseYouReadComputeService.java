@@ -13,6 +13,15 @@ public class BecauseYouReadComputeService {
 
   @PersistenceContext private EntityManager entityManager;
 
+  @org.springframework.transaction.annotation.Transactional(readOnly = true)
+  public String getBookTitle(Long bookId) {
+    List<?> result = entityManager
+        .createNativeQuery("SELECT title FROM books WHERE id = :bookId")
+        .setParameter("bookId", bookId)
+        .getResultList();
+    return result.isEmpty() ? null : (String) result.get(0);
+  }
+
   /** Fallback SQL quando o Neo4j está indisponível ou retorna vazio. */
   @SuppressWarnings("unchecked")
   public List<BookScore> compute(Long userId, Long bookId) {

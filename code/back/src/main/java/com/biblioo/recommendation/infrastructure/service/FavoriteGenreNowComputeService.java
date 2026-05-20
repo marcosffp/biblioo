@@ -32,6 +32,20 @@ public class FavoriteGenreNowComputeService {
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
+  public List<Long> resolveGenreNamesToIds(List<String> genreNames) {
+    if (genreNames == null || genreNames.isEmpty()) return List.of();
+    return ((List<Object>)
+            entityManager
+                .createNativeQuery("SELECT id FROM categories WHERE name IN (:names)")
+                .setParameter("names", genreNames)
+                .getResultList())
+        .stream()
+        .map(r -> ((Number) r).longValue())
+        .toList();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Transactional(readOnly = true)
   public List<Object[]> computeTopGenres(Long userId, int topGenresCount) {
     return entityManager
         .createNativeQuery(

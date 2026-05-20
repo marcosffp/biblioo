@@ -239,6 +239,13 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
         request);
   }
 
+  @ExceptionHandler(com.biblioo.recommendation.domain.exception.InvalidPreferenceException.class)
+  ResponseEntity<ErrorResponse> handleInvalidPreference(
+      com.biblioo.recommendation.domain.exception.InvalidPreferenceException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.valueOf(422), ex.getMessage(), request);
+  }
+
   @ExceptionHandler(IllegalArgumentException.class)
   ResponseEntity<ErrorResponse> handleIllegalArgument(
       IllegalArgumentException ex, HttpServletRequest request) {
