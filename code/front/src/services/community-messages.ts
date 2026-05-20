@@ -15,6 +15,7 @@ export interface BackendCommunityMessage {
   hasSpoiler: boolean;
   heartCount: number;
   deleted: boolean;
+  type?: string | null;
   createdAt?: string | null;
   editedAt?: string | null;
 }

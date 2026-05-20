@@ -73,9 +73,12 @@ function CommunityInviteModal({
   onAccept,
   onDecline,
 }: Readonly<InviteModalProps>) {
-  if (!isOpen || !invite || !community) {
+  if (!isOpen || !invite) {
     return null;
   }
+
+  const communityName = community?.name ?? invite.communityName;
+  const communityDescription = community?.description ?? "Comunidade privada de leitura.";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4 py-8">
@@ -97,24 +100,24 @@ function CommunityInviteModal({
             Convite especial
           </span>
           <h2 className="mt-3 text-balance text-5xl font-semibold leading-[1.02] text-[var(--deep-green)]">
-            {community.name}
+            {communityName}
           </h2>
           <p className="mt-2 text-base text-emerald-900/75">
             <strong>{invite.inviterUsername ?? "Um administrador"}</strong> te convidou para participar.
           </p>
-          <p className="mt-5 text-[1.65rem] leading-relaxed text-emerald-900/70">{community.description ?? "Comunidade privada de leitura."}</p>
+          <p className="mt-5 text-[1.65rem] leading-relaxed text-emerald-900/70">{communityDescription}</p>
         </div>
 
         <div className="space-y-4 bg-[#f5fcf9] px-8 pb-8 pt-5">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.11em] text-emerald-700/80">Membros</p>
-              <p className="mt-2 text-4xl font-semibold text-[var(--deep-green)]">{formatMembersLabel(community.members)}</p>
+              <p className="mt-2 text-4xl font-semibold text-[var(--deep-green)]">{formatMembersLabel(community?.members ?? 0)}</p>
             </div>
             <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.11em] text-emerald-700/80">Leitura atual</p>
-              <p className="mt-2 text-xl font-semibold text-[var(--deep-green)]">{parseBookTitle(community.bookTitle).title}</p>
-              <p className="text-sm text-emerald-900/70">{parseBookTitle(community.bookTitle).author || "Autor desconhecido"}</p>
+              <p className="mt-2 text-xl font-semibold text-[var(--deep-green)]">{parseBookTitle(community?.bookTitle ?? "").title}</p>
+              <p className="text-sm text-emerald-900/70">{parseBookTitle(community?.bookTitle ?? "").author || "Autor desconhecido"}</p>
             </div>
           </div>
 
@@ -606,7 +609,34 @@ export default function ComunidadesPage() {
     const targetCommunity = communities.find((community) => community.id === communityIdFromQuery);
 
     if (!targetCommunity) {
-      return;
+      if (!shouldOpenInviteModal) return;
+
+      // Community not in list (e.g. private community the user was invited to but hasn't joined yet).
+      // Resolve via pending invites so the modal can open without the community being in the list.
+      const inviteIdFromQuery = searchParams.get("inviteId");
+      const parsedInviteId = inviteIdFromQuery ? Number(inviteIdFromQuery) : null;
+      let cancelled = false;
+
+      void (async () => {
+        try {
+          const pendingInvites = await listPendingCommunityInvites(0, 100);
+          if (cancelled) return;
+
+          const invite = parsedInviteId
+            ? pendingInvites.find((i) => i.id === parsedInviteId)
+            : pendingInvites.find((i) => i.communityId === Number(communityIdFromQuery));
+
+          if (!invite) return;
+
+          setPendingInvite(invite);
+          setIsInviteModalOpen(true);
+          setOpenedFromQuery(true);
+        } catch {
+          // keep default behavior when invite lookup fails
+        }
+      })();
+
+      return () => { cancelled = true; };
     }
 
     if (shouldOpen && targetCommunity.isMember) {
@@ -887,7 +917,7 @@ export default function ComunidadesPage() {
 
   const handleInviteDecision = React.useCallback(
     async (decision: "accept" | "decline") => {
-      if (!pendingInvite || !selectedCommunity) {
+      if (!pendingInvite) {
         return;
       }
 
@@ -899,7 +929,7 @@ export default function ComunidadesPage() {
           await acceptCommunityInvite(pendingInvite.id);
           await refreshCommunities();
           setTab("minhas");
-          setSelectedCommunityId(selectedCommunity.id);
+          setSelectedCommunityId(selectedCommunity?.id ?? String(pendingInvite.communityId));
         } else {
           await declineCommunityInvite(pendingInvite.id);
         }

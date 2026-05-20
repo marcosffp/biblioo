@@ -89,18 +89,32 @@ function mapBackendMessageToUi(
   const authorId = item.authorId == null ? "system" : String(item.authorId);
   const isMine = params.currentUserId != null && authorId === params.currentUserId;
   const mappedUserName = params.memberNameById.get(authorId);
+  const isSystemEvent = item.type === "MEMBER_JOINED" || item.type === "MEMBER_LEFT";
+
+  let text: string;
+  if (item.deleted) {
+    text = "Mensagem removida";
+  } else if (isSystemEvent) {
+    const actorName = mappedUserName ?? "Membro";
+    text = item.type === "MEMBER_JOINED"
+      ? `${actorName} entrou na comunidade`
+      : `${actorName} saiu da comunidade`;
+  } else {
+    text = item.content ?? "";
+  }
 
   return {
     id: String(item.id ?? item.clientMessageId ?? `${Date.now()}`),
     userId: authorId,
     userName: isMine ? "Voce" : mappedUserName ?? "Membro",
-    text: item.deleted ? "Mensagem removida" : item.content ?? "",
+    text,
     time: formatMessageTime(item.createdAt),
-    isMine,
-    isSpoiler: item.hasSpoiler,
+    isMine: isSystemEvent ? false : isMine,
+    isSystem: isSystemEvent,
+    isSpoiler: isSystemEvent ? false : item.hasSpoiler,
     heartCount: item.heartCount ?? 0,
-    images: item.images ?? [],
-    gifUrl: item.gifUrl ?? null,
+    images: isSystemEvent ? [] : (item.images ?? []),
+    gifUrl: isSystemEvent ? null : (item.gifUrl ?? null),
     isDeleted: item.deleted,
     isEdited: Boolean(item.editedAt),
     parentMessageId: item.parentMessageId ?? null,
@@ -207,6 +221,22 @@ export function useCommunityMessages(communityId: string) {
     return () => clearInterval(interval);
   }, [refreshTypingUsers]);
 
+  const refreshMembers = useCallback(async () => {
+    if (!Number.isFinite(communityIdNumber)) return;
+    try {
+      const loadedMembers = await getCommunityMembers(communityIdNumber);
+      const mappedMembers = loadedMembers.map(mapMember);
+      setMembers(mappedMembers);
+      const memberNameById = new Map<string, string>();
+      mappedMembers.forEach((member) => {
+        memberNameById.set(member.id, member.name);
+      });
+      memberNameByIdRef.current = memberNameById;
+    } catch {
+      // silently ignore refresh errors
+    }
+  }, [communityIdNumber]);
+
   const replaceOrAppendMessage = useCallback((nextMessage: CommunityChatMessage, clientMessageId?: string | null) => {
     setMessages((current) => {
       const replacedById = current.map((item) =>
@@ -292,13 +322,18 @@ export function useCommunityMessages(communityId: string) {
         memberNameById: memberNameByIdRef.current,
       });
 
-      if (!mapped.isMine && !memberNameByIdRef.current.has(mapped.userId)) {
+      if (!mapped.isSystem && !mapped.isMine && !memberNameByIdRef.current.has(mapped.userId)) {
         mapped.userName = "Membro";
+      }
+
+      // Refresh member list so the panel stays in sync when someone joins or leaves
+      if (event.data.type === "MEMBER_JOINED" || event.data.type === "MEMBER_LEFT") {
+        void refreshMembers();
       }
 
       replaceOrAppendMessage(mapped, event.data.clientMessageId);
     },
-    [currentUserId, replaceOrAppendMessage],
+    [currentUserId, refreshMembers, replaceOrAppendMessage],
   );
 
   const onCreatedFrame = useCallback(
@@ -325,22 +360,6 @@ export function useCommunityMessages(communityId: string) {
     },
     [currentUserId, refreshTypingUsers],
   );
-
-  const refreshMembers = useCallback(async () => {
-    if (!Number.isFinite(communityIdNumber)) return;
-    try {
-      const loadedMembers = await getCommunityMembers(communityIdNumber);
-      const mappedMembers = loadedMembers.map(mapMember);
-      setMembers(mappedMembers);
-      const memberNameById = new Map<string, string>();
-      mappedMembers.forEach((member) => {
-        memberNameById.set(member.id, member.name);
-      });
-      memberNameByIdRef.current = memberNameById;
-    } catch {
-      // silently ignore refresh errors
-    }
-  }, [communityIdNumber]);
 
   const syncLostMessages = useCallback(async () => {
     if (!Number.isFinite(communityIdNumber)) {

@@ -609,6 +609,9 @@ export default function ParaVocePage() {
           author={modalBook?.authors?.join(", ") ?? ""}
           coverUrl={modalBook?.coverUrl ?? undefined}
           synopsis={modalBook?.synopsis ?? modalBook?.description ?? undefined}
+          pageCount={modalBook?.pageCount}
+          averageRating={modalBook?.averageRating}
+          readerCount={modalBook?.readerCount}
           onClose={closeModal}
           onAddToShelf={() => void handleAddToShelf()}
           availableShelves={shelves.map((s) => ({ id: s.id, name: s.name }))}

@@ -248,11 +248,7 @@ export function ShelfBookDetailsPanel({
   const canDecreasePage = !isSaving && currentPage > 0;
   const canIncreasePage = !isSaving && (totalPages <= 0 || currentPage < totalPages);
   const publicRatingValue = typeof book.rating === "number" ? book.rating.toFixed(1) : "--";
-  const readCount = book.readerCount ?? (totalPages > 0 && currentPage >= totalPages ? 1 : 0);
-  const readingCount = currentPage > 0 && (totalPages <= 0 || currentPage < totalPages) ? 1 : 0;
-  const wantedCount = book.readingStatus === "quero-ler" ? 1 : 0;
-  const abandonedCount = book.readingStatus === "abandonei" ? 1 : 0;
-  const reviewCount = reviewExists ? 1 : 0;
+  const readCount = book.readerCount ?? 0;
   const synopsisText = (book.synopsis ?? book.description ?? "").trim();
   const collapsedSynopsis = buildCollapsedSynopsis(synopsisText);
   const hasLongSynopsis = synopsisText.length > collapsedSynopsis.length;
@@ -374,7 +370,7 @@ export function ShelfBookDetailsPanel({
               <h2 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">{book.title}</h2>
               <p className="mt-1 text-3xl text-[var(--text-primary)]">{book.author}</p>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
                   <div className="inline-flex rounded-md bg-[#02a362] px-2 py-1 text-2xl font-bold leading-none text-white">
                     {publicRatingValue}
@@ -387,26 +383,6 @@ export function ShelfBookDetailsPanel({
                 <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
                   <p className="text-base text-[var(--text-primary)]">Leram</p>
                   <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{readCount}</p>
-                </article>
-
-                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
-                  <p className="text-base text-[var(--text-primary)]">Lendo</p>
-                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{readingCount}</p>
-                </article>
-
-                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
-                  <p className="text-base text-[var(--text-primary)]">Querem</p>
-                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{wantedCount}</p>
-                </article>
-
-                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
-                  <p className="text-base text-[var(--text-primary)]">Abandonos</p>
-                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{abandonedCount}</p>
-                </article>
-
-                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
-                  <p className="text-base text-[var(--text-primary)]">Resenhas</p>
-                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{reviewCount}</p>
                 </article>
               </div>
 

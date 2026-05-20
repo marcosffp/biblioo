@@ -102,7 +102,7 @@ function RegisterForm() {
         email: normalizedEmail,
         password,
       });
-      const next = searchParams.get("next") ?? "/feed";
+      const next = searchParams.get("next") ?? "/onboarding";
       router.push(next);
     } catch (error) {
       setFormError(mapRegisterErrorMessage(error));
@@ -184,9 +184,9 @@ function RegisterForm() {
           </form>
 
           <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
-            <span className="h-px flex-1 bg-[var(--border-soft)]" />
+            <span className="h-px flex-1 bg-[var(--border-soft)]"></span>
             ou
-            <span className="h-px flex-1 bg-[var(--border-soft)]" />
+            <span className="h-px flex-1 bg-[var(--border-soft)]"></span>
           </div>
 
           <GoogleSignInButton onError={setFormError} onLoadingChange={setIsLoading} />

@@ -3,9 +3,11 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { AuthLayout, Button, PasswordInput, TextInput } from "@/components";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { WelcomeTutorialModal, useWelcomeTutorial } from "@/components/WelcomeTutorialModal";
 import { AuthApiError, loginWithEmailPassword } from "@/services";
 
 const INPUT_CLASS =
@@ -16,6 +18,7 @@ type SubmitLikeEvent = { preventDefault: () => void };
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { show: showTutorial, open: openTutorial, close: closeTutorial } = useWelcomeTutorial();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
@@ -59,7 +62,21 @@ function LoginForm() {
   }
 
   return (
-    <AuthLayout>
+    <>
+      <AnimatePresence>
+        {showTutorial && <WelcomeTutorialModal onClose={closeTutorial} />}
+      </AnimatePresence>
+
+      <button
+        type="button"
+        onClick={openTutorial}
+        aria-label="Abrir tour do Biblioo"
+        className="fixed right-5 top-5 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-[#1a8162] text-white shadow-md transition-all hover:bg-[#156e53] hover:scale-110 lg:right-8 lg:top-8"
+      >
+        <Info size={18} />
+      </button>
+
+      <AuthLayout>
       <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
         <h2 className="font-display text-3xl font-semibold text-[var(--text-primary)]">
           Entrar
@@ -122,9 +139,9 @@ function LoginForm() {
           </form>
 
           <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
-            <span className="h-px flex-1 bg-[var(--border-soft)]" />
+            <span className="h-px flex-1 bg-[var(--border-soft)]"></span>
             ou
-            <span className="h-px flex-1 bg-[var(--border-soft)]" />
+            <span className="h-px flex-1 bg-[var(--border-soft)]"></span>
           </div>
 
           <GoogleSignInButton onError={setFormError} onLoadingChange={setIsLoading} />
@@ -141,6 +158,7 @@ function LoginForm() {
         </div>
       </div>
     </AuthLayout>
+    </>
   );
 }
 

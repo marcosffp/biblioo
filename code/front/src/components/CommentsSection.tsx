@@ -453,6 +453,7 @@ export function CommentsSection({
   const [text, setText] = useState("");
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [totalComments, setTotalComments] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -469,6 +470,7 @@ export function CommentsSection({
         if (cancelled) return;
         setComments(data.content);
         setHasMore(!data.last);
+        setTotalComments(data.totalElements ?? 0);
         setPage(0);
       })
       .catch(() => {
@@ -581,7 +583,7 @@ export function CommentsSection({
               }
             />
           ))}
-          {hasMore && (
+          {hasMore && totalComments > comments.length && (
             <button
               type="button"
               onClick={() => { void handleLoadMore(); }}

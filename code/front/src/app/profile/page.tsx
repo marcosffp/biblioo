@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
-import { Activity, BookOpen, BookOpenCheck, Flame, MessageSquare, Sparkles, Users } from "lucide-react";
+import { Activity, BookOpen, BookOpenCheck, Flame, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -12,7 +12,7 @@ import {
   ProfileStatsGrid,
   ProfileTabs,
   UserActivityFeed,
-  UserReviewsTab,
+
   UserCommunitiesTab,
   ShareCapsuleModal,
 } from "@/components";
@@ -65,7 +65,7 @@ const isPublic = true;
 
 const BOOKS_PER_PAGE = 10;
 
-const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
+const tabs = ["Biblioteca", "Atividade", "Comunidades"] as const;
 
 
 export default function PerfilPage() {
@@ -607,7 +607,6 @@ export default function PerfilPage() {
     Biblioteca: BookOpen,
     Atividade: Activity,
     Comunidades: Users,
-    Resenhas: MessageSquare,
   };
 
   return (
@@ -760,15 +759,6 @@ export default function PerfilPage() {
         ) : null
       ) : activeTab === "Comunidades" ? (
         <UserCommunitiesTab isOwnProfile />
-      ) : activeTab === "Resenhas" ? (
-        profile ? (
-          <UserReviewsTab
-            userId={profile.id}
-            authorName={profileName}
-            authorAvatarUrl={profile.avatarUrl ?? null}
-            emptyMessage="Escreva sua primeira resenha para que ela apareça aqui."
-          />
-        ) : null
       ) : null}
 
       <ShareCapsuleModal

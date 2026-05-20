@@ -8,6 +8,7 @@ import { AuthApiError, loginWithGoogle } from "@/services/auth";
 type GoogleSignInButtonProps = {
   onError?: (message: string) => void;
   onLoadingChange?: (loading: boolean) => void;
+  defaultRedirect?: string;
 };
 
 function GoogleIcon() {
@@ -21,7 +22,7 @@ function GoogleIcon() {
   );
 }
 
-export function GoogleSignInButton({ onError, onLoadingChange }: Readonly<GoogleSignInButtonProps>) {
+export function GoogleSignInButton({ onError, onLoadingChange, defaultRedirect = "/feed" }: Readonly<GoogleSignInButtonProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -35,7 +36,7 @@ export function GoogleSignInButton({ onError, onLoadingChange }: Readonly<Google
       onLoadingChange?.(true);
       try {
         await loginWithGoogle(idToken);
-        router.push(searchParams.get("next") ?? "/feed");
+        router.push(searchParams.get("next") ?? defaultRedirect);
       } catch (error) {
         onError?.(
           error instanceof AuthApiError && error.code === "NETWORK"
@@ -46,7 +47,7 @@ export function GoogleSignInButton({ onError, onLoadingChange }: Readonly<Google
         onLoadingChange?.(false);
       }
     },
-    [onError, onLoadingChange, router, searchParams]
+    [onError, onLoadingChange, router, searchParams, defaultRedirect]
   );
 
   return (

@@ -396,6 +396,9 @@ export function BookcaseModals({
         author={selectedSuggestionBook?.author ?? ""}
         coverUrl={selectedSuggestionBook?.coverUrl}
         synopsis={selectedSuggestionBook?.synopsis}
+        pageCount={selectedSuggestionBook?.totalPages}
+        averageRating={selectedSuggestionBook?.rating}
+        readerCount={selectedSuggestionBook?.readerCount}
         onClose={handleCloseBookDetails}
         onAddToShelf={handleAddSelectedBookToShelf}
         availableShelves={shelves.map((shelf) => ({ id: shelf.id, name: shelf.name }))}
