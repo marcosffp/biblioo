@@ -2,6 +2,7 @@ import 'package:biblioo/features/recommendation/bloc/recommendation_bloc.dart';
 import 'package:biblioo/features/recommendation/bloc/recommendation_event.dart';
 import 'package:biblioo/features/recommendation/bloc/recommendation_state.dart';
 import 'package:biblioo/features/recommendation/domain/recommended_book.dart';
+import 'package:biblioo/shared/widgets/book_cover_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -161,9 +162,10 @@ class _DiceResultCard extends StatelessWidget {
                       ? Image.network(
                           book.coverUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _placeholder(theme),
+                          errorBuilder: (_, _, _) =>
+                              BookCoverPlaceholder(title: book.title),
                         )
-                      : _placeholder(theme),
+                      : BookCoverPlaceholder(title: book.title),
                 ),
               ),
               const SizedBox(width: 16),
@@ -203,8 +205,4 @@ class _DiceResultCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder(ThemeData theme) => Container(
-        color: theme.colorScheme.primaryContainer,
-        child: Icon(Icons.menu_book, color: theme.colorScheme.primary),
-      );
 }

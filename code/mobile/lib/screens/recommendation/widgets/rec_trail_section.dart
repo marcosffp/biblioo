@@ -46,7 +46,7 @@ class RecTrailSection extends StatelessWidget {
             ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 240,
+            height: 268,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: books!.length,
@@ -82,7 +82,7 @@ class _Skeleton extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 240,
+            height: 268,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 4,

@@ -1,4 +1,5 @@
 import 'package:biblioo/features/recommendation/domain/recommended_book.dart';
+import 'package:biblioo/shared/widgets/book_cover_placeholder.dart';
 import 'package:flutter/material.dart';
 
 /// Card de capa de livro recomendado — usado nas carrosséis horizontais.
@@ -29,9 +30,10 @@ class RecBookCard extends StatelessWidget {
                         ? Image.network(
                             book.coverUrl!,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _placeholder(theme),
+                            errorBuilder: (_, _, _) =>
+                                BookCoverPlaceholder(title: book.title),
                           )
-                        : _placeholder(theme),
+                        : BookCoverPlaceholder(title: book.title),
                   ),
                   if (book.averageRating != null)
                     Positioned(
@@ -99,12 +101,4 @@ class RecBookCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder(ThemeData theme) => Container(
-        color: theme.colorScheme.surfaceContainerHighest,
-        child: Icon(
-          Icons.menu_book,
-          color: theme.colorScheme.primary,
-          size: 32,
-        ),
-      );
 }
