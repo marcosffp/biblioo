@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:biblioo/core/shell/main_shell.dart';
+import 'package:biblioo/features/auth/bloc/auth_state.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
 import 'package:biblioo/screens/assistant/assistant_screen.dart';
@@ -10,6 +13,8 @@ import 'package:biblioo/screens/auth/register_screen.dart';
 import 'package:biblioo/screens/feed/create_post_screen.dart';
 import 'package:biblioo/screens/feed/feed_screen.dart';
 import 'package:biblioo/screens/notification/notification_screen.dart';
+import 'package:biblioo/features/preferences/bloc/preferences_bloc.dart';
+import 'package:biblioo/screens/onboarding/onboarding_screen.dart';
 import 'package:biblioo/screens/profile/edit_profile_screen.dart';
 import 'package:biblioo/screens/profile/profile_screen.dart';
 import 'package:biblioo/screens/profile/settings_screen.dart';
@@ -23,14 +28,69 @@ import 'package:biblioo/core/di/injector.dart';
 import 'package:biblioo/features/user/bloc/user_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+/// Adapta um [Stream] para um [Listenable] consumível pelo GoRouter.
+/// Cada evento do stream dispara uma nova avaliação dos `redirect`s.
+class _GoRouterRefreshStream extends ChangeNotifier {
+  _GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
+String? _authRedirect(BuildContext context, GoRouterState state) {
+  final authState = Injector.instance.authBloc.state;
+  final isAuthed = authState is AuthAuthenticated;
+  final loc = state.matchedLocation;
+
+  final isAuthRoute = loc == '/login' || loc == '/register';
+  final isOnboardingRoute = loc == '/onboarding';
+
+  // Não autenticado: só pode ficar nas telas de auth.
+  if (!isAuthed) {
+    return isAuthRoute ? null : '/login';
+  }
+
+  // Autenticado, mas onboarding pendente: prende em /onboarding.
+  final onboardingDone =
+      Injector.instance.preferencesRepo.isOnboardingDone();
+  if (!onboardingDone) {
+    return isOnboardingRoute ? null : '/onboarding';
+  }
+
+  // Autenticado e onboarding ok: tira de /login, /register, /onboarding.
+  if (isAuthRoute || isOnboardingRoute) return '/feed';
+
+  return null;
+}
+
 final appRouter = GoRouter(
   initialLocation: '/login',
+  redirect: _authRedirect,
+  refreshListenable:
+      _GoRouterRefreshStream(Injector.instance.authBloc.stream),
   routes: [
     // ── AUTH (sem bottom nav) ──────────────────────────────
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),
+    ),
+
+    // ── ONBOARDING (sem bottom nav, primeira vez do usuário) ────
+    GoRoute(
+      path: '/onboarding',
+      builder: (context, state) => BlocProvider(
+        create: (_) => PreferencesBloc(Injector.instance.preferencesRepo),
+        child: const OnboardingScreen(),
+      ),
     ),
 
     // ── BUSCA (sem bottom nav) ────────────────────────────

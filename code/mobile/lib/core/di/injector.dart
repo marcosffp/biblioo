@@ -37,6 +37,9 @@ import 'package:biblioo/features/recommendation/bloc/recommendation_bloc.dart';
 import 'package:biblioo/features/recommendation/data/recommendation_local_datasource.dart';
 import 'package:biblioo/features/recommendation/data/recommendation_remote_datasource.dart';
 import 'package:biblioo/features/recommendation/data/recommendation_repository.dart';
+import 'package:biblioo/features/preferences/data/preferences_local_datasource.dart';
+import 'package:biblioo/features/preferences/data/preferences_remote_datasource.dart';
+import 'package:biblioo/features/preferences/data/preferences_repository.dart';
 import 'package:biblioo/features/assistant/bloc/assistant_bloc.dart';
 import 'package:biblioo/features/assistant/data/assistant_local_datasource.dart';
 import 'package:biblioo/features/assistant/data/assistant_remote_datasource.dart';
@@ -57,6 +60,8 @@ class Injector {
   final FlutterSecureStorage _secureStorage;
   final Dio _dio;
 
+  late final AuthBloc authBloc;
+
   Injector._(this._prefs, this._secureStorage, this._dio);
 
   Dio get dio => _dio;
@@ -75,7 +80,9 @@ class Injector {
       AuthInterceptor(authLocal, authSecure, authRemote, dio),
     );
 
-    instance = Injector._(prefs, secureStorage, dio);
+    final injector = Injector._(prefs, secureStorage, dio);
+    injector.authBloc = AuthBloc(injector.authRepo)..add(AuthStarted());
+    instance = injector;
     return instance;
   }
 
@@ -136,6 +143,14 @@ class Injector {
   RecommendationRepository get recommendationRepo =>
       RecommendationRepository(_recommendationRemote, _recommendationLocal);
 
+  // ── preferences ──────────────────────────────────────
+  PreferencesLocalDatasource get _preferencesLocal =>
+      PreferencesLocalDatasource(_prefs);
+  PreferencesRemoteDatasource get _preferencesRemote =>
+      PreferencesRemoteDatasource(_dio);
+  PreferencesRepository get preferencesRepo =>
+      PreferencesRepository(_preferencesRemote, _preferencesLocal);
+
   // ── assistant ─────────────────────────────────────────
   AssistantLocalDatasource get _assistantLocal =>
       AssistantLocalDatasource(_prefs);
@@ -147,9 +162,7 @@ class Injector {
   // ── providers ─────────────────────────────────────────
   List<BlocProvider> get providers => [
     BlocProvider<ThemeModeCubit>(create: (_) => ThemeModeCubit(_prefs)),
-    BlocProvider<AuthBloc>(
-      create: (_) => AuthBloc(authRepo)..add(AuthStarted()),
-    ),
+    BlocProvider<AuthBloc>.value(value: authBloc),
     BlocProvider<UserBloc>(create: (_) => UserBloc(userRepo)),
     BlocProvider<UserSearchBloc>(create: (_) => UserSearchBloc(userRepo)),
     BlocProvider<BookBloc>(create: (_) => BookBloc(bookRepo)),

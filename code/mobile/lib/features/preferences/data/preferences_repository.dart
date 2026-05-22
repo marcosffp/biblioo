@@ -15,8 +15,6 @@ class PreferencesRepository {
     return models.map((m) => m.toEntity()).toList();
   }
 
-  /// Salva preferências no backend e marca onboarding como concluído.
-  /// Se [genres] estiver vazio, pula a chamada ao backend (apenas marca local).
   Future<void> savePreferences(List<String> genres) async {
     if (genres.isNotEmpty) {
       await _remote.savePreferences(genres);
