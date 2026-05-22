@@ -16,10 +16,14 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
     PreferencesGenresLoadRequested event,
     Emitter<PreferencesState> emit,
   ) async {
-    emit(state.copyWith(status: PreferencesStatus.loadingGenres));
+    emit(state.copyWith(status: PreferencesStatus.loadingGenres, errorMessage: null));
     try {
       final genres = await _repository.getGenres();
-      emit(state.copyWith(status: PreferencesStatus.genresLoaded, genres: genres));
+      emit(state.copyWith(
+        status: PreferencesStatus.genresLoaded,
+        genres: genres,
+        errorMessage: null,
+      ));
     } catch (_) {
       emit(state.copyWith(
         status: PreferencesStatus.genresError,
@@ -32,7 +36,7 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
     PreferencesSubmitted event,
     Emitter<PreferencesState> emit,
   ) async {
-    emit(state.copyWith(status: PreferencesStatus.submitting));
+    emit(state.copyWith(status: PreferencesStatus.submitting, errorMessage: null));
     try {
       await _repository.savePreferences(event.selectedGenres);
       emit(state.copyWith(status: PreferencesStatus.done));

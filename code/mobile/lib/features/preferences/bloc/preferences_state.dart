@@ -3,6 +3,8 @@ import 'package:equatable/equatable.dart';
 
 enum PreferencesStatus { idle, loadingGenres, genresLoaded, genresError, submitting, done, error }
 
+const _unset = Object();
+
 class PreferencesState extends Equatable {
   final PreferencesStatus status;
   final List<Genre> genres;
@@ -17,12 +19,14 @@ class PreferencesState extends Equatable {
   PreferencesState copyWith({
     PreferencesStatus? status,
     List<Genre>? genres,
-    String? errorMessage,
+    Object? errorMessage = _unset,
   }) =>
       PreferencesState(
         status: status ?? this.status,
         genres: genres ?? this.genres,
-        errorMessage: errorMessage ?? this.errorMessage,
+        errorMessage: identical(errorMessage, _unset)
+            ? this.errorMessage
+            : errorMessage as String?,
       );
 
   @override

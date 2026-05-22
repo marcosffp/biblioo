@@ -1,6 +1,6 @@
 import 'package:biblioo/features/auth/bloc/auth_bloc.dart' show AuthBloc;
 import 'package:biblioo/features/auth/bloc/auth_event.dart' show LoginRequested;
-import 'package:biblioo/features/auth/bloc/auth_state.dart' show AuthState, AuthAuthenticated, AuthError, AuthLoading;
+import 'package:biblioo/features/auth/bloc/auth_state.dart' show AuthState, AuthError, AuthLoading;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -41,9 +41,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthAuthenticated) {
-          context.go('/feed');
-        }
         if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
