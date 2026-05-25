@@ -4,14 +4,14 @@ import { b64decode } from 'k6/encoding';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 100,
+  userPoolSize: 230,
   password:     'Senha@12345',
   prefix:       'loadcomment',
   bookId:       1, // seed: banco local deve ter livro com id=1
 
   load: {
-    crudVus:    60,
-    listingVus: 20,
+    crudVus:    158,
+    listingVus: 52,
     duration:   '2m',
   },
 

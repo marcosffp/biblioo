@@ -5,11 +5,11 @@ const CONFIG = {
   base:         'http://localhost:8080',
   password:     'Senha@12345',
   prefix:       'stressuser',
-  userPoolSize: 500,
+  userPoolSize: 800,
 
   stress: {
     stageDuration: '30s',
-    stages: [50, 100, 200, 300, 500, 700, 1000],  // VUs por estágio (rampa crescente)
+    stages: [20, 50, 100, 200, 300, 400, 600],  // VUs por estágio (rampa crescente)
   },
 
   thresholds: {

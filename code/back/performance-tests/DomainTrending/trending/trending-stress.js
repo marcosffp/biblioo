@@ -11,7 +11,7 @@ const CONFIG = {
   baseUrl:  'http://localhost:8080',
   password: 'Senha@12345',
   prefix:   'trendstress',
-  poolSize: 60,
+  poolSize: 800,
   bookIds:  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   communityBookIds: [1, 2, 3, 4, 5],
 
@@ -77,7 +77,7 @@ export function setup() {
 
   const users = [];
   for (let i = 0; i < CONFIG.poolSize; i++) {
-    const email = `${CONFIG.prefix}_${uuidv4()}@test.com`;
+    const email = `${CONFIG.prefix}_${i}_${Math.floor(Math.random() * 1e9)}@test.com`;
 
     const reg = http.post(
       `${CONFIG.baseUrl}/auth/register`,
@@ -138,7 +138,7 @@ export function setup() {
 // ── Options ───────────────────────────────────────────────────────────────────
 
 export const options = {
-  setupTimeout: '5m',
+  setupTimeout: '10m',
 
   scenarios: {
     stress_trending: {
@@ -146,9 +146,12 @@ export const options = {
       startVUs: 0,
       stages: [
         { duration: '30s', target: 20  },
-        { duration: '60s', target: 100 },
-        { duration: '60s', target: 200 },
-        { duration: '60s', target: 400 },
+        { duration: '30s', target: 50  },
+        { duration: '30s', target: 100 },
+        { duration: '30s', target: 200 },
+        { duration: '30s', target: 300 },
+        { duration: '30s', target: 400 },
+        { duration: '30s', target: 600 },
         { duration: '30s', target: 0   },
       ],
     },

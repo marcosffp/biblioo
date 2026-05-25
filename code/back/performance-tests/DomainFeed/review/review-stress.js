@@ -4,7 +4,7 @@ import { b64decode } from 'k6/encoding';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 500,
+  userPoolSize: 800,
   password:     'Senha@12345',
   prefix:       'stressreview',
   minBookId:    1,
@@ -12,7 +12,7 @@ const CONFIG = {
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300, 400],
+    stages:        [20, 50, 100, 200, 300, 400, 600],
   },
 
   thresholds: {
@@ -185,7 +185,7 @@ export function setup() {
 
 // ── options ──────────────────────────────────────────────────────────────────
 export const options = {
-  setupTimeout: '300s',
+  setupTimeout: '600s',
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
     { duration: CONFIG.stress.stageDuration, target: 0 },

@@ -11,7 +11,7 @@ const CONFIG = {
   baseUrl:  'http://localhost:8080',
   password: 'Senha@12345',
   prefix:   'trendspike',
-  poolSize: 50,
+  poolSize: 500,
   bookIds:  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   communityBookIds: [1, 2, 3, 4, 5],
 
@@ -77,7 +77,7 @@ export function setup() {
 
   const users = [];
   for (let i = 0; i < CONFIG.poolSize; i++) {
-    const email = `${CONFIG.prefix}_${uuidv4()}@test.com`;
+    const email = `${CONFIG.prefix}_${i}_${Math.floor(Math.random() * 1e9)}@test.com`;
 
     const reg = http.post(
       `${CONFIG.baseUrl}/auth/register`,
@@ -145,9 +145,10 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '10s', target: 50  },
-        { duration: '20s', target: 300 },
-        { duration: '10s', target: 50  },
+        { duration: '10s', target: 70  },
+        { duration: '5s',  target: 500 },
+        { duration: '20s', target: 500 },
+        { duration: '5s',  target: 70  },
         { duration: '10s', target: 0   },
       ],
     },

@@ -4,14 +4,14 @@ import { b64decode } from 'k6/encoding';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 500,
+  userPoolSize: 800,
   password:     'Senha@12345',
   prefix:       'stresscomment',
   bookId:       1,
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300, 400],
+    stages:        [20, 50, 100, 200, 300, 400, 600],
   },
 
   thresholds: {

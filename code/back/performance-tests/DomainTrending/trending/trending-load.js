@@ -11,13 +11,13 @@ const CONFIG = {
   baseUrl:    'http://localhost:8080',
   password:   'Senha@12345',
   prefix:     'trendload',
-  poolSize:   30,
+  poolSize:   230,
   // IDs de livros existentes no banco para criar estantes e reviews
   bookIds:    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   communityBookIds: [1, 2, 3, 4, 5],
 
   load: {
-    vus:      80,
+    vus:      210,
     duration: '2m',
   },
 
@@ -95,7 +95,7 @@ export function setup() {
   // 2. Pool de usuários — cada um entra nas comunidades e cria estante + review
   const users = [];
   for (let i = 0; i < CONFIG.poolSize; i++) {
-    const email = `${CONFIG.prefix}_${uuidv4()}@test.com`;
+    const email = `${CONFIG.prefix}_${i}_${Math.floor(Math.random() * 1e9)}@test.com`;
 
     const reg = http.post(
       `${CONFIG.baseUrl}/auth/register`,

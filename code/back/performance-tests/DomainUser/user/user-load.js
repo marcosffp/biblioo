@@ -5,12 +5,12 @@ const CONFIG = {
   base:         'http://localhost:8080',
   password:     'Senha@12345',
   prefix:       'loaduser',
-  userPoolSize: 50,
+  userPoolSize: 230,
 
   // Ajuste para um bookId válido no seu ambiente (usado indiretamente via setup)
   load: {
-    authVus:    40,
-    profileVus: 60,
+    authVus:    84,
+    profileVus: 126,
     duration:   '2m',
   },
 

@@ -5,11 +5,11 @@ const CONFIG = {
   base:         'http://localhost:8080',
   password:     'Senha@12345',
   prefix:       'spikeuser',
-  userPoolSize: 50,
+  userPoolSize: 500,
 
   spike: {
-    baseVus:    50,
-    peakVus:    400,
+    baseVus:    70,
+    peakVus:    500,
     rampUpBase: '10s',
     rampToPeak:  '5s',
     holdPeak:   '20s',

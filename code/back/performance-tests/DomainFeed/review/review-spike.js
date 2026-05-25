@@ -4,15 +4,15 @@ import { b64decode } from 'k6/encoding';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 400,
+  userPoolSize: 500,
   password:     'Senha@12345',
   prefix:       'spikereview',
   minBookId:    1,
   maxBookId:    20,
 
   spike: {
-    baseVus:    50,
-    peakVus:    300,
+    baseVus:    70,
+    peakVus:    500,
     rampUpBase: '10s',
     rampToPeak: '5s',
     holdPeak:   '20s',

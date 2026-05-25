@@ -12,9 +12,9 @@ const CONFIG = {
   bookIds: [1, 2, 3, 4],
 
   load: {
-    readVus:        20,
-    manageVus:      5,
-    voteVus:        25,
+    readVus:        84,
+    manageVus:      21,
+    voteVus:        105,
     duration:       '2m',
   },
 
@@ -34,7 +34,7 @@ const CONFIG = {
 };
 
 export const options = {
-  setupTimeout: '5m',
+  setupTimeout: '10m',
 
   scenarios: {
     read: {

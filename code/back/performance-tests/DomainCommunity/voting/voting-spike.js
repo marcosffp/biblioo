@@ -11,7 +11,7 @@ const CONFIG = {
 
   spike: {
     duration: '1m',
-    target:   200, // Pico
+    target:   500, // Pico
   },
 
   thresholds: {
@@ -26,12 +26,13 @@ const CONFIG = {
 };
 
 export const options = {
-  setupTimeout: '5m',
+  setupTimeout: '10m',
   stages: [
-    { duration: '10s', target: 10 },
-    { duration: '10s', target: CONFIG.spike.target }, // pico abrupto
+    { duration: '10s', target: 70 },
+    { duration: '5s',  target: CONFIG.spike.target }, // pico abrupto
     { duration: '20s', target: CONFIG.spike.target }, // mantem
-    { duration: '10s', target: 0 }, // desce
+    { duration: '5s',  target: 70 }, // desce ao base
+    { duration: '10s', target: 0 },  // cooldown
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],
