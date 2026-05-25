@@ -10,6 +10,11 @@ class BookRepository {
 
   const BookRepository(this._remote, this._local);
 
+  List<Book> getCachedBooks() {
+    final cached = _local.getCachedBooks();
+    return cached.map((model) => model.toEntity()).toList();
+  }
+
   /// Busca livros por query (título, autor ou ISBN).
   /// Estratégia: remote-first → salva no cache → fallback local.
   Future<List<Book>> searchBooks(String query) async {

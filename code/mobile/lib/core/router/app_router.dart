@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:biblioo/core/shell/main_shell.dart';
 import 'package:biblioo/features/auth/bloc/auth_state.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
-import 'package:biblioo/screens/_placeholders.dart' show DnaScreen;
+import 'package:biblioo/screens/profile/dna_screen.dart';
 import 'package:biblioo/screens/assistant/assistant_screen.dart';
 import 'package:biblioo/screens/community/community_list_screen.dart';
 import 'package:biblioo/screens/community/community_detail_screen.dart';
@@ -59,8 +59,7 @@ String? _authRedirect(BuildContext context, GoRouterState state) {
   }
 
   // Autenticado, mas onboarding pendente: prende em /onboarding.
-  final onboardingDone =
-      Injector.instance.preferencesRepo.isOnboardingDone();
+  final onboardingDone = Injector.instance.preferencesRepo.isOnboardingDone();
   if (!onboardingDone) {
     return isOnboardingRoute ? null : '/onboarding';
   }
@@ -74,8 +73,7 @@ String? _authRedirect(BuildContext context, GoRouterState state) {
 final appRouter = GoRouter(
   initialLocation: '/login',
   redirect: _authRedirect,
-  refreshListenable:
-      _GoRouterRefreshStream(Injector.instance.authBloc.stream),
+  refreshListenable: _GoRouterRefreshStream(Injector.instance.authBloc.stream),
   routes: [
     // ── AUTH (sem bottom nav) ──────────────────────────────
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
@@ -129,15 +127,14 @@ final appRouter = GoRouter(
             shelfId: extra?['shelfId'] as int?,
             shelfItem: extra?['item'] as ShelfItem?,
           ),
-          transitionsBuilder:
-              (context, animation, secondaryAnimation, child) =>
-                  SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 1),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 1),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
         );
       },
     ),

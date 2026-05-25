@@ -35,6 +35,16 @@ class CommunityRepository {
 
   const CommunityRepository(this._remote, this._local);
 
+  List<Community> getCachedMineCommunities() {
+    return _local.getCachedMine().map((m) => m.toEntity()).toList();
+  }
+
+  List<Community> getCachedSuggestedCommunities() {
+    return _local.getCachedSuggestions().map((m) => m.toEntity()).toList();
+  }
+
+  DateTime? getCachedCommunitiesUpdatedAt() => _local.getLastUpdatedAt();
+
   Future<CommunityListResult> getCommunities({String? query}) async {
     try {
       final remoteMine = await _remote.getMineCommunities();

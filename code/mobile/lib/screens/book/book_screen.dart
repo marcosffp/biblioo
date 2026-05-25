@@ -11,7 +11,10 @@ import 'package:biblioo/features/feed/domain/review.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_bloc.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_event.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_state.dart';
+import 'package:biblioo/features/shelf/domain/reading_status.dart';
+import 'package:biblioo/features/shelf/domain/shelf.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
+import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -35,6 +38,8 @@ class _BookScreenState extends State<BookScreen> {
   late Future<Book> _future;
   ShelfItem? _shelfItem;
   int? _shelfId;
+  List<Shelf> _cachedShelves = [];
+  Map<int, ShelfItem> _bookShelfItems = {};
 
   @override
   void initState() {
@@ -43,6 +48,7 @@ class _BookScreenState extends State<BookScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadReview();
       _resolveShelfContext();
+      _refreshShelfPresence();
     });
   }
 
@@ -89,6 +95,24 @@ class _BookScreenState extends State<BookScreen> {
     );
   }
 
+  void _refreshShelfPresence() {
+    final repo = Injector.instance.shelfRepo;
+    final shelves = repo.getCachedShelves();
+    final items = repo.getCachedBookItems(widget.bookId);
+    if (_shelfId != null && _shelfItem != null) {
+      items[_shelfId!] = _shelfItem!;
+    }
+    if (!mounted) return;
+    setState(() {
+      _cachedShelves = shelves;
+      _bookShelfItems = items;
+    });
+  }
+
+  bool get _canReview => _bookShelfItems.values.any(
+    (item) => item.status == ReadingStatus.completed,
+  );
+
   void _showReviewSheet(Book book, Review? review) {
     showModalBottomSheet(
       context: context,
@@ -104,6 +128,121 @@ class _BookScreenState extends State<BookScreen> {
     );
   }
 
+  void _attemptReview(Book book, Review? review) {
+    if (_canReview) {
+      _showReviewSheet(book, review);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Avaliacao liberada apenas quando o livro estiver como Concluido em alguma estante.',
+        ),
+      ),
+    );
+  }
+
+  void _showAddToShelfSheet(Book book) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          minChildSize: 0.6,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            if (_cachedShelves.isEmpty) {
+              return ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(32),
+                children: [
+                  Icon(
+                    Icons.library_books_outlined,
+                    size: 48,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Nenhuma estante encontrada.',
+                    style: theme.textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Crie uma estante para adicionar este livro.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              );
+            }
+
+            return ListView.separated(
+              controller: scrollController,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              itemCount: _cachedShelves.length + 1,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (ctx, index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: Text(
+                      'Adicionar a estante',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                }
+                final shelf = _cachedShelves[index - 1];
+                final alreadyInShelf = _bookShelfItems.containsKey(shelf.id);
+                final statusLabel = alreadyInShelf
+                    ? _bookShelfItems[shelf.id]!.status.label
+                    : '';
+                return ListTile(
+                  title: Text(shelf.name),
+                  subtitle: Text(
+                    alreadyInShelf
+                        ? 'Ja esta nesta estante - $statusLabel'
+                        : '${shelf.itemCount} livros',
+                  ),
+                  trailing: alreadyInShelf
+                      ? Icon(
+                          Icons.check_circle,
+                          color: theme.colorScheme.primary,
+                        )
+                      : const Icon(Icons.add),
+                  enabled: !alreadyInShelf,
+                  onTap: alreadyInShelf
+                      ? null
+                      : () {
+                          context.read<ShelfBloc>().add(
+                            ShelfItemAddRequested(
+                              shelfId: shelf.id,
+                              bookId: book.id,
+                              initialStatus: ReadingStatus.wantToRead,
+                            ),
+                          );
+                          Navigator.pop(ctx);
+                        },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -114,6 +253,12 @@ class _BookScreenState extends State<BookScreen> {
           if (state.updatedItem.id == _shelfItem!.id) {
             setState(() => _shelfItem = state.updatedItem);
           }
+        }
+        if (state is ShelfLoaded ||
+            state is ShelfItemsLoaded ||
+            state is ShelfMutationSuccess ||
+            state is ShelfProgressUpdateSuccess) {
+          _refreshShelfPresence();
         }
       },
       child: Scaffold(
@@ -213,7 +358,18 @@ class _BookScreenState extends State<BookScreen> {
                             ],
                           ),
                         ),
-                        if (_shelfItem != null && _shelfId != null) ...[
+                        const SizedBox(height: 20),
+                        _Section(
+                          title: 'Estantes',
+                          child: _ShelfPickerSection(
+                            shelves: _cachedShelves,
+                            bookShelfItems: _bookShelfItems,
+                            onAdd: () => _showAddToShelfSheet(book),
+                          ),
+                        ),
+                        if (_shelfItem != null &&
+                            _shelfId != null &&
+                            _shelfItem!.isActiveReading) ...[
                           const SizedBox(height: 20),
                           _Section(
                             title: 'Progresso de leitura',
@@ -232,7 +388,8 @@ class _BookScreenState extends State<BookScreen> {
                               child: _ReviewSection(
                                 state: reviewState,
                                 review: review,
-                                onWrite: () => _showReviewSheet(book, review),
+                                canReview: _canReview,
+                                onWrite: () => _attemptReview(book, review),
                               ),
                             );
                           },
@@ -372,6 +529,231 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
+class _ShelfPickerSection extends StatelessWidget {
+  final List<Shelf> shelves;
+  final Map<int, ShelfItem> bookShelfItems;
+  final VoidCallback onAdd;
+
+  const _ShelfPickerSection({
+    required this.shelves,
+    required this.bookShelfItems,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final shelvesWithBook = shelves
+        .where((shelf) => bookShelfItems.containsKey(shelf.id))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (shelvesWithBook.isEmpty)
+          Text(
+            'Este livro ainda nao esta em nenhuma estante.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: shelvesWithBook.map((shelf) {
+              final item = bookShelfItems[shelf.id]!;
+              return _ShelfMiniCard(
+                shelf: shelf,
+                item: item,
+                onTap: () => _openShelf(context, shelf),
+              );
+            }).toList(),
+          ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: onAdd,
+          icon: const Icon(Icons.library_add_outlined, size: 18),
+          label: const Text('Adicionar a estante'),
+        ),
+      ],
+    );
+  }
+
+  void _openShelf(BuildContext context, Shelf shelf) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<ShelfBloc>(),
+          child: ShelfDetailScreenContent(shelf: shelf),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShelfMiniCard extends StatelessWidget {
+  final Shelf shelf;
+  final ShelfItem item;
+  final VoidCallback onTap;
+
+  const _ShelfMiniCard({
+    required this.shelf,
+    required this.item,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final statusColors = _statusColors(theme, item.status);
+
+    return SizedBox(
+      width: 140,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ShelfCover(
+                  coverUrl: shelf.coverPreview.isNotEmpty
+                      ? shelf.coverPreview.first
+                      : null,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  shelf.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColors.background,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: statusColors.border, width: 1),
+                  ),
+                  child: Text(
+                    item.status.label,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: statusColors.foreground,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  _StatusColors _statusColors(ThemeData theme, ReadingStatus status) {
+    switch (status) {
+      case ReadingStatus.completed:
+        return _StatusColors(
+          background: theme.colorScheme.primary,
+          foreground: theme.colorScheme.onPrimary,
+          border: theme.colorScheme.primary,
+        );
+      case ReadingStatus.reading:
+        return _StatusColors(
+          background: theme.colorScheme.tertiary,
+          foreground: theme.colorScheme.onTertiary,
+          border: theme.colorScheme.tertiary,
+        );
+      case ReadingStatus.rereading:
+        return _StatusColors(
+          background: theme.colorScheme.secondary,
+          foreground: theme.colorScheme.onSecondary,
+          border: theme.colorScheme.secondary,
+        );
+      case ReadingStatus.abandoned:
+        return _StatusColors(
+          background: theme.colorScheme.error,
+          foreground: theme.colorScheme.onError,
+          border: theme.colorScheme.error,
+        );
+      case ReadingStatus.wantToRead:
+        return _StatusColors(
+          background: theme.colorScheme.primaryContainer,
+          foreground: theme.colorScheme.onPrimaryContainer,
+          border: theme.colorScheme.primaryContainer,
+        );
+    }
+  }
+}
+
+class _StatusColors {
+  final Color background;
+  final Color foreground;
+  final Color border;
+
+  const _StatusColors({
+    required this.background,
+    required this.foreground,
+    required this.border,
+  });
+}
+
+class _ShelfCover extends StatelessWidget {
+  final String? coverUrl;
+
+  const _ShelfCover({this.coverUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (coverUrl != null && coverUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          coverUrl!,
+          height: 64,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(theme),
+        ),
+      );
+    }
+
+    return _placeholder(theme);
+  }
+
+  Widget _placeholder(ThemeData theme) {
+    return Container(
+      height: 64,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: theme.colorScheme.surfaceContainerHighest,
+      ),
+      child: Icon(
+        Icons.library_books_outlined,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
 class _Cover extends StatelessWidget {
   final String? coverUrl;
 
@@ -455,11 +837,13 @@ class _RatingRow extends StatelessWidget {
 class _ReviewSection extends StatelessWidget {
   final ReviewState state;
   final Review? review;
+  final bool canReview;
   final VoidCallback onWrite;
 
   const _ReviewSection({
     required this.state,
     required this.review,
+    required this.canReview,
     required this.onWrite,
   });
 
@@ -472,6 +856,25 @@ class _ReviewSection extends StatelessWidget {
     }
 
     if (review == null) {
+      if (!canReview) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Para avaliar, marque este livro como Concluido em alguma estante sua.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: null,
+              icon: const Icon(Icons.lock_outline, size: 18),
+              label: const Text('Avaliacao bloqueada'),
+            ),
+          ],
+        );
+      }
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -511,11 +914,19 @@ class _ReviewSection extends StatelessWidget {
           Text(review!.text, style: theme.textTheme.bodyMedium),
         ],
         const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: onWrite,
-          icon: const Icon(Icons.edit_outlined, size: 18),
-          label: const Text('Editar avaliacao'),
-        ),
+        if (canReview)
+          OutlinedButton.icon(
+            onPressed: onWrite,
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Editar avaliacao'),
+          )
+        else
+          Text(
+            'Edicao disponivel apos marcar como Concluido em alguma estante.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
       ],
     );
   }
@@ -735,7 +1146,9 @@ class _ProgressSectionState extends State<_ProgressSection> {
   int get _progressPercent => (_progressFraction * 100).round();
 
   void _setPage(int page) {
-    final clamped = _totalPages > 0 ? page.clamp(0, _totalPages) : (page < 0 ? 0 : page);
+    final clamped = _totalPages > 0
+        ? page.clamp(0, _totalPages)
+        : (page < 0 ? 0 : page);
     setState(() => _currentPage = clamped);
     final text = '$clamped';
     if (_pageController.text != text) {
@@ -759,7 +1172,9 @@ class _ProgressSectionState extends State<_ProgressSection> {
   void _onPageFieldChanged(String value) {
     final parsed = int.tryParse(value.trim());
     if (parsed == null) return;
-    final clamped = _totalPages > 0 ? parsed.clamp(0, _totalPages) : (parsed < 0 ? 0 : parsed);
+    final clamped = _totalPages > 0
+        ? parsed.clamp(0, _totalPages)
+        : (parsed < 0 ? 0 : parsed);
     setState(() => _currentPage = clamped);
   }
 

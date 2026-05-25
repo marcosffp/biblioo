@@ -14,6 +14,11 @@ class FeedRepository {
 
   const FeedRepository(this._remote, this._local);
 
+  List<FeedItem> getCachedFeed(int userId) {
+    final cached = _local.getCachedFeed(userId);
+    return cached.map((item) => item.toEntity()).toList();
+  }
+
   Future<FeedPage> getFeed({
     required int userId,
     String? cursor,

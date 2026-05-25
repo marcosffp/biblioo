@@ -40,6 +40,9 @@ import 'package:biblioo/features/recommendation/data/recommendation_repository.d
 import 'package:biblioo/features/preferences/data/preferences_local_datasource.dart';
 import 'package:biblioo/features/preferences/data/preferences_remote_datasource.dart';
 import 'package:biblioo/features/preferences/data/preferences_repository.dart';
+import 'package:biblioo/features/dna/data/dna_local_datasource.dart';
+import 'package:biblioo/features/dna/data/dna_remote_datasource.dart';
+import 'package:biblioo/features/dna/data/dna_repository.dart';
 import 'package:biblioo/features/assistant/bloc/assistant_bloc.dart';
 import 'package:biblioo/features/assistant/data/assistant_local_datasource.dart';
 import 'package:biblioo/features/assistant/data/assistant_remote_datasource.dart';
@@ -129,6 +132,11 @@ class Injector {
   FeedRemoteDatasource get _feedRemote => FeedRemoteDatasource(_dio);
   FeedRepository get feedRepo => FeedRepository(_feedRemote, _feedLocal);
 
+  // ── dna ───────────────────────────────────────────────
+  DnaLocalDatasource get _dnaLocal => DnaLocalDatasource(_prefs);
+  DnaRemoteDatasource get _dnaRemote => DnaRemoteDatasource(_dio);
+  DnaRepository get dnaRepo => DnaRepository(_dnaRemote, _dnaLocal);
+
   // ── notification ─────────────────────────────────────
   NotificationRemoteDatasource get _notificationRemote =>
       NotificationRemoteDatasource(_dio);
@@ -174,9 +182,7 @@ class Injector {
     BlocProvider<NotificationBloc>(
       create: (_) => NotificationBloc(notificationRepo),
     ),
-    BlocProvider<AssistantBloc>(
-      create: (_) => AssistantBloc(assistantRepo),
-    ),
+    BlocProvider<AssistantBloc>(create: (_) => AssistantBloc(assistantRepo)),
     BlocProvider<RecommendationBloc>(
       create: (_) => RecommendationBloc(recommendationRepo),
     ),

@@ -1,5 +1,6 @@
 import 'package:biblioo/features/shelf/domain/reading_status.dart';
 import 'package:biblioo/features/shelf/data/models/shelf_item_model.dart';
+import 'package:biblioo/features/shelf/data/models/shelf_model.dart';
 import 'package:biblioo/features/shelf/domain/shelf.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'shelf_local_datasource.dart';
@@ -14,6 +15,11 @@ class ShelfRepository {
   const ShelfRepository(this._remote, this._local);
 
   // ── Shelf CRUD ─────────────────────────────────────────
+
+  List<Shelf> getCachedShelves() {
+    final cached = _local.getCachedShelves();
+    return cached.map((s) => s.toEntity()).toList();
+  }
 
   Future<List<Shelf>> getShelves() async {
     try {
@@ -38,10 +44,7 @@ class ShelfRepository {
     }
   }
 
-  Future<Shelf> createShelf({
-    required String name,
-    String? description,
-  }) async {
+  Future<Shelf> createShelf({required String name, String? description}) async {
     final model = await _remote.createShelf(
       name: name,
       description: description,
@@ -91,6 +94,25 @@ class ShelfRepository {
     }
   }
 
+  List<ShelfItem> getCachedItems(int shelfId) {
+    final cached = _local.getCachedItems(shelfId);
+    return cached.map((item) => item.toEntity()).toList();
+  }
+
+  Map<int, ShelfItem> getCachedBookItems(int bookId) {
+    final result = <int, ShelfItem>{};
+    final shelves = _local.getCachedShelves();
+    for (final shelf in shelves) {
+      final items = _local.getCachedItems(shelf.id);
+      for (final item in items) {
+        if (item.bookId == bookId) {
+          result[shelf.id] = item.toEntity();
+        }
+      }
+    }
+    return result;
+  }
+
   Future<ShelfItem> getItem(int shelfId, int itemId) async {
     final model = await _remote.getItem(shelfId, itemId);
     return model.toEntity();
@@ -106,11 +128,15 @@ class ShelfRepository {
       bookId: bookId,
       initialStatus: initialStatus,
     );
+    await _upsertCachedItem(shelfId, model);
+    await _bumpShelfCount(shelfId, 1);
     return model.toEntity();
   }
 
   Future<void> removeItem(int shelfId, int itemId) async {
     await _remote.removeItem(shelfId, itemId);
+    await _removeCachedItem(shelfId, itemId);
+    await _bumpShelfCount(shelfId, -1);
   }
 
   Future<ShelfItem> updateProgress({
@@ -174,5 +200,27 @@ class ShelfRepository {
     }
 
     await _local.saveItems(shelfId, cached);
+  }
+
+  Future<void> _removeCachedItem(int shelfId, int itemId) async {
+    final cached = _local.getCachedItems(shelfId);
+    cached.removeWhere((item) => item.id == itemId);
+    await _local.saveItems(shelfId, cached);
+  }
+
+  Future<void> _bumpShelfCount(int shelfId, int delta) async {
+    final shelves = _local.getCachedShelves();
+    final index = shelves.indexWhere((s) => s.id == shelfId);
+    if (index == -1) return;
+    final current = shelves[index];
+    final nextCount = (current.itemCount + delta).clamp(0, 1 << 30);
+    shelves[index] = ShelfModel(
+      id: current.id,
+      name: current.name,
+      description: current.description,
+      itemCount: nextCount,
+      coverPreview: current.coverPreview,
+    );
+    await _local.saveShelves(shelves);
   }
 }
