@@ -28,14 +28,14 @@ const CONFIG = {
 
   // Pool pequeno: todos os VUs entram na mesma comunidade
   // para maximizar colisão de escrita concorrente
-  userPoolSize:      30,
+  userPoolSize:      200,
   communityPoolSize: 1,   // 1 comunidade só — todos brigando pelo mesmo canal
   bookId:            1,
 
   concurrency: {
-    vus:      30,          // todos enviando ao mesmo tempo na mesma comunidade
+    vus:      200,          // todos enviando ao mesmo tempo na mesma comunidade
     duration: '2m',
-    burstVus: 30,          // fase de burst: todos enviam ao mesmo tempo sem intervalo
+    burstVus: 200,          // fase de burst: todos enviam ao mesmo tempo sem intervalo
     burstDuration: '20s',
   },
 
