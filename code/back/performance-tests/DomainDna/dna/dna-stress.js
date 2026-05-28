@@ -4,7 +4,7 @@ import { b64decode } from 'k6/encoding';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 200,
+  userPoolSize: 500,
   password:     'Senha@12345',
   prefix:       'stressdna',
   bookIds:      [1, 2, 3, 4, 5],
@@ -14,7 +14,7 @@ const CONFIG = {
       { duration: '30s',  target: 20  },
       { duration: '60s',  target: 100 },
       { duration: '60s',  target: 200 },
-      { duration: '60s',  target: 400 },
+      { duration: '60s',  target: 500 },
       { duration: '30s',  target: 0   },
     ],
   },
@@ -180,56 +180,6 @@ export default function (data) {
   });
   if (dnaRes.status !== 200) {
     logWarn({ step: 'getDna', status: dnaRes.status, body: dnaRes.body });
-  }
-
-  sleep(CONFIG.sleep.betweenOps);
-
-  // GET /dna/snapshots
-  const snapshotsRes = http.get(`${CONFIG.base}/dna/snapshots`, { headers: authH });
-  check(snapshotsRes, {
-    'snapshots 200':     (r) => r.status === 200,
-    'snapshots é array': (r) => {
-      try { return Array.isArray(JSON.parse(r.body)); }
-      catch { return false; }
-    },
-  });
-  if (snapshotsRes.status !== 200) {
-    logWarn({ step: 'getSnapshots', userId, status: snapshotsRes.status, body: snapshotsRes.body });
-  }
-
-  sleep(CONFIG.sleep.betweenOps);
-
-  // GET /dna/phases
-  const phasesRes = http.get(`${CONFIG.base}/dna/phases`, { headers: authH });
-  check(phasesRes, {
-    'phases 200':     (r) => r.status === 200,
-    'phases é array': (r) => {
-      try { return Array.isArray(JSON.parse(r.body)); }
-      catch { return false; }
-    },
-  });
-  if (phasesRes.status !== 200) {
-    logWarn({ step: 'getPhases', userId, status: phasesRes.status, body: phasesRes.body });
-  }
-
-  // PATCH /dna/phases/{phaseId}/name — condicional, fases existem somente após DnaScheduler
-  if (phasesRes.status === 200) {
-    let phases = [];
-    try { phases = JSON.parse(phasesRes.body); } catch { /* sem fases */ }
-
-    if (phases.length > 0) {
-      const phaseId   = phases[(__VU - 1) % phases.length].id;
-      const renameRes = http.patch(
-        `${CONFIG.base}/dna/phases/${phaseId}/name`,
-        JSON.stringify({ customName: `Fase Stress VU${__VU} iter${__ITER}` }),
-        { headers: { 'Content-Type': 'application/json', ...authH } }
-      );
-      check(renameRes, { 'rename phase 200': (r) => r.status === 200 });
-      if (renameRes.status !== 200) {
-        logWarn({ step: 'renamePhase', phaseId, status: renameRes.status, body: renameRes.body });
-      }
-      sleep(CONFIG.sleep.betweenOps);
-    }
   }
 
   sleep(CONFIG.sleep.afterIteration);

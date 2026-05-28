@@ -4,7 +4,7 @@ import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 const CONFIG = {
   baseUrl:  'http://localhost:8080',
-  poolSize: 500,
+  poolSize: 600,
   password: 'Senha@12345',
   prefix:   'spikerolldice',
 
@@ -75,8 +75,8 @@ export const options = {
       startVUs:         0,
       stages: [
         { duration: '10s', target: 50  },
-        { duration: '20s', target: 300 },
-        { duration: '10s', target: 300 },
+        { duration: '20s', target: 600 },
+        { duration: '10s', target: 600 },
         { duration: '10s', target: 50  },
       ],
       gracefulRampDown: '5s',

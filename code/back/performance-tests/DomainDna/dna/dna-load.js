@@ -200,8 +200,7 @@ export function getDna(data) {
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// DnaController: GET /dna/snapshots + GET /dna/phases
-// PATCH /dna/phases/{phaseId}/name testado apenas se existirem fases (criadas pelo DnaScheduler)
+// DnaController: GET /dna com diferentes usuários simultâneos
 export function listDna(data) {
   const user = data.users[(__VU - 1) % data.users.length];
   if (!user) return;
@@ -209,49 +208,18 @@ export function listDna(data) {
 
   const authH = { Authorization: `Bearer ${accessToken}` };
 
-  const snapshotsRes = http.get(`${CONFIG.base}/dna/snapshots`, { headers: authH });
-  check(snapshotsRes, {
-    'snapshots 200':     (r) => r.status === 200,
-    'snapshots é array': (r) => {
-      try { return Array.isArray(JSON.parse(r.body)); }
-      catch { return false; }
+  const res = http.get(`${CONFIG.base}/dna`, { headers: authH });
+  check(res, {
+    'list dna 200':            (r) => r.status === 200,
+    'retorna status ou booksRead': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return body.status != null || body.booksRead != null;
+      } catch { return false; }
     },
   });
-  if (snapshotsRes.status !== 200) {
-    logWarn({ step: 'getSnapshots', userId, status: snapshotsRes.status, body: snapshotsRes.body });
-  }
-
-  sleep(CONFIG.sleep.betweenSteps);
-
-  const phasesRes = http.get(`${CONFIG.base}/dna/phases`, { headers: authH });
-  check(phasesRes, {
-    'phases 200':     (r) => r.status === 200,
-    'phases é array': (r) => {
-      try { return Array.isArray(JSON.parse(r.body)); }
-      catch { return false; }
-    },
-  });
-  if (phasesRes.status !== 200) {
-    logWarn({ step: 'getPhases', userId, status: phasesRes.status, body: phasesRes.body });
-  }
-
-  // Renomear somente se existir fase — fases exigem 3 meses consecutivos de mesmo arquétipo
-  if (phasesRes.status === 200) {
-    let phases = [];
-    try { phases = JSON.parse(phasesRes.body); } catch { /* sem fases */ }
-
-    if (phases.length > 0) {
-      const phaseId   = phases[0].id;
-      const renameRes = http.patch(
-        `${CONFIG.base}/dna/phases/${phaseId}/name`,
-        JSON.stringify({ customName: `Fase Load VU${__VU}` }),
-        { headers: { 'Content-Type': 'application/json', ...authH } }
-      );
-      check(renameRes, { 'rename phase 200': (r) => r.status === 200 });
-      if (renameRes.status !== 200) {
-        logWarn({ step: 'renamePhase', phaseId, status: renameRes.status, body: renameRes.body });
-      }
-    }
+  if (res.status !== 200) {
+    logWarn({ step: 'listDna', userId, status: res.status, body: res.body });
   }
 
   sleep(CONFIG.sleep.listing);

@@ -3,7 +3,7 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 500,
+  userPoolSize: 600,
   password:     'Senha@12345',
   prefix:       'stressrec',
 

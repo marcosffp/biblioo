@@ -188,27 +188,5 @@ export default function (data) {
     logWarn({ step: 'getDna', status: dnaRes.status, body: dnaRes.body });
   }
 
-  sleep(CONFIG.sleep.betweenOps);
-
-  // GET /dna/snapshots
-  const snapshotsRes = http.get(`${CONFIG.base}/dna/snapshots`, { headers: authH });
-  check(snapshotsRes, {
-    'snapshots 200 ou 429': (r) => r.status === 200 || r.status === 429,
-  });
-  if (snapshotsRes.status !== 200 && snapshotsRes.status !== 429) {
-    logWarn({ step: 'getSnapshots', userId, status: snapshotsRes.status, body: snapshotsRes.body });
-  }
-
-  sleep(CONFIG.sleep.betweenOps);
-
-  // GET /dna/phases
-  const phasesRes = http.get(`${CONFIG.base}/dna/phases`, { headers: authH });
-  check(phasesRes, {
-    'phases 200 ou 429': (r) => r.status === 200 || r.status === 429,
-  });
-  if (phasesRes.status !== 200 && phasesRes.status !== 429) {
-    logWarn({ step: 'getPhases', userId, status: phasesRes.status, body: phasesRes.body });
-  }
-
   sleep(CONFIG.sleep.afterIteration);
 }
