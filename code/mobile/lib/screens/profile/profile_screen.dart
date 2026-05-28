@@ -24,6 +24,7 @@ import 'widgets/profile_details_section.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/profile_privacy_notice.dart';
 import 'widgets/profile_stats_card.dart';
+import 'widgets/share_capsule_sheet.dart';
 
 enum ProfileTarget { me, user }
 
@@ -133,6 +134,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Compartilhamento em breve')));
+  }
+
+  void _openCapsule(User user) {
+    showShareCapsuleSheet(
+      context: context,
+      userHandle: '@${user.username}',
+      booksRead: _booksRead,
+    );
   }
 
   Future<void> _loadGoalTarget() async {
@@ -644,7 +653,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPrimaryAction: isOwner
                                 ? () => context.push('/profile/edit')
                                 : () => _toggleFollow(user),
-                            onShare: _shareProfile,
+                            onShare: isOwner
+                                ? () => _openCapsule(user)
+                                : _shareProfile,
                           ),
                           const SizedBox(height: 8),
                           ProfileDetailsSection(
