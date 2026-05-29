@@ -104,7 +104,7 @@ class ProfileHeader extends StatelessWidget {
                             ),
                           ),
                           Tooltip(
-                            message: 'Compartilhar perfil',
+                            message: 'Compartilhar',
                             child: FilledButton(
                               onPressed: onShare,
                               style: FilledButton.styleFrom(
@@ -112,7 +112,12 @@ class ProfileHeader extends StatelessWidget {
                                 padding: EdgeInsets.zero,
                                 visualDensity: VisualDensity.compact,
                               ),
-                              child: const Icon(Icons.share_outlined, size: 18),
+                              child: Icon(
+                                isOwner
+                                    ? Icons.auto_awesome
+                                    : Icons.share_outlined,
+                                size: 18,
+                              ),
                             ),
                           ),
                         ]
@@ -135,13 +140,17 @@ class ProfileHeader extends StatelessWidget {
                                   child: Text(primaryLabel),
                                 ),
                           isOwner
-                              ? FilledButton(
+                              ? FilledButton.icon(
                                   onPressed: onShare,
+                                  icon: const Icon(
+                                    Icons.auto_awesome,
+                                    size: 16,
+                                  ),
+                                  label: const Text('Compartilhar'),
                                   style: FilledButton.styleFrom(
                                     minimumSize: const Size(0, 36),
                                     visualDensity: VisualDensity.compact,
                                   ),
-                                  child: const Text('Compartilhar'),
                                 )
                               : OutlinedButton(
                                   onPressed: onShare,

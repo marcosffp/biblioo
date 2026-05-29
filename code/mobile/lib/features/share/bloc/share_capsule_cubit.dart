@@ -8,10 +8,10 @@ class ShareCapsuleCubit extends Cubit<ShareCapsuleState> {
 
   ShareCapsuleCubit(this._repository) : super(ShareCapsuleInitial());
 
-  Future<void> load() async {
+  Future<void> load({bool forceRefresh = false}) async {
     emit(ShareCapsuleLoading());
     try {
-      final bytes = await _repository.getDnaCard();
+      final bytes = await _repository.getDnaCard(forceRefresh: forceRefresh);
       emit(ShareCapsuleLoaded(bytes));
     } catch (_) {
       emit(ShareCapsuleError());

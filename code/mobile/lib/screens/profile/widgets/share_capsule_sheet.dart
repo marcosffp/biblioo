@@ -82,29 +82,33 @@ class _ShareCapsuleSheetState extends State<_ShareCapsuleSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: ColoredBox(
-              color: const Color(0xFF121212),
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: BlocBuilder<ShareCapsuleCubit, ShareCapsuleState>(
-                  builder: (context, state) {
-                    if (state is ShareCapsuleLoaded) {
-                      return Image.memory(state.bytes, fit: BoxFit.cover);
-                    }
-                    if (state is ShareCapsuleError) {
-                      return const _CapsuleMessage(
-                        icon: Icons.error_outline,
-                        text:
-                            'Não foi possível gerar a imagem.\nComplete mais leituras e tente novamente.',
-                      );
-                    }
-                    return const _CapsuleMessage(
-                      icon: null,
-                      text: 'Gerando sua cápsula literária…',
-                    );
-                  },
+          // Limita a largura da cápsula para não ocupar a tela inteira em
+          // celulares (replica o comportamento do max-w-md do front).
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: ColoredBox(
+                  color: const Color(0xFF121212),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: BlocBuilder<ShareCapsuleCubit, ShareCapsuleState>(
+                      builder: (context, state) {
+                        if (state is ShareCapsuleLoaded) {
+                          return Image.memory(state.bytes, fit: BoxFit.contain);
+                        }
+                        if (state is ShareCapsuleError) {
+                          return _CapsuleErrorMessage(
+                            onRetry: () => context
+                                .read<ShareCapsuleCubit>()
+                                .load(forceRefresh: true),
+                          );
+                        }
+                        return const _CapsuleLoadingMessage();
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -151,11 +155,8 @@ class _ShareCapsuleSheetState extends State<_ShareCapsuleSheet> {
   }
 }
 
-class _CapsuleMessage extends StatelessWidget {
-  final IconData? icon;
-  final String text;
-
-  const _CapsuleMessage({required this.icon, required this.text});
+class _CapsuleLoadingMessage extends StatelessWidget {
+  const _CapsuleLoadingMessage();
 
   @override
   Widget build(BuildContext context) {
@@ -165,22 +166,52 @@ class _CapsuleMessage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null)
-              Icon(icon, color: Colors.white70, size: 32)
-            else
-              const SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Color(0xFF3FC3A7),
-                ),
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Theme.of(context).colorScheme.primary,
               ),
+            ),
             const SizedBox(height: 12),
-            Text(
-              text,
+            const Text(
+              'Gerando sua cápsula literária…',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CapsuleErrorMessage extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _CapsuleErrorMessage({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white70, size: 32),
+            const SizedBox(height: 12),
+            const Text(
+              'Não foi possível gerar a imagem.\nVerifique sua conexão ou tente novamente.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Tentar novamente'),
             ),
           ],
         ),

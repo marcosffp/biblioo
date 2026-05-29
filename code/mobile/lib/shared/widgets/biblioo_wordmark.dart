@@ -13,7 +13,7 @@ class BibliooWordmark extends StatelessWidget {
     final brand = color ?? Theme.of(context).colorScheme.primary;
 
     return SizedBox(
-      height: fontSize * 1.6,
+      height: fontSize * 1.3,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -32,10 +32,10 @@ class BibliooWordmark extends StatelessWidget {
           // A carinha entra como o "oo": cada olho fica do tamanho das letras
           // e o sorriso desce abaixo da linha de base.
           Transform.translate(
-            offset: Offset(0, fontSize * 0.18),
+            offset: Offset(0, fontSize * 0.14),
             child: Image.asset(
               'assets/images/biblioo-carinha-branca-logo.png',
-              height: fontSize * 1.55,
+              height: fontSize * 1.26,
               color: brand,
               colorBlendMode: BlendMode.srcIn,
               fit: BoxFit.contain,

@@ -141,7 +141,8 @@ class Injector {
 
   // ── share ─────────────────────────────────────────────
   ShareRemoteDatasource get _shareRemote => ShareRemoteDatasource(_dio);
-  ShareRepository get shareRepo => ShareRepository(_shareRemote);
+  // Singleton: cache em memória do PNG depende de instância única.
+  late final ShareRepository shareRepo = ShareRepository(_shareRemote);
 
   // ── notification ─────────────────────────────────────
   NotificationRemoteDatasource get _notificationRemote =>
