@@ -1,3 +1,5 @@
+import 'package:biblioo/features/auth/bloc/auth_bloc.dart';
+import 'package:biblioo/features/auth/bloc/auth_state.dart';
 import 'package:biblioo/features/preferences/bloc/preferences_bloc.dart';
 import 'package:biblioo/features/preferences/bloc/preferences_event.dart';
 import 'package:biblioo/features/preferences/bloc/preferences_state.dart';
@@ -34,14 +36,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
+  int? _currentUserId() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) return authState.session.user.id;
+    return null;
+  }
+
   void _finish() {
+    final userId = _currentUserId();
+    if (userId == null) return;
     context
         .read<PreferencesBloc>()
-        .add(PreferencesSubmitted(_selectedGenres.toList()));
+        .add(PreferencesSubmitted(userId, _selectedGenres.toList()));
   }
 
   void _skip() {
-    context.read<PreferencesBloc>().add(PreferencesSkipped());
+    final userId = _currentUserId();
+    if (userId == null) return;
+    context.read<PreferencesBloc>().add(PreferencesSkipped(userId));
   }
 
   @override
