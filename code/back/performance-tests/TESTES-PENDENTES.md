@@ -1,7 +1,14 @@
 # Testes de Performance Pendentes
 
-> **Referência:** 2026-05-28  
-> Total: **43 testes pendentes** de 62 planejados
+> **Referência:** 2026-05-28 (atualizado após bateria de 31 testes)
+> Total: **12 testes pendentes** de 62 planejados (50 executados — 81%)
+>
+> ✅ **Já executados nesta atualização:** DomainUser (3), DomainShare (3), DomainTrending (3),
+> DomainFeed inteiro (15 — sendo `review` reprovado), DomainCommunity manage+messageRest+voting (7).
+>
+> ⏳ **Restam 12:** DomainDna (3), DomainRecommendation recommendation+roll-dice (6),
+> DomainCommunity `message`/WebSocket (3 + concurrency). As seções abaixo dos já executados
+> permanecem como referência histórica; ver `RELATORIO-GERAL.md` para os resultados.
 
 ---
 
