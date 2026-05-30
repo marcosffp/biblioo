@@ -19,6 +19,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'widgets/share_capsule_sheet.dart';
 import 'widgets/profile_dna_section.dart';
 import 'widgets/profile_details_section.dart';
 import 'widgets/profile_header.dart';
@@ -129,10 +130,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return isOwner || !user.restricted;
   }
 
-  void _shareProfile() {
-    ScaffoldMessenger.of(
+  Future<void> _shareProfile(User user) async {
+    if (!mounted) return;
+    await showShareCapsuleSheet(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Compartilhamento em breve')));
+      userName: user.username,
+      userHandle: '@${user.username}',
+      avatarUrl: user.avatarUrl,
+      booksRead: _booksRead,
+      pagesRead: _pagesRead,
+      userId: user.id,
+    );
   }
 
   Future<void> _loadGoalTarget() async {
@@ -230,6 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _followersCount = 0;
         _followingCount = 0;
         _socialLoading = false;
+
       });
     }
   }
@@ -644,7 +653,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPrimaryAction: isOwner
                                 ? () => context.push('/profile/edit')
                                 : () => _toggleFollow(user),
-                            onShare: _shareProfile,
+                            onShare: () => _shareProfile(user),
                           ),
                           const SizedBox(height: 8),
                           ProfileDetailsSection(

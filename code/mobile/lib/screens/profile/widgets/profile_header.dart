@@ -83,28 +83,44 @@ class ProfileHeader extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final compact = constraints.maxWidth < 220;
-
-                return OverflowBar(
-                  alignment: MainAxisAlignment.end,
-                  spacing: 8,
-                  overflowAlignment: OverflowBarAlignment.end,
-                  overflowSpacing: 8,
-                  children: compact
-                      ? [
-                          Tooltip(
-                            message: primaryLabel,
-                            child: OutlinedButton(
-                              onPressed: onPrimaryAction,
-                              style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(36, 36),
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
-                              ),
-                              child: Icon(primaryIcon, size: 18),
+                final actions = <Widget>[
+                  compact
+                      ? Tooltip(
+                          message: primaryLabel,
+                          child: OutlinedButton(
+                            onPressed: onPrimaryAction,
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(36, 36),
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
                             ),
+                            child: Icon(primaryIcon, size: 18),
                           ),
-                          Tooltip(
-                            message: 'Compartilhar perfil',
+                        )
+                      : isOwner
+                      ? OutlinedButton(
+                          onPressed: onPrimaryAction,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: Text(primaryLabel),
+                        )
+                      : FilledButton(
+                          onPressed: onPrimaryAction,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 36),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: Text(primaryLabel),
+                        ),
+                ];
+
+                if (isOwner) {
+                  actions.add(
+                    compact
+                        ? Tooltip(
+                            message: 'Compartilhar capsula',
                             child: FilledButton(
                               onPressed: onShare,
                               style: FilledButton.styleFrom(
@@ -114,44 +130,24 @@ class ProfileHeader extends StatelessWidget {
                               ),
                               child: const Icon(Icons.share_outlined, size: 18),
                             ),
+                          )
+                        : FilledButton(
+                            onPressed: onShare,
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 36),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            child: const Text('Capsula de leitura'),
                           ),
-                        ]
-                      : [
-                          isOwner
-                              ? OutlinedButton(
-                                  onPressed: onPrimaryAction,
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(0, 36),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                  child: Text(primaryLabel),
-                                )
-                              : FilledButton(
-                                  onPressed: onPrimaryAction,
-                                  style: FilledButton.styleFrom(
-                                    minimumSize: const Size(0, 36),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                  child: Text(primaryLabel),
-                                ),
-                          isOwner
-                              ? FilledButton(
-                                  onPressed: onShare,
-                                  style: FilledButton.styleFrom(
-                                    minimumSize: const Size(0, 36),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                  child: const Text('Compartilhar'),
-                                )
-                              : OutlinedButton(
-                                  onPressed: onShare,
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(0, 36),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                  child: const Text('Compartilhar'),
-                                ),
-                        ],
+                  );
+                }
+
+                return OverflowBar(
+                  alignment: MainAxisAlignment.end,
+                  spacing: 8,
+                  overflowAlignment: OverflowBarAlignment.end,
+                  overflowSpacing: 8,
+                  children: actions,
                 );
               },
             ),

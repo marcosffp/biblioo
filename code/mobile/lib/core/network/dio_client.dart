@@ -1,17 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-
-// em dev: flutter run --dart-define=API_URL=http://localhost:8080
-// em prod: flutter build apk --dart-define=API_URL=https://api.biblioo.com.br
-const _apiUrl = String.fromEnvironment(
-  'API_URL',
-  defaultValue: 'http://localhost:8080',
-);
+import 'package:biblioo/core/config/app_env.dart';
 
 Dio createDio() {
   final dio = Dio(
     BaseOptions(
-      baseUrl: _apiUrl,
+      baseUrl: apiUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ),
