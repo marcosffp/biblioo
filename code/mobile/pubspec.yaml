@@ -46,6 +46,9 @@ dependencies:
   image_picker: ^1.1.2
   path_provider: ^2.1.4
   flutter_secure_storage: ^9.2.4
+  google_sign_in: ^6.2.1
+  flutter_dotenv: ^5.1.0
+  app_links: ^6.4.0
 
   # local
   drift: ^2.18.0        # banco local SQLite tipado
@@ -96,6 +99,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

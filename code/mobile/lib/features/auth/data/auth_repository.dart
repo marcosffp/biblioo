@@ -47,6 +47,12 @@ class AuthRepository {
       return AuthFailure(apiMessage ?? 'Dados invalidos. Confira os campos.');
     }
 
+    if (status == 429) {
+      return AuthFailure(
+        apiMessage ?? 'Limite de solicitacoes atingido. Tente mais tarde.',
+      );
+    }
+
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout ||
         e.type == DioExceptionType.sendTimeout ||
@@ -171,6 +177,48 @@ class AuthRepository {
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
         user: result.user.toEntity(),
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  Future<AuthSession> loginWithGoogle({required String idToken}) async {
+    try {
+      final result = await _remote.loginWithGoogle(idToken: idToken);
+      await _secure.saveTokens(
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+      );
+      await _local.saveSessionUser(result.user.toEntity());
+      return AuthSession(
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+        user: result.user.toEntity(),
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  Future<String> requestPasswordReset({required String email}) async {
+    try {
+      return await _remote.requestPasswordReset(email: email);
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  Future<String> resetPassword({
+    required String token,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      return await _remote.resetPassword(
+        token: token,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
       );
     } on DioException catch (e) {
       throw _mapDioError(e);

@@ -9,6 +9,7 @@ import 'package:biblioo/screens/community/community_list_screen.dart';
 import 'package:biblioo/screens/community/community_detail_screen.dart';
 import 'package:biblioo/screens/shelf/biblioteca_screen.dart';
 import 'package:biblioo/screens/auth/login_screen.dart';
+import 'package:biblioo/screens/auth/forgot_password_screen.dart';
 import 'package:biblioo/screens/auth/register_screen.dart';
 import 'package:biblioo/screens/feed/create_post_screen.dart';
 import 'package:biblioo/screens/feed/feed_screen.dart';
@@ -77,6 +78,12 @@ final appRouter = GoRouter(
   routes: [
     // ── AUTH (sem bottom nav) ──────────────────────────────
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => ForgotPasswordScreen(
+        initialToken: state.uri.queryParameters['token'],
+      ),
+    ),
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),
