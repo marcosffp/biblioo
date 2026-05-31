@@ -17,7 +17,7 @@ final _welcomeMessage = ChatMessage(
   id: 'welcome',
   isUser: false,
   content:
-      'Olá! Eu sou o Bibo, seu assistente literário 📖✨ Posso recomendar livros, organizar sua estante ou encontrar leituras parecidas com as suas favoritas. Por onde começamos?',
+      'Olá! Eu sou a Bibi, sua assistente literária 📖✨ Posso recomendar livros, organizar sua estante ou encontrar leituras parecidas com as suas favoritas. Por onde começamos?',
   timestamp: DateTime.fromMillisecondsSinceEpoch(0),
 );
 

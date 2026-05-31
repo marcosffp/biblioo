@@ -125,7 +125,7 @@ class _AssistantScreenState extends State<AssistantScreen>
       builder: (ctx) => AlertDialog(
         title: const Text('Limpar conversa'),
         content: const Text(
-          'Isso apagará todo o histórico com o Bibo. Deseja continuar?',
+          'Isso apagará todo o histórico com a Bibi. Deseja continuar?',
         ),
         actions: [
           TextButton(
@@ -213,25 +213,18 @@ class _AssistantScreenState extends State<AssistantScreen>
           CircleAvatar(
             radius: 18,
             backgroundColor: cs.onPrimary.withValues(alpha: 0.2),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Image.asset(
-                'assets/images/biblioo-carinha-branca-logo.png',
-                width: 22,
-                height: 22,
-              ),
-            ),
+            child: Icon(Icons.auto_awesome, color: cs.onPrimary, size: 18),
           ),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Bibo',
+                'Bibi',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Text(
-                state.isLoading ? 'digitando...' : 'Seu assistente literário',
+                state.isLoading ? 'digitando...' : 'Sua assistente literária',
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
               ),
             ],
@@ -419,14 +412,8 @@ class _AssistantScreenState extends State<AssistantScreen>
             CircleAvatar(
               radius: 14,
               backgroundColor: cs.primary,
-              child: Padding(
-                padding: const EdgeInsets.all(3),
-                child: Image.asset(
-                  'assets/images/biblioo-carinha-branca-logo.png',
-                  width: 16,
-                  height: 16,
-                ),
-              ),
+              child: Icon(Icons.auto_awesome,
+                  size: 14, color: cs.onPrimary),
             ),
             const SizedBox(width: 6),
           ],
@@ -473,14 +460,7 @@ class _AssistantScreenState extends State<AssistantScreen>
           CircleAvatar(
             radius: 14,
             backgroundColor: cs.primary,
-            child: Padding(
-              padding: const EdgeInsets.all(3),
-              child: Image.asset(
-                'assets/images/biblioo-carinha-branca-logo.png',
-                width: 16,
-                height: 16,
-              ),
-            ),
+            child: Icon(Icons.auto_awesome, size: 14, color: cs.onPrimary),
           ),
           const SizedBox(width: 6),
           Container(
@@ -578,7 +558,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                 minLines: 1,
                 onSubmitted: state.isLoading ? null : _sendMessage,
                 decoration: InputDecoration(
-                  hintText: 'Pergunte algo ao Bibo...',
+                  hintText: 'Pergunte algo à Bibi...',
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
                   border: OutlineInputBorder(

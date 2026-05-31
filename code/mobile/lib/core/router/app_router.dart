@@ -60,8 +60,7 @@ String? _authRedirect(BuildContext context, GoRouterState state) {
   }
 
   // Autenticado, mas onboarding pendente: prende em /onboarding.
-  final userId = authState.session.user.id;
-  final onboardingDone = Injector.instance.preferencesRepo.isOnboardingDone(userId);
+  final onboardingDone = Injector.instance.preferencesRepo.isOnboardingDone();
   if (!onboardingDone) {
     return isOnboardingRoute ? null : '/onboarding';
   }
