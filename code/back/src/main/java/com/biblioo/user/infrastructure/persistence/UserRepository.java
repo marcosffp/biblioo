@@ -32,4 +32,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
   @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT(:prefix, '%'))")
   List<User> findByUsernamePrefix(@Param("prefix") String prefix, Pageable pageable);
+
+  @Query("SELECT u.id FROM User u")
+  List<Long> findAllIds();
 }

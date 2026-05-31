@@ -23,9 +23,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
   Set<String> findExistingIsbns(@Param("isbns") List<String> isbns);
 
   @Query(
-      value =
-          "SELECT * FROM books WHERE MATCH(search_text) AGAINST (:term IN BOOLEAN MODE)"
-              + " ORDER BY MATCH(search_text) AGAINST (:term) DESC",
+      value = "SELECT * FROM books WHERE search_text LIKE CONCAT('%', :term, '%') LIMIT 20",
       nativeQuery = true)
   List<Book> searchByTerm(@Param("term") String term);
 
@@ -36,6 +34,9 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             ORDER BY b.averageRating DESC NULLS LAST, b.ratingCount DESC NULLS LAST
             """)
   List<Book> findTopRated(@Param("minRating") Float minRating);
+
+  @Query("SELECT b.id FROM Book b")
+  List<Long> findAllIds();
 
   @Modifying
   @Query("UPDATE Book b SET b.readerCount = :readerCount WHERE b.id = :bookId")

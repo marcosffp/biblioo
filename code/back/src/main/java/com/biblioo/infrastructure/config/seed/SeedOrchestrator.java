@@ -21,7 +21,7 @@ public class SeedOrchestrator {
   private final CommunitySeedService communitySeedService;
   private final FeedSeedService feedSeedService;
 
-  @EventListener(ApplicationReadyEvent.class)
+ /*  @EventListener(ApplicationReadyEvent.class)
   @Async
   public void run() {
     log.info("[Seed] Verificando e populando dados de seed...");
@@ -44,5 +44,5 @@ public class SeedOrchestrator {
     feedSeedService.seedFeed(users, bookIds);
 
     log.info("[Seed] Seed concluído. {} usuários, {} livros, 8 comunidades.", users.size(), bookIds.size());
-  }
+  }*/
 }

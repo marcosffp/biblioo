@@ -2,6 +2,9 @@ package com.biblioo.infrastructure.config;
 
 import java.util.concurrent.TimeUnit;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.reactor.IOReactorException;
@@ -14,6 +17,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.util.StringUtils;
 
 @Configuration
 @EnableScheduling
@@ -25,6 +29,15 @@ public class OpenSearchConfig {
   @Value("${opensearch.port}")
   private int port;
 
+  @Value("${opensearch.scheme:http}")
+  private String scheme;
+
+  @Value("${opensearch.user:}")
+  private String user;
+
+  @Value("${opensearch.password:}")
+  private String password;
+
   private PoolingNHttpClientConnectionManager connectionManager;
 
   @Bean
@@ -32,13 +45,22 @@ public class OpenSearchConfig {
     connectionManager = new PoolingNHttpClientConnectionManager(new DefaultConnectingIOReactor());
 
     RestClient restClient =
-        RestClient.builder(new HttpHost(host, port, "http"))
+        RestClient.builder(new HttpHost(host, port, scheme))
             .setHttpClientConfigCallback(
-                httpClientBuilder ->
-                    httpClientBuilder
-                        .setConnectionManager(connectionManager)
-                        .setKeepAliveStrategy((response, context) -> 30_000)
-                        .setConnectionReuseStrategy((response, context) -> true))
+                httpClientBuilder -> {
+                  httpClientBuilder
+                      .setConnectionManager(connectionManager)
+                      .setKeepAliveStrategy((response, context) -> 30_000)
+                      .setConnectionReuseStrategy((response, context) -> true);
+
+                  if (StringUtils.hasText(user) && StringUtils.hasText(password)) {
+                    var cp = new BasicCredentialsProvider();
+                    cp.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, password));
+                    httpClientBuilder.setDefaultCredentialsProvider(cp);
+                  }
+
+                  return httpClientBuilder;
+                })
             .setRequestConfigCallback(
                 requestConfigBuilder ->
                     requestConfigBuilder.setConnectTimeout(3_000).setSocketTimeout(5_000))

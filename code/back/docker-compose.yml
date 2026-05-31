@@ -91,7 +91,6 @@ services:
     ports:
       - "${RABBITMQ_BIND_HOST}:${RABBITMQ_PORT}:5672"
       - "${RABBITMQ_BIND_HOST}:${RABBITMQ_MANAGEMENT_PORT}:15672"
-      - "${RABBITMQ_BIND_HOST}:${RABBITMQ_STOMP_PORT:-61613}:61613"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./config/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
