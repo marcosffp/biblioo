@@ -17,8 +17,11 @@ class BibiFab extends StatelessWidget {
       onPressed: () => context.push('/assistant'),
       backgroundColor: cs.primary,
       foregroundColor: cs.onPrimary,
-      tooltip: 'Falar com a Bibi',
-      child: const Icon(Icons.auto_awesome),
+      tooltip: 'Falar com o Bibo',
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Image.asset('assets/images/biblioo-carinha-branca-logo.png'),
+      ),
     );
   }
 }

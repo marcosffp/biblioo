@@ -8,19 +8,19 @@ class PreferencesRepository {
 
   const PreferencesRepository(this._remote, this._local);
 
-  bool isOnboardingDone() => _local.isOnboardingDone();
+  bool isOnboardingDone(int userId) => _local.isOnboardingDone(userId);
 
   Future<List<Genre>> getGenres() async {
     final models = await _remote.getGenres();
     return models.map((m) => m.toEntity()).toList();
   }
 
-  Future<void> savePreferences(List<String> genres) async {
+  Future<void> savePreferences(int userId, List<String> genres) async {
     if (genres.isNotEmpty) {
       await _remote.savePreferences(genres);
     }
-    await _local.markOnboardingDone();
+    await _local.markOnboardingDone(userId);
   }
 
-  Future<void> skipOnboarding() => _local.markOnboardingDone();
+  Future<void> skipOnboarding(int userId) => _local.markOnboardingDone(userId);
 }
