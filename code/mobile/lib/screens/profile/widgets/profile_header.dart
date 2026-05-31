@@ -128,7 +128,12 @@ class ProfileHeader extends StatelessWidget {
                                 padding: EdgeInsets.zero,
                                 visualDensity: VisualDensity.compact,
                               ),
-                              child: const Icon(Icons.share_outlined, size: 18),
+                              child: Icon(
+                                isOwner
+                                    ? Icons.auto_awesome
+                                    : Icons.share_outlined,
+                                size: 18,
+                              ),
                             ),
                           )
                         : FilledButton(

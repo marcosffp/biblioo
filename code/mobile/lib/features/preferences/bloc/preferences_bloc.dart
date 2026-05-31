@@ -38,11 +38,11 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
   ) async {
     emit(state.copyWith(status: PreferencesStatus.submitting, errorMessage: null));
     try {
-      await _repository.savePreferences(event.selectedGenres);
+      await _repository.savePreferences(event.userId, event.selectedGenres);
       emit(state.copyWith(status: PreferencesStatus.done));
     } catch (_) {
       // 422 (preferências já existem) ou falha de rede — considera concluído localmente
-      await _repository.skipOnboarding();
+      await _repository.skipOnboarding(event.userId);
       emit(state.copyWith(status: PreferencesStatus.done));
     }
   }
@@ -51,7 +51,7 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
     PreferencesSkipped event,
     Emitter<PreferencesState> emit,
   ) async {
-    await _repository.skipOnboarding();
+    await _repository.skipOnboarding(event.userId);
     emit(state.copyWith(status: PreferencesStatus.done));
   }
 }
