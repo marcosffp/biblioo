@@ -2,8 +2,7 @@ import 'package:biblioo/features/auth/bloc/auth_bloc.dart' show AuthBloc;
 import 'package:biblioo/features/auth/bloc/auth_event.dart'
     show LoginRequested, LoginWithGoogleRequested;
 import 'package:biblioo/features/auth/bloc/auth_state.dart'
-    show AuthState, AuthError, AuthLoading;
-import 'package:biblioo/shared/widgets/biblioo_wordmark.dart' show BibliooWordmark;
+    show AuthState, AuthAuthenticated, AuthError, AuthLoading;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/foundation.dart';
@@ -124,8 +123,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Spacer(flex: 2),
 
-                      const BibliooWordmark(fontSize: 52),
-                      const SizedBox(height: 12),
+                      Icon(
+                        Icons.menu_book_outlined,
+                        size: 56,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Biblioo',
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         'Seu mundo de leituras em um só lugar',
                         style: theme.textTheme.bodyMedium?.copyWith(
