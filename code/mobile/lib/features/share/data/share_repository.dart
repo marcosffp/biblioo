@@ -1,42 +1,30 @@
-import 'dart:typed_data';
+import 'package:biblioo/features/share/domain/share_capsule.dart';
 
-import 'package:biblioo/features/share/domain/share_card_type.dart';
-
+import 'share_local_datasource.dart';
 import 'share_remote_datasource.dart';
 
 class ShareRepository {
   final ShareRemoteDatasource _remote;
+  final ShareLocalDatasource _local;
 
-  static const _cacheTtl = Duration(minutes: 10);
+  const ShareRepository(this._remote, this._local);
 
-  // Cache em memória: evita refazer a request a cada reabertura da sheet
-  // sem persistir um PNG que pode ficar defasado entre sessões.
-  final Map<ShareCardType, _CacheEntry> _cache = {};
-
-  ShareRepository(this._remote);
-
-  Future<Uint8List> getCard(
-    ShareCardType type, {
-    bool forceRefresh = false,
+  Future<ShareCapsule> getDnaCard({
+    required int userId,
+    bool refreshRemote = false,
   }) async {
-    if (!forceRefresh) {
-      final cached = _cache[type];
-      if (cached != null && !cached.isExpired) return cached.bytes;
+    final cached = _local.getCached(userId);
+    if (cached != null && !refreshRemote) {
+      return cached.toEntity();
     }
-    final bytes = await _remote.getCard(type);
-    _cache[type] = _CacheEntry(bytes, DateTime.now().add(_cacheTtl));
-    return bytes;
+
+    try {
+      final model = await _remote.getDnaCard();
+      await _local.save(userId, model);
+      return model.toEntity();
+    } catch (_) {
+      if (cached != null) return cached.toEntity();
+      rethrow;
+    }
   }
-
-  Future<Uint8List> getDnaCard({bool forceRefresh = false}) =>
-      getCard(ShareCardType.dna, forceRefresh: forceRefresh);
-}
-
-class _CacheEntry {
-  final Uint8List bytes;
-  final DateTime expiresAt;
-
-  const _CacheEntry(this.bytes, this.expiresAt);
-
-  bool get isExpired => DateTime.now().isAfter(expiresAt);
 }

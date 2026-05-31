@@ -11,10 +11,10 @@
 | Subdomínio       | Arquivos rodados                                                                                             | Status           |
 |------------------|--------------------------------------------------------------------------------------------------------------|------------------|
 | community        | community-load, community-spike, community-stress, community-invites-load, community-invites-stress, community-join-requests-load, community-join-requests-stress | ✅/⚠️ Ver detalhes |
-| community (manage) | community-manage-stress                                                                                    | ❌ Não executado  |
-| message (WS)     | message-load, message-spike, message-stress, message-concurrency                                             | ❌ Não executado  |
-| messageRest      | messageRest-load, messageRest-spike, messageRest-stress                                                      | ❌ Não executado  |
-| voting           | voting-load, voting-spike, voting-stress                                                                     | ❌ Não executado  |
+| community (manage) | community-manage-stress                                                                                    | ✅ Passou         |
+| message (WS)     | message-load, message-spike, message-stress, message-concurrency                                             | ❌ Não executado (WebSocket — fora desta bateria) |
+| messageRest      | messageRest-load, messageRest-spike, messageRest-stress                                                      | ✅ Todos passaram |
+| voting           | voting-load, voting-spike, voting-stress                                                                     | ✅ Todos passaram |
 
 ---
 
@@ -342,6 +342,125 @@
 
 ---
 
+## 2. Community Manage (CRUD em loop de stress) — `community-manage-stress.js`
+
+**Configuração:** 1 cenário, rampa até 200 VUs (CREATE → UPDATE → DELETE em loop), 3m35s.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 5000ms | 29.55ms | ✅ |
+| `http_req_failed` rate | < 10% | 0.00% | ✅ |
+
+**Checks:** login 200, create 201, create retorna id, update 200, delete 204 — todos ✅ 100%.
+
+**Métricas HTTP:** avg 15.19ms / min 3.26ms / med 13.43ms / max 173.87ms / p(90) 23.09ms / p(95) 29.55ms.
+
+**Sumário:** 106.973 req (497.33/s) · 0 falhas · 54 MB recv / 53 MB sent · 3m35s. O ciclo CREATE/UPDATE/DELETE de comunidades é estável sob 200 VUs.
+
+---
+
+## 3. MessageRest (leitura REST de mensagens)
+
+> Upload de mídia (`POST /media` → Cloudinary) **intencionalmente excluído** para evitar custos de API.
+
+### 3.1 Load — `messageRest-load.js`
+
+**Configuração:** 2 cenários — `listing` (80) + `sync` (40), 120 VUs, 2m32s.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 1000ms | 98.5ms | ✅ |
+| `{scenario:listing}` p(95) | < 800ms | 102.1ms | ✅ |
+| `{scenario:sync}` p(95) | < 500ms | 70.47ms | ✅ |
+| `http_req_failed` rate | < 1% | 0.00% | ✅ |
+
+**Checks:** sync 200, sync array, list/before 200 — todos ✅ 100%.
+
+| Métrica | avg | min | med | max | p(90) | p(95) |
+|---------|-----|-----|-----|-----|-------|-------|
+| geral | 40.74ms | 3.19ms | 24.57ms | 180.1ms | 87.14ms | 98.5ms |
+| listing | 48.55ms | 3.9ms | 46.39ms | 180.1ms | 92.53ms | 102.1ms |
+| sync | 22.67ms | 3.19ms | 13.44ms | 137.45ms | 54.9ms | 70.47ms |
+
+**Sumário:** 28.932 req (190.60/s) · 0 falhas · 366 MB recv / 11 MB sent · 2m32s.
+
+### 3.2 Spike — `messageRest-spike.js`
+
+**Configuração:** rampa 70→500 VUs, 1m57s.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 2500ms | 27.59ms | ✅ |
+| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+
+**Checks:** list 200 ou 429, sync 200 ou 429 — ✅ 100%. Métricas: avg 13.85ms / med 11.61ms / max 145.96ms / p(95) 27.59ms.
+**Sumário:** 43.674 req (373.00/s) · 0 falhas · 499 MB recv / 17 MB sent · 1m57s.
+
+### 3.3 Stress — `messageRest-stress.js`
+
+**Configuração:** rampa até 600 VUs, 5m47s.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 2500ms | 462.79ms | ✅ |
+| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+
+**Checks:** list 200, before 200, sync 200 — ✅ 100%. Métricas: avg 139.48ms / med 74.41ms / max 1.36s / p(95) 462.79ms.
+**Sumário:** 121.497 req (350.25/s) · 0 falhas · **1.3 GB recv** / 47 MB sent · 4m.
+
+---
+
+## 4. Voting (enquetes em comunidades)
+
+### 4.1 Load — `voting-load.js`
+
+**Configuração:** 3 cenários — `read` (84) + `manage` (21) + `vote` (105), 210 VUs, 2m10s.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 1000ms | 24.93ms | ✅ |
+| `{scenario:manage}` p(95) | < 2000ms | 48.65ms | ✅ |
+| `{scenario:read}` p(95) | < 500ms | 17.41ms | ✅ |
+| `{scenario:vote}` p(95) | < 800ms | 24.44ms | ✅ |
+| `http_req_failed` rate | < 1% | 0.92% | ✅ |
+
+> ⚠️ **Nota:** o check `close voting 200` falhou em **22%** (106 de 485) e a taxa HTTP de falha foi de 0.92% (769/83.011). Causa: múltiplos VUs do cenário `manage` tentam **fechar a mesma enquete** concorrentemente — conflito de estado esperado, análogo (porém muito mais brando) ao bug de `join-requests`. Dentro do threshold de 1%.
+
+| Métrica | avg | min | med | max | p(90) | p(95) |
+|---------|-----|-----|-----|-----|-------|-------|
+| geral | 14.37ms | 2.85ms | 12.54ms | 285.48ms | 20.64ms | 24.93ms |
+| manage | 23.96ms | 2.85ms | 20.81ms | 285.48ms | 39.94ms | 48.65ms |
+| read | 11.54ms | 2.98ms | 10.25ms | 262.98ms | 14.74ms | 17.41ms |
+| vote | 16.21ms | 4.85ms | 15.3ms | 262.94ms | 21.53ms | 24.44ms |
+
+**Sumário:** 83.011 req (639.53/s) · 769 falhas (0.92%) · 117 MB recv / 35 MB sent · 2m10s.
+
+### 4.2 Spike — `voting-spike.js`
+
+**Configuração:** pico até 500 VUs, 0m55s.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 2000ms | 521.32ms | ✅ |
+| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+
+**Checks:** POST /vote 200 — ✅ 100%. Métricas: avg 307.21ms / med 423.44ms / max 1.1s / p(95) 521.32ms.
+**Sumário:** 33.559 req (610.79/s) · 0 falhas · 43 MB recv / 16 MB sent · 55s. O registro de votos sob pico súbito eleva a latência (med 423ms) mas sem falhas.
+
+### 4.3 Stress — `voting-stress.js`
+
+**Configuração:** rampa até 600 VUs, 4m14s.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 5000ms | 399.99ms | ✅ |
+| `http_req_failed` rate | < 10% | 0.00% | ✅ |
+
+**Checks:** GET /votings/{id} 200, POST /vote 200 — ✅ 100%. Métricas: avg 154.51ms / med 125.8ms / max 998.32ms / p(95) 399.99ms.
+**Sumário:** 197.598 req (778.18/s) · 0 falhas · 257 MB recv / 88 MB sent · 4m.
+
+---
+
 ## Resumo Geral do DomainCommunity
 
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas HTTP | Resultado |
@@ -353,11 +472,16 @@
 | community-invites | stress | 600 | 157.086 | 567.6/s | 319.35ms | 8.06% | ⚠️ |
 | community-join-requests | load | 210 | 57.539 | 433.8/s | 121.11ms | 31.19% | ❌ |
 | community-join-requests | stress | 600 | 106.399 | 381.5/s | 997.23ms | 19.19% | ⚠️ |
-| community-manage | stress | — | — | — | — | — | ❌ Não executado |
-| message (WS) | load/spike/stress/concurrency | — | — | — | — | — | ❌ Não executado |
-| messageRest | load/spike/stress | — | — | — | — | — | ❌ Não executado |
-| voting | load/spike/stress | — | — | — | — | — | ❌ Não executado |
+| community-manage | stress | 200 | 106.973 | 497.33/s | 29.55ms | 0% | ✅ |
+| messageRest | load | 120 | 28.932 | 190.60/s | 98.5ms | 0% | ✅ |
+| messageRest | spike | 500 | 43.674 | 373.00/s | 27.59ms | 0% | ✅ |
+| messageRest | stress | 600 | 121.497 | 350.25/s | 462.79ms | 0% | ✅ |
+| voting | load | 210 | 83.011 | 639.53/s | 24.93ms | 0.92% | ✅ |
+| voting | spike | 500 | 33.559 | 610.79/s | 521.32ms | 0% | ✅ |
+| voting | stress | 600 | 197.598 | 778.18/s | 399.99ms | 0% | ✅ |
+| message (WS) | load/spike/stress/concurrency | — | — | — | — | — | ❌ Não executado (WebSocket) |
 
-**Total de requests executados no DomainCommunity (parcial):** ~574.875  
-**Testes com threshold violado:** 1 (join-requests load)  
-**Testes com taxa de falha elevada mas dentro do threshold:** 2 (invites stress, join-requests stress)
+**Testes executados:** 14 de 17 (faltam apenas os 3+1 de `message` via WebSocket).
+**Testes com threshold violado:** 1 (join-requests load — bug de concorrência já documentado).
+**Testes com falhas dentro do threshold:** 3 (invites stress 8.06%, join-requests stress 19.19%, voting load 0.92%).
+**Os 7 testes desta bateria (manage, messageRest×3, voting×3) passaram todos.**

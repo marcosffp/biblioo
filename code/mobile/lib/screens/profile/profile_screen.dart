@@ -130,17 +130,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return isOwner || !user.restricted;
   }
 
-  void _shareProfile() {
-    ScaffoldMessenger.of(
+  Future<void> _shareProfile(User user) async {
+    if (!mounted) return;
+    await showShareCapsuleSheet(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Compartilhamento em breve')));
-  }
-
-  void _openCapsule(User user) {
-    showShareCapsuleSheet(
-      context: context,
+      userName: user.username,
       userHandle: '@${user.username}',
+      avatarUrl: user.avatarUrl,
       booksRead: _booksRead,
+      pagesRead: _pagesRead,
+      userId: user.id,
     );
   }
 
@@ -239,6 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _followersCount = 0;
         _followingCount = 0;
         _socialLoading = false;
+
       });
     }
   }
@@ -653,9 +653,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPrimaryAction: isOwner
                                 ? () => context.push('/profile/edit')
                                 : () => _toggleFollow(user),
-                            onShare: isOwner
-                                ? () => _openCapsule(user)
-                                : _shareProfile,
+                            onShare: () => _shareProfile(user),
                           ),
                           const SizedBox(height: 8),
                           ProfileDetailsSection(

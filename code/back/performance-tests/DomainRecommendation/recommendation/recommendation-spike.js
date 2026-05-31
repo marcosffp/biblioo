@@ -3,13 +3,13 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 500,
+  userPoolSize: 600,
   password:     'Senha@12345',
   prefix:       'spikerecommendation',
 
   spike: {
     baseVus:      70,
-    peakVus:      500,
+    peakVus:      600,
     rampUpBase:   '10s',
     rampUpPeak:   '10s',
     peakDuration: '30s',

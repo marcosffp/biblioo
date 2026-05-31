@@ -78,35 +78,48 @@ Isso garantirá que apenas um thread possa processar cada solicitação por vez,
 
 ---
 
+## Community Manage (CRUD em loop de stress) — executado em 2026-05-28
+
+### Pontos positivos
+- CREATE → UPDATE → DELETE de comunidades em loop sob 200 VUs: **0% de falhas**, p(95) de **29.55ms**, 106.973 requests. O ciclo de gerenciamento de comunidades é estável e rápido.
+
+---
+
+## MessageRest (leitura REST de mensagens) — executado em 2026-05-28
+
+### Pontos positivos
+- Os 3 testes passaram com **0% de falhas**. Listagem (`/messages`) e sync (`/messages/sync`) são eficientes: no load, p(95) de 102ms (listing) e 70ms (sync), ambos dentro dos thresholds rigorosos (800ms / 500ms).
+- Stress com 600 VUs: p(95) de 462ms, bem abaixo do limite de 2500ms.
+
+### Pontos de atenção
+- **Alto volume de dados:** o stress recebeu **1.3 GB** (mensagens com payload textual). Como no DomainShare, a banda é mais relevante que a CPU aqui.
+- O upload de mídia (`POST /media` → Cloudinary) foi **intencionalmente excluído** para evitar custo de API — esse caminho permanece **não testado** e deve ser avaliado separadamente (provável gargalo de I/O externo).
+
+---
+
+## Voting (enquetes) — executado em 2026-05-28
+
+### Pontos positivos
+- read/vote/manage rápidos no load (p(95) geral 24.93ms). Spike (500 VUs) e stress (600 VUs) passaram com 0% de falhas; stress sustentou **778 req/s**.
+
+### Pontos de atenção
+- **Conflito de concorrência ao fechar enquetes (versão branda do bug de join-requests).** No voting-load, o check `close voting 200` falhou em **22%** (106/485) e a taxa HTTP foi de 0.92% — múltiplos VUs do cenário `manage` tentam fechar a **mesma** enquete simultaneamente, e só o primeiro sucede. Ficou dentro do threshold (< 1%), mas é o **mesmo padrão de race condition** de `JoinRequest`. Recomenda-se aplicar o mesmo lock otimista (`@Version`) na entidade de votação/enquete.
+- Sob spike, a latência de registro de voto sobe (med 423ms) — escrita concorrente no mesmo agregado de votos. Aceitável, mas vale monitorar.
+
+---
+
 ## Subdomínios Não Executados
 
-### community-manage-stress.js
-- Script está pronto e configurado (pool de 100 usuários, 6 estágios até 200 VUs).
-- Cobre: CREATE → UPDATE → DELETE de comunidades em loop de stress.
-- Não foi executado na sessão de testes de 2026-05-28.
-
-### message (WebSocket + STOMP)
-- **Testes mais complexos do DomainCommunity** — envolvem WebSocket com protocolo STOMP.
-- `message-load.js`: 100 VUs enviando mensagens + 60 VUs lendo (via HTTP) por 2m. Mede latência end-to-end de entrega (SEND → broadcast recebido).
-- `message-spike.js`, `message-stress.js`: variantes de carga e stress.
-- `message-concurrency.js`: teste específico de concorrência de mensagens (arquivo modificado no git — verificar o que mudou antes de executar).
-- Dependência: requer `bookId: 1` existente no banco.
-
-### messageRest (REST de mensagens)
-- Cobre `GET /communities/{id}/messages` e `GET /communities/{id}/messages/sync`.
-- O endpoint `POST /media` (Cloudinary) foi **intencionalmente excluído** do script para evitar custo real com a API de upload.
-- `messageRest-load.js`: 80 VUs listando + 40 VUs fazendo sync por 2m.
-
-### voting (votações em comunidades)
-- Cobre operações de leitura, gestão e votação.
-- `voting-load.js`: 84 VUs read + 21 VUs manage + 105 VUs vote por 2m.
-- Thresholds mais rigorosos para vote: p(95) < 800ms.
+### message (WebSocket + STOMP) — fora desta bateria
+- **Testes mais complexos do DomainCommunity** — envolvem WebSocket com protocolo STOMP, carga deliberadamente menor (send 100 / spike 150 / stress 250 VUs) e setup mais pesado.
+- `message-load/spike/stress.js` + `message-concurrency.js` (este último **modificado no git** — revisar antes de executar).
+- Ficaram de fora por exigirem WebSocket habilitado e setup distinto; recomenda-se rodá-los em sessão dedicada.
 
 ---
 
 ## Observações Transversais
 
-1. **Problema de concorrência em join-requests é o único bug de produção identificado** nos testes até agora. Merece correção prioritária antes de ir a produção com comunidades privadas.
+1. **Race condition em entidades de estado compartilhado é o padrão de bug recorrente do domínio.** O caso grave é `join-requests` (31% de falha — correção prioritária). O caso brando é o fechamento de enquetes em `voting` (0.92%, dentro do threshold). Ambos têm a mesma raiz — ausência de lock otimista/pessimista — e a mesma correção (`@Version`). Vale auditar todas as entidades de community que mudam de estado (invites, join-requests, votings).
 
 2. **Thresholds permissivos em testes de stress:** Os testes de invites-stress (30%) e join-requests-stress (40%) usam thresholds bem acima do ideal para produção (geralmente < 5%). Isso foi necessário para que o pipeline não quebre durante a análise. Em produção, após corrigir o problema de concorrência, esses thresholds devem ser revisados para < 5%.
 

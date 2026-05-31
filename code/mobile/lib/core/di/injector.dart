@@ -43,8 +43,6 @@ import 'package:biblioo/features/preferences/data/preferences_repository.dart';
 import 'package:biblioo/features/dna/data/dna_local_datasource.dart';
 import 'package:biblioo/features/dna/data/dna_remote_datasource.dart';
 import 'package:biblioo/features/dna/data/dna_repository.dart';
-import 'package:biblioo/features/share/data/share_remote_datasource.dart';
-import 'package:biblioo/features/share/data/share_repository.dart';
 import 'package:biblioo/features/assistant/bloc/assistant_bloc.dart';
 import 'package:biblioo/features/assistant/data/assistant_local_datasource.dart';
 import 'package:biblioo/features/assistant/data/assistant_remote_datasource.dart';
@@ -53,6 +51,9 @@ import 'package:biblioo/features/user/bloc/user_search_bloc.dart';
 import 'package:biblioo/features/user/data/user_local_datasource.dart';
 import 'package:biblioo/features/user/data/user_remote_datasource.dart';
 import 'package:biblioo/features/user/data/user_repository.dart';
+import 'package:biblioo/features/share/data/share_local_datasource.dart';
+import 'package:biblioo/features/share/data/share_remote_datasource.dart';
+import 'package:biblioo/features/share/data/share_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -139,11 +140,6 @@ class Injector {
   DnaRemoteDatasource get _dnaRemote => DnaRemoteDatasource(_dio);
   DnaRepository get dnaRepo => DnaRepository(_dnaRemote, _dnaLocal);
 
-  // ── share ─────────────────────────────────────────────
-  ShareRemoteDatasource get _shareRemote => ShareRemoteDatasource(_dio);
-  // Singleton: cache em memória do PNG depende de instância única.
-  late final ShareRepository shareRepo = ShareRepository(_shareRemote);
-
   // ── notification ─────────────────────────────────────
   NotificationRemoteDatasource get _notificationRemote =>
       NotificationRemoteDatasource(_dio);
@@ -173,6 +169,11 @@ class Injector {
       AssistantRemoteDatasource(_dio);
   AssistantRepository get assistantRepo =>
       AssistantRepository(_assistantRemote, _assistantLocal);
+
+  // ── share ──────────────────────────────────────────────
+  ShareLocalDatasource get _shareLocal => ShareLocalDatasource(_prefs);
+  ShareRemoteDatasource get _shareRemote => ShareRemoteDatasource(_dio);
+  ShareRepository get shareRepo => ShareRepository(_shareRemote, _shareLocal);
 
   // ── providers ─────────────────────────────────────────
   List<BlocProvider> get providers => [

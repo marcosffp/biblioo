@@ -3,12 +3,12 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 100,
+  userPoolSize: 500,
   password:     'Senha@12345',
   prefix:       'loadrecommendation',
 
   load: {
-    peakVus: 60,
+    peakVus: 500,
   },
 
   thresholds: {
@@ -90,7 +90,7 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '300s',
+  setupTimeout: '600s',
   scenarios: {
     query: {
       executor:         'ramping-vus',
