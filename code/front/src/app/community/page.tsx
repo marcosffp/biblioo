@@ -953,7 +953,10 @@ export default function ComunidadesPage() {
       <>
         <CommunityChatView
           community={selectedCommunity}
-          onBack={() => setSelectedCommunityId(null)}
+          onBack={() => {
+            setSelectedCommunityId(null);
+            void refreshCommunities();
+          }}
           onUpdateCommunity={() => {
             // A atualizacao detalhada de comunidade sera sincronizada com backend nas proximas etapas.
           }}

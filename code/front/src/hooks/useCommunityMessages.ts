@@ -263,7 +263,7 @@ export function useCommunityMessages(communityId: string) {
   }, []);
 
   const handleRealtimeEvent = useCallback(
-    (payload: string) => {
+    async (payload: string) => {
       const event = parseMessageEvent(payload);
       if (!event) {
         return;
@@ -317,6 +317,11 @@ export function useCommunityMessages(communityId: string) {
         return;
       }
 
+      // For MEMBER_JOINED: refresh first so the new member's name is already in the map
+      if (event.data.type === "MEMBER_JOINED") {
+        await refreshMembers();
+      }
+
       const mapped = mapBackendMessageToUi(event.data, {
         currentUserId,
         memberNameById: memberNameByIdRef.current,
@@ -326,25 +331,25 @@ export function useCommunityMessages(communityId: string) {
         mapped.userName = "Membro";
       }
 
-      // Refresh member list so the panel stays in sync when someone joins or leaves
-      if (event.data.type === "MEMBER_JOINED" || event.data.type === "MEMBER_LEFT") {
-        void refreshMembers();
-      }
-
       replaceOrAppendMessage(mapped, event.data.clientMessageId);
+
+      // For MEMBER_LEFT: refresh AFTER mapping so the leaving member's name is still available
+      if (event.data.type === "MEMBER_LEFT") {
+        await refreshMembers();
+      }
     },
     [currentUserId, refreshMembers, replaceOrAppendMessage],
   );
 
   const onCreatedFrame = useCallback(
     (frame: IMessage) => {
-      handleRealtimeEvent(frame.body);
+      void handleRealtimeEvent(frame.body);
     },
     [handleRealtimeEvent],
   );
 
   const onErrorFrame = useCallback((frame: IMessage) => {
-    handleRealtimeEvent(frame.body);
+    void handleRealtimeEvent(frame.body);
   }, [handleRealtimeEvent]);
 
   const onTypingFrame = useCallback(
