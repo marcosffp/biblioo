@@ -20,6 +20,16 @@
 ![OpenSearch](https://img.shields.io/badge/OpenSearch-2.18-005EB8?style=for-the-badge&logo=opensearch&logoColor=white)
 ![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.0-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Cloud Run](https://img.shields.io/badge/Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![Cloud Build](https://img.shields.io/badge/Cloud_Build-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+![TiDB Cloud](https://img.shields.io/badge/TiDB_Cloud-E1012B?style=for-the-badge&logo=tidb&logoColor=white)
+![Upstash](https://img.shields.io/badge/Upstash-00E9A3?style=for-the-badge&logo=upstash&logoColor=white)
+![CloudAMQP](https://img.shields.io/badge/CloudAMQP-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![Bonsai.io](https://img.shields.io/badge/Bonsai.io-005EB8?style=for-the-badge&logo=opensearch&logoColor=white)
+![Neo4j Aura](https://img.shields.io/badge/Neo4j_Aura-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
+![GCE](https://img.shields.io/badge/Compute_Engine-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![Secret Manager](https://img.shields.io/badge/Secret_Manager-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
 
 ---
 
@@ -34,6 +44,7 @@
 - [Testes de performance](#-testes-de-performance)
 - [Variáveis de ambiente](#-variáveis-de-ambiente)
 - [Instalação e execução](#-instalação-e-execução)
+- [Deploy em nuvem](#-deploy-em-nuvem)
 - [Observabilidade](#-observabilidade)
 - [Padrão de código](#-padrão-de-código)
 - [Regras de arquitetura](#-regras-de-arquitetura)
@@ -339,9 +350,9 @@ Documentação interativa disponível em `http://localhost:8080/swagger-ui.html`
 
 ---
 
-## 🐳 Infraestrutura Docker
+## 🐳 Infraestrutura Docker (desenvolvimento local)
 
-O `docker-compose.yml` sobe todos os serviços de infraestrutura. A aplicação Spring Boot roda fora do Compose (via `./mvnw spring-boot:run`).
+O `docker-compose.yml` sobe todos os serviços de infraestrutura localmente. A aplicação Spring Boot roda fora do Compose (via `./mvnw spring-boot:run`). Em produção, cada serviço é substituído por um provedor gerenciado — veja [Deploy em nuvem](#-deploy-em-nuvem).
 
 | Serviço | Imagem | Porta padrão | Função |
 |---|---|---|---|
@@ -596,6 +607,170 @@ docker-compose ps
 
 ---
 
+## 🌐 Deploy em Nuvem
+
+A aplicação roda em dois ambientes independentes no **Google Cloud Run** (us-central1), cada um com OpenSearch dedicado e políticas de escalonamento distintas. Os serviços de banco de dados, cache, mensageria e grafo são compartilhados entre os ambientes via provedores gerenciados externos ao Google Cloud.
+
+### Ambientes
+
+| | **Portfolio** | **Produção** |
+|---|---|---|
+| Serviço Cloud Run | `biblioo-portfolio` | `biblioo-producao` |
+| URL pública | `https://biblioo-portfolio-595140312227.us-central1.run.app` | `https://biblioo-producao-595140312227.us-central1.run.app` |
+| Memória / CPU | 1 Gi / 1 vCPU | 2 Gi / 2 vCPU |
+| Instâncias mín./máx. | 0 / 2 — hiberna sem tráfego | 1 / 10 — sempre ativa |
+| Concorrência | 80 req/instância | 200 req/instância |
+| CPU Boost no cold start | — | ✅ |
+| Session affinity (WebSocket) | ✅ | ✅ |
+| Timeout | 3600 s | 3600 s |
+| **OpenSearch** | **Bonsai.io Hobby** — HTTPS, free tier permanente | **GCE VM e2-small** — HTTP, rede interna VPC |
+| MySQL | TiDB Cloud Serverless | TiDB Cloud Serverless |
+| Redis | Upstash | Upstash |
+| RabbitMQ | CloudAMQP Little Lemur | CloudAMQP Little Lemur |
+| Neo4j | Aura Free | Aura Free |
+| Custo | $0/mês (free tiers permanentes) | ~$13/mês (VM GCE) — coberto pelos $300 de crédito GCP |
+
+### Pipeline CI/CD
+
+```
+Repo privado (organização)
+    │  push em main · dev · prod
+    ▼
+GitHub Actions                    .github/workflows/mirror-and-deploy.yml
+    │  espelha as branches no repo público preservando histórico de commits
+    ▼
+Repo público (marcosffp/biblioo)
+    │  push na branch prod
+    ▼
+Cloud Build trigger (deploy-prod)   ativado somente em ^prod$
+    │
+    ├─ Step 1  docker build ./code/back
+    ├─ Step 2  docker push → Artifact Registry  (backend:latest)
+    ├─ Step 3  gcloud run deploy biblioo-portfolio
+    └─ Step 4  gcloud run deploy biblioo-producao
+               ↑ troca de revisão sem downtime — ~12 min do push ao deploy
+```
+
+| Componente | Função |
+|---|---|
+| **GitHub Actions** | Espelha main, dev e prod do repo privado pro público em tempo real |
+| **`cloudbuild.yaml`** (raiz do repo) | Define os 4 steps do pipeline automatizado |
+| **Artifact Registry** | Armazena `backend:latest` — cada build substitui a versão anterior |
+| **Secret Manager** | 40+ secrets injetados via `--set-secrets` — nunca expostos no código ou no repositório |
+| **Cloud Build trigger** | `^prod$` — deploy ativado exclusivamente por push na branch prod |
+
+### Estratégia OpenSearch por ambiente
+
+**Portfolio — Bonsai.io Hobby (gratuito para sempre)**
+
+```
+Cloud Run (biblioo-portfolio)
+    │  HTTPS :443  ·  Basic Auth (header Authorization)
+    ▼
+Bonsai.io (imaginative-holly-*.bonsaisearch.net)
+    ├── 125 MB storage  ·  1 shard  ·  sem prazo de expiração
+    └── OpenSearchIndexCleanupService — limpeza semanal automática
+        reconcilia índice com MySQL, remove documentos órfãos
+        stats de tamanho logados a cada hora via Cloud Run Logging
+```
+
+**Produção — GCE VM e2-small (rede interna VPC)**
+
+```
+Cloud Run (biblioo-producao)
+    │  HTTP :9200  ·  sem autenticação  ·  IP interno 10.128.0.2
+    ▼
+VM biblioo-infra  (e2-small · us-central1-a · 30 GB SSD)
+    └── opensearch:2.18.0 em Docker
+        discovery.type=single-node · DISABLE_SECURITY_PLUGIN=true
+        -Xms512m -Xmx512m · restart=always
+
+Regra de firewall biblioo-infra-internal
+    └── tcp:9200 · source 10.128.0.0/9
+        porta nunca exposta à internet — só o Cloud Run acessa via VPC interna
+```
+
+### Escalonamento
+
+O Cloud Run monitora a concorrência de cada instância e sobe novas automaticamente conforme a demanda:
+
+```
+requisições ativas > concurrency × instâncias_atuais ?
+            │                          │
+           Não                        Sim
+            │                          │
+       mantém estado            sobe nova instância
+                                (até max-instances)
+                                Cloud Run decide em segundos
+```
+
+**Guia de upgrade por sintoma:**
+
+| Sintoma | Ação recomendada |
+|---|---|
+| Cold start lento no portfolio | `--min-instances=1` — elimina a hibernação |
+| Alta latência em busca de livros (produção) | Migrar VM para e2-medium ou aumentar `-Xmx` do OpenSearch |
+| Alta latência em busca de livros (portfolio) | Upgrade Bonsai.io Standard (~$20/mês) |
+| Alta latência no feed ou recomendações | Upgrade Upstash (mais comandos/s) |
+| Erros 429 ou lentidão no banco | Upgrade TiDB Cloud Serverless |
+| Muitos usuários simultâneos (> 200) | Aumentar `--max-instances` no Cloud Run |
+| RabbitMQ com mensagens acumuladas | Upgrade CloudAMQP Lemur |
+
+**WebSocket com múltiplas instâncias:**
+
+`--session-affinity` garante que o mesmo cliente permaneça na mesma instância durante toda a conexão STOMP. Para mensagens que precisam cruzar instâncias, o fanout é feito via RabbitMQ FanoutExchange — `WebSocketMessageBroadcastAdapter` publica e `CommunityBroadcastConsumer` entrega em cada instância ativa. O SimpleBroker em memória gerencia apenas as sessões locais de cada instância.
+
+### Gestão de secrets
+
+```bash
+# Criar e registrar novo secret
+echo -n "VALOR" | gcloud secrets create "NOME" --data-file=-
+gcloud run services update biblioo-portfolio \
+  --region=us-central1 --update-secrets="NOME=NOME:latest"
+
+# Atualizar valor (serviço pega :latest automaticamente no próximo start)
+echo -n "NOVO_VALOR" | gcloud secrets versions add "NOME" --data-file=-
+
+# Remover de um serviço e deletar o secret
+gcloud run services update biblioo-portfolio \
+  --region=us-central1 --remove-env-vars="NOME"
+gcloud secrets delete "NOME"
+```
+
+> Aplicar os mesmos comandos em `biblioo-producao` quando a alteração precisar refletir nos dois ambientes.
+
+### Operações comuns
+
+```bash
+# Ver logs em tempo real
+gcloud run services logs read biblioo-producao --region=us-central1 --limit=100
+gcloud run services logs read biblioo-portfolio --region=us-central1 --limit=100
+
+# Health check dos serviços
+curl https://biblioo-producao-595140312227.us-central1.run.app/actuator/health | jq
+curl https://biblioo-portfolio-595140312227.us-central1.run.app/actuator/health | jq
+
+# Build + deploy manual sem pipeline (ex: hotfix urgente)
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
+  --timeout=20m ./code/back
+
+gcloud run deploy biblioo-portfolio \
+  --image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
+  --region=us-central1
+
+gcloud run deploy biblioo-producao \
+  --image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
+  --region=us-central1
+
+# Acessar VM do OpenSearch (produção)
+gcloud compute ssh biblioo-infra --zone=us-central1-a
+curl http://localhost:9200/_cluster/health
+sudo docker logs opensearch --tail=50
+```
+
+---
+
 ## 📡 Observabilidade
 
 **Métricas expostas** via `/actuator/prometheus`:
@@ -670,6 +845,16 @@ O projeto usa **Google Java Format 1.35.0** via **Spotless**, aplicado obrigator
 | Build | Maven | 3.9+ |
 | Containers | Docker Compose | — |
 | Testes de carga | K6 | — |
+| Deploy | Google Cloud Run | — |
+| CI/CD | Cloud Build + GitHub Actions | — |
+| Registry de imagens | Google Artifact Registry | — |
+| Secrets em produção | Google Secret Manager | — |
+| VM OpenSearch (produção) | Google Compute Engine e2-small | — |
+| MySQL gerenciado | TiDB Cloud Serverless | — |
+| Redis gerenciado | Upstash | — |
+| RabbitMQ gerenciado | CloudAMQP Little Lemur | — |
+| OpenSearch gerenciado (portfolio) | Bonsai.io Hobby | — |
+| Grafo gerenciado | Neo4j Aura Free | — |
 
 ---
 
