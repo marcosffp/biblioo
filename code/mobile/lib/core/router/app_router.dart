@@ -51,7 +51,8 @@ String? _authRedirect(BuildContext context, GoRouterState state) {
   final isAuthed = authState is AuthAuthenticated;
   final loc = state.matchedLocation;
 
-  final isAuthRoute = loc == '/login' || loc == '/register';
+  final isAuthRoute =
+      loc == '/login' || loc == '/register' || loc == '/forgot-password';
   final isOnboardingRoute = loc == '/onboarding';
 
   // Não autenticado: só pode ficar nas telas de auth.
