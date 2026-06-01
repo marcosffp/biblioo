@@ -1,18 +1,6 @@
 # Relatório Semanal
 
-## Semana 1 (27/04/2026 - 03/05/2026)
-
-### O que foi feito:
-
-- Implementei a autenticação com Google OAuth no backend, com validação de token via `google-api-client`.
-- Desenvolvi os componentes `GoogleTokenVerifierAdapter` e `GoogleUserFactory` para suportar o fluxo de login social.
-- Criei o endpoint `POST /auth/google` para autenticação de usuários via Google e adicionei tratamento de erro específico (`GoogleAuthException`).
-
-### Links dos Pull Requests:
-- [PR #148](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/148)
-
-
-## Semana 2 (04/05/2026 - 10/05/2026)
+## Semana 1 (04/05/2026 - 10/05/2026)
 
 ### O que foi feito:
 
@@ -25,7 +13,7 @@
 - [PR #225](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/225)
 
 
-## Semana 3 (11/05/2026 - 17/05/2026)
+## Semana 2 (11/05/2026 - 17/05/2026)
 
 ### O que foi feito:
 
@@ -40,7 +28,7 @@
 - [PR #237](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/237)
 
 
-## Semana 4 (18/05/2026 - 24/05/2026)
+## Semana 3 (18/05/2026 - 24/05/2026)
 
 ### O que foi feito:
 
@@ -51,7 +39,7 @@
 - [PR #242](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/242)
 
 
-## Semana 5 (25/05/2026 - 31/05/2026)
+## Semana 4 (25/05/2026 - 31/05/2026)
 
 ### O que foi feito:
 
