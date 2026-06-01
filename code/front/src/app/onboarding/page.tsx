@@ -574,23 +574,6 @@ export default function OnboardingPage() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Scroll hint (genres step) */}
-        <AnimatePresence>
-          {showScrollHint && step === "genres" && (
-            <motion.div
-              className="fixed bottom-6 left-1/2 -translate-x-1/2"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-            >
-              <div className="flex items-center gap-1.5 rounded-full border border-[var(--border-soft)] bg-white/90 px-4 py-2 text-xs font-medium text-[var(--text-secondary)] shadow-sm backdrop-blur">
-                Role para ver mais
-                <ChevronDown size={14} />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
