@@ -8,4 +8,8 @@ public record CommentBasicResponse(
     Long parentId,
     String text,
     Integer likeCount,
-    LocalDateTime createdAt) {}
+    LocalDateTime createdAt,
+    String authorUsername,
+    String authorAvatarUrl,
+    boolean deleted,
+    boolean likedByCurrentUser) {}

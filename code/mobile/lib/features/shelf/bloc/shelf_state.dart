@@ -44,3 +44,10 @@ class ShelfMutationSuccess extends ShelfState {
   final String message;
   ShelfMutationSuccess(this.message);
 }
+
+/// Atualização de progresso concluída — inclui o item atualizado pelo servidor.
+/// A screen NÃO deve fazer reload: o bloc já atualizou ShelfItemsLoaded em lugar.
+class ShelfProgressUpdateSuccess extends ShelfState {
+  final ShelfItem updatedItem;
+  ShelfProgressUpdateSuccess(this.updatedItem);
+}

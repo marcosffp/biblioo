@@ -7,6 +7,12 @@ import jakarta.validation.constraints.Size;
 @Schema(
     description = "Campos para atualização do perfil. Envie apenas os campos que deseja alterar.")
 public record UpdateProfileRequest(
+    @Schema(description = "Nome de usuário único", example = "joao_silva")
+        @Size(min = 3, max = 30)
+        @Pattern(
+            regexp = "^[a-zA-Z0-9_]+$",
+            message = "Username deve conter apenas letras, números e underscores")
+        String username,
     @Schema(
             description = "Biografia do usuário",
             example = "Apaixonado por ficção científica e café.")

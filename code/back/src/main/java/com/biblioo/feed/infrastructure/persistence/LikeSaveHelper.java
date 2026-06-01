@@ -13,7 +13,6 @@ public class LikeSaveHelper {
 
   private final LikeRepository likeRepository;
 
-
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public boolean tryInsert(Like like) {
     try {

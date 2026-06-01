@@ -50,3 +50,8 @@ class CollectionRemoveShelfRequested extends CollectionEvent {
     required this.shelfId,
   });
 }
+
+class CollectionStatisticsRequested extends CollectionEvent {
+  final int collectionId;
+  CollectionStatisticsRequested(this.collectionId);
+}

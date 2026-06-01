@@ -34,18 +34,20 @@ public class Notification {
   @Column(nullable = false, length = 30)
   private NotificationType type;
 
-  @Column(name = "actor_id", nullable = false)
+  @Column(name = "actor_id")
   private Long actorId;
 
-  @Column(name = "actor_username", nullable = false, length = 30)
+  @Column(name = "actor_username", length = 30)
   private String actorUsername;
 
   @Column(name = "actor_avatar_url", length = 1000)
   private String actorAvatarUrl;
 
-  /** ID da entidade relacionada (reviewId, commentId), nulo para eventos de follow. */
   @Column(name = "entity_id")
   private Long entityId;
+
+  @Column(name = "community_id")
+  private Long communityId;
 
   @Column(name = "read_at")
   private LocalDateTime readAt;

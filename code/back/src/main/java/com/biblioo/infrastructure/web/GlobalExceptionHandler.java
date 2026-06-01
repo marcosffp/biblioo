@@ -2,11 +2,20 @@ package com.biblioo.infrastructure.web;
 
 import com.biblioo.books.domain.exception.BookNotFoundException;
 import com.biblioo.books.domain.exception.ShelfBusinessException;
+import com.biblioo.dna.domain.exception.DnaInFormationException;
+import com.biblioo.feed.domain.exception.FeedPostBusinessException;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
-import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
 import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
+import com.biblioo.user.domain.exception.EmailRegisteredWithPasswordException;
+import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
+import com.biblioo.user.domain.exception.GoogleAccountNeedsPasswordException;
+import com.biblioo.user.domain.exception.GoogleAuthException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
+import com.biblioo.user.domain.exception.InvalidPasswordResetTokenException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
+import com.biblioo.user.domain.exception.PasswordAlreadyExistsException;
+import com.biblioo.user.domain.exception.PasswordResetRateLimitException;
+import com.biblioo.user.domain.exception.RegistrationConflictException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
 import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -28,7 +37,55 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  // ── Feed / Reviews ────────────────────────────────────────────────────────
+
+  @ExceptionHandler(com.biblioo.assistant.domain.exception.AssistantRateLimitException.class)
+  ResponseEntity<ErrorResponse> handleAssistantRateLimit(
+      com.biblioo.assistant.domain.exception.AssistantRateLimitException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.assistant.domain.exception.AssistantException.class)
+  ResponseEntity<ErrorResponse> handleAssistant(
+      com.biblioo.assistant.domain.exception.AssistantException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
+  }
+
+
+  @ExceptionHandler(DnaInFormationException.class)
+  ResponseEntity<ErrorResponse> handleDnaInFormation(
+      DnaInFormationException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.valueOf(422), ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.CommunityBusinessException.class)
+  ResponseEntity<ErrorResponse> handleCommunityBusiness(
+      com.biblioo.community.domain.exception.CommunityBusinessException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.CommunityAccessDeniedException.class)
+  ResponseEntity<ErrorResponse> handleCommunityAccessDenied(
+      com.biblioo.community.domain.exception.CommunityAccessDeniedException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingNotFoundException.class)
+  ResponseEntity<ErrorResponse> handleVotingNotFound(
+      com.biblioo.community.domain.exception.VotingNotFoundException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingOptionNotFoundException.class)
+  ResponseEntity<ErrorResponse> handleVotingOptionNotFound(
+      com.biblioo.community.domain.exception.VotingOptionNotFoundException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+  }
+
   @ExceptionHandler(com.biblioo.feed.domain.exception.ReviewBusinessException.class)
   ResponseEntity<ErrorResponse> handleReviewBusiness(
       com.biblioo.feed.domain.exception.ReviewBusinessException ex, HttpServletRequest request) {
@@ -41,7 +98,6 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
   }
 
-  // ── User ──────────────────────────────────────────────────────────────────
 
   @ExceptionHandler(UserNotFoundException.class)
   ResponseEntity<ErrorResponse> handleUserNotFound(
@@ -49,7 +105,7 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
   }
 
-  @ExceptionHandler(EmailAlreadyExistsException.class)
+    @ExceptionHandler(EmailAlreadyExistsException.class)
   ResponseEntity<ErrorResponse> handleEmailExists(
       EmailAlreadyExistsException ex, HttpServletRequest request) {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
@@ -61,6 +117,13 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
+
+  @ExceptionHandler(RegistrationConflictException.class)
+ResponseEntity<ErrorResponse> handleRegistrationConflict(
+    RegistrationConflictException ex, HttpServletRequest request) {
+  return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+}
+
   @ExceptionHandler(InvalidCredentialsException.class)
   ResponseEntity<ErrorResponse> handleInvalidCredentials(
       InvalidCredentialsException ex, HttpServletRequest request) {
@@ -71,6 +134,30 @@ public class GlobalExceptionHandler {
   ResponseEntity<ErrorResponse> handleInvalidToken(
       InvalidTokenException ex, HttpServletRequest request) {
     return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(GoogleAuthException.class)
+  ResponseEntity<ErrorResponse> handleGoogleAuth(
+      GoogleAuthException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(PasswordResetRateLimitException.class)
+  ResponseEntity<ErrorResponse> handlePasswordResetRateLimit(
+      PasswordResetRateLimitException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(InvalidPasswordResetTokenException.class)
+  ResponseEntity<ErrorResponse> handleInvalidPasswordResetToken(
+      InvalidPasswordResetTokenException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(PasswordAlreadyExistsException.class)
+  ResponseEntity<ErrorResponse> handlePasswordAlreadyExists(
+      PasswordAlreadyExistsException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
   @ExceptionHandler(AlreadyFollowingException.class)
@@ -85,7 +172,6 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
-  // ── Books ─────────────────────────────────────────────────────────────────
 
   @ExceptionHandler(BookNotFoundException.class)
   ResponseEntity<ErrorResponse> handleBookNotFound(
@@ -99,7 +185,6 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
-  // ── Validação / Input ─────────────────────────────────────────────────────
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   ResponseEntity<ValidationErrorResponse> handleValidation(
@@ -154,6 +239,13 @@ public class GlobalExceptionHandler {
         request);
   }
 
+  @ExceptionHandler(com.biblioo.recommendation.domain.exception.InvalidPreferenceException.class)
+  ResponseEntity<ErrorResponse> handleInvalidPreference(
+      com.biblioo.recommendation.domain.exception.InvalidPreferenceException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.valueOf(422), ex.getMessage(), request);
+  }
+
   @ExceptionHandler(IllegalArgumentException.class)
   ResponseEntity<ErrorResponse> handleIllegalArgument(
       IllegalArgumentException ex, HttpServletRequest request) {
@@ -169,7 +261,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(org.springframework.dao.InvalidDataAccessApiUsageException.class)
   ResponseEntity<ErrorResponse> handleInvalidDataAccess(
       org.springframework.dao.InvalidDataAccessApiUsageException ex, HttpServletRequest request) {
-    return buildError(HttpStatus.BAD_REQUEST, "Parâmetros de busca ou ordenação inválidos.", request);
+    return buildError(
+        HttpStatus.BAD_REQUEST, "Parâmetros de busca ou ordenação inválidos.", request);
   }
 
   @ExceptionHandler(Exception.class)
@@ -177,7 +270,24 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno. Tente novamente.", request);
   }
 
-  // ── Helper ────────────────────────────────────────────────────────────────
+  @ExceptionHandler(FeedPostBusinessException.class)
+  ResponseEntity<ErrorResponse> handleBusiness(
+      FeedPostBusinessException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(GoogleAccountNeedsPasswordException.class)
+  ResponseEntity<ErrorResponse> handleGoogleAccountNeedsPassword(
+      GoogleAccountNeedsPasswordException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(EmailRegisteredWithPasswordException.class)
+  ResponseEntity<ErrorResponse> handleEmailRegisteredWithPassword(
+      EmailRegisteredWithPasswordException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
 
   private ResponseEntity<ErrorResponse> buildError(
       HttpStatus status, String message, HttpServletRequest request) {
@@ -191,7 +301,6 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()));
   }
 
-  // ── Response DTOs ─────────────────────────────────────────────────────────
 
   public record ErrorResponse(
       LocalDateTime timestamp, int status, String error, String message, String path) {}

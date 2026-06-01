@@ -44,6 +44,12 @@ dependencies:
   connectivity_plus: ^6.0.0
   package_info_plus: ^8.0.2
   image_picker: ^1.1.2
+  path_provider: ^2.1.4
+  flutter_secure_storage: ^9.2.4
+  google_sign_in: ^6.2.1
+  flutter_dotenv: ^5.1.0
+  app_links: ^6.4.0
+  share_plus: ^10.1.4
 
   # local
   drift: ^2.18.0        # banco local SQLite tipado
@@ -77,6 +83,8 @@ dev_dependencies:
 
   injectable_generator: ^2.4.0
 
+  flutter_launcher_icons: ^0.14.4
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -95,10 +103,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/images/biblioo-carinha-branca-logo.png
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -125,3 +132,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  remove_alpha_ios: true # Recomendado para evitar rejeição na App Store

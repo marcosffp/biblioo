@@ -255,7 +255,7 @@ class _BookSearchViewState extends State<_BookSearchView> {
               if (widget.isPicker) {
                 Navigator.of(context).pop(state.books[index]);
               } else {
-                // TODO: navegar para detalhes do livro (feature futura)
+                context.push('/book/${state.books[index].id}');
               }
             },
           ),

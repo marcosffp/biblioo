@@ -3,8 +3,10 @@ package com.biblioo.feed.infrastructure.web;
 import com.biblioo.feed.domain.exception.CommentBusinessException;
 import com.biblioo.feed.domain.model.Comment;
 import com.biblioo.feed.domain.port.in.CommentUseCase;
+import com.biblioo.feed.domain.service.LikeStatusResolver;
 import com.biblioo.feed.infrastructure.dto.comment.CommentBasicResponse;
 import com.biblioo.feed.infrastructure.dto.comment.CommentResponse;
+import com.biblioo.feed.infrastructure.dto.like.LikeResponse;
 import com.biblioo.feed.infrastructure.dto.mapper.CommentMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,10 +44,18 @@ public class CommentController {
 
   private final CommentUseCase commentUseCase;
   private final CommentMapper commentMapper;
+  private final CommentEnricher commentEnricher;
+  private final LikeStatusResolver likeStatusResolver;
 
-  public CommentController(CommentUseCase commentUseCase, CommentMapper commentMapper) {
+  public CommentController(
+      CommentUseCase commentUseCase,
+      CommentMapper commentMapper,
+      CommentEnricher commentEnricher,
+      LikeStatusResolver likeStatusResolver) {
     this.commentUseCase = commentUseCase;
     this.commentMapper = commentMapper;
+    this.commentEnricher = commentEnricher;
+    this.likeStatusResolver = likeStatusResolver;
   }
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -54,17 +64,18 @@ public class CommentController {
       description =
           "Cria um novo comentário na avaliação indicada. Permite texto (opcional),"
               + " até 5 imagens e 1 GIF.")
-  public ResponseEntity<CommentResponse> createComment(
+  public ResponseEntity<CommentBasicResponse> createComment(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId,
-      @Parameter(description = "Texto do comentário (até 2000 caracteres)", example = "Ótima review!")
+      @Parameter(
+              description = "Texto do comentário (até 2000 caracteres)",
+              example = "Ótima review!")
           @RequestParam(required = false)
           String text,
       @Parameter(description = "Imagens a anexar ao comentário (máx 5)")
           @RequestPart(required = false)
           List<MultipartFile> images,
-      @Parameter(description = "GIF animado a anexar ao comentário")
-          @RequestPart(required = false)
+      @Parameter(description = "GIF animado a anexar ao comentário") @RequestPart(required = false)
           MultipartFile gif) {
 
     Long userId = Long.parseLong(principal.getUsername());
@@ -73,7 +84,8 @@ public class CommentController {
     Comment comment =
         commentUseCase.createComment(
             userId, reviewId, safeText, parseImages(images), parseGif(gif));
-    return ResponseEntity.status(HttpStatus.CREATED).body(commentMapper.toResponse(comment));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(commentEnricher.enrich(commentMapper.toBasicResponse(comment)));
   }
 
   @PutMapping(value = "/{commentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -84,8 +96,7 @@ public class CommentController {
   public ResponseEntity<CommentResponse> updateComment(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do comentário", example = "1") @PathVariable Long commentId,
-      @Parameter(description = "Novo texto do comentário (até 2000 caracteres)")
-          @RequestParam
+      @Parameter(description = "Novo texto do comentário (até 2000 caracteres)") @RequestParam
           String text,
       @Parameter(description = "URLs de imagens a remover do comentário")
           @RequestParam(required = false)
@@ -93,8 +104,7 @@ public class CommentController {
       @Parameter(description = "Novas imagens a adicionar (máx 5 no total)")
           @RequestPart(required = false)
           List<MultipartFile> images,
-      @Parameter(description = "Novo GIF (substitui o atual)")
-          @RequestPart(required = false)
+      @Parameter(description = "Novo GIF (substitui o atual)") @RequestPart(required = false)
           MultipartFile gif) {
 
     Long userId = Long.parseLong(principal.getUsername());
@@ -124,11 +134,15 @@ public class CommentController {
       summary = "Lista comentários de uma avaliação",
       description = "Retorna os comentários paginados da avaliação, ordenados do mais recente.")
   public ResponseEntity<Page<CommentBasicResponse>> getComments(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId,
       @PageableDefault(size = 20) Pageable pageable) {
 
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     return ResponseEntity.ok(
-        commentUseCase.getComments(reviewId, pageable).map(commentMapper::toBasicResponse));
+        commentEnricher.enrich(
+            commentUseCase.getComments(reviewId, pageable).map(commentMapper::toBasicResponse),
+            viewerId));
   }
 
   @GetMapping("/{commentId}")
@@ -136,11 +150,27 @@ public class CommentController {
       summary = "Obtém um comentário por ID",
       description = "Retorna os detalhes completos de um comentário específico.")
   public ResponseEntity<CommentResponse> getComment(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do comentário", example = "1") @PathVariable Long commentId) {
 
-    return ResponseEntity.ok(commentMapper.toResponse(commentUseCase.getCommentById(commentId)));
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
+    Comment comment = commentUseCase.getCommentById(commentId);
+    return ResponseEntity.ok(
+        commentMapper.toResponse(comment).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, commentId)));
   }
 
+  @PostMapping("/{commentId}/like")
+  @Operation(
+      summary = "Curtir / descurtir um comentário",
+      description = "Adiciona uma curtida se ainda não curtida; remove se já curtida.")
+  public ResponseEntity<LikeResponse> likeComment(
+      @AuthenticationPrincipal UserDetails principal,
+      @Parameter(description = "ID do comentário", example = "1") @PathVariable Long commentId) {
+
+    Long userId = Long.parseLong(principal.getUsername());
+    boolean liked = commentUseCase.likeComment(userId, commentId);
+    return ResponseEntity.ok(new LikeResponse(liked));
+  }
 
   private String sanitize(String html) {
     if (html == null) return null;

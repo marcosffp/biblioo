@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import React from "react";
-import { BookOpen, BookOpenCheck, MessageSquare, Sparkles, Users } from "lucide-react";
+import { Activity, BookOpen, BookOpenCheck, Flame, Sparkles, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -11,13 +11,21 @@ import {
   ProfileShelfBookCard,
   ProfileStatsGrid,
   ProfileTabs,
-  ProgressBar,
-  SectionHeader,
-  TagList,
+  UserActivityFeed,
+
+  UserCommunitiesTab,
+  ShareCapsuleModal,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
-import type { ShelfBook } from "@/hooks/useBookcasePage";
+import { ReadingGoalSection } from "@/components/profile/ReadingGoalSection";
+import { LiteraryDnaSection } from "@/components/profile/LiteraryDnaSection";
 import type { ReadingStatus } from "@/utils/bookcase-filters";
+import {
+  isDuplicateReviewError,
+  mapBackendReadingStatus,
+  mapFrontendReadingStatus,
+} from "@/utils/bookcase-filters";
+import type { DisplayShelfBook, ShelfItemWithShelfId } from "@/types/profile";
 import { getAccessToken } from "@/services/auth";
 import {
   BookcaseApiError,
@@ -25,6 +33,8 @@ import {
   createBookReview,
   getMyBookReview,
   getShelfItemById,
+  getActiveReadingDays,
+  removeBookFromShelf,
   updateBookReview,
   updateShelfItemProgress,
 } from "@/services/bookcase";
@@ -33,74 +43,32 @@ import {
   getFollowersCount,
   getFollowingCount,
   getMyProfile,
+  getMyDna,
   getProfilePreferences,
   listMyShelves,
   listShelfItems,
   type ProfilePreferences,
-  type ShelfItemSummaryResponse,
-  type UserProfileResponse,
 } from "@/services/profile";
+import type { DnaResponse, DnaProgressResponse, UserProfileResponse } from "@/types/api";
 
-const isOwner = true;
-const isPublic = true;
 
-const tabs = ["Estante", "Comunidades", "Resenhas"] as const;
-
-type DisplayShelfBook = Omit<ShelfBook, "shelfItemId"> & {
-  shelfItemId: number;
-  shelfId: number;
-  bookId: number;
-};
-
-type ShelfItemWithShelfId = ShelfItemSummaryResponse & {
-  shelfId: number;
-};
-
-type GenreDistribution = {
-  label: string;
-  value: number;
-};
-
-function mapBackendReadingStatus(status: string): Exclude<ReadingStatus, "todos"> {
-  switch (status) {
-    case "READING":
-      return "lendo";
-    case "REREADING":
-      return "relendo";
-    case "COMPLETED":
-      return "lido";
-    case "ABANDONED":
-      return "abandonei";
-    case "WANT_TO_READ":
-    default:
-      return "quero-ler";
-  }
+function FireIcon({ count }: { count: number }) {
+  if (count === 0) return <Flame size={16} className="text-muted-foreground/30" />;
+  if (count <= 5)  return <Flame size={16} className="animate-flame-slow text-yellow-400" />;
+  if (count <= 15) return <Flame size={16} className="animate-flame-slow text-orange-400" />;
+  if (count <= 30) return <Flame size={16} className="animate-flame text-orange-500" />;
+  return <Flame size={16} className="animate-flame text-red-500" />;
 }
 
-function mapFrontendReadingStatus(status: Exclude<ReadingStatus, "todos">) {
-  switch (status) {
-    case "lendo":
-      return "READING" as const;
-    case "relendo":
-      return "REREADING" as const;
-    case "lido":
-      return "COMPLETED" as const;
-    case "abandonei":
-      return "ABANDONED" as const;
-    case "quero-ler":
-    default:
-      return "WANT_TO_READ" as const;
-  }
-}
+const BOOKS_PER_PAGE = 10;
 
-function isDuplicateReviewError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return normalized.includes("ja fez uma review") || normalized.includes("já fez uma review");
-}
+const tabs = ["Biblioteca", "Atividade", "Comunidades"] as const;
+
 
 export default function PerfilPage() {
-  const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Estante");
-  const [isPublicProfile, setIsPublicProfile] = React.useState(isPublic);
+  const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Biblioteca");
+  const [shareCapsuleOpen, setShareCapsuleOpen] = React.useState(false);
+  const [isPublicProfile, setIsPublicProfile] = React.useState(true);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [profile, setProfile] = React.useState<UserProfileResponse | null>(null);
@@ -109,8 +77,7 @@ export default function PerfilPage() {
   const [shelfBooks, setShelfBooks] = React.useState<DisplayShelfBook[]>([]);
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
-  const [readersReached, setReadersReached] = React.useState(0);
-  const [authorItems, setAuthorItems] = React.useState<GenreDistribution[]>([]);
+  const [dna, setDna] = React.useState<DnaResponse | DnaProgressResponse | null>(null);
   const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
   const [preferences, setPreferences] = React.useState<ProfilePreferences>({
     displayName: null,
@@ -125,12 +92,22 @@ export default function PerfilPage() {
   const [activeReviewId, setActiveReviewId] = React.useState<number | null>(null);
   const [reviewRatingDraft, setReviewRatingDraft] = React.useState(0);
   const [reviewCommentDraft, setReviewCommentDraft] = React.useState("");
+  const [reviewSuccessMessage, setReviewSuccessMessage] = React.useState("");
   const [reviewError, setReviewError] = React.useState("");
   const [isSavingReview, setIsSavingReview] = React.useState(false);
+  const [isRemovingBookFromShelf, setIsRemovingBookFromShelf] = React.useState(false);
 
-  const goalTarget = 24;
-  const goalCurrent = booksRead;
-  const goalPct = goalTarget > 0 ? (goalCurrent / goalTarget) * 100 : 0;
+  const [allShelfItems, setAllShelfItems] = React.useState<ShelfItemWithShelfId[]>([]);
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const [isFetchingPage, setIsFetchingPage] = React.useState(false);
+
+  const [goalTarget, setGoalTarget] = React.useState<number>(() => {
+    if (typeof window === "undefined") return 24;
+    return parseInt(localStorage.getItem("biblioo.profile.goal.target") ?? "24", 10) || 24;
+  });
+  const [readingUpdatesCount, setReadingUpdatesCount] = React.useState(0);
+  const [goalEditOpen, setGoalEditOpen] = React.useState(false);
+  const currentYear = new Date().getFullYear();
 
   React.useEffect(() => {
     const accessToken = getAccessToken();
@@ -158,12 +135,12 @@ export default function PerfilPage() {
         );
 
         const flatItems = shelfItemGroups.flatMap((group) =>
-          group.items.map((item) => ({
-            ...item,
-            shelfId: group.shelfId,
-          })),
+          group.items.map((item) => ({ ...item, shelfId: group.shelfId })),
         );
-        const uniqueItems = Array.from(new Map(flatItems.map((item) => [item.id, item])).values()) as ShelfItemWithShelfId[];
+        const uniqueItems = Array.from(
+          new Map(flatItems.map((item) => [item.id, item])).values(),
+        ) as ShelfItemWithShelfId[];
+
         const completedCount = uniqueItems.filter((item) => item.status === "COMPLETED").length;
 
         const pageCountEntries = await Promise.all(
@@ -182,31 +159,20 @@ export default function PerfilPage() {
           }),
         );
 
-        const computedPagesRead = pageCountEntries.reduce((total, entry) => {
-          return total + Math.round((entry.pageCount * entry.progressPercent) / 100);
-        }, 0);
+        const computedPagesRead = pageCountEntries.reduce(
+          (total, entry) => total + Math.round((entry.pageCount * entry.progressPercent) / 100),
+          0,
+        );
 
-        const computedReadersReached = pageCountEntries.reduce((total, entry) => {
-          return total + Math.max(0, entry.readerCount ?? 0);
-        }, 0);
 
         const authorCountMap = new Map<string, number>();
-
         pageCountEntries.forEach((entry) => {
           entry.authors.forEach((author) => {
-            if (!author || !author.trim()) {
-              return;
+            if (author?.trim()) {
+              authorCountMap.set(author, (authorCountMap.get(author) ?? 0) + 1);
             }
-
-            authorCountMap.set(author, (authorCountMap.get(author) ?? 0) + 1);
           });
         });
-
-        const computedAuthorItems = Array.from(authorCountMap.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 6)
-          .map(([label, value]) => ({ label, value }));
-
         const computedFavoriteAuthors = Array.from(authorCountMap.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5)
@@ -217,9 +183,7 @@ export default function PerfilPage() {
           getFollowingCount(loadedProfile.username, accessToken),
         ]);
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         setProfile(loadedProfile);
         setPreferences(loadedPreferences);
@@ -228,19 +192,34 @@ export default function PerfilPage() {
         setFollowingCount(following);
         setBooksRead(completedCount);
         setPagesRead(computedPagesRead);
-        setReadersReached(computedReadersReached);
-        setAuthorItems(computedAuthorItems);
         setFavoriteAuthors(computedFavoriteAuthors);
-        // build richer shelf book objects so we can render the same layout used in the main estante
+
+        try {
+          const dnaData = await getMyDna(accessToken);
+          if (!cancelled) setDna(dnaData);
+        } catch {
+          // DNA é opcional
+        }
+
+        try {
+          const activeDays = await getActiveReadingDays(accessToken);
+          if (!cancelled) setReadingUpdatesCount(activeDays);
+        } catch {
+          // streak é opcional
+        }
+
+        setAllShelfItems(uniqueItems);
+
         const shelfBookItems = await Promise.all(
-          uniqueItems.slice(0, 8).map(async (item) => {
+          uniqueItems.slice(0, BOOKS_PER_PAGE).map(async (item) => {
             try {
               const [book, detailedItem, myReview] = await Promise.all([
                 getBookById(item.bookId, accessToken),
                 getShelfItemById(item.shelfId, item.id),
                 getMyBookReview(item.bookId),
               ]);
-              const author = (book.authors && book.authors.length > 0) ? book.authors.join(", ") : "Autor desconhecido";
+              const author =
+                book.authors && book.authors.length > 0 ? book.authors.join(", ") : "Autor desconhecido";
 
               return {
                 shelfId: item.shelfId,
@@ -281,23 +260,14 @@ export default function PerfilPage() {
 
         setShelfBooks(shelfBookItems);
       } catch {
-        if (cancelled) {
-          return;
-        }
-
-        setLoadError("Não foi possível carregar as informações do perfil.");
+        if (!cancelled) setLoadError("Não foi possível carregar as informações do perfil.");
       } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     void run();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const handleOpenShelfBookDetails = (book: DisplayShelfBook) => {
@@ -307,20 +277,15 @@ export default function PerfilPage() {
     setActiveReviewId(null);
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
+    setReviewSuccessMessage("");
     setIsShelfBookDetailsOpen(true);
 
     async function loadExistingReview() {
       const bookId = Number(book.id);
-      if (Number.isNaN(bookId)) {
-        return;
-      }
-
+      if (Number.isNaN(bookId)) return;
       try {
         const existingReview = await getMyBookReview(bookId);
-        if (!existingReview) {
-          return;
-        }
-
+        if (!existingReview) return;
         setActiveReviewId(existingReview.id);
         setReviewRatingDraft(existingReview.rating);
         setReviewCommentDraft(existingReview.text ?? "");
@@ -339,7 +304,120 @@ export default function PerfilPage() {
     setActiveReviewId(null);
     setReviewRatingDraft(0);
     setReviewCommentDraft("");
+    setReviewSuccessMessage("");
     setReviewError("");
+  };
+
+  const handleRemoveFromShelf = () => {
+    if (!selectedShelfBook) {
+      setBookDetailsError("Não foi possível identificar o item da estante.");
+      return;
+    }
+
+    const { shelfId, shelfItemId } = selectedShelfBook;
+
+    async function removeAction() {
+      setIsRemovingBookFromShelf(true);
+      setBookDetailsError("");
+      try {
+        await removeBookFromShelf(shelfId, shelfItemId);
+
+        setShelfBooks((books) => books.filter((b) => b.shelfItemId !== shelfItemId));
+        setAllShelfItems((items) => items.filter((i) => i.id !== shelfItemId));
+        handleCloseShelfBookDetails();
+      } catch (error) {
+        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
+          setBookDetailsError("Faça login para remover livros da estante.");
+        } else if (error instanceof BookcaseApiError && error.message) {
+          setBookDetailsError(error.message);
+        } else {
+          setBookDetailsError("Não foi possível remover o livro da estante.");
+        }
+      } finally {
+        setIsRemovingBookFromShelf(false);
+      }
+    }
+
+    void removeAction();
+  };
+
+  const handlePageChange = async (newPage: number) => {
+    const token = getAccessToken();
+    if (!token) return;
+    setCurrentPage(newPage);
+    setIsFetchingPage(true);
+    try {
+      const pageItems = allShelfItems.slice(newPage * BOOKS_PER_PAGE, (newPage + 1) * BOOKS_PER_PAGE);
+      const books = await Promise.all(
+        pageItems.map(async (item) => {
+          try {
+            const [book, detailedItem, myReview] = await Promise.all([
+              getBookById(item.bookId, token),
+              getShelfItemById(item.shelfId, item.id),
+              getMyBookReview(item.bookId),
+            ]);
+            const author = book.authors && book.authors.length > 0 ? book.authors.join(", ") : "Autor desconhecido";
+            return {
+              shelfId: item.shelfId,
+              shelfItemId: item.id,
+              id: item.bookId.toString(),
+              bookId: item.bookId,
+              title: item.bookTitle,
+              author,
+              coverUrl: item.bookCoverUrl ?? book.coverUrl ?? undefined,
+              rating: myReview?.rating ?? book.averageRating ?? undefined,
+              synopsis: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
+              description: book.description ?? (book as { synopsis?: string | null }).synopsis ?? undefined,
+              readerCount: book.readerCount ?? undefined,
+              progress: item.progressPercent ?? undefined,
+              readingStatus: mapBackendReadingStatus(item.status),
+              currentPage: detailedItem?.currentPage ?? undefined,
+              totalPages: detailedItem?.totalPages ?? book.pageCount ?? undefined,
+            } as DisplayShelfBook;
+          } catch {
+            return {
+              shelfId: item.shelfId,
+              shelfItemId: item.id,
+              id: item.bookId.toString(),
+              bookId: item.bookId,
+              title: item.bookTitle,
+              author: "Autor desconhecido",
+              coverUrl: item.bookCoverUrl ?? undefined,
+              rating: undefined,
+              synopsis: undefined,
+              description: undefined,
+              readerCount: undefined,
+              progress: item.progressPercent ?? undefined,
+              readingStatus: mapBackendReadingStatus(item.status),
+            } as DisplayShelfBook;
+          }
+        }),
+      );
+      setShelfBooks(books);
+    } finally {
+      setIsFetchingPage(false);
+    }
+  };
+
+  const applyShelfItemUpdate = (updatedItem: { id: number; status: string; progressPercent?: number | null; currentPage?: number | null; totalPages?: number | null }) => {
+    const next = {
+      readingStatus: mapBackendReadingStatus(updatedItem.status),
+      progress: updatedItem.progressPercent ?? undefined,
+      currentPage: updatedItem.currentPage ?? undefined,
+    };
+
+    setShelfBooks((books) =>
+      books.map((book) =>
+        book.shelfItemId === updatedItem.id
+          ? { ...book, ...next, totalPages: updatedItem.totalPages ?? book.totalPages }
+          : book,
+      ),
+    );
+
+    setSelectedShelfBook((current) => {
+      if (!current || current.shelfItemId !== updatedItem.id) return current;
+      return { ...current, ...next, totalPages: updatedItem.totalPages ?? current.totalPages };
+    });
   };
 
   const handleSelectShelfBookStatus = (nextStatus: Exclude<ReadingStatus, "todos">) => {
@@ -353,41 +431,13 @@ export default function PerfilPage() {
     async function updateShelfBookStatusAction() {
       setIsSavingShelfBookDetails(true);
       setBookDetailsError("");
-
       try {
         const updatedItem = await changeShelfItemStatus(
           activeBook.shelfId,
           activeBook.shelfItemId,
           mapFrontendReadingStatus(nextStatus),
         );
-
-        setShelfBooks((currentBooks) =>
-          currentBooks.map((book) =>
-            book.shelfItemId === updatedItem.id
-              ? {
-                  ...book,
-                  readingStatus: mapBackendReadingStatus(updatedItem.status),
-                  progress: updatedItem.progressPercent ?? undefined,
-                  currentPage: updatedItem.currentPage ?? undefined,
-                  totalPages: updatedItem.totalPages ?? book.totalPages,
-                }
-              : book,
-          ),
-        );
-
-        setSelectedShelfBook((currentBook) => {
-          if (!currentBook || currentBook.shelfItemId !== updatedItem.id) {
-            return currentBook;
-          }
-
-          return {
-            ...currentBook,
-            readingStatus: mapBackendReadingStatus(updatedItem.status),
-            progress: updatedItem.progressPercent ?? undefined,
-            currentPage: updatedItem.currentPage ?? undefined,
-            totalPages: updatedItem.totalPages ?? currentBook.totalPages,
-          };
-        });
+        applyShelfItemUpdate(updatedItem);
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
           setBookDetailsError("Faça login para atualizar o status do livro.");
@@ -404,65 +454,24 @@ export default function PerfilPage() {
     void updateShelfBookStatusAction();
   };
 
-  const handleStepShelfBookPage = (delta: number) => {
+  const updateShelfBookProgress = (nextPage: number) => {
     if (!selectedShelfBook) {
       setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
 
     const activeBook = selectedShelfBook;
-    const currentPage = activeBook.currentPage ?? 0;
-    const totalPages = activeBook.totalPages;
-    const nextPage = currentPage + delta;
-
-    if (nextPage < 0) {
-      return;
-    }
-
-    if (typeof totalPages === "number" && nextPage > totalPages) {
-      return;
-    }
 
     async function updateShelfBookProgressAction() {
       setIsSavingShelfBookDetails(true);
       setBookDetailsError("");
-
       try {
-        const requiresReadingStatus = activeBook.readingStatus !== "lendo" && activeBook.readingStatus !== "relendo";
-
-        if (requiresReadingStatus) {
+        if (activeBook.readingStatus !== "lendo" && activeBook.readingStatus !== "relendo") {
           await changeShelfItemStatus(activeBook.shelfId, activeBook.shelfItemId, "READING");
         }
-
         const updatedItem = await updateShelfItemProgress(activeBook.shelfId, activeBook.shelfItemId, nextPage);
-
-        setShelfBooks((currentBooks) =>
-          currentBooks.map((book) =>
-            book.shelfItemId === updatedItem.id
-              ? {
-                  ...book,
-                  readingStatus: mapBackendReadingStatus(updatedItem.status),
-                  progress: updatedItem.progressPercent ?? undefined,
-                  currentPage: updatedItem.currentPage ?? undefined,
-                  totalPages: updatedItem.totalPages ?? book.totalPages,
-                }
-              : book,
-          ),
-        );
-
-        setSelectedShelfBook((currentBook) => {
-          if (!currentBook || currentBook.shelfItemId !== updatedItem.id) {
-            return currentBook;
-          }
-
-          return {
-            ...currentBook,
-            readingStatus: mapBackendReadingStatus(updatedItem.status),
-            progress: updatedItem.progressPercent ?? undefined,
-            currentPage: updatedItem.currentPage ?? undefined,
-            totalPages: updatedItem.totalPages ?? currentBook.totalPages,
-          };
-        });
+        applyShelfItemUpdate(updatedItem);
+        getActiveReadingDays().then(setReadingUpdatesCount).catch(() => {});
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
           setBookDetailsError("Faça login para atualizar o progresso.");
@@ -477,6 +486,19 @@ export default function PerfilPage() {
     }
 
     void updateShelfBookProgressAction();
+  };
+
+  const handleStepShelfBookPage = (delta: number) => {
+    if (!selectedShelfBook) {
+      setBookDetailsError("Não foi possível identificar o item da estante.");
+      return;
+    }
+    const currentPage = selectedShelfBook.currentPage ?? 0;
+    const totalPages = selectedShelfBook.totalPages;
+    const nextPage = currentPage + delta;
+    if (nextPage < 0) return;
+    if (typeof totalPages === "number" && nextPage > totalPages) return;
+    updateShelfBookProgress(nextPage);
   };
 
   const handleSetShelfBookPage = (nextPage: number) => {
@@ -484,80 +506,20 @@ export default function PerfilPage() {
       setBookDetailsError("Não foi possível identificar o item da estante.");
       return;
     }
-
-    const activeBook = selectedShelfBook;
-    const totalPages = activeBook.totalPages;
-
-    if (!Number.isInteger(nextPage) || nextPage < 0) {
-      return;
-    }
-
-    if (typeof totalPages === "number" && nextPage > totalPages) {
-      return;
-    }
-
-    async function updateShelfBookProgressAction() {
-      setIsSavingShelfBookDetails(true);
-      setBookDetailsError("");
-
-      try {
-        const requiresReadingStatus = activeBook.readingStatus !== "lendo" && activeBook.readingStatus !== "relendo";
-
-        if (requiresReadingStatus) {
-          await changeShelfItemStatus(activeBook.shelfId, activeBook.shelfItemId, "READING");
-        }
-
-        const updatedItem = await updateShelfItemProgress(activeBook.shelfId, activeBook.shelfItemId, nextPage);
-
-        setShelfBooks((currentBooks) =>
-          currentBooks.map((book) =>
-            book.shelfItemId === updatedItem.id
-              ? {
-                  ...book,
-                  readingStatus: mapBackendReadingStatus(updatedItem.status),
-                  progress: updatedItem.progressPercent ?? undefined,
-                  currentPage: updatedItem.currentPage ?? undefined,
-                  totalPages: updatedItem.totalPages ?? book.totalPages,
-                }
-              : book,
-          ),
-        );
-
-        setSelectedShelfBook((currentBook) => {
-          if (!currentBook || currentBook.shelfItemId !== updatedItem.id) {
-            return currentBook;
-          }
-
-          return {
-            ...currentBook,
-            readingStatus: mapBackendReadingStatus(updatedItem.status),
-            progress: updatedItem.progressPercent ?? undefined,
-            currentPage: updatedItem.currentPage ?? undefined,
-            totalPages: updatedItem.totalPages ?? currentBook.totalPages,
-          };
-        });
-      } catch (error) {
-        if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
-          setBookDetailsError("Faça login para atualizar o progresso.");
-        } else if (error instanceof BookcaseApiError && error.message) {
-          setBookDetailsError(error.message);
-        } else {
-          setBookDetailsError("Não foi possível atualizar o progresso do livro.");
-        }
-      } finally {
-        setIsSavingShelfBookDetails(false);
-      }
-    }
-
-    void updateShelfBookProgressAction();
+    const totalPages = selectedShelfBook.totalPages;
+    if (!Number.isInteger(nextPage) || nextPage < 0) return;
+    if (typeof totalPages === "number" && nextPage > totalPages) return;
+    updateShelfBookProgress(nextPage);
   };
 
   const handleSetReviewRating = (value: number) => {
+    setReviewSuccessMessage("");
     setReviewError("");
     setReviewRatingDraft(value);
   };
 
   const handleSetReviewComment = (value: string) => {
+    setReviewSuccessMessage("");
     setReviewError("");
     setReviewCommentDraft(value);
   };
@@ -568,7 +530,8 @@ export default function PerfilPage() {
       return;
     }
 
-    const bookId = Number(selectedShelfBook.id);
+    const activeBook = selectedShelfBook;
+    const bookId = Number(activeBook.id);
     if (Number.isNaN(bookId)) {
       setReviewError("Não foi possível identificar o livro para avaliar.");
       return;
@@ -592,6 +555,7 @@ export default function PerfilPage() {
 
     async function saveBookReviewAction() {
       setIsSavingReview(true);
+      setReviewSuccessMessage("");
       setReviewError("");
 
       try {
@@ -602,6 +566,7 @@ export default function PerfilPage() {
         setActiveReviewId(savedReview.id);
         setReviewRatingDraft(savedReview.rating);
         setReviewCommentDraft(savedReview.text ?? "");
+        setReviewSuccessMessage("Avaliação salva com sucesso.");
       } catch (error) {
         if (error instanceof BookcaseApiError && isDuplicateReviewError(error.message)) {
           try {
@@ -636,12 +601,12 @@ export default function PerfilPage() {
   const profileName = preferences.displayName?.trim() ? preferences.displayName : profile?.username ?? "Usuário";
   const profileBio = profile?.bio ?? "Sem bio cadastrada.";
   const profileHandle = profile ? `@${profile.username}` : "@usuario";
-
   const initial = (profileName[0] ?? "U").toUpperCase();
+
   const tabIcons = {
-    Estante: BookOpen,
+    Biblioteca: BookOpen,
+    Atividade: Activity,
     Comunidades: Users,
-    Resenhas: MessageSquare,
   };
 
   return (
@@ -661,10 +626,18 @@ export default function PerfilPage() {
         followersHref="/profile/followers"
         followingHref="/profile/following"
         action={
-          isOwner ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShareCapsuleOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary-dark px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(19,147,122,0.22)] transition-all hover:-translate-y-px hover:bg-primary hover:shadow-[0_12px_24px_rgba(19,147,122,0.30)]"
+            >
+              <Sparkles size={14} />
+              Compartilhar cápsula
+            </button>
             <Link
               href="/profile/edit"
-              className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 20h9" />
@@ -672,153 +645,128 @@ export default function PerfilPage() {
               </svg>
               Editar perfil
             </Link>
-          ) : (
-            <button
-              type="button"
-              className="mt-0 inline-flex items-center gap-2 rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm text-black shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-              Seguir
-            </button>
-          )
+          </div>
         }
       />
 
       <ProfileStatsGrid
         items={[
-          { label: "Livros lidos", value: booksRead, icon: <BookOpen size={16} /> },
-          { label: "Páginas lidas", value: pagesRead.toLocaleString("pt-BR"), icon: <BookOpenCheck size={16} /> },
+          { label: "Livros lidos", value: booksRead, icon: <BookOpen size={16} />, tooltip: "Total de livros com status 'Lido' em todas as suas estantes." },
+          { label: "Páginas lidas", value: pagesRead.toLocaleString("pt-BR"), icon: <BookOpenCheck size={16} />, tooltip: "Soma das páginas lidas, calculada pelo progresso registrado em cada livro." },
           {
-            label: "Status",
-            value: booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora",
-            icon: <Sparkles size={16} />,
+            label: "Dias ativos",
+            value: readingUpdatesCount,
+            icon: <FireIcon count={readingUpdatesCount} />,
+            tooltip: "Dias em que você atualizou o progresso de algum livro. Quanto mais dias seguidos, mais intensa a chama!",
           },
-          { label: "Leitores alcançados", value: readersReached.toLocaleString("pt-BR"), icon: <Users size={16} /> },
         ]}
       />
 
-      {preferences.showReadingGoal ? (
-        <section className="rounded-lg border border-gray-200 bg-white p-5">
-          <SectionHeader title="Meta de leitura 2024" />
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-sm font-semibold text-gray-900">
-              <span>Meta de leitura 2024</span>
-              <span>
-                {goalCurrent}/{goalTarget}
-              </span>
-            </div>
-            <div className="mt-3">
-              <ProgressBar value={goalPct} />
-            </div>
-            <p className="mt-2 text-xs text-gray-500">
-              Faltam {Math.max(0, goalTarget - goalCurrent)} livros para completar sua meta.
-            </p>
-          </div>
-        </section>
-      ) : null}
-
-      {preferences.showDnaLiterario ? (
-        <section className="rounded-lg border border-gray-200 bg-white p-5">
-          <SectionHeader title="DNA literário" subtitle="Seu perfil de leitura" />
-          <div className="mt-4">
-            {authorItems.length > 0 ? (
-              <div className="space-y-3">
-                {authorItems.map((item) => {
-                  const total = authorItems.reduce((acc, current) => acc + current.value, 0) || 1;
-                  const pct = Math.round((item.value / total) * 100);
-                  return (
-                    <div key={item.label}>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>{item.label}</span>
-                        <span>{pct}%</span>
-                      </div>
-                      <div className="mt-1 h-2 rounded-full bg-emerald-100">
-                        <div className="h-2 rounded-full bg-emerald-600" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500">Ainda não há dados suficientes para montar seu DNA literário.</p>
-            )}
-            <div className="mt-4 border-t border-gray-200 pt-4">
-              <div className="text-xs font-semibold text-gray-500">Autores favoritos</div>
-              {favoriteAuthors.length > 0 ? (
-                <TagList className="mt-2" tags={favoriteAuthors} />
-              ) : (
-                <p className="mt-2 text-sm text-gray-500">Sem autores suficientes para análise.</p>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
-
-      {activeTab === "Estante" ? (
-        <section>
-          {shelfBooks.length > 0 ? (
-            <section className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4">
-              {shelfBooks.map((book) => (
-                <ProfileShelfBookCard
-                  key={book.shelfItemId}
-                  title={book.title}
-                  author={book.author}
-                  coverUrl={book.coverUrl}
-                  progressPercent={book.progress}
-                  userRating={book.rating}
-                  onClick={() => handleOpenShelfBookDetails(book)}
-                />
-              ))}
-            </section>
-          ) : (
-            <EmptyState
-              title="Sua estante está vazia"
-              description="Adicione livros para acompanhar progresso e metas no seu perfil."
-              action={<Button className="!mt-0 !h-11 !w-auto rounded-2xl px-6 shadow-sm hover:shadow-md">Explorar livros</Button>}
+      {(preferences.showReadingGoal || preferences.showDnaLiterario) && (
+        <div className={`grid gap-4 ${preferences.showReadingGoal && preferences.showDnaLiterario ? "lg:grid-cols-2" : ""}`}>
+          {preferences.showReadingGoal && (
+            <ReadingGoalSection
+              current={booksRead}
+              target={goalTarget}
+              year={currentYear}
+              onEdit={() => setGoalEditOpen(true)}
             />
           )}
-        </section>
-      ) : activeTab === "Comunidades" ? (
-        <EmptyState
-          title="Nenhuma comunidade ainda"
-          description="Encontre clubes e conversas para compartilhar suas leituras."
-          action={<Button>Explorar comunidades</Button>}
-        />
-      ) : (
-        <EmptyState
-          title="Sem resenhas publicadas"
-          description="Escreva uma resenha para registrar suas leituras favoritas."
-          action={<Button>Escrever resenha</Button>}
+          {preferences.showDnaLiterario && (
+            <LiteraryDnaSection dna={dna} isLoading={isLoading} />
+          )}
+        </div>
+      )}
+
+      {goalEditOpen && (
+        <GoalEditModal
+          currentTarget={goalTarget}
+          year={currentYear}
+          onSave={(next: number) => {
+            setGoalTarget(next);
+            localStorage.setItem("biblioo.profile.goal.target", String(next));
+            setGoalEditOpen(false);
+          }}
+          onClose={() => setGoalEditOpen(false)}
         />
       )}
 
-      <section className="rounded-xl border border-gray-200 bg-white p-6">
-        <SectionHeader title="Importar Goodreads" />
-        <div className="mt-4 rounded-xl border border-gray-200 px-6 py-10 text-center">
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 3v12" />
-              <path d="m7 8 5-5 5 5" />
-              <path d="M5 21h14" />
-            </svg>
-          </div>
-          <h3 className="text-sm font-semibold text-gray-800">Importe sua biblioteca do Goodreads</h3>
-          <p className="mt-1 text-xs text-gray-500">
-            Faça upload do CSV exportado do Goodreads para adicionar seus livros à estante.
-          </p>
-          <button
-            type="button"
-            className="mt-5 inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-          >
-            Selecionar arquivo CSV
-          </button>
-        </div>
-      </section>
+      <ProfileTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} iconByTab={tabIcons} />
+
+      {activeTab === "Biblioteca" ? (
+        <section>
+          {allShelfItems.length > 0 ? (
+            <>
+              <section className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 items-start gap-3 transition-opacity duration-200 ${isFetchingPage ? "pointer-events-none opacity-50" : ""}`}>
+                {shelfBooks.map((book) => (
+                  <ProfileShelfBookCard
+                    key={book.shelfItemId}
+                    title={book.title}
+                    author={book.author}
+                    coverUrl={book.coverUrl}
+                    progressPercent={book.progress}
+                    userRating={book.rating}
+                    onClick={() => handleOpenShelfBookDetails(book)}
+                  />
+                ))}
+              </section>
+
+              {Math.ceil(allShelfItems.length / BOOKS_PER_PAGE) > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 0 || isFetchingPage}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    ← Anterior
+                  </button>
+                  <span className="text-sm text-muted-foreground">
+                    Página {currentPage + 1} de {Math.ceil(allShelfItems.length / BOOKS_PER_PAGE)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= Math.ceil(allShelfItems.length / BOOKS_PER_PAGE) - 1 || isFetchingPage}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Próxima →
+                  </button>
+                </div>
+              )}
+            </>
+          ) : !isLoading ? (
+            <EmptyState
+              title="Sua biblioteca está vazia"
+              description="Adicione livros para acompanhar progresso e metas no seu perfil."
+              action={<Button className="!mt-0 !h-11 !w-auto rounded-2xl px-6 shadow-sm hover:shadow-md">Explorar livros</Button>}
+            />
+          ) : null}
+        </section>
+      ) : activeTab === "Atividade" ? (
+        profile ? (
+          <UserActivityFeed
+            userId={profile.id}
+            authorName={profileName}
+            authorUsername={profile.username}
+            authorAvatarUrl={profile.avatarUrl ?? null}
+            isOwnProfile
+          />
+        ) : null
+      ) : activeTab === "Comunidades" ? (
+        <UserCommunitiesTab isOwnProfile />
+      ) : null}
+
+      <ShareCapsuleModal
+        open={shareCapsuleOpen}
+        onClose={() => setShareCapsuleOpen(false)}
+        userName={profileName}
+        userHandle={profileHandle}
+        avatarUrl={profile?.avatarUrl ?? null}
+        booksRead={booksRead}
+        pagesRead={pagesRead}
+        favoriteAuthors={favoriteAuthors}
+      />
 
       <ShelfBookDetailsPanel
         isOpen={isShelfBookDetailsOpen}
@@ -827,26 +775,91 @@ export default function PerfilPage() {
         onSelectStatus={handleSelectShelfBookStatus}
         onStepPage={handleStepShelfBookPage}
         onSetPage={handleSetShelfBookPage}
-        onRemoveFromShelf={() => {
-          // Profile page does not expose shelf removal from this modal yet.
-        }}
+        onRemoveFromShelf={handleRemoveFromShelf}
         reviewRating={reviewRatingDraft}
         reviewComment={reviewCommentDraft}
         reviewExists={typeof activeReviewId === "number"}
         onChangeReviewRating={handleSetReviewRating}
         onChangeReviewComment={handleSetReviewComment}
         onSaveReview={handleSaveBookReview}
+        reviewSuccessMessage={reviewSuccessMessage}
         reviewError={reviewError}
         isSavingReview={isSavingReview}
         isLoadingReview={false}
         isSaving={isSavingShelfBookDetails}
-        isRemovingFromShelf={false}
+        isRemovingFromShelf={isRemovingBookFromShelf}
         errorMessage={bookDetailsError}
       />
-
     </AppShell>
   );
-
-  
 }
 
+// ─── Goal Edit Modal ──────────────────────────────────────────────────────────
+
+function GoalEditModal({
+  currentTarget,
+  year,
+  onSave,
+  onClose,
+}: Readonly<{
+  currentTarget: number;
+  year: number;
+  onSave: (v: number) => void;
+  onClose: () => void;
+}>) {
+  const [value, setLocalValue] = React.useState(currentTarget);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const n = Math.max(1, Math.min(365, value));
+    onSave(n);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-base font-semibold text-foreground">
+          Meta de leitura {year}
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Quantos livros você quer ler em {year}?
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-5">
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={value}
+            onChange={(e) => setLocalValue(Number(e.target.value))}
+            className="w-full rounded-xl border border-border bg-background px-4 py-3 text-center text-3xl font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            autoFocus
+          />
+          <p className="mt-1.5 text-center text-xs text-muted-foreground">livros</p>
+
+          <div className="mt-5 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-border py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+            >
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

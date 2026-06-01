@@ -7,8 +7,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface CommentUseCase {
 
-  Comment createComment(
-      Long userId, Long parentId, String text, List<byte[]> images, byte[] gif);
+  Comment createComment(Long userId, Long parentId, String text, List<byte[]> images, byte[] gif);
 
   Comment updateComment(
       Long userId,
@@ -23,4 +22,8 @@ public interface CommentUseCase {
   Comment getCommentById(Long commentId);
 
   Page<Comment> getComments(Long parentId, Pageable pageable);
+
+  boolean likeComment(Long userId, Long commentId);
+
+  Comment createReply(Long userId, Long commentId, String text);
 }

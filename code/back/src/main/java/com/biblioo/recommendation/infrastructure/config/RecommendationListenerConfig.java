@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class RecommendationListenerConfig {
 
   @Bean
-  Advice recRetryInterceptor() {
+  Advice becauseYouReadRetryInterceptor() {
     return RetryInterceptorBuilder.stateless()
         .maxRetries(3)
         .backOffOptions(2_000, 2.0, 10_000)
@@ -21,14 +21,124 @@ public class RecommendationListenerConfig {
 
   @SuppressWarnings("removal")
   @Bean
-  SimpleRabbitListenerContainerFactory recListenerFactory(
+  SimpleRabbitListenerContainerFactory becauseYouReadListenerFactory(
       ConnectionFactory connectionFactory,
       Jackson2JsonMessageConverter messageConverter,
-      Advice recRetryInterceptor) {
+      Advice becauseYouReadRetryInterceptor) {
     SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
     factory.setConnectionFactory(connectionFactory);
     factory.setMessageConverter(messageConverter);
-    factory.setAdviceChain(recRetryInterceptor);
+    factory.setAdviceChain(becauseYouReadRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  @Bean
+  Advice favoriteGenreNowRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory favoriteGenreNowListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice favoriteGenreNowRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(favoriteGenreNowRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  @Bean
+  Advice trendingInCommunitiesRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory trendingInCommunitiesListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice trendingInCommunitiesRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(trendingInCommunitiesRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  @Bean
+  Advice catalogSurpriseRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory catalogSurpriseListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice catalogSurpriseRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(catalogSurpriseRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  @Bean
+  Advice similarAuthorsRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory similarAuthorsListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice similarAuthorsRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(similarAuthorsRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  @Bean
+  Advice rereadWorthItRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000)
+        .build();
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory rereadWorthItListenerFactory(
+      ConnectionFactory connectionFactory,
+      Jackson2JsonMessageConverter messageConverter,
+      Advice rereadWorthItRetryInterceptor) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setAdviceChain(rereadWorthItRetryInterceptor);
     factory.setDefaultRequeueRejected(false);
     return factory;
   }

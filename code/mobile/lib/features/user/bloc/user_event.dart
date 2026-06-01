@@ -8,6 +8,7 @@ class LoadUserProfile extends UserEvent {
 }
 
 class UpdateProfile extends UserEvent {
+  final String? username;
   final String? bio;
   final String? avatarUrl;
   final String? bannerUrl;
@@ -16,6 +17,7 @@ class UpdateProfile extends UserEvent {
   final bool? isPrivate;
 
   UpdateProfile({
+    this.username,
     this.bio,
     this.avatarUrl,
     this.bannerUrl,

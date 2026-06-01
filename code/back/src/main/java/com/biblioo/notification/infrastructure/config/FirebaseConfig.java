@@ -14,11 +14,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FirebaseConfig {
 
-  public FirebaseConfig(
-      @Value("${firebase.service-account-base64:}") String serviceAccountBase64) {
+  public FirebaseConfig(@Value("${firebase.service-account-base64}") String serviceAccountBase64) {
     if (FirebaseApp.getApps().isEmpty()) {
       if (serviceAccountBase64 == null || serviceAccountBase64.isBlank()) {
-        log.warn("[Firebase] FIREBASE_SERVICE_ACCOUNT_BASE64 não configurado — push FCM desativado");
+        log.warn(
+            "[Firebase] FIREBASE_SERVICE_ACCOUNT_BASE64 não configurado — push FCM desativado");
         return;
       }
       try {
@@ -28,7 +28,6 @@ public class FirebaseConfig {
                 .setCredentials(GoogleCredentials.fromStream(new ByteArrayInputStream(decoded)))
                 .build();
         FirebaseApp.initializeApp(options);
-        log.info("[Firebase] App inicializado com sucesso");
       } catch (IOException | IllegalArgumentException e) {
         log.warn(
             "[Firebase] Não foi possível inicializar o Firebase (push FCM desativado): {}",

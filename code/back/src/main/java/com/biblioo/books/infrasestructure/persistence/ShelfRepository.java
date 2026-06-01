@@ -48,4 +48,6 @@ public interface ShelfRepository extends JpaRepository<Shelf, Long> {
         AND s.deletedAt IS NULL
       """)
   int softDelete(@Param("id") Long id, @Param("userId") Long userId);
+
+  boolean existsByUserIdAndNameAndIdNot(Long userId, String name, Long id);
 }

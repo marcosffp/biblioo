@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import { Lock } from "lucide-react";
@@ -76,8 +77,7 @@ export function ProfileHeaderCard({
         <div className="absolute -bottom-8 left-6 md:left-10">
           <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-emerald-600 text-lg font-bold text-white shadow-lg">
             {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt={`Foto de ${name}`} className="h-full w-full object-cover" />
+              <Image src={avatarUrl} alt={`Foto de ${name}`} width={80} height={80} className="h-full w-full object-cover" />
             ) : (
               <span>{initial}</span>
             )}

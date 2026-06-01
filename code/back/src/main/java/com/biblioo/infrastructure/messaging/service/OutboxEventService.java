@@ -41,8 +41,7 @@ public class OutboxEventService {
       try {
         payloadStr = objectMapper.writeValueAsString(payloadObj);
       } catch (Exception e) {
-        System.err.println("Falha ao serializar payload do OutboxEvent: " + e.getMessage());
-        e.printStackTrace();
+        throw new IllegalArgumentException("Falha ao serializar payload do OutboxEvent: " + e.getMessage());
       }
     }
 

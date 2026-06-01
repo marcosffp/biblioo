@@ -14,7 +14,6 @@ public class UserDetailsServiceAdapter implements UserDetailsService {
 
   private final UserRepository userRepo;
 
-  /** username aqui é o userId em string (subject do JWT). */
   @Override
   public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
     User user =

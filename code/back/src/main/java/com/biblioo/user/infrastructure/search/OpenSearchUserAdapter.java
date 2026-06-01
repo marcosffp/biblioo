@@ -15,6 +15,7 @@ import org.opensearch.client.opensearch.core.IndexRequest;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.transport.endpoints.BooleanResponse;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.retry.annotation.Backoff;
@@ -36,42 +37,54 @@ public class OpenSearchUserAdapter implements UserSearchPort {
 
   @Override
   @Retryable(
-      retryFor = RuntimeException.class,
+      retryFor = IllegalStateException.class,
       maxAttempts = 3,
       backoff = @Backoff(delay = 200, multiplier = 2),
       recover = "searchFallback")
   public List<User> search(String term, int page, int size) {
     try {
       var prefixQuery = MatchPhrasePrefixQuery.of(mp -> mp.field("username").query(term));
+      int safePage = Math.max(page, 0);
+      int safeSize = Math.clamp(size, 1, MAX_RESULTS);
 
       var request =
           SearchRequest.of(
               sr ->
                   sr.index(INDEX_NAME)
                       .query(q -> q.matchPhrasePrefix(prefixQuery))
-                      .from(page * size)
-                      .size(Math.min(size, MAX_RESULTS)));
+                      .from(safePage * safeSize)
+                      .size(safeSize));
 
       var response = client.search(request, UserDocument.class);
 
-      return response.hits().hits().stream()
+      List<User> indexedUsers =
+          response.hits().hits().stream()
           .map(Hit::source)
           .filter(Objects::nonNull)
           .map(UserDocument::toUser)
           .toList();
 
+      if (!indexedUsers.isEmpty()) {
+        return indexedUsers;
+      }
+
+      return userRepository.findByUsernamePrefix(term, PageRequest.of(safePage, safeSize));
+
     } catch (IOException e) {
-      throw new RuntimeException("OpenSearch user search falhou", e);
+      throw new IllegalStateException("OpenSearch user search falhou", e);
     }
   }
 
   @Recover
-  public List<User> searchFallback(RuntimeException e, String term, int page, int size) {
+  public List<User> searchFallback(IllegalStateException e, String term, int page, int size) {
     log.warn(
-        "OpenSearch indisponível durante user search após 3 tentativas. term='{}'. Causa: {}",
+        "OpenSearch indisponivel durante user search apos 3 tentativas. term='{}'. Causa: {}. Aplicando fallback em MySQL.",
         term,
         e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
-    return List.of();
+
+    int safePage = Math.max(page, 0);
+    int safeSize = Math.clamp(size, 1, MAX_RESULTS);
+    return userRepository.findByUsernamePrefix(term, PageRequest.of(safePage, safeSize));
   }
 
   @Override
@@ -82,7 +95,6 @@ public class OpenSearchUserAdapter implements UserSearchPort {
           IndexRequest.of(
               ir -> ir.index(INDEX_NAME).id(String.valueOf(user.getId())).document(doc));
       client.index(request);
-      log.debug("Usuário indexado no OpenSearch. id={}", user.getId());
     } catch (IOException e) {
       log.error(
           "Falha ao indexar usuário no OpenSearch. id={}. Dado permanece no MySQL. Causa: {}",
@@ -96,7 +108,6 @@ public class OpenSearchUserAdapter implements UserSearchPort {
     try {
       var request = DeleteRequest.of(dr -> dr.index(INDEX_NAME).id(String.valueOf(userId)));
       client.delete(request);
-      log.debug("Usuário removido do índice OpenSearch. id={}", userId);
     } catch (IOException e) {
       log.error("Falha ao remover usuário do OpenSearch. id={}. Causa: {}", userId, e.getMessage());
     }
@@ -108,19 +119,15 @@ public class OpenSearchUserAdapter implements UserSearchPort {
     try {
       BooleanResponse exists = client.indices().exists(e -> e.index(INDEX_NAME));
       if (!exists.value()) {
-        log.info("Índice {} não encontrado. Criando...", INDEX_NAME);
         client.indices().create(c -> c.index(INDEX_NAME));
       }
 
       long count = client.count(c -> c.index(INDEX_NAME)).count();
       if (count > 0) {
-        log.info("Índice users já contém {} documentos. Bootstrap ignorado.", count);
         return;
       }
 
-      log.info("Índice users vazio. Iniciando bootstrap a partir do banco...");
       userRepository.findAll().forEach(this::index);
-      log.info("Bootstrap do índice users concluído.");
 
     } catch (Exception e) {
       log.error(

@@ -1,20 +1,28 @@
 package com.biblioo.user.infrastructure.auth;
 
-import com.biblioo.user.domain.exception.EmailAlreadyExistsException;
+import java.text.Normalizer;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.biblioo.user.domain.exception.GoogleAccountNeedsPasswordException;
 import com.biblioo.user.domain.exception.InvalidCredentialsException;
 import com.biblioo.user.domain.exception.InvalidTokenException;
+import com.biblioo.user.domain.exception.RegistrationConflictException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
-import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
 import com.biblioo.user.domain.model.AuthResult;
+import com.biblioo.user.domain.model.GoogleUserInfo;
 import com.biblioo.user.domain.model.RefreshToken;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.AuthUseCase;
+import com.biblioo.user.domain.port.out.GoogleAuthPort;
 import com.biblioo.user.infrastructure.async.TokenCleanupAdapter;
 import com.biblioo.user.infrastructure.persistence.RefreshTokenRepository;
 import com.biblioo.user.infrastructure.persistence.UserRepository;
 import com.biblioo.user.infrastructure.security.JwtService;
-import java.time.LocalDateTime;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 public class AuthServiceImpl implements AuthUseCase {
 
@@ -24,6 +32,8 @@ public class AuthServiceImpl implements AuthUseCase {
   private final JwtService jwtService;
   private final TokenCleanupAdapter tokenCleanup;
   private final int refreshTokenExpirationDays;
+  private final GoogleAuthPort googleAuthPort;
+  private final GoogleUserFactory googleUserFactory;
 
   public AuthServiceImpl(
       UserRepository userRepo,
@@ -31,59 +41,74 @@ public class AuthServiceImpl implements AuthUseCase {
       PasswordEncoder passwordEncoder,
       JwtService jwtService,
       TokenCleanupAdapter tokenCleanup,
-      int refreshTokenExpirationDays) {
+      int refreshTokenExpirationDays,
+      GoogleAuthPort googleAuthPort,
+      GoogleUserFactory googleUserFactory) {
     this.userRepo = userRepo;
     this.tokenRepo = tokenRepo;
     this.passwordEncoder = passwordEncoder;
     this.jwtService = jwtService;
     this.tokenCleanup = tokenCleanup;
     this.refreshTokenExpirationDays = refreshTokenExpirationDays;
+    this.googleAuthPort = googleAuthPort;
+    this.googleUserFactory = googleUserFactory;
   }
 
   @Override
-  public AuthResult register(String username, String email, String rawPassword) {
-    if (userRepo.existsByEmail(email)) throw new EmailAlreadyExistsException(email);
-    if (userRepo.existsByUsername(username)) throw new UsernameAlreadyExistsException(username);
-
-    User user = new User();
-    user.setUsername(username);
-    user.setEmail(email);
-    user.setPasswordHash(passwordEncoder.encode(rawPassword));
-    user = userRepo.save(user);
-
-    return buildAuthResult(user);
+public AuthResult register(String username, String email, String rawPassword) {
+  if (userRepo.existsByEmail(email) || userRepo.existsByUsername(username)) {
+    throw new RegistrationConflictException();
   }
+
+  User user = new User();
+  user.setUsername(username);
+  user.setEmail(email);
+  user.setPasswordHash(passwordEncoder.encode(rawPassword));
+  user = userRepo.save(user);
+
+  return buildAuthResult(user);
+}
+
+@Override
+public AuthResult login(String email, String rawPassword) {
+  User user = userRepo.findByEmail(email).orElseThrow(InvalidCredentialsException::new);
+
+  if (user.getGoogleId() != null && !user.getGoogleId().isBlank()) {
+    throw new GoogleAccountNeedsPasswordException();
+  }
+
+  if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+    throw new InvalidCredentialsException();
+  }
+
+  if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+    throw new InvalidCredentialsException();
+  }
+
+  AuthResult result = buildAuthResult(user);
+  tokenCleanup.scheduleCleanup(user.getId());
+  return result;
+}
 
   @Override
-  public AuthResult login(String email, String rawPassword) {
-    User user = userRepo.findByEmail(email).orElseThrow(InvalidCredentialsException::new);
+@Transactional
+public AuthResult refresh(String refreshToken) {
+  RefreshToken token =
+      tokenRepo.findByTokenForUpdate(refreshToken)
+               .orElseThrow(InvalidTokenException::new);
 
-    if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
-      throw new InvalidCredentialsException();
-    }
+  if (!token.isValid()) throw new InvalidTokenException();
 
-    AuthResult result = buildAuthResult(user);
-    tokenCleanup.scheduleCleanup(user.getId());
-    return result;
-  }
+  token.setUsed(true);
+  tokenRepo.save(token);
 
-  @Override
-  public AuthResult refresh(String refreshToken) {
-    RefreshToken token =
-        tokenRepo.findByToken(refreshToken).orElseThrow(InvalidTokenException::new);
+  User user =
+      userRepo
+          .findById(token.getUserId())
+          .orElseThrow(() -> new UserNotFoundException(token.getUserId()));
 
-    if (!token.isValid()) throw new InvalidTokenException();
-
-    token.setUsed(true);
-    tokenRepo.save(token);
-
-    User user =
-        userRepo
-            .findById(token.getUserId())
-            .orElseThrow(() -> new UserNotFoundException(token.getUserId()));
-
-    return buildAuthResult(user);
-  }
+  return buildAuthResult(user);
+}
 
   @Override
   public void logout(String refreshToken) {
@@ -94,6 +119,64 @@ public class AuthServiceImpl implements AuthUseCase {
               token.setUsed(true);
               tokenRepo.save(token);
             });
+  }
+
+  @Override
+  @Transactional
+  public AuthResult loginWithGoogle(String idToken) {
+    GoogleUserInfo googleUser = googleAuthPort.verify(idToken);
+
+    User user =
+        userRepo.findByGoogleId(googleUser.googleId()).orElseGet(() -> createOrLink(googleUser));
+
+    AuthResult result = buildAuthResult(user);
+    tokenCleanup.scheduleCleanup(user.getId());
+    return result;
+  }
+
+
+  private User createOrLink(GoogleUserInfo googleUser) {
+    try {
+      return googleUserFactory.findOrCreate(googleUser, generateUniqueUsername(googleUser.name()));
+    } catch (DataIntegrityViolationException e) {
+      return userRepo
+          .findByGoogleId(googleUser.googleId())
+          .orElseGet(
+              () -> {
+                String fallback =
+                    normalizeBase(googleUser.name())
+                        + "_"
+                        + UUID.randomUUID().toString().substring(0, 8);
+                return googleUserFactory.findOrCreate(googleUser, fallback);
+              });
+    }
+  }
+
+  private String generateUniqueUsername(String displayName) {
+    String base = normalizeBase(displayName);
+    if (!userRepo.existsByUsername(base)) return base;
+
+    for (int i = 1; i <= 10; i++) {
+      String candidate = base + "_" + i;
+      if (!userRepo.existsByUsername(candidate)) return candidate;
+    }
+
+    return base + "_" + UUID.randomUUID().toString().substring(0, 8);
+  }
+
+  private String normalizeBase(String displayName) {
+    String base = displayName != null ? displayName : "user";
+    String normalized =
+        Normalizer.normalize(base, Normalizer.Form.NFD)
+            .replaceAll("\\p{InCombiningDiacriticalMarks}", "")
+            .toLowerCase()
+            .replaceAll("\\s+", "_")
+            .replaceAll("[^a-z0-9_]", "")
+            .replaceAll("_+", "_")
+            .replaceAll("^_|_$", "");
+
+    if (normalized.isEmpty()) normalized = "user";
+    return normalized.length() > 26 ? normalized.substring(0, 26) : normalized;
   }
 
   private AuthResult buildAuthResult(User user) {

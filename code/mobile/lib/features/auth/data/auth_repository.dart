@@ -1,5 +1,6 @@
 import 'package:biblioo/features/auth/domain/auth_session.dart';
 import 'package:dio/dio.dart';
+import 'auth_secure_datasource.dart';
 import 'auth_local_datasource.dart';
 import 'auth_remote_datasource.dart';
 
@@ -14,22 +15,26 @@ class AuthFailure implements Exception {
 class AuthRepository {
   final AuthRemoteDatasource _remote;
   final AuthLocalDatasource _local;
+  final AuthSecureDatasource _secure;
 
-  const AuthRepository(this._remote, this._local);
+  const AuthRepository(this._remote, this._local, this._secure);
+
+  bool _isConnectivityError(Object error) {
+    return error is DioException &&
+        (error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.receiveTimeout ||
+            error.type == DioExceptionType.sendTimeout ||
+            error.type == DioExceptionType.connectionError ||
+            error.type == DioExceptionType.unknown);
+  }
 
   AuthFailure _mapDioError(DioException e) {
     final status = e.response?.statusCode;
-    final data = e.response?.data;
-    final apiMessage = data is Map<String, dynamic>
-        ? (data['message'] as String?)
-        : null;
+    final apiMessage = _extractApiMessage(e.response?.data);
 
     if (status == 401) {
-      if (apiMessage == 'Invalid email or password') {
-        return const AuthFailure('E-mail ou senha invalidos.');
-      }
-      if (apiMessage == 'Refresh token is invalid or expired') {
-        return const AuthFailure('Sua sessao expirou. Faca login novamente.');
+      if (apiMessage != null && apiMessage.trim().isNotEmpty) {
+        return AuthFailure(apiMessage);
       }
       return const AuthFailure('Voce nao tem permissao para esta acao.');
     }
@@ -40,6 +45,12 @@ class AuthRepository {
 
     if (status == 400 || status == 422) {
       return AuthFailure(apiMessage ?? 'Dados invalidos. Confira os campos.');
+    }
+
+    if (status == 429) {
+      return AuthFailure(
+        apiMessage ?? 'Limite de solicitacoes atingido. Tente mais tarde.',
+      );
     }
 
     if (e.type == DioExceptionType.connectionTimeout ||
@@ -58,24 +69,69 @@ class AuthRepository {
     return const AuthFailure('Nao foi possivel concluir a autenticacao.');
   }
 
+  String? _extractApiMessage(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String) return message;
+
+      final detail = data['detail'];
+      if (detail is String) return detail;
+    }
+
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+
+    return null;
+  }
+
   Future<AuthSession?> restoreSession() async {
-    final access = _local.getAccessToken();
-    final refresh = _local.getRefreshToken();
+    final access = await _secure.getAccessToken();
+    final refresh = await _secure.getRefreshToken();
     if (access == null || refresh == null) return null;
+
+    final cachedUser = _local.getSessionUser();
 
     try {
       final result = await _remote.refresh(refresh);
-      await _local.saveTokens(
+      await _secure.saveTokens(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
+      await _local.saveSessionUser(result.user.toEntity());
       return AuthSession(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
         user: result.user.toEntity(),
       );
-    } catch (_) {
-      await _local.clearTokens();
+    } on DioException catch (e) {
+      // Token realmente invalido/expirado: encerra sessao.
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        await _secure.clearTokens();
+        await _local.clearSessionUser();
+        return null;
+      }
+
+      // Rede indisponivel/instavel: entra com sessao local se existir.
+      if (cachedUser != null && _isConnectivityError(e)) {
+        return AuthSession(
+          accessToken: access,
+          refreshToken: refresh,
+          user: cachedUser,
+        );
+      }
+
+      // Para erros nao-autenticacao, preserva sessao local quando possivel.
+      if (cachedUser != null) {
+        return AuthSession(
+          accessToken: access,
+          refreshToken: refresh,
+          user: cachedUser,
+        );
+      }
+
+      await _secure.clearTokens();
+      await _local.clearSessionUser();
       return null;
     }
   }
@@ -86,10 +142,11 @@ class AuthRepository {
   }) async {
     try {
       final result = await _remote.login(email: email, password: password);
-      await _local.saveTokens(
+      await _secure.saveTokens(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
+      await _local.saveSessionUser(result.user.toEntity());
       return AuthSession(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
@@ -111,10 +168,11 @@ class AuthRepository {
         email: email,
         password: password,
       );
-      await _local.saveTokens(
+      await _secure.saveTokens(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
       );
+      await _local.saveSessionUser(result.user.toEntity());
       return AuthSession(
         accessToken: result.tokens.accessToken,
         refreshToken: result.tokens.refreshToken,
@@ -125,8 +183,50 @@ class AuthRepository {
     }
   }
 
+  Future<AuthSession> loginWithGoogle({required String idToken}) async {
+    try {
+      final result = await _remote.loginWithGoogle(idToken: idToken);
+      await _secure.saveTokens(
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+      );
+      await _local.saveSessionUser(result.user.toEntity());
+      return AuthSession(
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+        user: result.user.toEntity(),
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  Future<String> requestPasswordReset({required String email}) async {
+    try {
+      return await _remote.requestPasswordReset(email: email);
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
+  Future<String> resetPassword({
+    required String token,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      return await _remote.resetPassword(
+        token: token,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+      );
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
   Future<void> logout() async {
-    final refresh = _local.getRefreshToken();
+    final refresh = await _secure.getRefreshToken();
     try {
       if (refresh != null) {
         await _remote.logout(refresh);
@@ -134,7 +234,8 @@ class AuthRepository {
     } catch (_) {
       // Logout remoto em best effort; limpeza local e obrigatoria.
     } finally {
-      await _local.clearTokens();
+      await _secure.clearTokens();
+      await _local.clearSessionUser();
     }
   }
 }

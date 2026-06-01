@@ -27,4 +27,15 @@ public class RabbitMQFeedEventAdapter implements FeedEventPublisherPort {
         RabbitMQConfig.BOOK_REVIEW_ROUTING_KEY,
         payload);
   }
+
+  @Override
+  public void publishReviewRatingUpdated(Long userId, Long bookId) {
+    Map<String, Object> payload = Map.of("userId", userId, "bookId", bookId);
+    outboxEventService.saveAndSchedulePublish(
+        RabbitMQConfig.EVENT_REVIEW_RATING_UPDATED,
+        "REVIEW",
+        userId.toString(),
+        RabbitMQConfig.REVIEW_RATING_UPDATED_ROUTING_KEY,
+        payload);
+  }
 }

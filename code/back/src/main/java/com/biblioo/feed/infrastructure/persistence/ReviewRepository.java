@@ -1,6 +1,8 @@
 package com.biblioo.feed.infrastructure.persistence;
 
 import com.biblioo.feed.domain.model.Review;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -48,11 +50,23 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
       "UPDATE Review r SET r.commentCount = r.commentCount - 1 WHERE r.id = :reviewId AND r.commentCount > 0")
   void decrementCommentCount(@Param("reviewId") Long reviewId);
 
-@Query(
-    "SELECT AVG(r.rating) FROM Review r WHERE r.bookId = :bookId AND r.rating IS NOT NULL AND r.isDeleted = false")
-Double calculateAverageRating(@Param("bookId") Long bookId);
+  @Query(
+      "SELECT r FROM Review r WHERE r.userId = :userId AND r.isDeleted = false AND r.rating IS NOT NULL")
+  List<Review> findRatedReviewsByUserId(@Param("userId") Long userId);
+
+  @Query(
+      "SELECT AVG(r.rating) FROM Review r WHERE r.bookId = :bookId AND r.rating IS NOT NULL AND r.isDeleted = false")
+  Double calculateAverageRating(@Param("bookId") Long bookId);
 
   @Query(
       "SELECT COUNT(r) FROM Review r WHERE r.bookId = :bookId AND r.rating IS NOT NULL AND r.isDeleted = false")
   long countRatings(@Param("bookId") Long bookId);
+
+  @Query(
+      "SELECT r FROM Review r WHERE r.userId IN :authorIds AND r.isDeleted = false"
+          + " AND r.isPublished = true AND r.createdAt >= :since ORDER BY r.createdAt DESC")
+  List<Review> findRecentByAuthorIds(
+      @Param("authorIds") List<Long> authorIds,
+      @Param("since") LocalDateTime since,
+      org.springframework.data.domain.Pageable pageable);
 }

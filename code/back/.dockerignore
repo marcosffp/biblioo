@@ -1,0 +1,10 @@
+.git
+.env
+target/
+*.md
+performance-tests/
+config/grafana.json
+config/prometheus/
+.mvn/
+*.iml
+.idea/

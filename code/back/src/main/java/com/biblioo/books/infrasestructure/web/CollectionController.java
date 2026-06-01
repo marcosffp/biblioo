@@ -4,10 +4,12 @@ import com.biblioo.books.domain.model.Collection;
 import com.biblioo.books.domain.model.Shelf;
 import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.BookUseCase;
+import com.biblioo.books.domain.port.in.CollectionStatsUseCase;
 import com.biblioo.books.domain.port.in.CollectionUseCase;
 import com.biblioo.books.domain.port.in.ShelfUseCase;
 import com.biblioo.books.infrasestructure.dto.collection.AddShelfToCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionResponse;
+import com.biblioo.books.infrasestructure.dto.collection.CollectionStatisticsResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CollectionSummaryResponse;
 import com.biblioo.books.infrasestructure.dto.collection.CreateCollectionRequest;
 import com.biblioo.books.infrasestructure.dto.collection.ShelfPreview;
@@ -46,6 +48,7 @@ public class CollectionController {
   private final ShelfUseCase shelfUseCase;
   private final BookUseCase bookUseCase;
   private final CollectionMapper mapper;
+  private final CollectionStatsUseCase collectionStatsUseCase;
 
   @GetMapping
   @Operation(
@@ -81,7 +84,7 @@ public class CollectionController {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(col, previews));
+    return ResponseEntity.ok(mapper.toResponse(col, previews, collectionStatsUseCase.computeStats(col)));
   }
 
   @GetMapping("/user/{userId}")
@@ -116,7 +119,7 @@ public class CollectionController {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(col, previews));
+    return ResponseEntity.ok(mapper.toResponse(col, previews, collectionStatsUseCase.computeStats(col)));
   }
 
   @PostMapping
@@ -140,7 +143,7 @@ public class CollectionController {
             .buildAndExpand(col.getId())
             .toUri();
 
-    return ResponseEntity.created(location).body(mapper.toResponse(col, previews));
+    return ResponseEntity.created(location).body(mapper.toResponse(col, previews, null));
   }
 
   @PutMapping("/{collectionId}")
@@ -160,7 +163,7 @@ public class CollectionController {
     Collection colWithShelves = collectionUseCase.getCollection(userId, col.getId());
     List<ShelfPreview> previews = buildShelfPreviews(colWithShelves.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(colWithShelves, previews));
+    return ResponseEntity.ok(mapper.toResponse(colWithShelves, previews, null));
   }
 
   @PatchMapping("/{collectionId}/shelves")
@@ -174,11 +177,10 @@ public class CollectionController {
 
     Long userId = currentUserId(principal);
     collectionUseCase.addShelfToCollection(userId, collectionId, request.shelfId());
-
     Collection updated = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(updated.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(updated, previews));
+    return ResponseEntity.ok(mapper.toResponse(updated, previews, null));
   }
 
   @DeleteMapping("/{collectionId}/shelves/{shelfId}")
@@ -192,11 +194,25 @@ public class CollectionController {
 
     Long userId = currentUserId(principal);
     collectionUseCase.removeShelfFromCollection(userId, collectionId, shelfId);
-
     Collection updated = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(updated.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(updated, previews));
+    return ResponseEntity.ok(mapper.toResponse(updated, previews, null));
+  }
+
+  @GetMapping("/{collectionId}/statistics")
+  @Operation(
+      summary = "Estatísticas de uma coleção",
+      description =
+          "Agrega as métricas de leitura de todas as estantes da coleção: total de livros,"
+              + " status de leitura, páginas lidas e total de páginas.")
+  public ResponseEntity<CollectionStatisticsResponse> getCollectionStatistics(
+      @AuthenticationPrincipal UserDetails principal,
+      @Parameter(description = "ID da coleção", example = "1") @PathVariable Long collectionId) {
+
+    Long userId = currentUserId(principal);
+       return ResponseEntity.ok(
+        collectionStatsUseCase.computeStatistics(userId, collectionId));
   }
 
   @DeleteMapping("/{collectionId}")

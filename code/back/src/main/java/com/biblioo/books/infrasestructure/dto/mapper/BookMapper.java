@@ -2,6 +2,7 @@ package com.biblioo.books.infrasestructure.dto.mapper;
 
 import com.biblioo.books.domain.model.Book;
 import com.biblioo.books.infrasestructure.dto.book.BookResponse;
+import com.biblioo.books.infrasestructure.dto.book.BookSearchResult;
 import com.biblioo.books.infrasestructure.dto.book.BookSuggestResponse;
 import org.mapstruct.Mapper;
 
@@ -9,6 +10,8 @@ import org.mapstruct.Mapper;
 public interface BookMapper {
 
   BookResponse toResponse(Book book);
+
+  BookResponse toResponse(BookSearchResult dto);
 
   BookSuggestResponse toSuggestResponse(Book book);
 }

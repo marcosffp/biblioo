@@ -1,24 +1,23 @@
 package com.biblioo.feed.domain.service;
 
 import com.biblioo.feed.domain.exception.ReviewBusinessException;
+import com.biblioo.feed.domain.model.LikeType;
 import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
-import com.biblioo.feed.domain.model.Like;
-import com.biblioo.feed.domain.model.LikeType;
+import com.biblioo.feed.domain.port.in.UserReviewsUseCase;
 import com.biblioo.feed.domain.port.out.BookPort;
 import com.biblioo.feed.domain.port.out.FeedEventPublisherPort;
-import com.biblioo.feed.domain.port.out.FeedImagePort;
-import com.biblioo.feed.infrastructure.persistence.LikeRepository;
+import com.biblioo.feed.domain.port.out.ReviewFanoutPublisherPort;
 import com.biblioo.feed.domain.port.out.ShelfInteractionPort;
 import com.biblioo.feed.domain.port.out.UserPort;
 import com.biblioo.feed.infrastructure.persistence.CommentRepository;
-import com.biblioo.feed.infrastructure.persistence.LikeSaveHelper;
+import com.biblioo.feed.infrastructure.persistence.LikeRepository;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+import java.util.Objects;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,22 +25,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class ReviewService implements ReviewUseCase {
+public class ReviewService implements ReviewUseCase, UserReviewsUseCase {
 
   private final ReviewRepository reviewRepository;
   private final CommentRepository commentRepository;
   private final LikeRepository likeRepository;
-  private final LikeSaveHelper likeSaveHelper;
   private final BookPort bookPort;
   private final UserPort userPort;
   private final ShelfInteractionPort shelfInteractionPort;
-  private final FeedImagePort feedImagePort;
   private final FeedEventPublisherPort feedEventPublisherPort;
+  private final ReviewFanoutPublisherPort reviewFanoutPublisherPort;
 
   @Override
   @Transactional
-  public Review createReview(
-      Long userId, Long bookId, Integer rating, String text, List<byte[]> newImages, byte[] gif) {
+  public Review createReview(Long userId, Long bookId, Integer rating, String text) {
     if (!userPort.existsById(userId)) {
       throw new ReviewBusinessException("Usuário não encontrado.");
     }
@@ -55,45 +52,33 @@ public class ReviewService implements ReviewUseCase {
       throw new ReviewBusinessException("Livro não encontrado.");
     }
 
-    shelfInteractionPort.ensureBookReadStatusIsCompleted(userId, bookId);
+    if (!shelfInteractionPort.containsBook(userId, bookId)) {
+      throw new ReviewBusinessException("O livro precisa estar na estante para ser avaliado.");
+    }
 
-    var review = Review.builder().userId(userId).bookId(bookId).rating(rating).text(text).build();
+    var review =
+        Review.builder()
+            .userId(userId)
+            .bookId(bookId)
+            .rating(rating)
+            .text(text)
+            .isPublished(true)
+            .build();
 
     var savedReview = reviewRepository.save(review);
 
-    var needsUpdate = false;
-
-    if (newImages != null && !newImages.isEmpty()) {
-      var imageUrls = uploadImages(newImages, savedReview.getId().toString());
-      savedReview.setImages(imageUrls);
-      needsUpdate = true;
-    }
-
-    if (gif != null && gif.length > 0) {
-      var uploadedGifUrl = uploadGif(gif, savedReview.getId().toString());
-      savedReview.setGifUrl(uploadedGifUrl);
-      needsUpdate = true;
-    }
-
-    if (needsUpdate) {
-      savedReview = reviewRepository.save(savedReview);
-    }
-
     feedEventPublisherPort.publishBookReviewStatsUpdated(bookId, null, rating);
+
+    long createdAtEpochMilli =
+        savedReview.getCreatedAt().toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
+    reviewFanoutPublisherPort.publishReviewCreated(savedReview.getId(), userId, createdAtEpochMilli);
 
     return savedReview;
   }
 
   @Override
   @Transactional
-  public Review updateReview(
-      Long userId,
-      Long reviewId,
-      Integer rating,
-      String text,
-      List<byte[]> newImages,
-      List<String> imagesToDeleteUrls,
-      byte[] gif) {
+  public Review updateReview(Long userId, Long reviewId, Integer rating, String text) {
     var review =
         reviewRepository
             .findByIdAndIsDeletedFalse(reviewId)
@@ -108,32 +93,13 @@ public class ReviewService implements ReviewUseCase {
     review.setRating(rating);
     review.setText(text);
 
-    if (gif != null && gif.length > 0) {
-      if (review.getGifUrl() != null && !review.getGifUrl().isEmpty()) {
-        deleteImagesAsync(List.of(review.getGifUrl()));
-      }
-      var uploadedGifUrl = uploadGif(gif, review.getId().toString());
-      review.setGifUrl(uploadedGifUrl);
-    }
-
-    var currentImages =
-        review.getImages() != null ? new ArrayList<>(review.getImages()) : new ArrayList<String>();
-
-    if (imagesToDeleteUrls != null && !imagesToDeleteUrls.isEmpty()) {
-      deleteImagesAsync(imagesToDeleteUrls);
-      currentImages.removeAll(imagesToDeleteUrls);
-    }
-
-    if (newImages != null && !newImages.isEmpty()) {
-      var uploadedUrls = uploadImages(newImages, review.getId().toString());
-      currentImages.addAll(uploadedUrls);
-    }
-
-    review.setImages(currentImages);
     var savedReview = reviewRepository.save(review);
 
-    feedEventPublisherPort.publishBookReviewStatsUpdated(
-        review.getBookId(), oldRating, rating);
+    feedEventPublisherPort.publishBookReviewStatsUpdated(review.getBookId(), oldRating, rating);
+
+    if (!Objects.equals(oldRating, rating)) {
+      feedEventPublisherPort.publishReviewRatingUpdated(userId, review.getBookId());
+    }
 
     return savedReview;
   }
@@ -151,10 +117,6 @@ public class ReviewService implements ReviewUseCase {
     }
 
     var oldRating = review.getRating();
-
-    if (review.getImages() != null && !review.getImages().isEmpty()) {
-      deleteImagesAsync(review.getImages());
-    }
 
     if (review.getCommentCount() != null && review.getCommentCount() > 0) {
       reviewRepository.softDeleteReview(reviewId, userId);
@@ -187,8 +149,7 @@ public class ReviewService implements ReviewUseCase {
       return false;
     }
 
-var like = Like.builder().contentId(reviewId).userId(userId).type(LikeType.LIKE).build();
-    boolean inserted = likeSaveHelper.tryInsert(like);
+    boolean inserted = likeRepository.insertIgnore(reviewId, userId, LikeType.LIKE.name()) > 0;
     if (inserted) {
       reviewRepository.incrementLikeCount(reviewId);
     }
@@ -212,22 +173,17 @@ var like = Like.builder().contentId(reviewId).userId(userId).type(LikeType.LIKE)
     return reviewRepository.findRecentReviewsByUserId(userId, pageable);
   }
 
-  private List<String> uploadImages(List<byte[]> images, String referenceId) {
-    var uploadFutures = new ArrayList<CompletableFuture<String>>();
-    for (var imageBytes : images) {
-      var imageId = UUID.randomUUID().toString();
-      uploadFutures.add(feedImagePort.uploadImage(imageBytes, referenceId, imageId));
-    }
-    return new ArrayList<>(uploadFutures.stream().map(CompletableFuture::join).toList());
-  }
+@Override
+public List<ReviewRecord> getReviewsByUserId(Long userId) {
 
-  private String uploadGif(byte[] gif, String referenceId) {
-    var gifId = UUID.randomUUID().toString() + "_gif";
-    return feedImagePort.uploadImage(gif, referenceId, gifId).join();
-  }
-
-  private void deleteImagesAsync(List<String> imageUrls) {
-    var urlsToDeleteList = new ArrayList<>(imageUrls);
-    CompletableFuture.runAsync(() -> feedImagePort.deleteImages(urlsToDeleteList));
-  }
+    return reviewRepository.findRatedReviewsByUserId(userId)
+            .stream()
+            .map(review -> new UserReviewsUseCase.ReviewRecord(
+                    review.getId(),
+                    review.getBookId(),
+                    review.getRating(),
+                    review.getUpdatedAt()
+            ))
+            .toList();
+}
 }

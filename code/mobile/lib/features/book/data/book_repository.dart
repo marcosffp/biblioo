@@ -10,6 +10,11 @@ class BookRepository {
 
   const BookRepository(this._remote, this._local);
 
+  List<Book> getCachedBooks() {
+    final cached = _local.getCachedBooks();
+    return cached.map((model) => model.toEntity()).toList();
+  }
+
   /// Busca livros por query (título, autor ou ISBN).
   /// Estratégia: remote-first → salva no cache → fallback local.
   Future<List<Book>> searchBooks(String query) async {
@@ -30,14 +35,15 @@ class BookRepository {
 
   /// Busca um livro por ID.
   Future<Book> getById(int id) async {
+    final cached = _local.getCachedBooks();
+    final match = cached.where((b) => b.id == id);
+    if (match.isNotEmpty) return match.first.toEntity();
+
     try {
       final remote = await _remote.getById(id);
       await _local.saveBooks([remote]);
       return remote.toEntity();
     } catch (_) {
-      final cached = _local.getCachedBooks();
-      final match = cached.where((b) => b.id == id);
-      if (match.isNotEmpty) return match.first.toEntity();
       rethrow;
     }
   }

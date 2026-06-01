@@ -1,53 +1,40 @@
+import 'package:biblioo/shared/widgets/stat_item.dart';
 import 'package:flutter/material.dart';
 
 class ProfileStatsCard extends StatelessWidget {
-  const ProfileStatsCard({super.key});
+  final String booksRead;
+  final String pagesRead;
+  final String daysPerBook;
+  final String readersReached;
+
+  const ProfileStatsCard({
+    super.key,
+    required this.booksRead,
+    required this.pagesRead,
+    required this.daysPerBook,
+    required this.readersReached,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: const Wrap(
-          alignment: WrapAlignment.spaceAround,
-          spacing: 20,
-          runSpacing: 12,
-          children: [
-            _StatItem(value: '-', label: 'Livros Lidos'),
-            _StatItem(value: '-', label: 'Avaliacoes'),
-            _StatItem(value: '-', label: 'Seguidores'),
-            _StatItem(value: '-', label: 'Paginas Lidas'),
-          ],
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Wrap(
+            alignment: WrapAlignment.spaceAround,
+            spacing: 20,
+            runSpacing: 12,
+            children: [
+              StatItem(value: booksRead, label: 'Livros lidos'),
+              StatItem(value: pagesRead, label: 'Páginas lidas'),
+              StatItem(value: daysPerBook, label: 'Dias / livro'),
+              StatItem(value: readersReached, label: 'Leitores alcançados'),
+            ],
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  final String value;
-  final String label;
-
-  const _StatItem({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        Text(
-          value,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
     );
   }
 }

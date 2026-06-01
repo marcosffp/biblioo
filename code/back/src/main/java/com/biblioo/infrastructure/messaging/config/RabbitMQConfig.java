@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.amqp.core.AnonymousQueue;
 
 @Configuration
 public class RabbitMQConfig {
@@ -29,7 +30,6 @@ public class RabbitMQConfig {
   public static final String EVENT_BOOK_SHELF_REMOVED = "BOOK_SHELF_REMOVED";
   public static final String EVENT_BOOK_REVIEW_STATS = "BOOK_REVIEW_STATS";
 
-  // ── Notifications ────────────────────────────────────────────────────────────
   public static final String NOTIFICATION_QUEUE = "biblioo.notification";
   public static final String NOTIFICATION_DLQ = "biblioo.notification.dlq";
   public static final String NOTIFICATION_ROUTING_PATTERN = "notification.#";
@@ -42,12 +42,63 @@ public class RabbitMQConfig {
   public static final String EVENT_USER_FOLLOW_REQUESTED = "USER_FOLLOW_REQUESTED";
   public static final String EVENT_USER_FOLLOWED = "USER_FOLLOWED";
 
-  // ── Recommendation T1 — BECAUSE_YOU_READ ────────────────────────────────────
-  public static final String REC_QUEUE = "rec.shelf.completed";
-  public static final String REC_DLQ = "rec.shelf.completed.dlq";
-  public static final String REC_DLQ_ROUTING_KEY = "rec.shelf.dead";
+  public static final String NOTIFICATION_COMMUNITY_INVITE_ROUTING_KEY =
+      "notification.community.invite";
+  public static final String NOTIFICATION_COMMUNITY_JOIN_REQUEST_ROUTING_KEY =
+      "notification.community.join-request";
+  public static final String NOTIFICATION_COMMUNITY_JOIN_APPROVED_ROUTING_KEY =
+      "notification.community.join-approved";
+
+  public static final String EVENT_COMMUNITY_INVITE = "COMMUNITY_INVITE";
+  public static final String EVENT_COMMUNITY_JOIN_REQUEST = "COMMUNITY_JOIN_REQUEST";
+  public static final String EVENT_COMMUNITY_JOIN_APPROVED = "COMMUNITY_JOIN_APPROVED";
+
+  public static final String COMMUNITY_MESSAGE_QUEUE = "biblioo.community.message";
+  public static final String COMMUNITY_MESSAGE_DLQ = "biblioo.community.message.dlq";
+  public static final String COMMUNITY_MESSAGE_ROUTING_PATTERN = "community.message.#";
+  public static final String COMMUNITY_MESSAGE_ROUTING_KEY = "community.message.created";
+  public static final String COMMUNITY_MESSAGE_DLQ_ROUTING_KEY = "community.message.dead";
+  public static final String EVENT_COMMUNITY_MESSAGE_CREATED = "COMMUNITY_MESSAGE_CREATED";
+
+
+  public static final String COMMUNITY_BROADCAST_EXCHANGE = "biblioo.community.broadcast";
+
+  public static final String BYR_QUEUE = "rec.shelf.completed";
+  public static final String BYR_DLQ = "rec.shelf.completed.dlq";
+  public static final String BYR_DLQ_ROUTING_KEY = "rec.shelf.dead";
   public static final String SHELF_READING_COMPLETED_ROUTING_KEY = "shelf.reading.completed";
   public static final String EVENT_SHELF_READING_COMPLETED = "SHELF_READING_COMPLETED";
+
+  public static final String FGN_QUEUE = "rec.favorite-genre-now.triggered";
+  public static final String FGN_DLQ = "rec.favorite-genre-now.triggered.dlq";
+  public static final String FGN_DLQ_ROUTING_KEY = "rec.favorite-genre-now.dead";
+
+  public static final String CATALOG_SURPRISE_QUEUE = "trail.catalog-surprise.recompute.queue";
+  public static final String CATALOG_SURPRISE_DLQ = "trail.catalog-surprise.recompute.dlq";
+  public static final String CATALOG_SURPRISE_DLQ_ROUTING_KEY = "trail.catalog-surprise.dead";
+  public static final String SHELF_READING_ABANDONED_ROUTING_KEY = "shelf.reading.abandoned";
+  public static final String EVENT_SHELF_READING_ABANDONED = "SHELF_READING_ABANDONED";
+
+  public static final String SA_QUEUE = "rec.similar-authors.triggered";
+  public static final String SA_DLQ = "rec.similar-authors.triggered.dlq";
+  public static final String SA_DLQ_ROUTING_KEY = "rec.similar-authors.dead";
+
+  public static final String RWI_QUEUE = "rec.reread-worth-it.triggered";
+  public static final String RWI_DLQ = "rec.reread-worth-it.triggered.dlq";
+  public static final String RWI_DLQ_ROUTING_KEY = "rec.reread-worth-it.dead";
+
+  public static final String TIC_MESSAGE_QUEUE = "rec.trending-in-communities.message";
+  public static final String TIC_MESSAGE_DLQ = "rec.trending-in-communities.message.dlq";
+  public static final String TIC_MESSAGE_DLQ_ROUTING_KEY = "rec.trending-in-communities.message.dead";
+  public static final String TIC_MESSAGE_ROUTING_KEY = "community.trending.message";
+
+  public static final String TIC_JOIN_QUEUE = "rec.trending-in-communities.join";
+  public static final String TIC_JOIN_DLQ = "rec.trending-in-communities.join.dlq";
+  public static final String TIC_JOIN_DLQ_ROUTING_KEY = "rec.trending-in-communities.join.dead";
+  public static final String TIC_JOIN_ROUTING_KEY = "community.trending.join";
+
+  public static final String EVENT_COMMUNITY_MESSAGE_FOR_TRENDING = "COMMUNITY_MESSAGE_FOR_TRENDING";
+  public static final String EVENT_COMMUNITY_JOIN_FOR_TRENDING = "COMMUNITY_JOIN_FOR_TRENDING";
 
   @Bean
   TopicExchange mainExchange() {
@@ -104,32 +155,53 @@ public class RabbitMQConfig {
 
   @Bean
   Binding notificationDlqBinding(Queue notificationDlq, DirectExchange dlxExchange) {
-    return BindingBuilder.bind(notificationDlq)
-        .to(dlxExchange)
-        .with(NOTIFICATION_DLQ_ROUTING_KEY);
+    return BindingBuilder.bind(notificationDlq).to(dlxExchange).with(NOTIFICATION_DLQ_ROUTING_KEY);
   }
 
   @Bean
-  Queue recQueue() {
-    return QueueBuilder.durable(REC_QUEUE)
+  Queue byrQueue() {
+    return QueueBuilder.durable(BYR_QUEUE)
         .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
-        .withArgument("x-dead-letter-routing-key", REC_DLQ_ROUTING_KEY)
+        .withArgument("x-dead-letter-routing-key", BYR_DLQ_ROUTING_KEY)
         .build();
   }
 
   @Bean
-  Queue recDlq() {
-    return QueueBuilder.durable(REC_DLQ).build();
+  Queue byrDlq() {
+    return QueueBuilder.durable(BYR_DLQ).build();
   }
 
   @Bean
-  Binding recBinding(Queue recQueue, TopicExchange mainExchange) {
-    return BindingBuilder.bind(recQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  Binding byrBinding(Queue byrQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(byrQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
   }
 
   @Bean
-  Binding recDlqBinding(Queue recDlq, DirectExchange dlxExchange) {
-    return BindingBuilder.bind(recDlq).to(dlxExchange).with(REC_DLQ_ROUTING_KEY);
+  Binding byrDlqBinding(Queue byrDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(byrDlq).to(dlxExchange).with(BYR_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue fgnQueue() {
+    return QueueBuilder.durable(FGN_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", FGN_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue fgnDlq() {
+    return QueueBuilder.durable(FGN_DLQ).build();
+  }
+
+  @Bean
+  Binding fgnBinding(Queue fgnQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(fgnQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding fgnDlqBinding(Queue fgnDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(fgnDlq).to(dlxExchange).with(FGN_DLQ_ROUTING_KEY);
   }
 
   @Bean
@@ -174,6 +246,312 @@ public class RabbitMQConfig {
     factory.setConnectionFactory(connectionFactory);
     factory.setMessageConverter(messageConverter);
     factory.setAdviceChain(bookStatsRetryInterceptor);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+  public static final String FEED_FANOUT_QUEUE = "biblioo.feed.fanout";
+  public static final String FEED_FANOUT_DLQ = "biblioo.feed.fanout.dlq";
+  public static final String FEED_FANOUT_ROUTING_KEY = "feed.fanout.review";
+  public static final String FEED_FANOUT_ROUTING_PATTERN = "feed.fanout.#";
+  public static final String FEED_FANOUT_DLQ_ROUTING_KEY = "feed.fanout.dead";
+  public static final String EVENT_REVIEW_PUBLISHED = "REVIEW_PUBLISHED";
+  public static final String EVENT_POST_PUBLISHED = "POST_PUBLISHED";
+  public static final String FEED_POST_ROUTING_KEY = "feed.fanout.post";
+
+  public static final String FEED_BACKFILL_QUEUE = "biblioo.feed.follow.backfill";
+  public static final String FEED_BACKFILL_DLQ = "biblioo.feed.follow.backfill.dlq";
+  public static final String FEED_BACKFILL_DLQ_ROUTING_KEY = "feed.backfill.dead";
+
+
+  @Bean
+  Queue catalogSurpriseQueue() {
+    return QueueBuilder.durable(CATALOG_SURPRISE_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", CATALOG_SURPRISE_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue catalogSurpriseDlq() {
+    return QueueBuilder.durable(CATALOG_SURPRISE_DLQ).build();
+  }
+
+  @Bean
+  Binding catalogSurpriseCompletedBinding(Queue catalogSurpriseQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(catalogSurpriseQueue)
+        .to(mainExchange)
+        .with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding catalogSurpriseAbandonedBinding(Queue catalogSurpriseQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(catalogSurpriseQueue)
+        .to(mainExchange)
+        .with(SHELF_READING_ABANDONED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding catalogSurpriseDlqBinding(Queue catalogSurpriseDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(catalogSurpriseDlq)
+        .to(dlxExchange)
+        .with(CATALOG_SURPRISE_DLQ_ROUTING_KEY);
+  }
+
+
+  @Bean
+  Queue ticMessageQueue() {
+    return QueueBuilder.durable(TIC_MESSAGE_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", TIC_MESSAGE_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue ticMessageDlq() {
+    return QueueBuilder.durable(TIC_MESSAGE_DLQ).build();
+  }
+
+  @Bean
+  Binding ticMessageBinding(Queue ticMessageQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(ticMessageQueue).to(mainExchange).with(TIC_MESSAGE_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding ticMessageDlqBinding(Queue ticMessageDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(ticMessageDlq).to(dlxExchange).with(TIC_MESSAGE_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue ticJoinQueue() {
+    return QueueBuilder.durable(TIC_JOIN_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", TIC_JOIN_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue ticJoinDlq() {
+    return QueueBuilder.durable(TIC_JOIN_DLQ).build();
+  }
+
+  @Bean
+  Binding ticJoinBinding(Queue ticJoinQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(ticJoinQueue).to(mainExchange).with(TIC_JOIN_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding ticJoinDlqBinding(Queue ticJoinDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(ticJoinDlq).to(dlxExchange).with(TIC_JOIN_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue feedFanoutQueue() {
+    return QueueBuilder.durable(FEED_FANOUT_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", FEED_FANOUT_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue feedFanoutDlq() {
+    return QueueBuilder.durable(FEED_FANOUT_DLQ).build();
+  }
+
+  @Bean
+  Binding feedFanoutBinding(Queue feedFanoutQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(feedFanoutQueue).to(mainExchange).with(FEED_FANOUT_ROUTING_PATTERN);
+  }
+
+  @Bean
+  Binding feedFanoutDlqBinding(Queue feedFanoutDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(feedFanoutDlq).to(dlxExchange).with(FEED_FANOUT_DLQ_ROUTING_KEY);
+  }
+
+  @Bean
+  Queue feedBackfillQueue() {
+    return QueueBuilder.durable(FEED_BACKFILL_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", FEED_BACKFILL_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue feedBackfillDlq() {
+    return QueueBuilder.durable(FEED_BACKFILL_DLQ).build();
+  }
+
+  @Bean
+  Binding feedBackfillBinding(Queue feedBackfillQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(feedBackfillQueue)
+        .to(mainExchange)
+        .with(NOTIFICATION_FOLLOWED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding feedBackfillDlqBinding(Queue feedBackfillDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(feedBackfillDlq).to(dlxExchange).with(FEED_BACKFILL_DLQ_ROUTING_KEY);
+  }
+
+
+  @Bean
+  Queue saQueue() {
+    return QueueBuilder.durable(SA_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", SA_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue saDlq() {
+    return QueueBuilder.durable(SA_DLQ).build();
+  }
+
+  @Bean
+  Binding saBinding(Queue saQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(saQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding saDlqBinding(Queue saDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(saDlq).to(dlxExchange).with(SA_DLQ_ROUTING_KEY);
+  }
+
+
+  @Bean
+  Queue rwiQueue() {
+    return QueueBuilder.durable(RWI_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", RWI_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue rwiDlq() {
+    return QueueBuilder.durable(RWI_DLQ).build();
+  }
+
+  @Bean
+  Binding rwiBinding(Queue rwiQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(rwiQueue).to(mainExchange).with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding rwiDlqBinding(Queue rwiDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(rwiDlq).to(dlxExchange).with(RWI_DLQ_ROUTING_KEY);
+  }
+
+  public static final String DNA_RECALC_QUEUE = "biblioo.dna.recalculation";
+  public static final String DNA_RECALC_DLQ = "biblioo.dna.recalculation.dlq";
+  public static final String DNA_RECALC_DLQ_ROUTING_KEY = "dna.recalculation.dead";
+  public static final String REVIEW_RATING_UPDATED_ROUTING_KEY = "feed.review.rating.updated";
+  public static final String EVENT_REVIEW_RATING_UPDATED = "REVIEW_RATING_UPDATED";
+
+  public static final String EMAIL_QUEUE = "biblioo.email";
+  public static final String EMAIL_DLQ = "biblioo.email.dlq";
+  public static final String EMAIL_ROUTING_PATTERN = "email.#";
+  public static final String EMAIL_DLQ_ROUTING_KEY = "email.dead";
+  public static final String EMAIL_PASSWORD_RESET_ROUTING_KEY = "email.password-reset";
+  public static final String EMAIL_PASSWORD_CHANGED_ROUTING_KEY = "email.password-changed";
+  public static final String EVENT_PASSWORD_RESET_REQUESTED = "PASSWORD_RESET_REQUESTED";
+  public static final String EVENT_PASSWORD_CHANGED = "PASSWORD_CHANGED";
+
+  @Bean
+  Queue emailQueue() {
+    return QueueBuilder.durable(EMAIL_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", EMAIL_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue emailDlq() {
+    return QueueBuilder.durable(EMAIL_DLQ).build();
+  }
+
+  @Bean
+  Binding emailBinding(Queue emailQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(emailQueue).to(mainExchange).with(EMAIL_ROUTING_PATTERN);
+  }
+
+  @Bean
+  Binding emailDlqBinding(Queue emailDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(emailDlq).to(dlxExchange).with(EMAIL_DLQ_ROUTING_KEY);
+  }
+
+  @SuppressWarnings("removal")
+  @Bean
+  SimpleRabbitListenerContainerFactory emailListenerFactory(
+      ConnectionFactory connectionFactory, Jackson2JsonMessageConverter messageConverter) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(messageConverter);
+    factory.setDefaultRequeueRejected(false);
+    return factory;
+  }
+
+
+  @Bean
+  Queue dnaRecalcQueue() {
+    return QueueBuilder.durable(DNA_RECALC_QUEUE)
+        .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+        .withArgument("x-dead-letter-routing-key", DNA_RECALC_DLQ_ROUTING_KEY)
+        .build();
+  }
+
+  @Bean
+  Queue dnaRecalcDlq() {
+    return QueueBuilder.durable(DNA_RECALC_DLQ).build();
+  }
+
+  @Bean
+  Binding dnaRecalcCompletedBinding(Queue dnaRecalcQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(dnaRecalcQueue)
+        .to(mainExchange)
+        .with(SHELF_READING_COMPLETED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding dnaRecalcAbandonedBinding(Queue dnaRecalcQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(dnaRecalcQueue)
+        .to(mainExchange)
+        .with(SHELF_READING_ABANDONED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding dnaRecalcReviewBinding(Queue dnaRecalcQueue, TopicExchange mainExchange) {
+    return BindingBuilder.bind(dnaRecalcQueue)
+        .to(mainExchange)
+        .with(REVIEW_RATING_UPDATED_ROUTING_KEY);
+  }
+
+  @Bean
+  Binding dnaRecalcDlqBinding(Queue dnaRecalcDlq, DirectExchange dlxExchange) {
+    return BindingBuilder.bind(dnaRecalcDlq).to(dlxExchange).with(DNA_RECALC_DLQ_ROUTING_KEY);
+  }
+
+
+  @Bean
+  FanoutExchange communityBroadcastExchange() {
+    return new FanoutExchange(COMMUNITY_BROADCAST_EXCHANGE, true, false);
+  }
+
+  @Bean
+  Queue communityBroadcastQueue() {
+    return new AnonymousQueue();
+  }
+
+  @Bean
+  Binding communityBroadcastBinding(
+      Queue communityBroadcastQueue, FanoutExchange communityBroadcastExchange) {
+    return BindingBuilder.bind(communityBroadcastQueue).to(communityBroadcastExchange);
+  }
+
+  @Bean
+  SimpleRabbitListenerContainerFactory communityBroadcastListenerFactory(
+      ConnectionFactory connectionFactory) {
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
     factory.setDefaultRequeueRejected(false);
     return factory;
   }

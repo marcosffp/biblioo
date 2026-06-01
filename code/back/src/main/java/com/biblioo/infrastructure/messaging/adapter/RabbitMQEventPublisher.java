@@ -7,9 +7,13 @@ import com.biblioo.infrastructure.messaging.port.EventPublisherPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RabbitMQEventPublisher implements EventPublisherPort {
@@ -17,6 +21,7 @@ public class RabbitMQEventPublisher implements EventPublisherPort {
   private final RabbitTemplate rabbitTemplate;
   private final ObjectMapper objectMapper;
 
+  @Async
   @Override
   public void publish(OutboxEvent event) {
     try {
@@ -33,26 +38,8 @@ public class RabbitMQEventPublisher implements EventPublisherPort {
 
       rabbitTemplate.convertAndSend(RabbitMQConfig.MAIN_EXCHANGE, event.getRoutingKey(), message);
 
-      System.out.println(
-          "Evento publicado "
-              + event.getId()
-              + " ["
-              + event.getEventType()
-              + "] → exchange='"
-              + RabbitMQConfig.MAIN_EXCHANGE
-              + "' routingKey='"
-              + event.getRoutingKey()
-              + "'");
-
     } catch (Exception e) {
-      System.err.println(
-          "Falha ao publicar evento "
-              + event.getId()
-              + " ["
-              + event.getEventType()
-              + "] no RabbitMQ: "
-              + e.getMessage());
-      e.printStackTrace();
+      log.error("Falha ao publicar evento {}: {}", event.getId(), e.getMessage(), e);
     }
   }
 }

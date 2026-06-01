@@ -3,33 +3,34 @@ package com.biblioo.user.domain.service;
 import com.biblioo.user.domain.exception.AlreadyFollowingException;
 import com.biblioo.user.domain.exception.FollowRequestAlreadySentException;
 import com.biblioo.user.domain.exception.UserNotFoundException;
+import com.biblioo.user.domain.exception.UsernameAlreadyExistsException;
 import com.biblioo.user.domain.model.FollowStatus;
 import com.biblioo.user.domain.model.ProfileAccess;
 import com.biblioo.user.domain.model.User;
 import com.biblioo.user.domain.port.in.UserUseCase;
 import com.biblioo.user.domain.port.out.ProfileImagePort;
+import com.biblioo.user.domain.port.out.RefreshTokenPersistencePort;
+import com.biblioo.user.domain.port.out.UserFollowPersistencePort;
 import com.biblioo.user.domain.port.out.UserNotificationEventPort;
+import com.biblioo.user.domain.port.out.UserPersistencePort;
 import com.biblioo.user.domain.port.out.UserSearchPort;
-import com.biblioo.user.infrastructure.persistence.RefreshTokenRepository;
-import com.biblioo.user.infrastructure.persistence.UserFollowRepository;
-import com.biblioo.user.infrastructure.persistence.UserRepository;
 import java.util.List;
 import java.util.Optional;
 
 public class UserService implements UserUseCase {
 
-  private final UserRepository userRepo;
-  private final UserFollowRepository followRepo;
+  private final UserPersistencePort userRepo;
+  private final UserFollowPersistencePort followRepo;
   private final ProfileImagePort profileImagePort;
-  private final RefreshTokenRepository tokenRepo;
+  private final RefreshTokenPersistencePort tokenRepo;
   private final UserSearchPort searchPort;
   private final UserNotificationEventPort notificationEventPort;
 
   public UserService(
-      UserRepository userRepo,
-      UserFollowRepository followRepo,
+      UserPersistencePort userRepo,
+      UserFollowPersistencePort followRepo,
       ProfileImagePort profileImagePort,
-      RefreshTokenRepository tokenRepo,
+      RefreshTokenPersistencePort tokenRepo,
       UserSearchPort searchPort,
       UserNotificationEventPort notificationEventPort) {
     this.userRepo = userRepo;
@@ -68,8 +69,13 @@ public class UserService implements UserUseCase {
   }
 
   @Override
-  public User updateProfile(Long userId, String bio, String avatarUrl, String bannerUrl) {
+  public User updateProfile(
+      Long userId, String username, String bio, String avatarUrl, String bannerUrl) {
     User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    if (username != null && !username.equals(user.getUsername())) {
+      if (userRepo.existsByUsername(username)) throw new UsernameAlreadyExistsException(username);
+      user.setUsername(username);
+    }
     if (bio != null) user.setBio(bio);
     if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
     if (bannerUrl != null) user.setBannerUrl(bannerUrl);
@@ -178,11 +184,18 @@ public class UserService implements UserUseCase {
 
   @Override
   public void deleteAccount(Long userId) {
-    userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+
+    var imageUrls = new java.util.ArrayList<String>();
+    if (user.getAvatarUrl() != null) imageUrls.add(user.getAvatarUrl());
+    if (user.getBannerUrl() != null) imageUrls.add(user.getBannerUrl());
+
     tokenRepo.deleteAllByUserId(userId);
     followRepo.deleteAllByUserId(userId);
     userRepo.deleteById(userId);
     searchPort.deleteFromIndex(userId);
+
+    if (!imageUrls.isEmpty()) profileImagePort.deleteImages(imageUrls);
   }
 
   @Override

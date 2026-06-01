@@ -1,10 +1,10 @@
 package com.biblioo.recommendation.domain.service;
 
+import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
 import com.biblioo.recommendation.domain.model.BookScore;
-import com.biblioo.recommendation.domain.port.in.RecommendationUseCase;
 import com.biblioo.recommendation.infrastructure.graph.Neo4jGraphService;
 import com.biblioo.recommendation.infrastructure.persistence.RecommendationResultRepository;
-import com.biblioo.recommendation.infrastructure.service.BecauseYouReadFallbackService;
+import com.biblioo.recommendation.infrastructure.service.BecauseYouReadComputeService;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
@@ -12,59 +12,67 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class BecauseYouReadService implements RecommendationUseCase {
+public class BecauseYouReadService {
 
   private final Neo4jGraphService neo4jGraphService;
-  private final BecauseYouReadFallbackService fallbackService;
+  private final BecauseYouReadComputeService computeService;
   private final RecommendationResultRepository resultRepository;
 
-  @Value("${recommendation.t1.candidate-limit:20}")
+  @Value("${recommendation.t1.candidate-limit}")
   private int candidateLimit;
 
-  @Value("${recommendation.t1.score-jitter-pct:0.03}")
+  @Value("${recommendation.t1.score-jitter-pct}")
   private double jitterPct;
 
-  @Value("${recommendation.t1.max-same-category-ratio:0.60}")
+  @Value("${recommendation.t1.max-same-category-ratio}")
   private double maxSameCategoryRatio;
 
-  public void compute(Long userId, Long bookId, Long shelfItemId, String finishedAt) {
+  @CacheEvict(value = "rec-byr", key = "#userId")
+  public void compute(
+      Long userId, Long bookId, Long shelfItemId, String finishedAt, String seedBookTitle) {
     try {
       neo4jGraphService.mergeReadRelationship(userId, bookId, finishedAt, shelfItemId);
     } catch (Exception ex) {
       log.warn(
-          "[T1] Falha ao atualizar grafo user={} book={}: {}", userId, bookId, ex.getMessage());
+          "[BYR] Falha ao atualizar grafo user={} book={}: {}", userId, bookId, ex.getMessage());
     }
 
     List<BookScore> candidates = computeWithFallback(userId, bookId);
 
     if (candidates.isEmpty()) {
-      log.info(
-          "[T1] Nenhum candidato encontrado para user={} book={}, mantendo resultado anterior",
-          userId,
-          bookId);
       return;
     }
 
     List<BookScore> processed = postProcess(candidates);
 
-    resultRepository.upsert(userId, "BECAUSE_YOU_READ", processed);
+    resultRepository.upsertByr(userId, processed, seedBookTitle);
 
-    log.info(
-        "[T1] {} recomendações persistidas para user={} book={} source={}",
-        processed.size(),
-        userId,
-        bookId,
-        processed.isEmpty() ? "none" : processed.get(0).getSource());
   }
 
-  @Override
-  public List<BookScore> getBecauseYouRead(Long userId) {
-    return resultRepository.findByUserId(userId, "BECAUSE_YOU_READ");
+  @CacheEvict(value = "rec-byr", key = "#userId")
+  public void computeFromPreference(Long userId, Long bookId) {
+    List<BookScore> candidates = computeService.compute(userId, bookId);
+    if (candidates.isEmpty()) {
+      log.info("[BYR] Cold-start: nenhum candidato para userId={} bookId={}", userId, bookId);
+      return;
+    }
+    List<BookScore> processed = postProcess(candidates);
+    String seedTitle = computeService.getBookTitle(bookId);
+    resultRepository.upsertByr(userId, processed, seedTitle);
+    log.info("[BYR] Cold-start: {} recomendações para userId={} seedBook='{}'",
+        processed.size(), userId, seedTitle);
+  }
+
+  @Cacheable(value = "rec-byr", key = "#userId")
+  public BecauseYouReadResult get(Long userId) {
+    return resultRepository.findBecauseYouReadResult(userId);
   }
 
   private List<BookScore> computeWithFallback(Long userId, Long bookId) {
@@ -73,16 +81,15 @@ public class BecauseYouReadService implements RecommendationUseCase {
       if (!graphResults.isEmpty()) {
         return graphResults;
       }
-      log.info(
-          "[T1] Grafo retornou vazio para user={} book={}, tentando fallback SQL", userId, bookId);
-      return fallbackService.compute(userId, bookId);
+
+      return computeService.compute(userId, bookId);
     } catch (Exception ex) {
       log.warn(
-          "[T1] Neo4j indisponível para user={} book={}, ativando fallback SQL. Causa: {}",
+          "[BYR] Neo4j indisponível para user={} book={}, ativando fallback SQL. Causa: {}",
           userId,
           bookId,
           ex.getMessage());
-      return fallbackService.compute(userId, bookId);
+      return computeService.compute(userId, bookId);
     }
   }
 

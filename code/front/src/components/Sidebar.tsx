@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Book, Rss, Sparkles, Users, User } from "lucide-react";
+import { Book, Compass, Rss, User, Users } from "lucide-react";
 import React from "react";
 
 export interface SidebarItem {
@@ -18,9 +18,9 @@ export interface SidebarProps {
 
 const defaultItems: SidebarItem[] = [
   { label: "Feed", href: "/feed", icon: <Rss size={18} /> },
-  { label: "Estante", href: "/bookcase", icon: <Book size={18} /> },
-  { label: "Para Você", href: "/for-you", icon: <Sparkles size={18} /> },
+  { label: "Biblioteca", href: "/bookcase", icon: <Book size={18} /> },
   { label: "Comunidades", href: "/community", icon: <Users size={18} /> },
+  { label: "Explorar", href: "/for-you", icon: <Compass size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },
 ];
 
@@ -30,7 +30,7 @@ export function Sidebar({ items = defaultItems, className }: Readonly<SidebarPro
   return (
     <aside
       className={
-        `w-64 fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700 p-5 overflow-y-auto z-40 ${className ?? ""}`.trim()
+        `fixed left-0 top-16 z-40 hidden h-[calc(100vh-4rem)] w-64 overflow-y-auto border-r border-[#e2ebe7] bg-white/80 p-5 shadow-[0_10px_30px_rgba(31,61,58,0.08)] backdrop-blur-xl lg:block ${className ?? ""}`.trim()
       }
     >
       <nav aria-label="Navegacao lateral" className="flex flex-col gap-2">
@@ -40,8 +40,10 @@ export function Sidebar({ items = defaultItems, className }: Readonly<SidebarPro
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 text-sm font-semibold p-3 rounded-lg transition-colors ${
-                isActive ? "bg-emerald-50 text-emerald-600" : "text-gray-600 hover:bg-gray-50"
+              className={`flex items-center gap-3 rounded-xl p-3 text-sm font-semibold transition duration-200 ease-out ${
+                isActive
+                  ? "bg-[rgba(26,129,98,0.10)] text-[#1a8162]"
+                  : "text-[var(--text-secondary)] hover:bg-[rgba(31,61,58,0.04)] hover:text-[var(--text-primary)]"
               }`}
               aria-current={isActive ? "page" : undefined}
             >

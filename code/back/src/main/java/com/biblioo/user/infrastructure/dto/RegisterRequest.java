@@ -22,7 +22,13 @@ public record RegisterRequest(
         @Email
         @Size(max = 255)
         String email,
-    @Schema(description = "Senha com no mínimo 8 caracteres", example = "minhasenha123")
+    @Schema(
+            description =
+                "Senha com no mínimo 8 caracteres, ao menos uma letra maiúscula e um caractere especial",
+            example = "Minha@Senha1")
         @NotBlank
         @Size(min = 8, max = 100)
+        @Pattern(
+            regexp = "^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).+$",
+            message = "A senha deve conter ao menos uma letra maiúscula e um caractere especial")
         String password) {}

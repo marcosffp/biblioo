@@ -1,8 +1,8 @@
 package com.biblioo.books.infrasestructure.external;
 
 import com.biblioo.books.domain.model.Book;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -33,65 +33,64 @@ public class GoogleBooksAdapter {
     this.bookEnrichExecutor = bookEnrichExecutor;
   }
 
-  // -------------------------------------------------------------------------
-  // search — ponto de entrada público
-  //
-  // @Cacheable com TTL de 10 min: evita chamadas duplicadas à API externa
-  // para queries repetidas (ex.: enrich sync + async rodando em paralelo).
-  //
-  // Fases executadas em paralelo via CompletableFuture:
-  //   Fase 1 — frase exata no título: intitle:"Jogos Vorazes"
-  //   Fase 2 — cada palavra obrigatória: intitle:Jogos+intitle:Vorazes
-  // Ambas disparam ao mesmo tempo; o merge é feito só se fase 1 retornar < 3.
-  // -------------------------------------------------------------------------
-
-  @Cacheable(
-      value = "google-books",
-      key = "#query.strip().toLowerCase()",
-      unless = "#result.isEmpty()")
+  // "v2:" força o Redis a ignorar o cache antigo (gerado com a query intitle:palavra+intitle:palavra
+  // que era muito restritiva e ficou salvo com resultados ruins)
+  @Cacheable(value = "google-books", key = "'v2:' + #query.strip().toLowerCase()", sync = true)
   public List<Book> search(String query) {
-    log.debug("Chamando Google Books API. query='{}'", query);
-
-    String wordQuery =
-        Arrays.stream(query.trim().split("\\s+"))
-            .map(w -> "intitle:" + w)
-            .collect(Collectors.joining("+"));
-
+    // Fase 1: frase exata no título (alta precisão)
     var future1 =
         CompletableFuture.supplyAsync(
                 () -> fetchFromApi("intitle:\"" + query + "\""), bookEnrichExecutor)
             .orTimeout(4, TimeUnit.SECONDS)
             .exceptionally(
                 e -> {
-                  log.warn(
-                      "Google Books fase 1 timeout/erro. query='{}'. Causa: {}",
-                      query,
-                      e.getMessage());
+                  log.warn("Google Books fase 1 timeout/erro. query='{}'. Causa: {}", query, e.getMessage());
                   return List.of();
                 });
 
+    // Fase 2: busca geral — encontra mesmo com título parcial ou idioma diferente
     var future2 =
-        CompletableFuture.supplyAsync(() -> fetchFromApi(wordQuery), bookEnrichExecutor)
+        CompletableFuture.supplyAsync(() -> fetchFromApi(query), bookEnrichExecutor)
             .orTimeout(4, TimeUnit.SECONDS)
             .exceptionally(
                 e -> {
-                  log.warn(
-                      "Google Books fase 2 timeout/erro. query='{}'. Causa: {}",
-                      query,
-                      e.getMessage());
+                  log.warn("Google Books fase 2 timeout/erro. query='{}'. Causa: {}", query, e.getMessage());
                   return List.of();
                 });
 
     CompletableFuture.allOf(future1, future2).join();
 
-    var results1 = future1.getNow(List.of());
-    var results2 = future2.getNow(List.of());
+    var combined = ranker.merge(future1.getNow(List.of()), future2.getNow(List.of()));
 
-    if (results1.size() >= 3) {
-      return ranker.rankByTitleRelevance(results1, query);
+    // Fase 3: expansão por autor principal — traz obras relacionadas do mesmo autor
+    // (ex: "hobbit" → Tolkien → O Senhor dos Anéis; "harry potter" → Rowling → todos os volumes)
+    String mainAuthor = extractMainAuthor(combined);
+    if (mainAuthor != null) {
+      var future3 =
+          CompletableFuture.supplyAsync(
+                  () -> fetchFromApi("inauthor:\"" + mainAuthor + "\""), bookEnrichExecutor)
+              .orTimeout(3, TimeUnit.SECONDS)
+              .exceptionally(
+                  e -> {
+                    log.warn("Google Books fase 3 (autor) timeout. author='{}'. Causa: {}", mainAuthor, e.getMessage());
+                    return List.of();
+                  });
+      combined = ranker.merge(combined, future3.join());
     }
 
-    return ranker.rankByTitleRelevance(ranker.merge(results1, results2), query);
+    return ranker.rankByTitleRelevance(combined, query);
+  }
+
+  private String extractMainAuthor(List<Book> books) {
+    return books.stream()
+        .filter(b -> b.getAuthors() != null)
+        .flatMap(b -> b.getAuthors().stream())
+        .filter(a -> a != null && !a.isBlank())
+        .collect(Collectors.groupingBy(a -> a, Collectors.counting()))
+        .entrySet().stream()
+        .max(Map.Entry.comparingByValue())
+        .map(Map.Entry::getKey)
+        .orElse(null);
   }
 
   private List<Book> fetchFromApi(String queryString) {

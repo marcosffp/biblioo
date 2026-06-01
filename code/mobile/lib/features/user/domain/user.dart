@@ -1,3 +1,5 @@
+enum UserFollowStatus { none, following, requested }
+
 class User {
   final int id;
   final String username;
@@ -7,7 +9,7 @@ class User {
   final String? bannerUrl;
   final bool isPrivate;
   final bool restricted;
-  final bool isFollowing;
+  final UserFollowStatus followStatus;
   final String? createdAt;
 
   const User({
@@ -19,9 +21,12 @@ class User {
     this.bannerUrl,
     required this.isPrivate,
     required this.restricted,
-    this.isFollowing = false,
+    this.followStatus = UserFollowStatus.none,
     this.createdAt,
   });
+
+  bool get isFollowing => followStatus == UserFollowStatus.following;
+  bool get isFollowRequested => followStatus == UserFollowStatus.requested;
 
   User copyWith({
     int? id,
@@ -32,7 +37,7 @@ class User {
     String? bannerUrl,
     bool? isPrivate,
     bool? restricted,
-    bool? isFollowing,
+    UserFollowStatus? followStatus,
     String? createdAt,
   }) {
     return User(
@@ -44,7 +49,7 @@ class User {
       bannerUrl: bannerUrl ?? this.bannerUrl,
       isPrivate: isPrivate ?? this.isPrivate,
       restricted: restricted ?? this.restricted,
-      isFollowing: isFollowing ?? this.isFollowing,
+      followStatus: followStatus ?? this.followStatus,
       createdAt: createdAt ?? this.createdAt,
     );
   }

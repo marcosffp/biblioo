@@ -4,6 +4,7 @@ import 'models/user_model.dart';
 
 class UserLocalDatasource {
   static const _keyProfile = 'cached_user_profile';
+  static const _keyPendingFollowRequests = 'cached_pending_follow_requests';
 
   final SharedPreferences _prefs;
   const UserLocalDatasource(this._prefs);
@@ -20,7 +21,7 @@ class UserLocalDatasource {
         'bannerUrl': user.bannerUrl,
         'isPrivate': user.isPrivate,
         'restricted': user.restricted,
-        'isFollowing': user.isFollowing,
+        'followStatus': user.followStatus.name,
         'createdAt': user.createdAt,
       }),
     );
@@ -32,7 +33,28 @@ class UserLocalDatasource {
     return UserModel.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
+  List<String> getPendingFollowRequests() {
+    return _prefs.getStringList(_keyPendingFollowRequests) ?? const [];
+  }
+
+  Future<void> markFollowRequested(String username) async {
+    final current = getPendingFollowRequests().toSet();
+    current.add(username.toLowerCase());
+    await _prefs.setStringList(_keyPendingFollowRequests, current.toList());
+  }
+
+  Future<void> clearFollowRequested(String username) async {
+    final current = getPendingFollowRequests().toSet();
+    current.remove(username.toLowerCase());
+    await _prefs.setStringList(_keyPendingFollowRequests, current.toList());
+  }
+
+  bool isFollowRequested(String username) {
+    return getPendingFollowRequests().contains(username.toLowerCase());
+  }
+
   Future<void> clearProfile() async {
     await _prefs.remove(_keyProfile);
+    await _prefs.remove(_keyPendingFollowRequests);
   }
 }

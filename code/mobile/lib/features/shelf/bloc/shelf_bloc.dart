@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../domain/shelf_item.dart';
 import '../data/shelf_repository.dart';
 import 'shelf_event.dart';
 import 'shelf_state.dart';
@@ -7,6 +8,7 @@ import 'shelf_state.dart';
 /// Bloc da feature shelf — só chama repository, nunca datasources.
 class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
   final ShelfRepository _repository;
+  final Map<int, List<ShelfItem>> _loadedItemsByShelf = {};
 
   ShelfBloc(this._repository) : super(ShelfInitial()) {
     on<ShelfLoadRequested>(_onLoad);
@@ -90,6 +92,7 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
     emit(ShelfItemsLoading());
     try {
       final items = await _repository.getItems(event.shelfId);
+      _loadedItemsByShelf[event.shelfId] = items;
       emit(ShelfItemsLoaded(shelfId: event.shelfId, items: items));
     } catch (e, st) {
       debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
@@ -133,14 +136,27 @@ class ShelfBloc extends Bloc<ShelfEvent, ShelfState> {
     ShelfItemProgressUpdated event,
     Emitter<ShelfState> emit,
   ) async {
+    final prevState = state;
     emit(ShelfMutating());
     try {
-      await _repository.updateProgress(
+      final updatedItem = await _repository.updateProgress(
         shelfId: event.shelfId,
         itemId: event.itemId,
         currentPage: event.currentPage,
       );
-      emit(ShelfMutationSuccess('Progresso atualizado!'));
+      // Atualiza o item na lista em memória para que currentPage/totalPages
+      // reflitam imediatamente o retorno do servidor.
+      final previousItems = prevState is ShelfItemsLoaded
+          ? prevState.items
+          : _loadedItemsByShelf[event.shelfId];
+      if (previousItems != null) {
+        final newItems = previousItems
+            .map((it) => it.id == event.itemId ? updatedItem : it)
+            .toList();
+        _loadedItemsByShelf[event.shelfId] = newItems;
+        emit(ShelfItemsLoaded(shelfId: event.shelfId, items: newItems));
+      }
+      emit(ShelfProgressUpdateSuccess(updatedItem));
     } catch (e, st) {
       debugPrint('[ShelfBloc] ${event.runtimeType}: $e\n$st');
       emit(ShelfError('Erro ao atualizar progresso.'));

@@ -15,17 +15,15 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
   Optional<Book> findByIsbn(String isbn);
 
+  List<Book> findByIsbnIn(List<String> isbns);
+
   boolean existsByIsbn(String isbn);
 
   @Query("SELECT b.isbn FROM Book b WHERE b.isbn IN :isbns")
   Set<String> findExistingIsbns(@Param("isbns") List<String> isbns);
 
-  List<Book> findByTitleContainingIgnoreCaseOrderByTitleAsc(String title);
-
   @Query(
-      value =
-          "SELECT * FROM books WHERE MATCH(search_text) AGAINST (:term IN BOOLEAN MODE)"
-              + " ORDER BY title ASC",
+      value = "SELECT * FROM books WHERE search_text LIKE CONCAT('%', :term, '%') LIMIT 20",
       nativeQuery = true)
   List<Book> searchByTerm(@Param("term") String term);
 
@@ -36,6 +34,9 @@ public interface BookRepository extends JpaRepository<Book, Long> {
             ORDER BY b.averageRating DESC NULLS LAST, b.ratingCount DESC NULLS LAST
             """)
   List<Book> findTopRated(@Param("minRating") Float minRating);
+
+  @Query("SELECT b.id FROM Book b")
+  List<Long> findAllIds();
 
   @Modifying
   @Query("UPDATE Book b SET b.readerCount = :readerCount WHERE b.id = :bookId")

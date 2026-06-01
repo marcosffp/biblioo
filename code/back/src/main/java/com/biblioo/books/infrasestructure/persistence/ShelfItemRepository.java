@@ -2,6 +2,7 @@ package com.biblioo.books.infrasestructure.persistence;
 
 import com.biblioo.books.domain.model.ReadingStatus;
 import com.biblioo.books.domain.model.ShelfItem;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,6 +23,13 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
   List<ShelfItem> findAllByShelfIdAndStatus(Long shelfId, ReadingStatus status);
 
   boolean existsByShelfIdAndBookId(Long shelfId, Long bookId);
+
+  // Bypasses @SQLRestriction to find any row (including soft-deleted)
+  @Query(
+      value = "SELECT * FROM shelf_items WHERE shelf_id = :shelfId AND book_id = :bookId LIMIT 1",
+      nativeQuery = true)
+  Optional<ShelfItem> findByShelfIdAndBookIdIncludingDeleted(
+      @Param("shelfId") Long shelfId, @Param("bookId") Long bookId);
 
   @Modifying
   @Query(
@@ -69,6 +77,33 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
       """)
   int softDelete(@Param("id") Long id);
 
+  @Query("SELECT si FROM ShelfItem si WHERE si.shelfId IN :shelfIds")
+  List<ShelfItem> findAllByShelfIdIn(@Param("shelfIds") List<Long> shelfIds);
+
+  @Query(
+      """
+      SELECT COUNT(si) > 0
+      FROM ShelfItem si
+      JOIN Shelf s ON s.id = si.shelfId
+      WHERE s.userId = :userId
+        AND si.bookId = :bookId
+        AND s.deletedAt IS NULL
+        AND si.deletedAt IS NULL
+      """)
+  boolean existsActiveByUserIdAndBookId(
+      @Param("userId") Long userId, @Param("bookId") Long bookId);
+
   @Query("SELECT COUNT(si) FROM ShelfItem si WHERE si.bookId = :bookId")
   long countByBookId(@Param("bookId") Long bookId);
+
+  @Query(
+      """
+      SELECT si FROM ShelfItem si
+      JOIN Shelf s ON s.id = si.shelfId
+      WHERE s.userId    = :userId
+        AND si.status   IN :statuses
+        AND s.deletedAt IS NULL
+      """)
+  List<ShelfItem> findByUserIdAndStatusIn(
+      @Param("userId") Long userId, @Param("statuses") Collection<ReadingStatus> statuses);
 }

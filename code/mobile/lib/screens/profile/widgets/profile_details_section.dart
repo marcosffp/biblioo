@@ -4,11 +4,19 @@ import 'package:flutter/material.dart';
 class ProfileDetailsSection extends StatelessWidget {
   final User user;
   final bool isOwner;
+  final int? followersCount;
+  final int? followingCount;
+  final VoidCallback? onFollowersTap;
+  final VoidCallback? onFollowingTap;
 
   const ProfileDetailsSection({
     super.key,
     required this.user,
     required this.isOwner,
+    this.followersCount,
+    this.followingCount,
+    this.onFollowersTap,
+    this.onFollowingTap,
   });
 
   String _formatCreatedAt(String value) {
@@ -41,63 +49,114 @@ class ProfileDetailsSection extends StatelessWidget {
             ),
             Text(
               user.isPrivate ? ' Perfil Privado' : ' Perfil Publico',
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
         ),
-        if (!isOwner && user.restricted) ...[
-          const SizedBox(height: 10),
-          Text(
-            'Esse perfil é privado. Siga para ver mais detalhes.',
-            style: theme.textTheme.bodyMedium,
-          ),
-        ] else ...[
-          if (user.bio != null) ...[
-            const SizedBox(height: 8),
-            Text(user.bio!, style: theme.textTheme.bodyMedium),
-          ],
-          if (user.email != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.mail_outline,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    user.email!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (user.createdAt != null) ...[
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Desde ${_formatCreatedAt(user.createdAt!)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
+        if (user.bio != null) ...[
+          const SizedBox(height: 8),
+          Text(user.bio!, style: theme.textTheme.bodyMedium),
+        ],
+
+        /*
+        if (user.email != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.mail_outline,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  user.email!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
+        ],
+        */
+        if (followersCount != null || followingCount != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (followersCount != null)
+                InkWell(
+                  onTap: onFollowersTap,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$followersCount',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('Seguidores', style: theme.textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                ),
+              if (followingCount != null) const SizedBox(width: 16),
+              if (followingCount != null)
+                InkWell(
+                  onTap: onFollowingTap,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$followingCount',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text('Seguindo', style: theme.textTheme.bodySmall),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+        if (user.createdAt != null) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today_outlined,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Desde ${_formatCreatedAt(user.createdAt!)}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ],
       ],
     );

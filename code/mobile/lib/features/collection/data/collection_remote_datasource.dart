@@ -1,4 +1,5 @@
 import 'package:biblioo/features/collection/data/models/collection_model.dart';
+import 'package:biblioo/features/collection/data/models/collection_statistics_model.dart';
 import 'package:dio/dio.dart';
 
 class CollectionRemoteDatasource {
@@ -57,5 +58,11 @@ class CollectionRemoteDatasource {
 
   Future<void> removeShelfFromCollection(int collectionId, int shelfId) async {
     await _dio.delete('/collections/$collectionId/shelves/$shelfId');
+  }
+
+  Future<CollectionStatisticsModel> getStatistics(int collectionId) async {
+    final response = await _dio.get('/collections/$collectionId/statistics');
+    return CollectionStatisticsModel.fromJson(
+        response.data as Map<String, dynamic>);
   }
 }

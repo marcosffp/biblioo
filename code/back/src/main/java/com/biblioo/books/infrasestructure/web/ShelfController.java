@@ -50,21 +50,15 @@ public class ShelfController {
   public ResponseEntity<List<ShelfSummaryResponse>> listShelves(
       @AuthenticationPrincipal UserDetails principal) {
 
-    Long userId = currentUserId(principal);
+        Long userId = currentUserId(principal);
     List<Shelf> shelves = shelfUseCase.listShelves(userId);
 
-    List<ShelfSummaryResponse> response =
-        shelves.stream()
-            .map(
-                shelf -> {
-                  List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
-                  List<String> covers = buildCoverPreview(items);
-                  return mapper.toSummaryResponse(shelf, items.size(), covers);
-                })
-            .toList();
+    List<ShelfSummaryResponse> response = shelves.stream()
+        .map(shelf -> buildSummaryResponse(userId, shelf))
+        .toList();
 
     return ResponseEntity.ok(response);
-  }
+}
 
   @GetMapping("/{shelfId}")
   @Operation(
@@ -89,17 +83,11 @@ public class ShelfController {
   public ResponseEntity<List<ShelfSummaryResponse>> listUserShelves(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId) {
 
-    List<Shelf> shelves = shelfUseCase.listShelves(userId);
+        List<Shelf> shelves = shelfUseCase.listShelves(userId);
 
-    List<ShelfSummaryResponse> response =
-        shelves.stream()
-            .map(
-                shelf -> {
-                  List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
-                  List<String> covers = buildCoverPreview(items);
-                  return mapper.toSummaryResponse(shelf, items.size(), covers);
-                })
-            .toList();
+    List<ShelfSummaryResponse> response = shelves.stream()
+        .map(shelf -> buildSummaryResponse(userId, shelf))
+        .toList();
 
     return ResponseEntity.ok(response);
   }
@@ -167,6 +155,18 @@ public class ShelfController {
     return ResponseEntity.noContent().build();
   }
 
+  @GetMapping("/me/active-reading-days")
+  @Operation(
+      summary = "Dias ativos de leitura",
+      description = "Retorna o total de dias distintos em que o usuário autenticado registrou pelo menos uma atualização de progresso de leitura.")
+  public ResponseEntity<java.util.Map<String, Long>> getActiveReadingDays(
+      @AuthenticationPrincipal UserDetails principal) {
+
+    Long userId = currentUserId(principal);
+    long count = shelfUseCase.countActiveDaysByUserId(userId);
+    return ResponseEntity.ok(java.util.Map.of("count", count));
+  }
+
   private List<String> buildCoverPreview(List<ShelfItem> items) {
     return items.stream()
         .map(
@@ -174,8 +174,6 @@ public class ShelfController {
               try {
                 return bookUseCase.getById(item.getBookId()).getCoverUrl();
               } catch (Exception e) {
-                log.debug(
-                    "Cover não encontrada para bookId={}: {}", item.getBookId(), e.getMessage());
                 return null;
               }
             })
@@ -187,4 +185,10 @@ public class ShelfController {
   private Long currentUserId(UserDetails principal) {
     return Long.parseLong(principal.getUsername());
   }
+
+  private ShelfSummaryResponse buildSummaryResponse(Long userId, Shelf shelf) {
+    List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
+    List<String> covers = buildCoverPreview(items);
+    return mapper.toSummaryResponse(shelf, items.size(), covers);
+}
 }

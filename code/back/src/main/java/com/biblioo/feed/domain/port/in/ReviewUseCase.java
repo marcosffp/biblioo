@@ -1,23 +1,13 @@
 package com.biblioo.feed.domain.port.in;
 
 import com.biblioo.feed.domain.model.Review;
-import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ReviewUseCase {
-  Review createReview(
-      Long userId, Long bookId, Integer rating, String text, List<byte[]> newImages, byte[] gif);
+  Review createReview(Long userId, Long bookId, Integer rating, String text);
 
-  Review updateReview(
-      Long userId,
-      Long reviewId,
-      Integer rating,
-      String text,
-      List<byte[]> newImages,
-      List<String> imagesToDeleteUrls,
-      byte[] gif);
+  Review updateReview(Long userId, Long reviewId, Integer rating, String text);
 
   void deleteReview(Long userId, Long reviewId);
 

@@ -11,16 +11,12 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Decorator de cache sobre UserService. Cache único "user-profile" com chave = id do usuário.
- * Criado como @Bean em UserConfig para que o Spring aplique os proxies corretamente.
- */
+
 @RequiredArgsConstructor
 public class CachedUserService implements UserUseCase {
 
   private final UserUseCase delegate;
 
-  /** Sempre bate no banco (chave depende do resultado), mas popula o cache by-id. */
   @Override
   @Cacheable(value = "user-profile", key = "#result.id", condition = "#result != null")
   public User getByUsername(String username) {
@@ -35,8 +31,9 @@ public class CachedUserService implements UserUseCase {
 
   @Override
   @CachePut(value = "user-profile", key = "#userId")
-  public User updateProfile(Long userId, String bio, String avatarUrl, String bannerUrl) {
-    return delegate.updateProfile(userId, bio, avatarUrl, bannerUrl);
+  public User updateProfile(
+      Long userId, String username, String bio, String avatarUrl, String bannerUrl) {
+    return delegate.updateProfile(userId, username, bio, avatarUrl, bannerUrl);
   }
 
   @Override

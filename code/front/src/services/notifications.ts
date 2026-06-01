@@ -1,64 +1,33 @@
-import { getAccessToken } from "@/services/auth";
+import { requiredBearerHeaders } from "@/lib/api-headers";
+import { normalizeEntityId } from "@/utils/notifications";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export type NotificationType =
-  | "USER_FOLLOW_REQUESTED"
-  | "USER_FOLLOWED"
-  | "COMMENT_REPLIED"
-  | "REVIEW_LIKED";
-
-export interface NotificationSummary {
-  id: string;
-  type: NotificationType;
-  actorId: number;
-  actorUsername: string;
-  actorAvatarUrl: string | null;
-  entityId: number | null;
-  read: boolean;
-  createdAt: string;
-}
+import type { NotificationType, NotificationSummary } from "@/types/api";
 
 type NotificationApiResponse = {
   id: string;
   type: NotificationType;
-  actorId: number;
-  actorUsername: string;
+  actorId?: number | null;
+  actorUsername?: string | null;
   actorAvatarUrl?: string | null;
   entityId?: number | string | null;
+  communityId?: number | string | null;
   read: boolean;
   createdAt: string;
 };
 
-function bearerHeaders(token?: string | null): HeadersInit {
-  const resolved = token ?? getAccessToken();
 
-  if (!resolved) {
-    throw new Error("missing_access_token");
-  }
-
-  return {
-    Authorization: `Bearer ${resolved}`,
-  };
-}
-
-function normalizeEntityId(value: number | string | null | undefined): number | null {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 function mapNotification(item: NotificationApiResponse): NotificationSummary {
   return {
     id: item.id,
     type: item.type,
-    actorId: item.actorId,
-    actorUsername: item.actorUsername,
+    actorId: item.actorId ?? null,
+    actorUsername: item.actorUsername ?? null,
     actorAvatarUrl: item.actorAvatarUrl ?? null,
     entityId: normalizeEntityId(item.entityId),
+    communityId: normalizeEntityId(item.communityId),
     read: item.read,
     createdAt: item.createdAt,
   };
@@ -66,7 +35,7 @@ function mapNotification(item: NotificationApiResponse): NotificationSummary {
 
 export async function listNotifications(page = 0, size = 20, token?: string | null): Promise<NotificationSummary[]> {
   const response = await fetch(`${API_BASE_URL}/notifications?page=${page}&size=${size}`, {
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -79,7 +48,7 @@ export async function listNotifications(page = 0, size = 20, token?: string | nu
 
 export async function getUnreadNotificationsCount(token?: string | null): Promise<number> {
   const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -93,7 +62,7 @@ export async function getUnreadNotificationsCount(token?: string | null): Promis
 export async function markNotificationAsRead(id: string, token?: string | null): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
     method: "PUT",
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -104,7 +73,7 @@ export async function markNotificationAsRead(id: string, token?: string | null):
 export async function markAllNotificationsAsRead(token?: string | null): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
     method: "PUT",
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {

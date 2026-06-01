@@ -3,18 +3,25 @@ import { ArrowLeft } from "lucide-react";
 export interface BackArrowButtonProps {
   onClick: () => void;
   ariaLabel?: string;
+  label?: string;
   className?: string;
 }
 
-export function BackArrowButton({ onClick, ariaLabel = "Voltar", className }: Readonly<BackArrowButtonProps>) {
+export function BackArrowButton({
+  onClick,
+  ariaLabel = "Voltar",
+  label = "Voltar",
+  className,
+}: Readonly<BackArrowButtonProps>) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--bg-surface)] text-[var(--text-secondary)] transition hover:bg-[var(--bg-soft)] ${className ?? ""}`.trim()}
+      className={`inline-flex items-center gap-2 rounded-[var(--radius-sm)] px-1 py-1 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] ${className ?? ""}`.trim()}
       aria-label={ariaLabel}
     >
-      <ArrowLeft size={18} />
+      <ArrowLeft size={16} />
+      {label ? <span>{label}</span> : null}
     </button>
   );
 }

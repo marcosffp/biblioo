@@ -3,6 +3,7 @@ package com.biblioo.feed.infrastructure.web;
 import com.biblioo.feed.domain.exception.ReviewBusinessException;
 import com.biblioo.feed.domain.model.Review;
 import com.biblioo.feed.domain.port.in.ReviewUseCase;
+import com.biblioo.feed.domain.service.LikeStatusResolver;
 import com.biblioo.feed.infrastructure.dto.like.LikeResponse;
 import com.biblioo.feed.infrastructure.dto.mapper.ReviewMapper;
 import com.biblioo.feed.infrastructure.dto.review.ReviewBasicResponse;
@@ -10,17 +11,14 @@ import com.biblioo.feed.infrastructure.dto.review.ReviewResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import org.apache.tika.Tika;
+import java.util.Set;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -31,47 +29,39 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/feed/reviews")
-@Tag(name = "Reviews", description = "Gerenciamento de avaliações e resenhas de livros no feed")
+@Tag(name = "Reviews", description = "Gerenciamento de avaliações de livros no feed")
 public class ReviewController {
 
   private final ReviewUseCase reviewUseCase;
   private final ReviewMapper reviewMapper;
+  private final LikeStatusResolver likeStatusResolver;
 
-  public ReviewController(ReviewUseCase reviewUseCase, ReviewMapper reviewMapper) {
+  public ReviewController(
+      ReviewUseCase reviewUseCase,
+      ReviewMapper reviewMapper,
+      LikeStatusResolver likeStatusResolver) {
     this.reviewUseCase = reviewUseCase;
     this.reviewMapper = reviewMapper;
+    this.likeStatusResolver = likeStatusResolver;
   }
 
-  @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PostMapping
   @Operation(
       summary = "Cria uma avaliação",
-      description =
-          "Cria uma nova avaliação de um livro, permitindo envio de texto, nota (1-5), até 5 imagens e 1 GIF.")
+      description = "Cria e publica imediatamente uma avaliação de um livro com nota (1-5) e texto opcional.")
   public ResponseEntity<ReviewResponse> createReview(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do livro avaliado", example = "1") @RequestParam("bookId")
           Long bookId,
       @Parameter(description = "Nota dada ao livro (1 a 5)", example = "5") @RequestParam("rating")
           Integer rating,
-      @Parameter(
-              description = "Texto da avaliação/resenha (até 2000 caracteres)",
-              example = "Um livro fantástico!")
+      @Parameter(description = "Texto da avaliação (até 2000 caracteres)")
           @RequestParam(value = "text", required = false)
-          String text,
-      @Parameter(description = "Arquivos de imagens para anexar à avaliação (máx 5)")
-          @RequestPart(value = "images", required = false)
-          List<MultipartFile> images,
-      @Parameter(description = "Arquivo GIF animado para anexar")
-          @RequestPart(value = "gif", required = false)
-          MultipartFile gif) {
-
+          String text) {
     if (rating < 1 || rating > 5) {
       throw new ReviewBusinessException("A avaliação deve ser entre 1 e 5");
     }
@@ -80,26 +70,14 @@ public class ReviewController {
     }
 
     Long userId = Long.parseLong(principal.getUsername());
-
-    String safeText = sanitize(text);
-
-    validateFiles(images, gif);
-
-    List<byte[]> newImages = parseImages(images);
-
-    byte[] gifBytes = parseGif(gif);
-
-    Review result =
-        reviewUseCase.createReview(userId, bookId, rating, safeText, newImages, gifBytes);
-
+    Review result = reviewUseCase.createReview(userId, bookId, rating, sanitize(text));
     return ResponseEntity.status(HttpStatus.CREATED).body(reviewMapper.toResponse(result));
   }
 
-  @PutMapping(value = "/{reviewId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PutMapping("/{reviewId}")
   @Operation(
       summary = "Atualiza uma avaliação",
-      description =
-          "Atualiza nota, texto e/ou anexos de uma avaliação já existente de autoria do usuário.")
+      description = "Atualiza nota e/ou texto de uma avaliação já existente de autoria do usuário.")
   public ResponseEntity<ReviewResponse> updateReview(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId,
@@ -108,22 +86,9 @@ public class ReviewController {
           String text,
       @Parameter(description = "Nova nota aplicada ao livro (1 a 5)", example = "4")
           @RequestParam(value = "rating", required = false)
-          Integer rating,
-      @Parameter(
-              description = "URLs ou referências de imagens a serem deletadas da avaliação atual")
-          @RequestParam(value = "imagesToDeleteUrls", required = false)
-          List<String> imagesToDeleteUrls,
-      @Parameter(description = "Novas imagens para adicionar")
-          @RequestPart(value = "images", required = false)
-          List<MultipartFile> images,
-      @Parameter(description = "Novo GIF para sobrescrever atual (se houver)")
-          @RequestPart(value = "gif", required = false)
-          MultipartFile gif) {
+          Integer rating) {
 
-    if (text == null || text.trim().isEmpty()) {
-      throw new ReviewBusinessException("O texto da avaliação é obrigatório");
-    }
-    if (text.length() > 2000) {
+    if (text != null && text.length() > 2000) {
       throw new ReviewBusinessException("O texto da avaliação não deve exceder 2000 caracteres");
     }
     if (rating != null && (rating < 1 || rating > 5)) {
@@ -131,23 +96,12 @@ public class ReviewController {
     }
 
     Long userId = Long.parseLong(principal.getUsername());
-    String safeText = sanitize(text);
-    validateFiles(images, gif);
-
-    List<byte[]> newImages = parseImages(images);
-    byte[] gifBytes = parseGif(gif);
-
-    Review result =
-        reviewUseCase.updateReview(
-            userId, reviewId, rating, safeText, newImages, imagesToDeleteUrls, gifBytes);
+    Review result = reviewUseCase.updateReview(userId, reviewId, rating, sanitize(text));
     return ResponseEntity.ok(reviewMapper.toResponse(result));
   }
 
   @DeleteMapping("/{reviewId}")
-  @Operation(
-      summary = "Apaga uma avaliação",
-      description =
-          "Exclui uma avaliação feita pelo usuário e seus arquivos associados, se houver.")
+  @Operation(summary = "Apaga uma avaliação")
   public ResponseEntity<Void> deleteReview(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
@@ -158,135 +112,64 @@ public class ReviewController {
   }
 
   @GetMapping("/{reviewId}")
-  @Operation(
-      summary = "Obtém uma avaliação por ID de forma completa",
-      description = "Retorna os detalhes completos de uma avaliação específica.")
+  @Operation(summary = "Obtém uma avaliação por ID")
   public ResponseEntity<ReviewResponse> getReview(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
 
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     Review review = reviewUseCase.getReviewById(reviewId);
-    return ResponseEntity.ok(reviewMapper.toResponse(review));
+    return ResponseEntity.ok(
+        reviewMapper.toResponse(review).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, reviewId)));
   }
 
   @GetMapping("/{reviewId}/basic")
-  @Operation(
-      summary = "Obtém informações principais de uma avaliação",
-      description = "Retorna as informações resumidas de uma avaliação específica.")
+  @Operation(summary = "Obtém informações resumidas de uma avaliação")
   public ResponseEntity<ReviewBasicResponse> getReviewBasic(
       @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
 
-    Review review = reviewUseCase.getReviewById(reviewId);
-    return ResponseEntity.ok(reviewMapper.toBasicResponse(review));
+    return ResponseEntity.ok(reviewMapper.toBasicResponse(reviewUseCase.getReviewById(reviewId)));
   }
 
   @GetMapping("/user/{userId}")
-  @Operation(
-      summary = "Lista avaliações de um usuário de forma completa",
-      description = "Retorna as avaliações recentes de um usuário específico, com todos os detalhes.")
+  @Operation(summary = "Lista avaliações de um usuário")
   public ResponseEntity<Page<ReviewResponse>> getUserReviews(
+      @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
       @PageableDefault(size = 10) Pageable pageable) {
 
+    Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     Page<Review> reviews = reviewUseCase.getRecentReviewsByUserId(userId, pageable);
-    return ResponseEntity.ok(reviews.map(reviewMapper::toResponse));
+    List<Long> ids = reviews.getContent().stream().map(Review::getId).toList();
+    Set<Long> likedIds = likeStatusResolver.resolve(viewerId, ids);
+    return ResponseEntity.ok(
+        reviews.map(r -> reviewMapper.toResponse(r).copyWithLikeStatus(likedIds.contains(r.getId()))));
   }
 
   @GetMapping("/user/{userId}/basic")
-  @Operation(
-      summary = "Lista avaliações de um usuário de forma resumida",
-      description = "Retorna as informações básicas das avaliações recentes de um usuário específico.")
+  @Operation(summary = "Lista avaliações resumidas de um usuário")
   public ResponseEntity<Page<ReviewBasicResponse>> getUserReviewsBasic(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId,
       @PageableDefault(size = 10) Pageable pageable) {
 
-    Page<Review> reviews = reviewUseCase.getRecentReviewsByUserId(userId, pageable);
-    return ResponseEntity.ok(reviews.map(reviewMapper::toBasicResponse));
+    return ResponseEntity.ok(
+        reviewUseCase.getRecentReviewsByUserId(userId, pageable).map(reviewMapper::toBasicResponse));
   }
 
   @PostMapping("/{reviewId}/like")
   @Operation(
       summary = "Curtir ou remover curtida da avaliação",
-      description =
-          "Adiciona uma curtida na avaliação do livro, caso não curtido; remove a curtida se já curtido."
-              + " Retorna o estado atual da curtida do usuário após a operação.")
+      description = "Adiciona uma curtida se ainda não curtida; remove se já curtida.")
   public ResponseEntity<LikeResponse> likeReview(
       @AuthenticationPrincipal UserDetails principal,
-      @Parameter(description = "ID da avaliação a curtir/descurtir", example = "1") @PathVariable
-          Long reviewId) {
+      @Parameter(description = "ID da avaliação", example = "1") @PathVariable Long reviewId) {
 
     Long userId = Long.parseLong(principal.getUsername());
-    boolean liked = reviewUseCase.likeReview(userId, reviewId);
-    return ResponseEntity.ok(new LikeResponse(liked));
+    return ResponseEntity.ok(new LikeResponse(reviewUseCase.likeReview(userId, reviewId)));
   }
 
   private String sanitize(String html) {
     if (html == null) return null;
     return Jsoup.clean(html, Safelist.none());
-  }
-
-  private void validateFiles(List<MultipartFile> images, MultipartFile gif) {
-    if (images != null) {
-      if (images.size() > 5) {
-        throw new ReviewBusinessException("Máximo 5 imagens permitidas");
-      }
-      images.forEach(this::validateImageFile);
-    }
-    if (gif != null) {
-      if (gif.getSize() > 10 * 1024 * 1024) { // 10MB
-        throw new ReviewBusinessException("O limite de tamanho do GIF foi excedido");
-      }
-      try {
-        Tika tika = new Tika();
-        String detectedType = tika.detect(gif.getInputStream());
-        if (!"image/gif".equals(detectedType)) {
-          throw new ReviewBusinessException("O GIF deve ser do tipo image/gif validado");
-        }
-      } catch (IOException e) {
-        throw new ReviewBusinessException("Erro ao processar o arquivo GIF");
-      }
-    }
-  }
-
-  private void validateImageFile(MultipartFile file) {
-    if (file.getSize() > 5 * 1024 * 1024) { // 5MB limit
-      throw new ReviewBusinessException("O limite de tamanho da imagem foi excedido");
-    }
-    try {
-      Tika tika = new Tika();
-      String detectedType = tika.detect(file.getInputStream());
-      if (!"image/jpeg".equals(detectedType)
-          && !"image/png".equals(detectedType)
-          && !"image/webp".equals(detectedType)) {
-        throw new ReviewBusinessException("A imagem deve ser JPEG, PNG ou WebP validada");
-      }
-    } catch (IOException e) {
-      throw new ReviewBusinessException("Erro ao processar a imagem do upload");
-    }
-  }
-
-  private List<byte[]> parseImages(List<MultipartFile> images) {
-    if (images == null) return new ArrayList<>();
-    return new ArrayList<>(
-        images.stream()
-            .map(
-                img -> {
-                  try {
-                    return img.getBytes();
-                  } catch (IOException e) {
-                    throw new ResponseStatusException(
-                        HttpStatus.INTERNAL_SERVER_ERROR, "Falha ao ler o byte array da imagem.");
-                  }
-                })
-            .toList());
-  }
-
-  private byte[] parseGif(MultipartFile gif) {
-    if (gif == null) return null;
-    try {
-      return gif.getBytes();
-    } catch (IOException e) {
-      throw new ResponseStatusException(
-          HttpStatus.INTERNAL_SERVER_ERROR, "Falha ao ler o byte array do gif.");
-    }
   }
 }

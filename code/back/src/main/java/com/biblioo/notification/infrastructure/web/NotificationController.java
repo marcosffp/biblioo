@@ -87,8 +87,7 @@ public class NotificationController {
       @AuthenticationPrincipal UserDetails principal) {
     Long userId = currentUserId(principal);
     if (!deviceTokenRepo.existsByUserIdAndToken(userId, request.token())) {
-      deviceTokenRepo.save(
-          DeviceToken.builder().userId(userId).token(request.token()).build());
+      deviceTokenRepo.save(DeviceToken.builder().userId(userId).token(request.token()).build());
     }
     return ResponseEntity.noContent().build();
   }

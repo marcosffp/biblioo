@@ -1,5 +1,44 @@
 export type ReadingStatus = "todos" | "lendo" | "quero-ler" | "lido" | "relendo" | "abandonei";
 
+export type BackendStatusKey = "READING" | "REREADING" | "COMPLETED" | "ABANDONED" | "WANT_TO_READ";
+
+export function mapBackendReadingStatus(status: string): Exclude<ReadingStatus, "todos"> {
+  switch (status) {
+    case "READING":
+      return "lendo";
+    case "REREADING":
+      return "relendo";
+    case "COMPLETED":
+      return "lido";
+    case "ABANDONED":
+      return "abandonei";
+    case "WANT_TO_READ":
+    default:
+      return "quero-ler";
+  }
+}
+
+export function mapFrontendReadingStatus(status: Exclude<ReadingStatus, "todos">): BackendStatusKey {
+  switch (status) {
+    case "lendo":
+      return "READING";
+    case "relendo":
+      return "REREADING";
+    case "lido":
+      return "COMPLETED";
+    case "abandonei":
+      return "ABANDONED";
+    case "quero-ler":
+    default:
+      return "WANT_TO_READ";
+  }
+}
+
+export function isDuplicateReviewError(message: string): boolean {
+  const normalized = message.toLowerCase();
+  return normalized.includes("ja fez uma review") || normalized.includes("já fez uma review");
+}
+
 export interface RuleBook {
   id: string;
   title: string;

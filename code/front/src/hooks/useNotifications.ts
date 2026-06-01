@@ -5,40 +5,34 @@ import {
   listNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-  type NotificationSummary,
-  type NotificationType,
 } from "@/services/notifications";
+import type { NotificationSummary, NotificationType } from "@/types/api";
+import { normalizeEntityId } from "@/utils/notifications";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 const SSE_EVENT_NAME = "notification";
 
 type RealtimeNotificationPayload = {
   id: string;
   type: NotificationType;
-  actorId: number;
-  actorUsername: string;
+  actorId?: number | null;
+  actorUsername?: string | null;
   actorAvatarUrl?: string | null;
   entityId?: number | string | null;
+  communityId?: number | string | null;
   createdAt: string;
 };
 
-function normalizeEntityId(value: number | string | null | undefined): number | null {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 function fromRealtimePayload(payload: RealtimeNotificationPayload): NotificationSummary {
   return {
     id: payload.id,
     type: payload.type,
-    actorId: payload.actorId,
-    actorUsername: payload.actorUsername,
+    actorId: payload.actorId ?? null,
+    actorUsername: payload.actorUsername ?? null,
     actorAvatarUrl: payload.actorAvatarUrl ?? null,
     entityId: normalizeEntityId(payload.entityId),
+    communityId: normalizeEntityId(payload.communityId),
     read: false,
     createdAt: payload.createdAt,
   };

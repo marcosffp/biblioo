@@ -17,13 +17,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Slf4j
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class BookEnrichService {
 
@@ -31,14 +33,25 @@ public class BookEnrichService {
   private final CategoryRepository categoryRepository;
   private final OpenSearchBookAdapter search;
   private final GoogleBooksAdapter external;
+
   @Qualifier("bookEnrichExecutor")
   private final Executor bookEnrichExecutor;
 
   public List<Book> enrichSync(String query) {
     var externalBooks = external.search(query);
-    if (externalBooks.isEmpty()) return List.of();
+    if (externalBooks.isEmpty()) return new ArrayList<>();
     var saved = persistNewBooks(externalBooks);
-    return saved.isEmpty() ? externalBooks : saved;
+    if (!saved.isEmpty()) return new ArrayList<>(saved);
+
+    var isbns = externalBooks.stream()
+        .map(Book::getIsbn)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+    if (!isbns.isEmpty()) {
+      List<Book> fromDb = repository.findByIsbnIn(isbns);
+      if (!fromDb.isEmpty()) return new ArrayList<>(fromDb);
+    }
+    return new ArrayList<>(externalBooks);
   }
 
   @Async("bookEnrichExecutor")
@@ -47,8 +60,7 @@ public class BookEnrichService {
       var externalBooks = external.search(query);
       persistNewBooks(externalBooks);
     } catch (Exception e) {
-      log.debug(
-          "Enriquecimento assíncrono falhou para query='{}'. Causa: {}", query, e.getMessage());
+      log.warn("Enriquecimento assíncrono falhou para query='" + query + "'. Causa: " + e.getMessage());
     }
     return CompletableFuture.completedFuture(null);
   }
@@ -58,9 +70,20 @@ public class BookEnrichService {
     var newBooks = filterExisting(books);
     if (newBooks.isEmpty()) return List.of();
     resolveCategories(newBooks);
-    var saved = repository.saveAll(newBooks);
-    CompletableFuture.runAsync(() -> search.indexAll(saved), bookEnrichExecutor);
-    return saved;
+    try {
+      var saved = repository.saveAll(newBooks);
+      saved.forEach(
+          b -> {
+            if (b.getAuthors() != null) {
+              b.setAuthors(new ArrayList<>(b.getAuthors()));
+            }
+          });
+      CompletableFuture.runAsync(() -> search.indexAll(saved), bookEnrichExecutor);
+      return saved;
+    } catch (DataIntegrityViolationException e) {
+      log.warn("Inserção concorrente detectada. Livros já foram salvos por outra thread. Causa: {}", e.getMessage());
+      return List.of();
+    }
   }
 
   private void resolveCategories(List<Book> books) {

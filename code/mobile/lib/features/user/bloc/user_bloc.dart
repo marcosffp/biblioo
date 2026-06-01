@@ -1,4 +1,5 @@
 import 'package:biblioo/features/user/data/user_repository.dart';
+import 'package:biblioo/features/user/domain/user.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'user_event.dart';
 import 'user_state.dart';
@@ -41,6 +42,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     emit(UserLoading());
     try {
       var user = await _repository.updateProfile(
+        username: e.username,
         bio: e.bio,
         avatarUrl: e.avatarUrl,
         bannerUrl: e.bannerUrl,
@@ -79,10 +81,10 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
   Future<void> _onFollow(FollowUser e, Emitter<UserState> emit) async {
     try {
-      await _repository.follow(e.username);
+      final status = await _repository.follow(e.username);
       final current = state;
       if (current is UserLoaded && current.user.username == e.username) {
-        emit(UserLoaded(current.user.copyWith(isFollowing: true)));
+        emit(UserLoaded(current.user.copyWith(followStatus: status)));
       }
     } on Exception catch (e) {
       emit(UserError(e.toString()));
@@ -94,7 +96,11 @@ class UserBloc extends Bloc<UserEvent, UserState> {
       await _repository.unfollow(e.username);
       final current = state;
       if (current is UserLoaded && current.user.username == e.username) {
-        emit(UserLoaded(current.user.copyWith(isFollowing: false)));
+        emit(
+          UserLoaded(
+            current.user.copyWith(followStatus: UserFollowStatus.none),
+          ),
+        );
       }
     } on Exception catch (e) {
       emit(UserError(e.toString()));

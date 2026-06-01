@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { ChevronDown, Minus, Plus, Users } from "lucide-react";
-import { BackHeader, RatingStars, TopHeader } from "@/components";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { ChevronDown, Minus, Plus, Rss, Trash2 } from "lucide-react";
+import { BackHeader, BookCoverPlaceholder, RatingStars, TopHeader } from "@/components";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
 import type { ReadingStatus } from "@/utils/bookcase-filters";
 
@@ -12,12 +13,14 @@ interface ShelfBookDetailsPanelProps {
   onStepPage: (delta: number) => void;
   onSetPage?: (page: number) => void;
   onRemoveFromShelf: () => void;
+  canRemove?: boolean;
   reviewRating: number;
   reviewComment: string;
   reviewExists: boolean;
   onChangeReviewRating: (rating: number) => void;
   onChangeReviewComment: (value: string) => void;
   onSaveReview: () => void;
+  reviewSuccessMessage: string;
   reviewError: string;
   isSavingReview: boolean;
   isLoadingReview?: boolean;
@@ -26,17 +29,19 @@ interface ShelfBookDetailsPanelProps {
   errorMessage: string;
 }
 
-interface ReviewSectionProps {
+interface ReviewFormProps {
   reviewRating: number;
   reviewComment: string;
   reviewExists: boolean;
   onChangeReviewRating: (rating: number) => void;
   onChangeReviewComment: (value: string) => void;
   onSaveReview: () => void;
+  reviewSuccessMessage: string;
   reviewError: string;
   isSavingReview: boolean;
   isLoadingReview: boolean;
 }
+
 
 const statusOptions: Array<{
   value: Exclude<ReadingStatus, "todos">;
@@ -112,65 +117,70 @@ function buildCollapsedSynopsis(text: string): string {
   return `${byChars}...`;
 }
 
-function ReviewSection({
+function ReviewForm({
   reviewRating,
   reviewComment,
   reviewExists,
   onChangeReviewRating,
   onChangeReviewComment,
   onSaveReview,
+  reviewSuccessMessage,
   reviewError,
   isSavingReview,
-  isLoadingReview = false,
-}: Readonly<ReviewSectionProps>) {
-  let saveReviewLabel = "Salvar avaliação";
-  if (reviewExists) {
-    saveReviewLabel = "Atualizar avaliação";
-  }
-  if (isSavingReview) {
-    saveReviewLabel = "Salvando...";
+  isLoadingReview,
+}: Readonly<ReviewFormProps>) {
+  const saveLabel = isSavingReview ? "Salvando..." : reviewExists ? "Atualizar avaliação" : "Publicar avaliação";
+
+  if (isLoadingReview) {
+    return <p className="mt-2 text-sm text-[var(--text-secondary)]">Carregando sua avaliação...</p>;
   }
 
   return (
-    <section className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
-      <h3 className="text-xl font-semibold text-[var(--text-primary)]">Sua avaliação</h3>
+    <>
+      <div className="mb-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+        <Rss size={15} className="mt-0.5 flex-shrink-0 text-emerald-600" />
+        <p className="text-xs text-emerald-700">
+          <strong>Publicada automaticamente no feed</strong> — seus seguidores verão esta avaliação.
+        </p>
+      </div>
 
-      {isLoadingReview ? (
-        <p className="mt-2 text-sm text-[var(--text-secondary)]">Carregando sua avaliação...</p>
-      ) : (
-        <>
-          <fieldset className="mt-3 flex items-center" aria-label="Selecionar nota de 1 a 5 estrelas">
-            <RatingStars value={reviewRating} size={28} onChange={onChangeReviewRating} />
-          </fieldset>
+      <fieldset className="mb-3 flex items-center" aria-label="Selecionar nota de 1 a 5 estrelas">
+        <RatingStars value={reviewRating} size={28} onChange={onChangeReviewRating} />
+      </fieldset>
 
-          <p className="mt-2 text-sm text-[var(--text-secondary)]">Comentário (opcional)</p>
-          <textarea
-            value={reviewComment}
-            onChange={(event) => onChangeReviewComment(event.target.value)}
-            maxLength={2000}
-            rows={4}
-            placeholder="Escreva sua opinião sobre o livro..."
-            className="mt-2 w-full rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-500)]"
-          />
+      <p className="text-sm text-[var(--text-secondary)]">Comentário (opcional)</p>
+      <textarea
+        value={reviewComment}
+        onChange={(event) => onChangeReviewComment(event.target.value)}
+        maxLength={2000}
+        rows={4}
+        placeholder="Escreva sua opinião sobre o livro..."
+        className="mt-1 w-full rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-white px-3 py-2 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-500)]"
+      />
+      <p className="mt-1 text-right text-xs text-[var(--text-secondary)]">{reviewComment.length}/2000 caracteres</p>
 
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="text-xs text-[var(--text-secondary)]">{reviewComment.length}/2000 caracteres</p>
-            <button
-              type="button"
-              onClick={onSaveReview}
-              disabled={isSavingReview}
-              className="rounded-[var(--radius-md)] bg-[var(--brand-500)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-600)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saveReviewLabel}
-            </button>
-          </div>
+      {reviewError ? <p className="mt-2 text-sm text-red-600">{reviewError}</p> : null}
 
-          {reviewError ? <p className="mt-3 text-sm text-red-600">{reviewError}</p> : null}
-        </>
-      )}
-    </section>
+      {reviewSuccessMessage ? (
+        <p className="mt-2 rounded-[var(--radius-md)] border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+          {reviewSuccessMessage}
+        </p>
+      ) : null}
+
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={onSaveReview}
+          disabled={isSavingReview}
+          className="rounded-[var(--radius-md)] bg-[var(--brand-500)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-600)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {saveLabel}
+        </button>
+      </div>
+    </>
   );
 }
+
 
 export function ShelfBookDetailsPanel({
   isOpen,
@@ -178,13 +188,16 @@ export function ShelfBookDetailsPanel({
   onClose,
   onSelectStatus,
   onStepPage,
+  onSetPage,
   onRemoveFromShelf,
+  canRemove = true,
   reviewRating,
   reviewComment,
   reviewExists,
   onChangeReviewRating,
   onChangeReviewComment,
   onSaveReview,
+  reviewSuccessMessage,
   reviewError,
   isSavingReview,
   isLoadingReview,
@@ -194,6 +207,8 @@ export function ShelfBookDetailsPanel({
 }: Readonly<ShelfBookDetailsPanelProps>) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [isSynopsisExpanded, setIsSynopsisExpanded] = useState(false);
+  const [pageDraft, setPageDraft] = useState("0");
+  const [isReviewExpanded, setIsReviewExpanded] = useState(false);
 
   const progressPercent = useMemo(() => {
     if (!book) {
@@ -211,26 +226,55 @@ export function ShelfBookDetailsPanel({
     return 0;
   }, [book]);
 
+  const currentPage = book?.currentPage ?? 0;
+  const totalPages = book?.totalPages ?? 0;
+
+  useEffect(() => {
+    setPageDraft(String(currentPage));
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (reviewSuccessMessage) {
+      const timer = setTimeout(() => setIsReviewExpanded(false), 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [reviewSuccessMessage]);
+
   if (!isOpen || !book) {
     return null;
   }
 
   const activeStatus =
     statusOptions.find((statusOption) => statusOption.value === book.readingStatus) ?? statusOptions[0];
-  const currentPage = book.currentPage ?? 0;
-  const totalPages = book.totalPages ?? 0;
   const canDecreasePage = !isSaving && currentPage > 0;
   const canIncreasePage = !isSaving && (totalPages <= 0 || currentPage < totalPages);
   const publicRatingValue = typeof book.rating === "number" ? book.rating.toFixed(1) : "--";
-  const readCount = book.readerCount ?? (totalPages > 0 && currentPage >= totalPages ? 1 : 0);
-  const readingCount = currentPage > 0 && (totalPages <= 0 || currentPage < totalPages) ? 1 : 0;
-  const wantedCount = book.readingStatus === "quero-ler" ? 1 : 0;
-  const abandonedCount = book.readingStatus === "abandonei" ? 1 : 0;
-  const reviewCount = reviewExists ? 1 : 0;
+  const readCount = book.readerCount ?? 0;
   const synopsisText = (book.synopsis ?? book.description ?? "").trim();
   const collapsedSynopsis = buildCollapsedSynopsis(synopsisText);
   const hasLongSynopsis = synopsisText.length > collapsedSynopsis.length;
   const displayedSynopsis = hasLongSynopsis && !isSynopsisExpanded ? collapsedSynopsis : synopsisText;
+
+  const commitPageDraft = () => {
+    const normalizedDraft = pageDraft.trim();
+    if (!normalizedDraft) {
+      setPageDraft(String(currentPage));
+      return;
+    }
+
+    const parsedPage = Number(normalizedDraft);
+    if (!Number.isInteger(parsedPage) || parsedPage < 0) {
+      setPageDraft(String(currentPage));
+      return;
+    }
+
+    const nextPage = totalPages > 0 ? Math.min(parsedPage, totalPages) : parsedPage;
+    setPageDraft(String(nextPage));
+
+    if (nextPage !== currentPage) {
+      onSetPage?.(nextPage);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-white">
@@ -242,10 +286,21 @@ export function ShelfBookDetailsPanel({
           <BackHeader
             onBack={onClose}
             ariaLabel="Voltar para estante"
-            title="Detalhes do livro"
+            backLabel="Voltar para estante"
             className="items-center"
             titleClassName="text-sm font-semibold text-[var(--text-secondary)]"
           />
+          {canRemove ? (
+            <button
+              type="button"
+              onClick={onRemoveFromShelf}
+              disabled={isRemovingFromShelf}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--danger-200)] px-3 py-1.5 text-sm font-medium text-[var(--danger-600)] transition hover:bg-[var(--danger-50)] hover:text-[var(--danger-700)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger-300)] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Trash2 size={14} />
+              {isRemovingFromShelf ? "Removendo..." : "Remover da estante"}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -254,15 +309,19 @@ export function ShelfBookDetailsPanel({
           <div className="grid gap-6 md:grid-cols-[250px_1fr] md:items-start">
             <div>
               {book.coverUrl ? (
-                <img
+                <Image
                   src={book.coverUrl}
                   alt={`Capa de ${book.title}`}
+                  width={208}
+                  height={288}
                   className="h-72 w-52 rounded-[14px] object-cover"
                 />
               ) : (
-                <div className="flex h-72 w-52 items-center justify-center rounded-[14px] bg-[var(--bg-soft)] text-sm font-medium text-[var(--brand-600)]">
-                  Capa do Livro
-                </div>
+                <BookCoverPlaceholder
+                  title={book.title}
+                  author={book.author}
+                  className="h-72 w-52 rounded-[14px]"
+                />
               )}
 
               <div className="mt-4 space-y-2 text-sm text-[var(--text-secondary)]">
@@ -282,7 +341,6 @@ export function ShelfBookDetailsPanel({
                   <span>{activeStatus.label}</span>
                   <ChevronDown size={16} />
                 </button>
-
               </div>
 
               {isStatusOpen ? (
@@ -311,14 +369,13 @@ export function ShelfBookDetailsPanel({
                   })}
                 </div>
               ) : null}
-
             </div>
 
             <div>
               <h2 className="text-4xl font-semibold tracking-tight text-[var(--text-primary)]">{book.title}</h2>
               <p className="mt-1 text-3xl text-[var(--text-primary)]">{book.author}</p>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+              <div className="mt-5 flex flex-wrap gap-3">
                 <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
                   <div className="inline-flex rounded-md bg-[#02a362] px-2 py-1 text-2xl font-bold leading-none text-white">
                     {publicRatingValue}
@@ -331,26 +388,6 @@ export function ShelfBookDetailsPanel({
                 <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
                   <p className="text-base text-[var(--text-primary)]">Leram</p>
                   <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{readCount}</p>
-                </article>
-
-                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
-                  <p className="text-base text-[var(--text-primary)]">Lendo</p>
-                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{readingCount}</p>
-                </article>
-
-                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
-                  <p className="text-base text-[var(--text-primary)]">Querem</p>
-                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{wantedCount}</p>
-                </article>
-
-                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
-                  <p className="text-base text-[var(--text-primary)]">Abandonos</p>
-                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{abandonedCount}</p>
-                </article>
-
-                <article className="rounded-3xl bg-[var(--bg-soft)] p-4">
-                  <p className="text-base text-[var(--text-primary)]">Resenhas</p>
-                  <p className="mt-2 text-4xl font-semibold text-[var(--brand-500)]">{reviewCount}</p>
                 </article>
               </div>
 
@@ -397,7 +434,25 @@ export function ShelfBookDetailsPanel({
               >
                 <Minus size={16} />
               </button>
-              <span className="min-w-8 text-center text-xl font-semibold">{currentPage}</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={pageDraft}
+                onChange={(event) => setPageDraft(event.target.value)}
+                onBlur={commitPageDraft}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  commitPageDraft();
+                }}
+                disabled={isSaving}
+                className="h-8 w-20 rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-white px-2 text-center text-base font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--brand-500)] disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Digitar página atual"
+              />
               <button
                 type="button"
                 onClick={() => onStepPage(1)}
@@ -414,48 +469,51 @@ export function ShelfBookDetailsPanel({
           {errorMessage ? <p className="mt-4 text-sm text-red-600">{errorMessage}</p> : null}
         </section>
 
-        <ReviewSection
-          reviewRating={reviewRating}
-          reviewComment={reviewComment}
-          reviewExists={reviewExists}
-          onChangeReviewRating={onChangeReviewRating}
-          onChangeReviewComment={onChangeReviewComment}
-          onSaveReview={onSaveReview}
-          reviewError={reviewError}
-          isSavingReview={isSavingReview}
-          isLoadingReview={isLoadingReview ?? false}
-        />
-
-        <section className="mt-4 rounded-3xl bg-[var(--bg-soft)] p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-[var(--brand-600)]">
-                <Users size={18} />
-              </span>
-              <div>
-                <h3 className="text-xl font-semibold text-[var(--text-primary)]">Comunidade do Livro</h3>
-                <p className="text-sm text-[var(--text-secondary)]">Leitores discutindo este titulo</p>
-              </div>
+        <section className="mt-4 rounded-[var(--radius-xl)] border border-[var(--border-soft)] bg-[var(--bg-surface)] p-4 shadow-[var(--shadow-soft)] sm:p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold text-[var(--text-primary)]">Sua avaliação</h3>
+              {!isReviewExpanded && reviewExists && reviewRating > 0 ? (
+                <div className="mt-1 flex items-center gap-3">
+                  <RatingStars value={reviewRating} size={20} />
+                  {reviewComment.trim() ? (
+                    <p className="line-clamp-1 text-sm text-[var(--text-secondary)]">
+                      {reviewComment.trim()}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              {!isReviewExpanded && !reviewExists ? (
+                <p className="mt-1 text-sm text-[var(--text-secondary)]">Nenhuma avaliação ainda.</p>
+              ) : null}
             </div>
             <button
               type="button"
-              className="rounded-full border border-[var(--border-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-white"
+              onClick={() => setIsReviewExpanded((v) => !v)}
+              className="flex-shrink-0 rounded-[var(--radius-md)] border border-[var(--border-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--bg-soft)]"
             >
-              Participar
+              {isReviewExpanded ? "Cancelar" : reviewExists ? "Editar avaliação" : "Avaliar"}
             </button>
           </div>
+
+          {isReviewExpanded ? (
+            <div className="mt-4 border-t border-[var(--border-soft)] pt-4">
+              <ReviewForm
+                reviewRating={reviewRating}
+                reviewComment={reviewComment}
+                reviewExists={reviewExists}
+                onChangeReviewRating={onChangeReviewRating}
+                onChangeReviewComment={onChangeReviewComment}
+                onSaveReview={onSaveReview}
+                reviewSuccessMessage={reviewSuccessMessage}
+                reviewError={reviewError}
+                isSavingReview={isSavingReview}
+                isLoadingReview={isLoadingReview ?? false}
+              />
+            </div>
+          ) : null}
         </section>
 
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={onRemoveFromShelf}
-            disabled={isRemovingFromShelf}
-            className="rounded-[var(--radius-md)] bg-[var(--danger-500)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--danger-600)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isRemovingFromShelf ? "Removendo..." : "Remover da estante"}
-          </button>
-        </div>
       </div>
     </div>
   );

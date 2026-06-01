@@ -4,6 +4,7 @@ import 'package:biblioo/features/shelf/domain/reading_status.dart';
 import 'package:biblioo/features/shelf/domain/shelf_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 /// Card de item na estante — exibe capa, título, status e barra de progresso.
 /// Segue wireframe: ícone de placeholdercapa + título + autor + barra de progresso %.
@@ -24,11 +25,16 @@ class ShelfItemCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: InkWell(
+        onTap: () => context.push(
+          '/book/${item.bookId}',
+          extra: {'shelfId': shelfId, 'item': item},
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // ── Capa do livro ──
             _buildCover(theme),
             const SizedBox(width: 12),
@@ -52,9 +58,12 @@ class ShelfItemCard extends StatelessWidget {
                   _buildStatusChip(theme),
                   const SizedBox(height: 8),
 
-                  // ── Barra de progresso (se ativo) ──
-                  if (item.isActiveReading) ...[
+                  // ── Progresso de leitura ──
+                  if (item.isActiveReading || item.status == ReadingStatus.completed) ...[
                     _buildProgressBar(theme),
+                    const SizedBox(height: 4),
+                  ] else if (item.totalPages != null && item.totalPages! > 0) ...[
+                    _buildPageCountOnly(theme),
                     const SizedBox(height: 4),
                   ],
                 ],
@@ -103,7 +112,8 @@ class ShelfItemCard extends StatelessWidget {
                 ),
               ],
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -161,31 +171,54 @@ class ShelfItemCard extends StatelessWidget {
 
   Widget _buildProgressBar(ThemeData theme) {
     final percent = (item.progressPercent ?? 0) / 100.0;
+    final color = item.status == ReadingStatus.completed
+        ? const Color(0xFF2E7D32)
+        : theme.colorScheme.primary;
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percent.clamp(0.0, 1.0),
-              minHeight: 6,
-              backgroundColor:
-                  theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: percent.clamp(0.0, 1.0),
+                  minHeight: 5,
+                  backgroundColor:
+                      theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+            Text(
+              '${item.progressPercent ?? 0}%',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
+        const SizedBox(height: 2),
         Text(
-          '${item.progressPercent ?? 0}%',
+          'p. ${item.currentPage ?? 0} / ${item.totalPages ?? 0}',
           style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPageCountOnly(ThemeData theme) {
+    return Text(
+      'p. ${item.currentPage ?? 0} / ${item.totalPages ?? 0}',
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
     );
   }
 

@@ -19,7 +19,7 @@ public class RecommendationEventLog {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "event_id", nullable = false, unique = true, length = 36)
+  @Column(name = "event_id", nullable = false, unique = true, length = 60)
   private String eventId;
 
   @Column(name = "event_type", nullable = false, length = 60)

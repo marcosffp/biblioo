@@ -2,7 +2,6 @@ package com.biblioo.books.infrasestructure.web;
 
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.infrasestructure.dto.book.BookResponse;
-import com.biblioo.books.infrasestructure.dto.book.BookSuggestResponse;
 import com.biblioo.books.infrasestructure.dto.mapper.BookMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,18 +37,6 @@ public class BookController {
 
     return ResponseEntity.ok(
         bookUseCase.search(q.trim()).stream().map(bookMapper::toResponse).toList());
-  }
-
-  @GetMapping("/suggest")
-  @Operation(
-      summary = "Sugestões de livros",
-      description = "Retorna sugestões rápidas enquanto o usuário digita na busca.")
-  public ResponseEntity<List<BookSuggestResponse>> suggest(
-      @Parameter(description = "Prefixo de busca", example = "Har") @RequestParam String q) {
-    if (q.isBlank()) return ResponseEntity.ok(List.of());
-
-    return ResponseEntity.ok(
-        bookUseCase.suggest(q.trim()).stream().map(bookMapper::toSuggestResponse).toList());
   }
 
   @GetMapping("/{id}")

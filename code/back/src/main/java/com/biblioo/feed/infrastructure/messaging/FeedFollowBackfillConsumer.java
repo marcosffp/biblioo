@@ -1,0 +1,48 @@
+package com.biblioo.feed.infrastructure.messaging;
+
+import com.biblioo.feed.domain.service.FeedFanoutService;
+import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
+import com.biblioo.infrastructure.messaging.model.EventMessage;
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class FeedFollowBackfillConsumer {
+
+  private static final String LOG_PREFIX = "[FeedBackfill]";
+
+  private final FeedFanoutService feedFanoutService;
+
+  @RabbitListener(queues = RabbitMQConfig.FEED_BACKFILL_QUEUE)
+  public void handle(EventMessage message) {
+    String eventId = message.getEventId();
+    MDC.put("event_id", eventId);
+    try {
+      if (!RabbitMQConfig.EVENT_USER_FOLLOWED.equals(message.getEventType())) {
+        return;
+      }
+
+      JsonNode payload = message.getPayload();
+      // actorId é o novo seguidor; recipientId é quem foi seguido
+      Long newFollowerId = payload.get("actorId").asLong();
+      Long followedUserId = payload.get("recipientId").asLong();
+
+      log.info("{} Backfill event_id={} follower={} following={}", LOG_PREFIX, eventId, newFollowerId, followedUserId);
+
+      feedFanoutService.processBackfill(newFollowerId, followedUserId);
+
+      log.info("{} Backfill concluído event_id={}", LOG_PREFIX, eventId);
+    } catch (Exception ex) {
+      log.error("{} Falha ao processar backfill event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
+      throw new RuntimeException(ex);
+    } finally {
+      MDC.clear();
+    }
+  }
+}

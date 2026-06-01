@@ -4,9 +4,6 @@ import tailwindcssAnimate from "tailwindcss-animate";
 const config: Config = {
   darkMode: ["class"],
   content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
   ],
   theme: {
@@ -19,7 +16,7 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        display: ["Playfair Display", "Georgia", "serif"],
+        display: ["Space Grotesk", "DM Sans", "system-ui", "sans-serif"],
         body: ["DM Sans", "system-ui", "sans-serif"],
       },
       colors: {

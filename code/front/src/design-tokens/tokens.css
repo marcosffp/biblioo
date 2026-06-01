@@ -1,27 +1,27 @@
 :root {
   /* Core semantic tokens (HSL values only) */
-  --background: 156 53% 97%;
-  --foreground: 174 33% 18%;
+  --background: 160 40% 98%;
+  --foreground: 210 24% 14%;
 
   --card: 0 0% 100%;
-  --card-foreground: 174 33% 18%;
+  --card-foreground: 210 24% 14%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 174 33% 18%;
+  --popover-foreground: 210 24% 14%;
 
-  --primary: 157 50% 67%;
-  --primary-foreground: 174 33% 18%;
-  --primary-light: 158 55% 78%;
-  --primary-dark: 165 53% 49%;
+  --primary: 162 72% 45%;
+  --primary-foreground: 0 0% 100%;
+  --primary-light: 162 72% 60%;
+  --primary-dark: 162 70% 38%;
 
-  --secondary: 150 100% 98%;
-  --secondary-foreground: 174 33% 18%;
+  --secondary: 162 42% 96%;
+  --secondary-foreground: 210 24% 14%;
 
-  --muted: 156 20% 94%;
-  --muted-foreground: 168 14% 43%;
+  --muted: 160 24% 94%;
+  --muted-foreground: 210 12% 40%;
 
-  --accent: 158 55% 78%;
-  --accent-foreground: 174 33% 18%;
+  --accent: 168 72% 62%;
+  --accent-foreground: 210 24% 14%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
@@ -30,29 +30,29 @@
   --input: 160 20% 88%;
   --ring: 157 50% 67%;
 
-  --premium: 43 70% 69%;
-  --premium-foreground: 174 33% 18%;
+  --premium: 42 85% 62%;
+  --premium-foreground: 210 24% 14%;
 
-  --deep-green: 174 33% 18%;
-  --medium-text: 168 14% 43%;
-  --light-text: 166 12% 67%;
+  --deep-green: 176 40% 18%;
+  --medium-text: 210 12% 40%;
+  --light-text: 210 10% 65%;
 
   /* Legacy aliases used in existing components */
-  --bg-canvas: #f2fbf8;
+  --bg-canvas: #f4fbf9;
   --bg-surface: #ffffff;
-  --bg-soft: #f5fffb;
-  --brand-100: #a8e6cf;
-  --brand-500: #7ed9b6;
-  --brand-600: #3bbe9e;
-  --danger-500: #d95b5b;
-  --danger-600: #c74d4d;
-  --text-primary: #1f3d3a;
-  --text-secondary: #5f7d78;
-  --border-soft: hsl(160 20% 90%);
+  --bg-soft: #eefbf7;
+  --brand-100: #c9f4e8;
+  --brand-500: #3fc3a7;
+  --brand-600: #13937a;
+  --danger-500: #e16767;
+  --danger-600: #cc4f4f;
+  --text-primary: #0f2f2c;
+  --text-secondary: #4c6f69;
+  --border-soft: hsl(160 18% 88%);
 
   /* Typography tokens */
   --font-body: "DM Sans", system-ui, sans-serif;
-  --font-heading: "Manrope", system-ui, sans-serif;
+  --font-heading: "Space Grotesk", "DM Sans", system-ui, sans-serif;
 
   /* Spacing tokens */
   --space-1: 4px;
@@ -72,7 +72,7 @@
   --radius-full: 9999px;
 
   /* Elevation tokens */
-  --shadow-soft: 0 10px 24px rgba(31, 61, 58, 0.08);
+  --shadow-soft: 0 16px 36px rgba(15, 47, 44, 0.12);
 
   /* Motion tokens */
   --duration-fast: 120ms;
@@ -80,5 +80,5 @@
   --easing-standard: ease-out;
 
   /* Accessibility token */
-  --focus-ring: 0 0 0 3px rgba(126, 217, 182, 0.35);
+  --focus-ring: 0 0 0 3px rgba(63, 195, 167, 0.35);
 }

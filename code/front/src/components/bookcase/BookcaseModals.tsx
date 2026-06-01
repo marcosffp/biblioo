@@ -1,4 +1,6 @@
-﻿import {
+﻿import { BookOpen, Check, FolderOpen, Search } from "lucide-react";
+import { useState } from "react";
+import {
   BookcaseModal,
   BookDetailsCard,
   Button,
@@ -6,8 +8,125 @@
   ShelfSelectionList,
   TextInput,
 } from "@/components";
-import type { BackendCollectionSummaryResponse, BackendShelfSummaryResponse } from "@/services";
+import type { BackendCollectionSummaryResponse, BackendShelfSummaryResponse } from "@/types/api";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
+
+function ManageCollectionShelvesModal({
+  collectionToManage,
+  availableShelvesForManagedCollection,
+  manageCollectionShelfIds,
+  toggleManageShelfSelection,
+  manageCollectionError,
+  handleSaveCollectionShelves,
+  isSavingCollectionShelves,
+  onClose,
+}: {
+  collectionToManage: BackendCollectionSummaryResponse | null;
+  availableShelvesForManagedCollection: BackendShelfSummaryResponse[];
+  manageCollectionShelfIds: number[];
+  toggleManageShelfSelection: (id: number, checked: boolean) => void;
+  manageCollectionError: string;
+  handleSaveCollectionShelves: () => void;
+  isSavingCollectionShelves: boolean;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState("");
+
+  const filtered = availableShelvesForManagedCollection.filter((s) =>
+    s.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <BookcaseModal title="Gerenciar estantes" onClose={onClose} maxWidthClassName="max-w-md">
+      {/* Collection badge */}
+      <div className="mt-3 flex items-center gap-2 min-w-0">
+        <FolderOpen size={14} className="shrink-0 text-[var(--brand-600)]" />
+        <span className="truncate text-sm font-medium text-[var(--brand-700)]">
+          {collectionToManage?.name ?? ""}
+        </span>
+      </div>
+
+      {/* Search */}
+      <div className="relative mt-4">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
+        <input
+          type="text"
+          placeholder="Pesquisar estante..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-xl border border-[var(--border-soft)] bg-[var(--bg-soft)] py-2 pl-8 pr-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--brand-500)] focus:outline-none"
+        />
+      </div>
+
+      {/* Counter */}
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">
+          Estantes disponíveis
+        </p>
+        {manageCollectionShelfIds.length > 0 && (
+          <span className="rounded-full bg-[var(--brand-600)] px-2 py-0.5 text-xs font-semibold text-white">
+            {manageCollectionShelfIds.length} selecionada{manageCollectionShelfIds.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {/* Shelf list */}
+      <div className="mt-2 max-h-56 space-y-2 overflow-y-auto pr-1">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-[var(--border-soft)] py-8 text-center">
+            <BookOpen size={24} className="text-[var(--text-secondary)] opacity-40" />
+            <p className="text-sm text-[var(--text-secondary)]">
+              {search ? "Nenhuma estante encontrada." : "Nenhuma estante disponível para adicionar."}
+            </p>
+          </div>
+        ) : (
+          filtered.map((shelf) => {
+            const selected = manageCollectionShelfIds.includes(shelf.id);
+            return (
+              <button
+                key={shelf.id}
+                type="button"
+                onClick={() => toggleManageShelfSelection(shelf.id, !selected)}
+                className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-150 ${
+                  selected
+                    ? "border-[var(--brand-500)] bg-[rgba(26,129,98,0.06)]"
+                    : "border-[var(--border-soft)] bg-white hover:border-[var(--brand-300)] hover:bg-[var(--bg-soft)]"
+                }`}
+              >
+                <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors ${
+                  selected ? "border-[var(--brand-600)] bg-[var(--brand-600)]" : "border-[var(--border-soft)]"
+                }`}>
+                  {selected && <Check size={12} strokeWidth={3} className="text-white" />}
+                </div>
+                <BookOpen size={15} className={selected ? "text-[var(--brand-600)]" : "text-[var(--text-secondary)]"} />
+                <span className={`truncate text-sm font-medium ${selected ? "text-[var(--brand-700)]" : "text-[var(--text-primary)]"}`}>
+                  {shelf.name}
+                </span>
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {manageCollectionError ? (
+        <p className="mt-3 text-sm text-red-600">{manageCollectionError}</p>
+      ) : null}
+
+      <div className="mt-5 flex gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 rounded-xl border border-[var(--border-soft)] py-2.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-soft)]"
+        >
+          Cancelar
+        </button>
+        <Button onClick={handleSaveCollectionShelves} disabled={isSavingCollectionShelves} className="flex-1">
+          {isSavingCollectionShelves ? "Salvando..." : "Salvar"}
+        </Button>
+      </div>
+    </BookcaseModal>
+  );
+}
 
 interface BookcaseModalsProps {
   isCreateShelfModalOpen: boolean;
@@ -76,10 +195,8 @@ interface BookcaseModalsProps {
   isBookDetailsOpen: boolean;
   selectedSuggestionBook: ShelfBook | null;
   handleCloseBookDetails: () => void;
-  handleAddSelectedBookToShelf: () => void;
-  selectedShelfIdForSuggestion: number | null;
-  handleSelectShelfForSuggestion: (shelfId: number) => void;
-  isSelectedBookAlreadyInShelf: boolean;
+  handleAddSelectedBookToShelf: (shelfId: number) => void;
+  alreadyInShelfId?: number;
   isAddingToShelf: boolean;
   addToShelfError: string;
 }
@@ -152,9 +269,7 @@ export function BookcaseModals({
   selectedSuggestionBook,
   handleCloseBookDetails,
   handleAddSelectedBookToShelf,
-  selectedShelfIdForSuggestion,
-  handleSelectShelfForSuggestion,
-  isSelectedBookAlreadyInShelf,
+  alreadyInShelfId,
   isAddingToShelf,
   addToShelfError,
 }: Readonly<BookcaseModalsProps>) {
@@ -294,27 +409,16 @@ export function BookcaseModals({
       ) : null}
 
       {isManageCollectionShelvesModalOpen ? (
-        <BookcaseModal title="Adicionar estantes na coleção" onClose={handleCloseManageCollectionShelvesModal}>
-          <p className="mt-3 text-sm text-[var(--text-secondary)]">{collectionToManage?.name ?? ""}</p>
-
-          <div className="mt-3 rounded-xl border border-[var(--border-soft)] p-3">
-            <ShelfSelectionList
-              shelves={availableShelvesForManagedCollection}
-              selectedIds={manageCollectionShelfIds}
-              emptyMessage="Nenhuma estante disponivel para adicionar."
-              className="max-h-44"
-              onToggle={toggleManageShelfSelection}
-            />
-          </div>
-
-          {manageCollectionError ? <p className="mt-3 text-sm text-red-600">{manageCollectionError}</p> : null}
-
-          <div className="mt-4 flex justify-end">
-            <Button onClick={handleSaveCollectionShelves} disabled={isSavingCollectionShelves}>
-              {isSavingCollectionShelves ? "Salvando..." : "Salvar estantes"}
-            </Button>
-          </div>
-        </BookcaseModal>
+        <ManageCollectionShelvesModal
+          collectionToManage={collectionToManage}
+          availableShelvesForManagedCollection={availableShelvesForManagedCollection}
+          manageCollectionShelfIds={manageCollectionShelfIds}
+          toggleManageShelfSelection={toggleManageShelfSelection}
+          manageCollectionError={manageCollectionError}
+          handleSaveCollectionShelves={handleSaveCollectionShelves}
+          isSavingCollectionShelves={isSavingCollectionShelves}
+          onClose={handleCloseManageCollectionShelvesModal}
+        />
       ) : null}
 
       {isAddBookModalOpen ? (
@@ -394,12 +498,13 @@ export function BookcaseModals({
         author={selectedSuggestionBook?.author ?? ""}
         coverUrl={selectedSuggestionBook?.coverUrl}
         synopsis={selectedSuggestionBook?.synopsis}
+        pageCount={selectedSuggestionBook?.totalPages}
+        averageRating={selectedSuggestionBook?.rating}
+        readerCount={selectedSuggestionBook?.readerCount}
         onClose={handleCloseBookDetails}
         onAddToShelf={handleAddSelectedBookToShelf}
         availableShelves={shelves.map((shelf) => ({ id: shelf.id, name: shelf.name }))}
-        selectedShelfId={selectedShelfIdForSuggestion}
-        onSelectShelf={handleSelectShelfForSuggestion}
-        isAlreadyInShelf={isSelectedBookAlreadyInShelf}
+        alreadyInShelfIds={alreadyInShelfId != null ? [alreadyInShelfId] : []}
         isAddingToShelf={isAddingToShelf}
         addToShelfError={addToShelfError}
       />

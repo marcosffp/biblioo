@@ -7,10 +7,13 @@ import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
 import com.biblioo.infrastructure.messaging.model.EventMessage;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class BookStatsConsumer {
@@ -25,18 +28,7 @@ public class BookStatsConsumer {
   @Transactional
   public void handle(EventMessage message) {
     Long bookId = Long.parseLong(message.getAggregateId());
-
-    System.out.println(
-        "Recebido evento book-stats "
-            + message.getEventId()
-            + " ["
-            + message.getEventType()
-            + "] para bookId="
-            + bookId);
-
     if (messageIdempotencyPort.isAlreadyProcessed(message.getEventId())) {
-      System.out.println(
-          "Evento " + message.getEventId() + " já processado — ignorando (guarda de idempotência)");
       return;
     }
 
@@ -46,7 +38,7 @@ public class BookStatsConsumer {
       case RabbitMQConfig.EVENT_BOOK_REVIEW_STATS ->
           updateRatingStats(bookId, message.getPayload());
       default ->
-          System.out.println(
+          log.warn(
               "Tipo de evento desconhecido '"
                   + message.getEventType()
                   + "' para bookId="
@@ -64,7 +56,7 @@ public class BookStatsConsumer {
 
   private void updateRatingStats(Long bookId, JsonNode payload) {
     if (payload == null || (!payload.has("newRating") && !payload.has("oldRating"))) {
-      System.err.println("Payload inválido para atualização de estatísticas. bookId=" + bookId);
+      log.warn("Payload inválido para atualização de estatísticas. bookId={}", bookId);
       return;
     }
 

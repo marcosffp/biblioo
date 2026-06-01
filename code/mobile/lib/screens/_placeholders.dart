@@ -60,15 +60,6 @@ class ReadingProgressScreen extends StatelessWidget {
   );
 }
 
-// ── screens/community/community_list_screen.dart ─────────
-class CommunityListScreen extends StatelessWidget {
-  const CommunityListScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const Scaffold(
-    body: Center(child: Text('Comunidades')),
-  );
-}
-
 // ── screens/community/community_detail_screen.dart ───────
 class CommunityDetailScreen extends StatelessWidget {
   final String communityId;

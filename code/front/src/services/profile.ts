@@ -1,72 +1,19 @@
-import { getAccessToken } from "@/services/auth";
+import { requiredBearerHeaders, jsonBearerHeaders, optionalBearerHeaders } from "@/lib/api-headers";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export type UserProfileResponse = {
-  id: number;
-  username: string;
-  email?: string | null;
-  bio?: string | null;
-  avatarUrl?: string | null;
-  bannerUrl?: string | null;
-  isPrivate: boolean;
-  restricted: boolean;
-  createdAt?: string | null;
-};
-
-export type UserSummaryResponse = {
-  id: number;
-  username: string;
-  avatarUrl?: string | null;
-  bannerUrl?: string | null;
-};
-
-export type FollowPageResponse = {
-  users: UserSummaryResponse[];
-  page: number;
-  size: number;
-  hasMore: boolean;
-};
-
-export type FollowActionResult = "following" | "requested";
-
-export type ReadingStatus = "WANT_TO_READ" | "READING" | "REREADING" | "COMPLETED" | "ABANDONED";
-
-export type ShelfSummaryResponse = {
-  id: number;
-  name: string;
-  description?: string | null;
-  itemCount: number;
-  coverPreview: string[];
-};
-
-export type ShelfItemSummaryResponse = {
-  id: number;
-  bookId: number;
-  bookTitle: string;
-  bookCoverUrl?: string | null;
-  status: ReadingStatus;
-  progressPercent?: number | null;
-};
-
-export type BookResponse = {
-  id: number;
-  title: string;
-  authors: string[];
-  coverUrl?: string | null;
-  pageCount?: number | null;
-  averageRating?: number | null;
-  description?: string | null;
-  synopsis?: string | null;
-  readerCount?: number | null;
-};
-
-export type UserReviewResponse = {
-  id: number;
-  userId: number;
-  bookId: number;
-  rating: number;
-};
+import type {
+  UserProfileResponse,
+  UserSummaryResponse,
+  FollowPageResponse,
+  FollowActionResult,
+  ShelfSummaryResponse,
+  ShelfItemSummaryResponse,
+  BookResponse,
+  UserReviewResponse,
+  DnaResponse,
+  DnaProgressResponse,
+} from "@/types/api";
 
 export type ProfilePreferences = {
   displayName?: string | null;
@@ -82,27 +29,10 @@ const DEFAULT_PROFILE_PREFERENCES: ProfilePreferences = {
   showDnaLiterario: true,
 };
 
-function bearerHeaders(token?: string | null, withJson = false): HeadersInit {
-  const resolved = token ?? getAccessToken();
-
-  if (!resolved) {
-    throw new Error("missing_access_token");
-  }
-
-  return {
-    ...(withJson ? { "Content-Type": "application/json" } : {}),
-    Authorization: `Bearer ${resolved}`,
-  };
-}
-
-function optionalBearerHeaders(token?: string | null): HeadersInit {
-  const resolved = token ?? getAccessToken();
-  return resolved ? { Authorization: `Bearer ${resolved}` } : {};
-}
 
 export async function getMyProfile(token?: string | null): Promise<UserProfileResponse> {
   const response = await fetch(`${API_BASE_URL}/users/me`, {
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -130,7 +60,7 @@ export async function updateMyProfile(
 ): Promise<UserProfileResponse> {
   const response = await fetch(`${API_BASE_URL}/users/me`, {
     method: "PUT",
-    headers: bearerHeaders(token, true),
+    headers: jsonBearerHeaders(token),
     body: JSON.stringify(payload),
   });
 
@@ -144,7 +74,7 @@ export async function updateMyProfile(
 export async function updateMyVisibility(isPrivate: boolean, token?: string | null): Promise<UserProfileResponse> {
   const response = await fetch(`${API_BASE_URL}/users/me/visibility`, {
     method: "PUT",
-    headers: bearerHeaders(token, true),
+    headers: jsonBearerHeaders(token),
     body: JSON.stringify({ isPrivate }),
   });
 
@@ -161,7 +91,7 @@ export async function uploadMyAvatar(file: File, token?: string | null): Promise
 
   const response = await fetch(`${API_BASE_URL}/users/me/avatar`, {
     method: "POST",
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
     body: formData,
   });
 
@@ -172,9 +102,26 @@ export async function uploadMyAvatar(file: File, token?: string | null): Promise
   return (await response.json()) as UserProfileResponse;
 }
 
+export async function uploadMyBanner(file: File, token?: string | null): Promise<UserProfileResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE_URL}/users/me/banner`, {
+    method: "POST",
+    headers: requiredBearerHeaders(token),
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("banner_upload_failed");
+  }
+
+  return (await response.json()) as UserProfileResponse;
+}
+
 export async function listMyShelves(token?: string | null): Promise<ShelfSummaryResponse[]> {
   const response = await fetch(`${API_BASE_URL}/shelves`, {
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -198,7 +145,7 @@ export async function listShelvesByUserId(userId: number, token?: string | null)
 
 export async function listShelfItems(shelfId: number, token?: string | null): Promise<ShelfItemSummaryResponse[]> {
   const response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items`, {
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -253,7 +200,7 @@ export async function listUserReviewsByUserId(
 
   while (true) {
     const response = await fetch(`${API_BASE_URL}/feed/reviews/user/${userId}?page=${page}&size=${pageSize}`, {
-      headers: bearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
 
     if (!response.ok) {
@@ -277,6 +224,45 @@ export async function listUserReviewsByUserId(
   }
 
   return reviews;
+}
+
+export async function generateShareCard(type: string, token?: string | null): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/share/card?type=${encodeURIComponent(type)}`, {
+    headers: optionalBearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("generate_share_card_failed");
+  }
+
+  return response.blob();
+}
+
+export async function getMyDna(token?: string | null): Promise<DnaResponse | DnaProgressResponse> {
+  const response = await fetch(`${API_BASE_URL}/dna`, {
+    headers: requiredBearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("load_dna_failed");
+  }
+
+  return (await response.json()) as DnaResponse | DnaProgressResponse;
+}
+
+export async function getDnaByUserId(
+  userId: number,
+  token?: string | null,
+): Promise<DnaResponse | DnaProgressResponse> {
+  const response = await fetch(`${API_BASE_URL}/dna/${userId}`, {
+    headers: optionalBearerHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw new Error("load_dna_failed");
+  }
+
+  return (await response.json()) as DnaResponse | DnaProgressResponse;
 }
 
 async function fetchFollowCount(url: string, token?: string | null): Promise<number> {
@@ -383,7 +369,7 @@ export async function searchUsersByUsername(
 export async function followUser(username: string, token?: string | null): Promise<FollowActionResult> {
   const response = await fetch(`${API_BASE_URL}/users/${username}/follow`, {
     method: "POST",
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (response.status === 202) {
@@ -408,7 +394,7 @@ export async function followUser(username: string, token?: string | null): Promi
 export async function unfollowUser(username: string, token?: string | null): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/users/${username}/follow`, {
     method: "DELETE",
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -422,7 +408,7 @@ export async function listPendingFollowRequests(
   token?: string | null,
 ): Promise<FollowPageResponse> {
   const response = await fetch(`${API_BASE_URL}/users/me/follow-requests?page=${page}&size=${size}`, {
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -435,7 +421,7 @@ export async function listPendingFollowRequests(
 export async function acceptFollowRequest(requesterUsername: string, token?: string | null): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/users/me/follow-requests/${encodeURIComponent(requesterUsername)}/accept`, {
     method: "POST",
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {
@@ -446,7 +432,7 @@ export async function acceptFollowRequest(requesterUsername: string, token?: str
 export async function rejectFollowRequest(requesterUsername: string, token?: string | null): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/users/me/follow-requests/${encodeURIComponent(requesterUsername)}`, {
     method: "DELETE",
-    headers: bearerHeaders(token),
+    headers: requiredBearerHeaders(token),
   });
 
   if (!response.ok) {

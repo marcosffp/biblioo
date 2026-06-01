@@ -8,6 +8,7 @@ import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.domain.port.in.ShelfUseCase;
 import com.biblioo.books.domain.port.out.ShelfEventPublisherPort;
+import com.biblioo.books.infrasestructure.persistence.ReadingActiveDayRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfItemRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfRepository;
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ public class ShelfService implements ShelfUseCase {
 
   private final ShelfRepository shelfRepository;
   private final ShelfItemRepository shelfItemRepository;
+  private final ReadingActiveDayRepository readingActiveDayRepository;
   private final BookUseCase bookUseCase;
   private final ShelfEventPublisherPort shelfEventPublisherPort;
 
@@ -78,6 +80,11 @@ public class ShelfService implements ShelfUseCase {
       return shelf;
     }
 
+    if (!isNameUnchanged
+        && shelfRepository.existsByUserIdAndNameAndIdNot(userId, trimmedName, shelfId)) {
+      throw new ShelfBusinessException("Já existe uma estante com este nome.");
+    }
+
     shelf.setName(trimmedName);
     if (description != null) {
       shelf.setDescription(description.isBlank() ? null : description.trim());
@@ -109,30 +116,52 @@ public class ShelfService implements ShelfUseCase {
       Long userId, Long shelfId, Long bookId, ReadingStatus initialStatus) {
     verifyShelfOwnership(shelfId, userId);
 
-    if (shelfItemRepository.existsByShelfIdAndBookId(shelfId, bookId)) {
-      throw new ShelfBusinessException("O livro já está nesta estante.");
-    }
-
     Book book = bookUseCase.getById(bookId);
 
     ReadingStatus statusToSet = initialStatus != null ? initialStatus : ReadingStatus.WANT_TO_READ;
     LocalDate finishedAt = (statusToSet == ReadingStatus.COMPLETED) ? LocalDate.now() : null;
+    LocalDate startedAt =
+        (statusToSet == ReadingStatus.READING || statusToSet == ReadingStatus.REREADING)
+            ? LocalDate.now()
+            : null;
+    int totalPages = book.getPageCount() != null ? book.getPageCount() : 0;
+    int currentPage =
+        (statusToSet == ReadingStatus.COMPLETED && book.getPageCount() != null)
+            ? book.getPageCount()
+            : 0;
+    int progressPercent = statusToSet == ReadingStatus.COMPLETED ? 100 : 0;
 
-    ShelfItem item =
-        ShelfItem.builder()
-            .shelfId(shelfId)
-            .bookId(bookId)
-            .status(statusToSet)
-            .totalPages(book.getPageCount() != null ? book.getPageCount() : 0)
-            .currentPage(
-                statusToSet == ReadingStatus.COMPLETED && book.getPageCount() != null
-                    ? book.getPageCount()
-                    : 0)
-            .progressPercent(statusToSet == ReadingStatus.COMPLETED ? 100 : 0)
-            .finishedAt(finishedAt)
-            .build();
-
-    ShelfItem savedItem = shelfItemRepository.save(item);
+    ShelfItem savedItem =
+        shelfItemRepository
+            .findByShelfIdAndBookIdIncludingDeleted(shelfId, bookId)
+            .map(
+                existing -> {
+                  if (existing.getDeletedAt() == null) {
+                    throw new ShelfBusinessException("O livro já está nesta estante.");
+                  }
+                  existing.setDeletedAt(null);
+                  existing.setStatus(statusToSet);
+                  existing.setTotalPages(totalPages);
+                  existing.setCurrentPage(currentPage);
+                  existing.setProgressPercent(progressPercent);
+                  existing.setFinishedAt(finishedAt);
+                  existing.setStartedAt(startedAt);
+                  return shelfItemRepository.save(existing);
+                })
+            .orElseGet(
+                () -> {
+                  ShelfItem item =
+                      ShelfItem.builder()
+                          .shelfId(shelfId)
+                          .bookId(bookId)
+                          .status(statusToSet)
+                          .totalPages(totalPages)
+                          .currentPage(currentPage)
+                          .progressPercent(progressPercent)
+                          .finishedAt(finishedAt)
+                          .build();
+                  return shelfItemRepository.save(item);
+                });
 
     shelfEventPublisherPort.publishReaderCountIncrement(bookId);
 
@@ -189,6 +218,7 @@ public class ShelfService implements ShelfUseCase {
     }
 
     item.setCurrentPage(page);
+    readingActiveDayRepository.insertOrIgnore(userId, item.getBookId(), LocalDate.now());
 
     boolean justCompleted = max < Integer.MAX_VALUE && page == max;
 
@@ -230,11 +260,15 @@ public class ShelfService implements ShelfUseCase {
         item.setFinishedAt(null);
       }
       case COMPLETED -> {
+        boolean wasRereading = item.getStatus() == ReadingStatus.REREADING;
         item.setStatus(ReadingStatus.COMPLETED);
         item.setFinishedAt(LocalDate.now());
         if (item.getTotalPages() != null && item.getTotalPages() > 0) {
           item.setCurrentPage(item.getTotalPages());
           item.setProgressPercent(100);
+        }
+        if (wasRereading) {
+          item.setRereadCount((item.getRereadCount() != null ? item.getRereadCount() : 0) + 1);
         }
       }
       case ABANDONED -> {
@@ -253,6 +287,11 @@ public class ShelfService implements ShelfUseCase {
     if (newStatus == ReadingStatus.COMPLETED) {
       shelfEventPublisherPort.publishReadingCompleted(
           userId, saved.getBookId(), saved.getId(), shelfId, LocalDate.now().toString());
+    }
+
+    if (newStatus == ReadingStatus.ABANDONED) {
+      shelfEventPublisherPort.publishReadingAbandoned(
+          userId, saved.getBookId(), saved.getId(), shelfId);
     }
 
     return saved;
@@ -297,5 +336,11 @@ public class ShelfService implements ShelfUseCase {
   @Transactional(readOnly = true)
   public ShelfItem getShelfItem(Long userId, Long shelfId, Long bookId) {
     return resolveOwnedItem(userId, shelfId, bookId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long countActiveDaysByUserId(Long userId) {
+    return readingActiveDayRepository.countByUserId(userId);
   }
 }
