@@ -46,3 +46,30 @@
 - [PR #169](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/169)
 - [PR #170](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/170)
 - [PR #171](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/171)
+
+## Semana 3 (27/04/2026 - 03/05/2026)
+
+### O que foi feito:
+
+- Realização de correções apontadas durante o processo de review, especialmente relacionadas às regras de negócio do backend.
+- Implementação do indicador de usuários digitando e dos eventos em comunidades.
+- Implementação dos trilhos de recomendações.
+- Desenvolvimento de testes para os domínios de feed e recomendações.
+- Correção de bugs identificados no feed.
+- Implementação do fluxo de redefinição de senha com envio de notificações por e-mail.
+- Desenvolvimento do DNA Literário do usuário, considerando todo o histórico de interações na plataforma.
+- Ajustes e melhorias nas publicações do feed.
+
+
+### Links dos Pull Requests:
+- [PR #151](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/151)
+- [PR #152](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/152)
+- [PR #153](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/153)
+- [PR #167](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/167)
+- [PR #168](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/168)
+- [PR #169](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/169)
+- [PR #170](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/170)
+- [PR #171](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/171)
+- [PR #173](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/173)
+- [PR #175](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/175)
+- [PR #176](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/176)
