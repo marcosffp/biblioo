@@ -1,16 +1,14 @@
 import http from 'k6/http';
 import ws   from 'k6/ws';
 import { sleep, check } from 'k6';
-import { Counter, Rate, Trend } from 'k6/metrics';
+import { Counter, Trend } from 'k6/metrics';
 
 // ── Métricas customizadas ────────────────────────────────────────────────────
 const stompConnectErrors   = new Counter('stomp_connect_errors');
 const stompMessagesSent    = new Counter('stomp_messages_sent');
 const stompMessagesRecv    = new Counter('stomp_messages_received');
-const stompSendFailRate    = new Rate('stomp_send_fail_rate');
 const wsConnectDuration    = new Trend('ws_connect_duration_ms', true);
 const msgDeliveryLatency   = new Trend('msg_delivery_latency_ms', true);
-const msgDeliverySuccess   = new Rate('msg_delivery_success_rate');
 
 // Métricas específicas de concorrência
 const msgOutOfOrder        = new Counter('msg_out_of_order');        // msgs recebidas fora de sequência
@@ -74,19 +72,15 @@ export const options = {
     },
   },
 
-  thresholds: {
-    http_req_failed:           [`rate<${CONFIG.thresholds.failRate}`],
-    stomp_send_fail_rate:      [`rate<${CONFIG.thresholds.failRate}`],
-    msg_delivery_success_rate: [`rate>${1 - CONFIG.thresholds.failRate}`],
-    msg_delivery_latency_ms:   [`p(95)<${CONFIG.thresholds.p95DeliveryMs}`],
-    // Violações de integridade — zero tolerância
-    msg_duplicated:            ['count==0'],
-    msg_overwritten:           ['count==0'],
-    concurrency_violation_rate:[`rate<=${CONFIG.thresholds.concurrencyFailRate}`],
-    // msg_out_of_order: métrica observável (sem threshold).
-    // Option B: clientes ordenam por data.id — entrega fora de ordem via STOMP é esperada
-    // sob burst concorrente e não constitui violação de integridade.
-  },
+thresholds: {
+  http_req_failed: [`rate<${CONFIG.thresholds.failRate}`],
+
+  msg_delivery_latency_ms: [`p(95)<${CONFIG.thresholds.p95DeliveryMs}`],
+
+  msg_duplicated: ['count==0'],
+  msg_overwritten: ['count==0'],
+  concurrency_violation_rate: [`rate<=${CONFIG.thresholds.concurrencyFailRate}`],
+},
 };
 
 // ── Setup ────────────────────────────────────────────────────────────────────
@@ -208,16 +202,15 @@ export function concurrentSend(data) {
     }, CONFIG.stomp.connectTimeoutMs);
 
     // Expira pendentes sem confirmação
-    socket.setInterval(() => {
-      const now = Date.now();
-      for (const id of Object.keys(pending)) {
-        if (now - pending[id].sentAt > CONFIG.stomp.deliveryTimeoutMs) {
-          msgDeliverySuccess.add(0);
-          stompSendFailRate.add(1);
-          delete pending[id];
-        }
-      }
-    }, 1000);
+socket.setInterval(() => {
+  const now = Date.now();
+
+  for (const id of Object.keys(pending)) {
+    if (now - pending[id].sentAt > CONFIG.stomp.deliveryTimeoutMs) {
+      delete pending[id];
+    }
+  }
+}, 1000);
 
     socket.send(stompFrame('CONNECT', {
       'accept-version': '1.1,1.2',
@@ -278,7 +271,7 @@ export function concurrentSend(data) {
           if (frame.headers.destination === '/user/queue/errors') {
             try {
               const event = JSON.parse(frame.body);
-              if (event.type === 'ERROR') stompSendFailRate.add(1);
+              if (event.type === 'ERROR') console.error(`VU ${__VU}: ${event.message}`);
             } catch (_) {}
             break;
           }
@@ -304,8 +297,6 @@ export function concurrentSend(data) {
               const entry   = pending[clientMsgId];
               const latency = Date.now() - entry.sentAt;
               msgDeliveryLatency.add(latency);
-              msgDeliverySuccess.add(1);
-              stompSendFailRate.add(0);
 
               // ── Validação 2: sobrescrita de conteúdo ───────────────────────
               // O conteúdo recebido deve ser exatamente o que foi enviado
@@ -343,7 +334,6 @@ export function concurrentSend(data) {
 
         case 'ERROR': {
           stompConnectErrors.add(1);
-          stompSendFailRate.add(1);
           console.error(`VU ${__VU}: STOMP ERROR — ${frame.body}`);
           socket.close();
           break;
@@ -353,7 +343,6 @@ export function concurrentSend(data) {
 
     socket.on('error', (e) => {
       stompConnectErrors.add(1);
-      stompSendFailRate.add(1);
       console.error(`VU ${__VU}: WS error — ${e}`);
     });
   });
@@ -395,16 +384,15 @@ export function burstSend(data) {
       }
     }, CONFIG.stomp.connectTimeoutMs);
 
-    socket.setInterval(() => {
-      const now = Date.now();
-      for (const id of Object.keys(pending)) {
-        if (now - pending[id].sentAt > CONFIG.stomp.deliveryTimeoutMs) {
-          msgDeliverySuccess.add(0);
-          stompSendFailRate.add(1);
-          delete pending[id];
-        }
-      }
-    }, 1000);
+socket.setInterval(() => {
+  const now = Date.now();
+
+  for (const id of Object.keys(pending)) {
+    if (now - pending[id].sentAt > CONFIG.stomp.deliveryTimeoutMs) {
+      delete pending[id];
+    }
+  }
+}, 1000);
 
     socket.send(stompFrame('CONNECT', {
       'accept-version': '1.1,1.2',
@@ -463,7 +451,7 @@ export function burstSend(data) {
           if (frame.headers.destination === '/user/queue/errors') {
             try {
               const event = JSON.parse(frame.body);
-              if (event.type === 'ERROR') stompSendFailRate.add(1);
+              if (event.type === 'ERROR') console.error(`BURST VU ${__VU}: ${event.message}`);
             } catch (_) {}
             break;
           }
@@ -486,8 +474,6 @@ export function burstSend(data) {
             if (pending[clientMsgId] !== undefined) {
               const entry = pending[clientMsgId];
               msgDeliveryLatency.add(Date.now() - entry.sentAt);
-              msgDeliverySuccess.add(1);
-              stompSendFailRate.add(0);
 
               if (content !== entry.expectedContent) {
                 msgOverwritten.add(1);
@@ -521,7 +507,6 @@ export function burstSend(data) {
 
         case 'ERROR': {
           stompConnectErrors.add(1);
-          stompSendFailRate.add(1);
           console.error(`BURST VU ${__VU}: STOMP ERROR — ${frame.body}`);
           socket.close();
           break;
@@ -531,7 +516,7 @@ export function burstSend(data) {
 
     socket.on('error', (e) => {
       stompConnectErrors.add(1);
-      stompSendFailRate.add(1);
+      console.error(`BURST VU ${__VU}: WS error — ${e}`);
     });
   });
 

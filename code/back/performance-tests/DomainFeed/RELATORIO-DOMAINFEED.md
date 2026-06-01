@@ -15,7 +15,7 @@
 | post | post-load/spike/stress | ✅ Todos passaram |
 | comment | comment-load/spike/stress | ✅ Todos passaram |
 | commentInteraction | commentInteraction-load/spike/stress | ✅ Todos passaram |
-| review | review-load/spike/stress | ❌ **Reprovado** (thresholds de latência cruzados + timeout de setup) |
+| review | review-load/spike/stress | ✅ Todos passaram (reexecutado isolado 2026-05-30; reprovação anterior era contaminação de banco + timeout de setup) |
 
 ---
 
@@ -79,35 +79,58 @@ Escrita de posts mais custosa que leitura: spike médio 192ms (med 230ms), max 7
 
 ---
 
-## 5. Review (resenhas de livros) — ❌ REPROVADO
+## 5. Review (resenhas de livros) — ✅ APROVADO (reexecutado isolado em 2026-05-30)
 
-### 5.1 Load Test — `review-load.js` — ❌ thresholds cruzados
+> **Correção do diagnóstico anterior:** review havia reprovado por motivos de **ambiente**, não de código. (1) O `review-load` rodou **por último**, contra o banco saturado da sessão (~107k usuários acumulados), inflando a latência para p(95) de 3.5s. (2) `review-spike`/`stress` **não concluíam o `setup`** (provisionamento de 500/800 usuários × ~23 requests cada) dentro de 300s/600s. Reexecutados **isolados, com banco saudável**, `setupTimeout` ampliado (spike `1200s`, stress `1800s`) e guard `SAFE_VU`/`SAFE_ITER` no log de setup, **os três passaram**. Isso confirma a hipótese do "confundidor": **review não tem gargalo de código** — a latência anterior era contaminação de banco.
 
-**Configuração:** 2 cenários (crud 158 + listing 52), 210 VUs, 2m48s.
+### 5.1 Load Test — `review-load.js` — ✅
+
+**Configuração:** 2 cenários: `crud` (158 VUs, 2m) + `listing` (52 VUs, 2m) — 210 VUs.
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1000ms | **3.5s** | ❌ |
-| `{scenario:crud}` p(95) | < 1500ms | **3.75s** | ❌ |
-| `{scenario:listing}` p(95) | < 500ms | **3.44s** | ❌ |
+| `http_req_duration` p(95) | < 1000ms | 38.97ms | ✅ |
+| `{scenario:crud}` p(95) | < 1500ms | 41.72ms | ✅ |
+| `{scenario:listing}` p(95) | < 500ms | 23.98ms | ✅ |
 | `http_req_failed` rate | < 2% | 0.00% | ✅ |
 
-- Métricas HTTP geral: avg **360.7ms**, med 19.03ms, **max 13.19s**, p(90) 265.7ms, p(95) **3.5s**.
-- 33.354 req (199.01/s), checks 39.332 ✅ 100% (funcionalmente correto), 0 falhas HTTP.
-- **Diagnóstico:** as requisições não falham (status correto), mas a **latência estoura** sob 210 VUs — mediana 19ms vs p(95) 3.5s e max 13.19s (cauda longa severa).
-- **⚠️ Confundidor:** review foi o **último** subdomínio a rodar, contra o estado de banco mais saturado da sessão (após ~107k usuários do user-stress e os stress de post/comment/commentInteraction). Os dados não separam "review é lento" de "banco estava inchado". A assinatura é *consistente* com **query sem índice / N+1**, mas isso é hipótese. **Ação: rerodar review isolado e cedo (banco limpo) para confirmar.**
+**Checks:** register/login/shelf/book-add (setup) + list 200, create 201, create retorna id e bookId, get 200, update 200, delete 204 — ✅ 100% (62.230 checks).
 
-### 5.2 Spike Test — `review-spike.js` — ⚠️ setup falhou
+**Métricas HTTP:**
 
-- Erro k6: `setup() execution timed out after 300 seconds`.
-- O teste **não executou de forma representativa**: apenas 869 requests. p(95)=521.84ms é exibido como ✓ mas sobre amostra mínima — **não conclusivo**.
-- **Diagnóstico:** a fase de `setup` (criação em massa de reviews para popular o cenário) não terminou em 300s, confirmando que **criar/listar reviews é lento**.
+| Métrica | avg | min | med | max | p(90) | p(95) |
+|---------|-----|-----|-----|-----|-------|-------|
+| `http_req_duration` (geral) | 19.86ms | 3.64ms | 16.93ms | 446.77ms | 31.6ms | 38.97ms |
+| `{scenario:crud}` | 22.39ms | 4.8ms | 19.54ms | 446.37ms | 33.86ms | 41.72ms |
+| `{scenario:listing}` | 12.38ms | 4.18ms | 9.79ms | 446.77ms | 17.86ms | 23.98ms |
 
-### 5.3 Stress Test — `review-stress.js` — ❌ setup falhou + threshold cruzado
+**Sumário:** 52.592 req (345.8/s) · 21.838 iterações · 0 falhas · 27 MB recv · setup 230/230.
 
-- Erro k6: `setup() execution timed out after 600 seconds`.
-- Apenas 901 requests; `http_req_duration` p(95)=**1.13s** cruzou o threshold de 1000ms.
-- **Diagnóstico:** mesmo com 600s de timeout de setup, a preparação não concluiu. Confirma gargalo de performance no caminho de reviews.
+### 5.2 Spike Test — `review-spike.js` — ✅
+
+**Configuração:** rampa 70→500 VUs (hold 20s); `setupTimeout` 1200s; setup 500/500.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 1000ms | 462.85ms | ✅ |
+| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+
+**Checks:** ✅ 100% (47.352) — list 200, create 201 ou 429, create retorna id, delete 204.
+**Métricas:** avg 201.53ms · med 202.03ms · max 971.81ms · p(90) 399.84ms · p(95) 462.85ms.
+**Sumário:** 38.389 req (160.2/s) · 8.963 iterações · 0 falhas · 500 VUs.
+
+### 5.3 Stress Test — `review-stress.js` — ✅
+
+**Configuração:** rampa até 600 VUs em 4m (7 estágios); `setupTimeout` 1800s; setup 799/800.
+
+| Métrica | Threshold | Resultado | Status |
+|---------|-----------|-----------|--------|
+| `http_req_duration` p(95) | < 1000ms | 361.17ms | ✅ |
+| `http_req_failed` rate | < 5% | 0.00% (1/142.940) | ✅ |
+
+**Checks:** ✅ 99.99% (174.076/174.077). A única falha foi **1 `book added 201` no setup** (`/shelves/1265/items` → 500 transitório, userIndex 323). O guard `SAFE_VU`/`SAFE_ITER` **absorveu o erro** (log com `vu:0, iter:-1`), pulou o usuário e seguiu com 799. Esse `logError` no `setup()` é justamente o ponto a que se atribuiu o `rc=107` que abortou o setup na bateria anterior (quando havia falhas de request lá dentro); com o guard, o setup completa mesmo com falhas pontuais.
+**Métricas:** avg 117.38ms · med 69.45ms · max 5.31s · p(90) 300.7ms · p(95) 361.17ms.
+**Sumário:** 142.940 req (180.0/s) · 31.137 iterações · ~0% falhas · 600 VUs · 73 MB recv.
 
 ---
 
@@ -127,8 +150,8 @@ Escrita de posts mais custosa que leitura: spike médio 192ms (med 230ms), max 7
 | commentInteraction | load | 210 | 52.021 | 363.72/s | 36.42ms | 0% | ✅ |
 | commentInteraction | spike | 500 | 29.814 | 313.42/s | 540.53ms | 0% | ✅ |
 | commentInteraction | stress | 600 | 133.860 | 426.36/s | 353.67ms | 0% | ✅ |
-| review | load | 210 | 33.354 | 199.01/s | **3.5s** | 0% | ❌ |
-| review | spike | 500 | — | — | (setup timeout) | — | ⚠️ |
-| review | stress | 600 | — | — | **1.13s** (setup timeout) | — | ❌ |
+| review | load | 210 | 52.592 | 345.8/s | 38.97ms | 0% | ✅ |
+| review | spike | 500 | 38.389 | 160.2/s | 462.85ms | 0% | ✅ |
+| review | stress | 600 | 142.940 | 180.0/s | 361.17ms | 0% | ✅ |
 
-**12 de 15 testes aprovados.** Feed, post, comment e commentInteraction são robustos e escaláveis até 600 VUs com 0% de falhas. O subdomínio **review** é o único ponto crítico do DomainFeed e requer otimização antes de validação.
+**15 de 15 testes aprovados.** Feed, post, comment e commentInteraction são robustos e escaláveis até 600 VUs com 0% de falhas. O subdomínio **review** foi reexecutado isolado (2026-05-30) e **passou** — a reprovação anterior era contaminação de banco (review rodou por último) + timeout de setup, não gargalo de código. DomainFeed completo e aprovado.
