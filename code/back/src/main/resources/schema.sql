@@ -91,6 +91,8 @@ CREATE TABLE IF NOT EXISTS assistant_action_log (
     created_at      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     INDEX idx_assistant_log_user (user_id),
     INDEX idx_assistant_log_conv (conversation_id)
+);
+
 -- Sistema de Votação de Livros
 CREATE TABLE IF NOT EXISTS community_votings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
