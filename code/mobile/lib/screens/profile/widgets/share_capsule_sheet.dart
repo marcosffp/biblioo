@@ -85,8 +85,20 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
     return file;
   }
 
-  Future<void> _shareCapsule(Uint8List bytes, String destination) async {
+  Future<void> _shareCapsule(
+    BuildContext context,
+    Uint8List bytes,
+    String destination,
+  ) async {
     if (_sharing) return;
+
+    final renderBox = context.findRenderObject();
+    final overlayBox = Navigator.of(context).overlay?.context.findRenderObject();
+    final shareOrigin = renderBox is RenderBox && renderBox.hasSize
+        ? renderBox.localToGlobal(Offset.zero) & renderBox.size
+        : overlayBox is RenderBox && overlayBox.hasSize
+            ? overlayBox.localToGlobal(Offset.zero) & overlayBox.size
+            : const Rect.fromLTWH(0, 0, 1, 1);
 
     setState(() => _sharing = true);
     try {
@@ -99,6 +111,7 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
             '${widget.booksRead} livros lidos - ${widget.pagesRead} paginas lidas\n'
             '${widget.userHandle}\n'
             'Compartilhar via $destination',
+        sharePositionOrigin: shareOrigin,
       );
     } finally {
       if (mounted) {
@@ -313,7 +326,7 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
                             destination: destination,
                             onTap: () {
                               if (bytes == null) return;
-                              _shareCapsule(bytes, destination.label);
+                              _shareCapsule(context, bytes, destination.label);
                             },
                             enabled: !isLoading && errorMessage == null,
                             loading: _sharing,
@@ -330,6 +343,7 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
                                   bytes == null)
                               ? null
                               : () => _shareCapsule(
+                                    context,
                                     bytes,
                                     'seletor do sistema',
                                   ),
