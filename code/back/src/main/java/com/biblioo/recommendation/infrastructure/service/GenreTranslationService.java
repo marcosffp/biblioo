@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.retry.support.RetryTemplate;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 public class GenreTranslationService {
 
   private static final int MAX_BATCH_SIZE = 100;
+  private static final int TRANSLATION_TIMEOUT_SECONDS = 8;
 
   private final ChatClient chatClient;
   private final ObjectMapper objectMapper;
@@ -24,7 +27,7 @@ public class GenreTranslationService {
     this.chatClient = chatClientBuilder.build();
     this.objectMapper = objectMapper;
     this.retryTemplate =
-        RetryTemplate.builder().maxAttempts(2).fixedBackoff(400).retryOn(Exception.class).build();
+        RetryTemplate.builder().maxAttempts(1).retryOn(Exception.class).build();
   }
 
   public Map<String, String> translateBatch(List<String> genres) {
@@ -34,18 +37,16 @@ public class GenreTranslationService {
 
     return retryTemplate.execute(
         ctx -> {
-          if (ctx.getRetryCount() > 0) {
-            log.info("[GenreTranslation] Retry {} para {} gêneros", ctx.getRetryCount(), batch.size());
-          } else {
-            log.info("[GenreTranslation] Traduzindo {} gêneros via Gemini", batch.size());
-          }
-          String raw = chatClient.prompt().user(buildPrompt(batch)).call().content();
+          log.info("[GenreTranslation] Traduzindo {} gêneros via Gemini", batch.size());
+          String raw = CompletableFuture
+              .supplyAsync(() -> chatClient.prompt().user(buildPrompt(batch)).call().content())
+              .orTimeout(TRANSLATION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+              .join();
           return parseResponse(raw, batch);
         },
         ctx -> {
-          log.warn(
-              "[GenreTranslation] Tradução falhou após retries ({}). Retornando originais.",
-              ctx.getLastThrowable() != null ? ctx.getLastThrowable().getMessage() : "unknown");
+          log.warn("[GenreTranslation] Gemini indisponível ({}). Retornando originais.",
+              ctx.getLastThrowable() != null ? ctx.getLastThrowable().getMessage() : "timeout");
           return buildFallback(batch);
         });
   }
