@@ -18,7 +18,7 @@ export interface SidebarProps {
 
 const defaultItems: SidebarItem[] = [
   { label: "Feed", href: "/feed", icon: <Rss size={18} /> },
-  { label: "Bibliooteca", href: "/bookcase", icon: <Book size={18} /> },
+  { label: "Biblioteca", href: "/bookcase", icon: <Book size={18} /> },
   { label: "Comunidades", href: "/community", icon: <Users size={18} /> },
   { label: "Explorar", href: "/for-you", icon: <Compass size={18} /> },
   { label: "Perfil", href: "/profile", icon: <User size={18} /> },

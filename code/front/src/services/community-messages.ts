@@ -1,45 +1,15 @@
-import { getAccessToken } from "@/services/auth";
+import { requiredBearerHeaders } from "@/lib/api-headers";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export interface BackendCommunityMessage {
-  id: number;
-  clientMessageId?: string | null;
-  communityId: number;
-  authorId?: number | null;
-  content?: string | null;
-  parentMessageId?: number | null;
-  tags?: string[] | null;
-  images?: string[] | null;
-  gifUrl?: string | null;
-  hasSpoiler: boolean;
-  heartCount: number;
-  deleted: boolean;
-  type?: string | null;
-  createdAt?: string | null;
-  editedAt?: string | null;
-}
-
-export interface BackendMessageEventPayload {
-  eventType: "MESSAGE_CREATED" | "MESSAGE_UPDATED" | "MESSAGE_DELETED" | "REACTION_UPDATED" | "ERROR";
-  data: BackendCommunityMessage;
-}
-
-export interface MessageMediaUploadResponse {
-  images: string[];
-  gifUrl?: string | null;
-}
+import type {
+  BackendCommunityMessage,
+  BackendCommunityMember,
+  MessageMediaUploadResponse,
+} from "@/types/api";
 
 interface BackendPageResponse<T> {
   content: T[];
-}
-
-export interface BackendCommunityMember {
-  userId: number;
-  username?: string | null;
-  avatarUrl?: string | null;
-  role: "OWNER" | "MODERATOR" | "MEMBER";
-  joinedAt?: string | null;
 }
 
 class CommunityMessagesApiError extends Error {
@@ -52,18 +22,6 @@ class CommunityMessagesApiError extends Error {
   }
 }
 
-function buildAuthHeaders(contentType = false): HeadersInit {
-  const accessToken = getAccessToken();
-
-  if (!accessToken) {
-    throw new CommunityMessagesApiError("Usuário não autenticado.", 401);
-  }
-
-  return {
-    Authorization: `Bearer ${accessToken}`,
-    ...(contentType ? { "Content-Type": "application/json" } : {}),
-  };
-}
 
 async function readErrorMessage(response: Response): Promise<string> {
   try {
@@ -85,7 +43,7 @@ async function parseJsonResponse<T>(response: Response, fallbackMessage: string)
 
 export async function getCommunityRecentMessages(communityId: number): Promise<BackendCommunityMessage[]> {
   const response = await fetch(`${API_BASE_URL}/communities/${communityId}/messages`, {
-    headers: buildAuthHeaders(),
+    headers: requiredBearerHeaders(),
   });
 
   return parseJsonResponse<BackendCommunityMessage[]>(response, "Falha ao carregar mensagens da comunidade.");
@@ -101,7 +59,7 @@ export async function getCommunityMessagesBefore(
   query.set("limit", String(limit));
 
   const response = await fetch(`${API_BASE_URL}/communities/${communityId}/messages?${query.toString()}`, {
-    headers: buildAuthHeaders(),
+    headers: requiredBearerHeaders(),
   });
 
   return parseJsonResponse<BackendCommunityMessage[]>(response, "Falha ao carregar mensagens anteriores.");
@@ -115,7 +73,7 @@ export async function syncCommunityMessagesAfter(
   query.set("after", String(afterId));
 
   const response = await fetch(`${API_BASE_URL}/communities/${communityId}/messages/sync?${query.toString()}`, {
-    headers: buildAuthHeaders(),
+    headers: requiredBearerHeaders(),
   });
 
   return parseJsonResponse<BackendCommunityMessage[]>(response, "Falha ao sincronizar mensagens.");
@@ -127,7 +85,7 @@ export async function getCommunityMembers(communityId: number): Promise<BackendC
   query.set("size", "200");
 
   const response = await fetch(`${API_BASE_URL}/communities/${communityId}/members?${query.toString()}`, {
-    headers: buildAuthHeaders(),
+    headers: requiredBearerHeaders(),
   });
 
   const page = await parseJsonResponse<BackendPageResponse<BackendCommunityMember>>(
@@ -161,7 +119,7 @@ export async function uploadCommunityMessageMedia(
 
   const response = await fetch(`${API_BASE_URL}/communities/${communityId}/messages/media`, {
     method: "POST",
-    headers: buildAuthHeaders(),
+    headers: requiredBearerHeaders(),
     body,
   });
 

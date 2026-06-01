@@ -5,12 +5,11 @@ import {
   listNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-  type NotificationSummary,
-  type NotificationType,
 } from "@/services/notifications";
+import type { NotificationSummary, NotificationType } from "@/types/api";
 import { normalizeEntityId } from "@/utils/notifications";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 const SSE_EVENT_NAME = "notification";
 
 type RealtimeNotificationPayload = {

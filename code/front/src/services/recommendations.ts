@@ -1,53 +1,16 @@
-import { getAccessToken } from "./auth";
+import { requiredBearerHeaders } from "@/lib/api-headers";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export interface RecommendedBook {
-  id: number;
-  title: string;
-  description?: string | null;
-  pageCount?: number | null;
-  readerCount?: number | null;
-  averageRating?: number | null;
-  coverUrl?: string | null;
-  score?: number;
-}
-
-export interface DiceRollBook {
-  id: number;
-  title: string;
-  description?: string | null;
-  pageCount?: number | null;
-  readerCount?: number | null;
-  averageRating?: number | null;
-  coverUrl?: string | null;
-}
-
-export interface BecauseYouReadData {
-  seedBookTitle: string;
-  books: RecommendedBook[];
-}
-
-export interface FavoriteGenreNowData {
-  topGenres: string[];
-  books: RecommendedBook[];
-}
-
-export interface TrendingInCommunitiesData {
-  books: RecommendedBook[];
-}
-
-export interface CatalogSurpriseData {
-  books: RecommendedBook[];
-}
-
-export interface SimilarAuthorsData {
-  books: RecommendedBook[];
-}
-
-export interface RereadWorthItData {
-  books: RecommendedBook[];
-}
+import type {
+  DiceRollBook,
+  BecauseYouReadData,
+  FavoriteGenreNowData,
+  TrendingInCommunitiesData,
+  CatalogSurpriseData,
+  SimilarAuthorsData,
+  RereadWorthItData,
+} from "@/types/api";
 
 export class RecommendationApiError extends Error {
   readonly status?: number;
@@ -59,17 +22,12 @@ export class RecommendationApiError extends Error {
   }
 }
 
-function authHeaders(): Record<string, string> {
-  const token = getAccessToken();
-  if (!token) throw new RecommendationApiError("Usuário não autenticado.", 401);
-  return { Authorization: `Bearer ${token}` };
-}
 
 async function fetchRecommendation<T>(path: string): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: authHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new RecommendationApiError("Não foi possível conectar ao servidor.");

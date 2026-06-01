@@ -33,6 +33,7 @@ import {
   createBookReview,
   getMyBookReview,
   getShelfItemById,
+  getActiveReadingDays,
   removeBookFromShelf,
   updateBookReview,
   updateShelfItemProgress,
@@ -46,22 +47,18 @@ import {
   getProfilePreferences,
   listMyShelves,
   listShelfItems,
-  type DnaResponse,
-  type DnaProgressResponse,
   type ProfilePreferences,
-  type UserProfileResponse,
 } from "@/services/profile";
+import type { DnaResponse, DnaProgressResponse, UserProfileResponse } from "@/types/api";
+
 
 function FireIcon({ count }: { count: number }) {
   if (count === 0) return <Flame size={16} className="text-muted-foreground/30" />;
-  if (count <= 3)  return <Flame size={16} className="animate-flame-slow text-yellow-400" />;
-  if (count <= 10) return <Flame size={16} className="animate-flame-slow text-orange-400" />;
-  if (count <= 20) return <Flame size={16} className="animate-flame text-orange-500" />;
+  if (count <= 5)  return <Flame size={16} className="animate-flame-slow text-yellow-400" />;
+  if (count <= 15) return <Flame size={16} className="animate-flame-slow text-orange-400" />;
+  if (count <= 30) return <Flame size={16} className="animate-flame text-orange-500" />;
   return <Flame size={16} className="animate-flame text-red-500" />;
 }
-
-const isOwner = true;
-const isPublic = true;
 
 const BOOKS_PER_PAGE = 10;
 
@@ -71,7 +68,7 @@ const tabs = ["Biblioteca", "Atividade", "Comunidades"] as const;
 export default function PerfilPage() {
   const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Biblioteca");
   const [shareCapsuleOpen, setShareCapsuleOpen] = React.useState(false);
-  const [isPublicProfile, setIsPublicProfile] = React.useState(isPublic);
+  const [isPublicProfile, setIsPublicProfile] = React.useState(true);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [profile, setProfile] = React.useState<UserProfileResponse | null>(null);
@@ -80,7 +77,6 @@ export default function PerfilPage() {
   const [shelfBooks, setShelfBooks] = React.useState<DisplayShelfBook[]>([]);
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
-  const [readersReached, setReadersReached] = React.useState(0);
   const [dna, setDna] = React.useState<DnaResponse | DnaProgressResponse | null>(null);
   const [favoriteAuthors, setFavoriteAuthors] = React.useState<string[]>([]);
   const [preferences, setPreferences] = React.useState<ProfilePreferences>({
@@ -109,6 +105,7 @@ export default function PerfilPage() {
     if (typeof window === "undefined") return 24;
     return parseInt(localStorage.getItem("biblioo.profile.goal.target") ?? "24", 10) || 24;
   });
+  const [readingUpdatesCount, setReadingUpdatesCount] = React.useState(0);
   const [goalEditOpen, setGoalEditOpen] = React.useState(false);
   const currentYear = new Date().getFullYear();
 
@@ -167,10 +164,6 @@ export default function PerfilPage() {
           0,
         );
 
-        const computedReadersReached = pageCountEntries.reduce(
-          (total, entry) => total + Math.max(0, entry.readerCount ?? 0),
-          0,
-        );
 
         const authorCountMap = new Map<string, number>();
         pageCountEntries.forEach((entry) => {
@@ -199,7 +192,6 @@ export default function PerfilPage() {
         setFollowingCount(following);
         setBooksRead(completedCount);
         setPagesRead(computedPagesRead);
-        setReadersReached(computedReadersReached);
         setFavoriteAuthors(computedFavoriteAuthors);
 
         try {
@@ -207,6 +199,13 @@ export default function PerfilPage() {
           if (!cancelled) setDna(dnaData);
         } catch {
           // DNA é opcional
+        }
+
+        try {
+          const activeDays = await getActiveReadingDays(accessToken);
+          if (!cancelled) setReadingUpdatesCount(activeDays);
+        } catch {
+          // streak é opcional
         }
 
         setAllShelfItems(uniqueItems);
@@ -472,6 +471,7 @@ export default function PerfilPage() {
         }
         const updatedItem = await updateShelfItemProgress(activeBook.shelfId, activeBook.shelfItemId, nextPage);
         applyShelfItemUpdate(updatedItem);
+        getActiveReadingDays().then(setReadingUpdatesCount).catch(() => {});
       } catch (error) {
         if (error instanceof BookcaseApiError && (error.status === 401 || error.status === 403)) {
           setBookDetailsError("Faça login para atualizar o progresso.");
@@ -626,44 +626,39 @@ export default function PerfilPage() {
         followersHref="/profile/followers"
         followingHref="/profile/following"
         action={
-          isOwner ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShareCapsuleOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary-dark px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(19,147,122,0.22)] transition-all hover:-translate-y-px hover:bg-primary hover:shadow-[0_12px_24px_rgba(19,147,122,0.30)]"
-              >
-                <Sparkles size={14} />
-                Compartilhar cápsula
-              </button>
-              <Link
-                href="/profile/edit"
-                className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
-                Editar perfil
-              </Link>
-            </div>
-          ) : null
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShareCapsuleOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary-dark px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(19,147,122,0.22)] transition-all hover:-translate-y-px hover:bg-primary hover:shadow-[0_12px_24px_rgba(19,147,122,0.30)]"
+            >
+              <Sparkles size={14} />
+              Compartilhar cápsula
+            </button>
+            <Link
+              href="/profile/edit"
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+              Editar perfil
+            </Link>
+          </div>
         }
       />
 
       <ProfileStatsGrid
         items={[
-          { label: "Livros lidos", value: booksRead, icon: <BookOpen size={16} /> },
-          { label: "Páginas lidas", value: pagesRead.toLocaleString("pt-BR"), icon: <BookOpenCheck size={16} /> },
+          { label: "Livros lidos", value: booksRead, icon: <BookOpen size={16} />, tooltip: "Total de livros com status 'Lido' em todas as suas estantes." },
+          { label: "Páginas lidas", value: pagesRead.toLocaleString("pt-BR"), icon: <BookOpenCheck size={16} />, tooltip: "Soma das páginas lidas, calculada pelo progresso registrado em cada livro." },
           {
-            label: "Dias p/ livro",
-            value:
-              dna && "avgDaysPerBook" in dna && (dna as DnaResponse).avgDaysPerBook != null
-                ? `${Math.round((dna as DnaResponse).avgDaysPerBook!)}d`
-                : "—",
-            icon: <FireIcon count={booksRead} />,
+            label: "Dias ativos",
+            value: readingUpdatesCount,
+            icon: <FireIcon count={readingUpdatesCount} />,
+            tooltip: "Dias em que você atualizou o progresso de algum livro. Quanto mais dias seguidos, mais intensa a chama!",
           },
-          { label: "Leitores alcançados", value: readersReached.toLocaleString("pt-BR"), icon: <Users size={16} /> },
         ]}
       />
 
@@ -702,7 +697,7 @@ export default function PerfilPage() {
         <section>
           {allShelfItems.length > 0 ? (
             <>
-              <section className={`grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4 transition-opacity duration-200 ${isFetchingPage ? "pointer-events-none opacity-50" : ""}`}>
+              <section className={`grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 items-start gap-3 transition-opacity duration-200 ${isFetchingPage ? "pointer-events-none opacity-50" : ""}`}>
                 {shelfBooks.map((book) => (
                   <ProfileShelfBookCard
                     key={book.shelfItemId}
@@ -753,6 +748,7 @@ export default function PerfilPage() {
           <UserActivityFeed
             userId={profile.id}
             authorName={profileName}
+            authorUsername={profile.username}
             authorAvatarUrl={profile.avatarUrl ?? null}
             isOwnProfile
           />

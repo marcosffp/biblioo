@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { DnaResponse, DnaProgressResponse } from "@/services/profile";
+import type { DnaResponse, DnaProgressResponse } from "@/types/api";
 
 const SEGMENT_COLORS = ["#3FC3A7", "#818cf8", "#f59e0b", "#fb7185", "#34d399"];
 

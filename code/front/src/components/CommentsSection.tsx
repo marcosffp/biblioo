@@ -1,20 +1,21 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import Image from "next/image";
 import { CornerDownRight, Heart, Send, Trash2 } from "lucide-react";
 import {
-  CommentData,
   createCommentReply,
   createPostComment,
   createReviewComment,
   deleteComment,
-  formatFeedTime,
   getCommentReplies,
   getCurrentUserId,
   getPostComments,
   getReviewComments,
   toggleCommentLike,
 } from "@/services/feed";
+import type { CommentData } from "@/types/api";
+import { formatFeedTime } from "@/utils/date";
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
 
@@ -37,10 +38,11 @@ function Avatar({
 
   if (avatarUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={avatarUrl}
         alt={username ?? "avatar"}
+        width={sm ? 28 : 32}
+        height={sm ? 28 : 32}
         className={`${size} shrink-0 rounded-full object-cover`}
       />
     );

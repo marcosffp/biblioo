@@ -1,4 +1,4 @@
-import type { BackendShelfSummaryResponse } from "@/services";
+import type { BackendShelfSummaryResponse } from "@/types/api";
 
 interface ShelfSelectionListProps {
   shelves: BackendShelfSummaryResponse[];

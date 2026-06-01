@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Heart, MessageCircle, MoreHorizontal, Pencil, Share2, Trash2 } from "lucide-react";
+import React, { memo, useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { AlertTriangle, Heart, MessageCircle, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { RatingStars } from "./RatingStars";
 import { UserBadge } from "./UserBadge";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
@@ -14,6 +15,7 @@ import { ClientPortal } from "./ClientPortal";
 export interface ReviewFeedCardProps {
   reviewId?: number;
   authorName: string;
+  authorUsername?: string;
   authorAvatarUrl?: string | null;
   time?: string;
   bookId?: number | null;
@@ -74,9 +76,10 @@ function ConfirmDeleteModal({
   );
 }
 
-export function ReviewFeedCard({
+export const ReviewFeedCard = memo(function ReviewFeedCard({
   reviewId,
   authorName,
+  authorUsername,
   authorAvatarUrl,
   time,
   bookId,
@@ -171,7 +174,7 @@ export function ReviewFeedCard({
       >
         {/* Header */}
         <div className="flex items-start justify-between p-4 pb-3">
-          <UserBadge name={authorName} avatarUrl={authorAvatarUrl ?? undefined} subtitle={subtitle} />
+          <UserBadge name={authorName} avatarUrl={authorAvatarUrl ?? undefined} subtitle={subtitle} href={authorUsername ? `/profile/${authorUsername}` : undefined} />
 
           <div className="flex items-center gap-1">
             {isOwn && reviewId != null ? (
@@ -227,8 +230,7 @@ export function ReviewFeedCard({
           >
             <div className="h-16 w-11 shrink-0 overflow-hidden rounded-lg shadow-sm">
               {bookCoverUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={bookCoverUrl} alt={bookTitle} className="h-full w-full object-cover" />
+                <Image src={bookCoverUrl} alt={bookTitle} width={44} height={64} className="h-full w-full object-cover" />
               ) : (
                 <BookCoverPlaceholder title={bookTitle} author={bookAuthors?.[0] ?? undefined} />
               )}
@@ -285,20 +287,22 @@ export function ReviewFeedCard({
           {images && images.length > 0 ? (
             <div className={`mb-3 overflow-hidden rounded-xl ${images.length === 1 ? "" : "grid grid-cols-2 gap-1.5"}`}>
               {images.map((src, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   key={i}
                   src={src}
                   alt={`Imagem ${i + 1} da avaliação`}
+                  width={600}
+                  height={images.length === 1 ? 288 : 160}
                   className={`w-full object-cover ${images.length === 1 ? "max-h-72 rounded-xl" : "h-40 rounded-lg"}`}
                 />
               ))}
             </div>
           ) : gifUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={gifUrl}
               alt="GIF da avaliação"
+              width={600}
+              height={256}
               className="mb-3 w-full max-h-64 rounded-xl object-cover"
             />
           ) : null}
@@ -337,13 +341,6 @@ export function ReviewFeedCard({
               <span>{commentCount}</span>
             </button>
 
-            <button
-              type="button"
-              aria-label="Compartilhar"
-              className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-gray-400 transition-all hover:bg-slate-50 hover:text-gray-600 active:scale-95"
-            >
-              <Share2 size={15} />
-            </button>
           </div>
 
           {showComments && reviewId !== undefined && (
@@ -379,6 +376,6 @@ export function ReviewFeedCard({
       )}
     </>
   );
-}
+});
 
 export default ReviewFeedCard;

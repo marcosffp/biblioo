@@ -8,6 +8,7 @@ import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.domain.port.in.ShelfUseCase;
 import com.biblioo.books.domain.port.out.ShelfEventPublisherPort;
+import com.biblioo.books.infrasestructure.persistence.ReadingActiveDayRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfItemRepository;
 import com.biblioo.books.infrasestructure.persistence.ShelfRepository;
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ public class ShelfService implements ShelfUseCase {
 
   private final ShelfRepository shelfRepository;
   private final ShelfItemRepository shelfItemRepository;
+  private final ReadingActiveDayRepository readingActiveDayRepository;
   private final BookUseCase bookUseCase;
   private final ShelfEventPublisherPort shelfEventPublisherPort;
 
@@ -216,6 +218,7 @@ public class ShelfService implements ShelfUseCase {
     }
 
     item.setCurrentPage(page);
+    readingActiveDayRepository.insertOrIgnore(userId, item.getBookId(), LocalDate.now());
 
     boolean justCompleted = max < Integer.MAX_VALUE && page == max;
 
@@ -333,5 +336,11 @@ public class ShelfService implements ShelfUseCase {
   @Transactional(readOnly = true)
   public ShelfItem getShelfItem(Long userId, Long shelfId, Long bookId) {
     return resolveOwnedItem(userId, shelfId, bookId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long countActiveDaysByUserId(Long userId) {
+    return readingActiveDayRepository.countByUserId(userId);
   }
 }

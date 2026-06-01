@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import {
   BookOpen,
   CheckCircle2,
@@ -11,9 +12,8 @@ import {
   Trophy,
   XCircle,
 } from "lucide-react";
-import type { VotingResponse, VotingOptionResponse } from "@/services/voting";
+import type { VotingResponse, VotingOptionResponse, CreateVotingRequest } from "@/types/api";
 import { CreateVotingModal } from "./CreateVotingModal";
-import type { CreateVotingRequest } from "@/services/voting";
 
 interface VotingPanelProps {
   voting: VotingResponse | null;
@@ -65,10 +65,11 @@ function VotingOptionRow({
       />
       <div className="relative flex items-center gap-3 px-3 py-2.5">
         {option.bookCoverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={option.bookCoverUrl}
             alt={option.bookTitle}
+            width={32}
+            height={48}
             className="h-12 w-8 rounded object-cover shrink-0 shadow-sm"
           />
         ) : (
@@ -275,8 +276,7 @@ export function VotingPanel({
           <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3">
             <Trophy className="h-5 w-5 text-emerald-600 shrink-0" />
             {winner.bookCoverUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={winner.bookCoverUrl} alt={winner.bookTitle} className="h-12 w-8 rounded object-cover shadow-sm shrink-0" />
+              <Image src={winner.bookCoverUrl} alt={winner.bookTitle} width={32} height={48} className="h-12 w-8 rounded object-cover shadow-sm shrink-0" />
             )}
             <div className="min-w-0">
               <p className="text-xs font-semibold text-emerald-700">Próxima leitura</p>

@@ -5,7 +5,8 @@ import { Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CommunityCard } from "@/components/CommunityCard";
 import { ProfileFollowersPanel } from "@/components/profile/ProfileFollowersPanel";
-import { listCommunities, type BackendCommunityResponse } from "@/services/community";
+import { listCommunities } from "@/services/community";
+import type { BackendCommunityResponse } from "@/types/api";
 import { getAccessToken } from "@/services/auth";
 import { getBookById } from "@/services/bookcase";
 

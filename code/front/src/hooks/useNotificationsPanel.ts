@@ -13,7 +13,7 @@ import {
   listPendingCommunityJoinRequests,
   rejectCommunityJoinRequest,
 } from "@/services/community";
-import { type NotificationSummary } from "@/services/notifications";
+import type { NotificationSummary } from "@/types/api";
 import {
   acceptFollowRequest,
   listPendingFollowRequests,

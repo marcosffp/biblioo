@@ -30,4 +30,6 @@ public interface ShelfUseCase {
   ShelfItem getShelfItemById(Long userId, Long shelfId, Long itemId);
 
   ShelfItem getShelfItem(Long userId, Long shelfId, Long bookId);
+
+  long countActiveDaysByUserId(Long userId);
 }

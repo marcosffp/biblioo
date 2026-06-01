@@ -1,23 +1,8 @@
-import { getAccessToken } from "@/services/auth";
+import { jsonBearerHeaders } from "@/lib/api-headers";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export interface AssistantChatRequest {
-  message: string;
-  conversationId?: string | null;
-}
-
-export interface AssistantChatResponse {
-  reply: string;
-  conversationId: string;
-}
-
-export interface AssistantConversationSummary {
-  id: string;
-  title: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { AssistantChatRequest, AssistantChatResponse, AssistantConversationSummary } from "@/types/api";
 
 class AssistantApiError extends Error {
   readonly status?: number;
@@ -29,18 +14,6 @@ class AssistantApiError extends Error {
   }
 }
 
-function buildAuthHeaders(): HeadersInit {
-  const accessToken = getAccessToken();
-
-  if (!accessToken) {
-    throw new AssistantApiError("Usuário não autenticado.", 401);
-  }
-
-  return {
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json",
-  };
-}
 
 async function readErrorMessage(response: Response): Promise<string> {
   try {
@@ -59,7 +32,7 @@ export async function sendAssistantMessage(
   try {
     response = await fetch(`${API_BASE_URL}/assistant/chat`, {
       method: "POST",
-      headers: buildAuthHeaders(),
+      headers: jsonBearerHeaders(),
       body: JSON.stringify(request),
     });
   } catch {
@@ -90,7 +63,7 @@ export async function listAssistantConversations(): Promise<AssistantConversatio
 
   try {
     response = await fetch(`${API_BASE_URL}/assistant/conversations`, {
-      headers: buildAuthHeaders(),
+      headers: jsonBearerHeaders(),
     });
   } catch {
     throw new AssistantApiError("Não foi possível conectar ao servidor.");

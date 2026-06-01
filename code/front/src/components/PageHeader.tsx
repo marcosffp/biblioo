@@ -11,9 +11,9 @@ export function PageHeader({ title, subtitle, action }: Readonly<PageHeaderProps
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border-soft)] pb-5">
       {title || subtitle ? (
-        <div>
+        <div className="min-w-0 flex-1">
           {title ? (
-            <h1 className="m-0 text-3xl font-semibold leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl">
+            <h1 className="m-0 w-full text-3xl font-semibold leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl">
               {title}
             </h1>
           ) : null}

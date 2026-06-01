@@ -9,12 +9,15 @@ import {
   getCommunityWebSocketEndpoint,
   syncCommunityMessagesAfter,
   uploadCommunityMessageMedia,
-  type BackendCommunityMember,
-  type BackendCommunityMessage,
-  type BackendMessageEventPayload,
 } from "@/services/community-messages";
-import type { VotingEventPayload } from "@/services/voting";
+import type {
+  BackendCommunityMember,
+  BackendCommunityMessage,
+  BackendMessageEventPayload,
+  VotingEventPayload,
+} from "@/types/api";
 import type { CommunityChatMessage, CommunityMember } from "@/hooks/useCommunity";
+import { formatMessageTime } from "@/utils/date";
 
 interface SendMessageInput {
   content: string;
@@ -53,18 +56,6 @@ function parseMessageEvent(payload: string): BackendMessageEventPayload | null {
   }
 }
 
-function formatMessageTime(value?: string | null): string {
-  if (!value) {
-    return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  }
-
-  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-}
 
 function mapMember(item: BackendCommunityMember): CommunityMember {
   const username = item.username?.trim() ? item.username.trim() : `membro-${item.userId}`;
@@ -575,7 +566,7 @@ export function useCommunityMessages(communityId: string) {
             userId: currentUserId ?? "me",
             userName: "Voce",
             text: normalizedContent || "Mídia anexada",
-            time: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+            time: formatMessageTime(),
             isMine: true,
             isSpoiler: hasSpoiler,
             heartCount: 0,

@@ -6,7 +6,7 @@ import type {
   BackendCollectionStatisticsResponse,
   BackendCollectionSummaryResponse,
   BackendShelfSummaryResponse,
-} from "@/services";
+} from "@/types/api";
 import type { RootViewMode, ShelfBook } from "@/hooks/useBookcasePage";
 import { ShelfCoverFrame } from "./ShelfCoverFrame";
 
@@ -41,6 +41,7 @@ type CollectionStatusCard = {
   icon: typeof BookOpen;
   toneClassName: string;
   count: number;
+  tooltip: string;
 };
 
 function statusClassName(status: ShelfBook["readingStatus"]): string {
@@ -131,24 +132,28 @@ export function BookcaseResults({
       icon: BookMarked,
       toneClassName: "text-emerald-700",
       count: booksCompleted,
+      tooltip: "Livros com status 'Lido' nas estantes desta coleção.",
     },
     {
       label: "Lendo",
       icon: BookOpen,
       toneClassName: "text-amber-700",
       count: booksReading,
+      tooltip: "Livros que você está lendo ou relendo atualmente.",
     },
     {
       label: "Quero ler",
       icon: Bookmark,
       toneClassName: "text-slate-600",
       count: booksWantToRead,
+      tooltip: "Livros marcados para ler futuramente.",
     },
     {
       label: "Abandonados",
       icon: BookX,
       toneClassName: "text-rose-700",
       count: booksAbandoned,
+      tooltip: "Livros que você começou mas parou de ler.",
     },
   ];
 
@@ -416,7 +421,14 @@ export function BookcaseResults({
 
             {!isLoadingCollectionStats && !collectionStatsError && selectedCollectionStats ? (
               <>
-                <div className="mb-3 rounded-[12px] bg-[#f4f8f6] px-4 py-3">
+                <div className="group relative mb-3 rounded-[12px] bg-[#f4f8f6] px-4 py-3">
+                  <div className="absolute right-2 top-2">
+                    <span className="flex h-3.5 w-3.5 cursor-default items-center justify-center rounded-full bg-[var(--border-soft)] text-[8px] font-bold text-[var(--text-secondary)]">?</span>
+                    <div className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 w-44 rounded-lg bg-gray-800 px-2.5 py-2 text-[11px] leading-snug text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                      Total de livros em todas as estantes desta coleção.
+                      <div className="absolute right-2 bottom-full border-4 border-transparent border-b-gray-800" />
+                    </div>
+                  </div>
                   <p className="text-xs uppercase tracking-wide text-[var(--text-secondary)]">Total</p>
                   <p className="mt-1 text-3xl font-semibold leading-none text-[var(--text-primary)]">{formatNumber(totalBooks)}</p>
                 </div>
@@ -426,7 +438,14 @@ export function BookcaseResults({
                     const StatusIcon = statusCard.icon;
 
                     return (
-                      <div key={statusCard.label} className="rounded-[12px] bg-[#f4f8f6] px-3.5 py-2.5">
+                      <div key={statusCard.label} className="group relative rounded-[12px] bg-[#f4f8f6] px-3.5 py-2.5">
+                        <div className="absolute right-2 top-2">
+                          <span className="flex h-3.5 w-3.5 cursor-default items-center justify-center rounded-full bg-[var(--border-soft)] text-[8px] font-bold text-[var(--text-secondary)]">?</span>
+                          <div className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 w-44 rounded-lg bg-gray-800 px-2.5 py-2 text-[11px] leading-snug text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                            {statusCard.tooltip}
+                            <div className="absolute right-2 bottom-full border-4 border-transparent border-b-gray-800" />
+                          </div>
+                        </div>
                         <div className="flex items-center gap-1.5">
                           <StatusIcon size={13} className={statusCard.toneClassName} />
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
@@ -555,7 +574,7 @@ export function BookcaseResults({
               className="w-full pr-12 text-left"
               aria-label={`Abrir coleção ${collection.name}`}
             >
-              <p className="text-left text-base font-semibold text-[var(--text-primary)]">{collection.name}</p>
+              <p className="truncate text-left text-base font-semibold text-[var(--text-primary)]">{collection.name}</p>
               <p className="mt-1 text-left text-sm text-[var(--text-secondary)]">
                 {collection.shelfCount} {collection.shelfCount === 1 ? "estante" : "estantes"}
               </p>

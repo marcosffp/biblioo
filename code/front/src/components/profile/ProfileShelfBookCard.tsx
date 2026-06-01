@@ -1,4 +1,6 @@
 import React from "react";
+import Image from "next/image";
+import { BookCoverPlaceholder } from "../BookCoverPlaceholder";
 import { ProgressBar } from "../ProgressBar";
 import { RatingStars } from "../RatingStars";
 
@@ -67,16 +69,15 @@ export function ProfileShelfBookCard({
       <div className="relative aspect-[3/4] rounded-t-[22px]">
         <div className="absolute inset-0 h-full w-full overflow-hidden rounded-t-[22px]">
           {coverUrl ? (
-            <img
+            <Image
               src={coverUrl}
               alt={`Capa de ${title}`}
+              width={150}
+              height={200}
               className="h-full w-full object-cover"
-              loading="lazy"
             />
           ) : (
-            <div className="flex h-full items-center justify-center p-4 text-center">
-              <div className="line-clamp-3 text-xl font-medium text-deep-green">{title}</div>
-            </div>
+            <BookCoverPlaceholder title={title} author={author} className="h-full w-full" />
           )}
         </div>
       </div>

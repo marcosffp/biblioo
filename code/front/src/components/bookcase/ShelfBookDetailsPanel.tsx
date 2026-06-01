@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { ChevronDown, Minus, Plus, Rss, Trash2 } from "lucide-react";
-import { BackHeader, RatingStars, TopHeader } from "@/components";
+import { BackHeader, BookCoverPlaceholder, RatingStars, TopHeader } from "@/components";
 import type { ShelfBook } from "@/hooks/useBookcasePage";
 import type { ReadingStatus } from "@/utils/bookcase-filters";
 
@@ -308,15 +309,19 @@ export function ShelfBookDetailsPanel({
           <div className="grid gap-6 md:grid-cols-[250px_1fr] md:items-start">
             <div>
               {book.coverUrl ? (
-                <img
+                <Image
                   src={book.coverUrl}
                   alt={`Capa de ${book.title}`}
+                  width={208}
+                  height={288}
                   className="h-72 w-52 rounded-[14px] object-cover"
                 />
               ) : (
-                <div className="flex h-72 w-52 items-center justify-center rounded-[14px] bg-[var(--bg-soft)] text-sm font-medium text-[var(--brand-600)]">
-                  Capa do Livro
-                </div>
+                <BookCoverPlaceholder
+                  title={book.title}
+                  author={book.author}
+                  className="h-72 w-52 rounded-[14px]"
+                />
               )}
 
               <div className="mt-4 space-y-2 text-sm text-[var(--text-secondary)]">

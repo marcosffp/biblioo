@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { AlertTriangle, Heart, MessageCircle, Share2 } from "lucide-react";
+import React, { memo, useEffect, useState } from "react";
+import Image from "next/image";
+import { AlertTriangle, Heart, MessageCircle } from "lucide-react";
 import { UserBadge } from "./UserBadge";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookDetailsCard } from "./BookDetailsCard";
@@ -14,6 +15,7 @@ export interface PostCardProps {
   postId?: number;
   author: string;
   authorHandle?: string;
+  authorUsername?: string;
   avatarUrl?: string;
   time?: string;
   content?: string;
@@ -29,10 +31,11 @@ export interface PostCardProps {
   hasSpoiler?: boolean;
 }
 
-export function PostCard({
+export const PostCard = memo(function PostCard({
   postId,
   author,
   authorHandle,
+  authorUsername,
   avatarUrl,
   time,
   content,
@@ -117,7 +120,7 @@ export function PostCard({
       >
         {/* Header */}
         <div className="flex items-start justify-between p-4 pb-3">
-          <UserBadge name={author} subtitle={authorHandle} avatarUrl={avatarUrl} />
+          <UserBadge name={author} subtitle={authorHandle} avatarUrl={avatarUrl} href={authorUsername ? `/profile/${authorUsername}` : undefined} />
           {time ? (
             <span className="mt-0.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-400">
               {time}
@@ -135,8 +138,7 @@ export function PostCard({
             >
               <div className="h-14 w-10 shrink-0 overflow-hidden rounded-lg shadow-sm">
                 {bookCoverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={bookCoverUrl} alt={bookTitle ?? ""} className="h-full w-full object-cover" />
+                  <Image src={bookCoverUrl} alt={bookTitle ?? ""} width={40} height={56} className="h-full w-full object-cover" />
                 ) : (
                   <BookCoverPlaceholder title={bookTitle ?? undefined} author={bookAuthors?.[0] ?? undefined} />
                 )}
@@ -180,11 +182,12 @@ export function PostCard({
               {images && images.length > 0 && (
                 <div className={`mt-3 grid gap-1.5 overflow-hidden rounded-xl ${images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
                   {images.map((src, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       key={i}
                       src={src}
                       alt={`Imagem ${i + 1}`}
+                      width={600}
+                      height={288}
                       className="w-full rounded-xl object-cover max-h-72"
                     />
                   ))}
@@ -192,8 +195,7 @@ export function PostCard({
               )}
 
               {gifUrl && !(images && images.length > 0) && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={gifUrl} alt="GIF" className="mt-3 max-h-64 w-full rounded-xl object-cover" />
+                <Image src={gifUrl} alt="GIF" width={600} height={256} className="mt-3 max-h-64 w-full rounded-xl object-cover" />
               )}
             </>
           )}
@@ -232,13 +234,6 @@ export function PostCard({
               <span>{commentCount}</span>
             </button>
 
-            <button
-              type="button"
-              aria-label="Compartilhar"
-              className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-gray-400 transition-all hover:bg-slate-50 hover:text-gray-600 active:scale-95"
-            >
-              <Share2 size={15} />
-            </button>
           </div>
 
           {showComments && postId !== undefined && (
@@ -267,6 +262,6 @@ export function PostCard({
       )}
     </>
   );
-}
+});
 
 export default PostCard;

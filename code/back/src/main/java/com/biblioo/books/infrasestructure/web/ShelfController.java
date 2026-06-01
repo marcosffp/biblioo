@@ -155,6 +155,18 @@ public class ShelfController {
     return ResponseEntity.noContent().build();
   }
 
+  @GetMapping("/me/active-reading-days")
+  @Operation(
+      summary = "Dias ativos de leitura",
+      description = "Retorna o total de dias distintos em que o usuário autenticado registrou pelo menos uma atualização de progresso de leitura.")
+  public ResponseEntity<java.util.Map<String, Long>> getActiveReadingDays(
+      @AuthenticationPrincipal UserDetails principal) {
+
+    Long userId = currentUserId(principal);
+    long count = shelfUseCase.countActiveDaysByUserId(userId);
+    return ResponseEntity.ok(java.util.Map.of("count", count));
+  }
+
   private List<String> buildCoverPreview(List<ShelfItem> items) {
     return items.stream()
         .map(

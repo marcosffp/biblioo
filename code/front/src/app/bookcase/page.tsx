@@ -89,6 +89,7 @@ export default function EstantePage() {
     isAddingToShelf,
     isSearchingAddBook,
     isBookDetailsOpen,
+    selectedShelfId,
     isCreateCollectionModalOpen,
     isCreateShelfModalOpen,
     isDeleteShelfModalOpen,
@@ -151,7 +152,6 @@ export default function EstantePage() {
     setProgressDraft,
     setSearchTerm,
     setStatusFilter,
-    selectedShelfIdForSuggestion,
     shelves,
     statusFilter,
     toggleCollectionShelfSelection,
@@ -159,7 +159,6 @@ export default function EstantePage() {
     visibleAddBookSuggestions,
     handleStepShelfBookPage,
     handleSetShelfBookPage,
-    handleSelectShelfForSuggestion,
   } = useBookcasePage();
 
   useEffect(() => {
@@ -227,7 +226,6 @@ export default function EstantePage() {
         onBack={handleBackToShelves}
         ariaLabel="Voltar para coleções"
         title={selectedCollectionName}
-        className="items-center"
       />
     );
   }
@@ -388,12 +386,9 @@ export default function EstantePage() {
         selectedSuggestionBook={selectedSuggestionBook}
         handleCloseBookDetails={handleCloseBookDetails}
         handleAddSelectedBookToShelf={handleAddSelectedBookToShelf}
-        selectedShelfIdForSuggestion={selectedShelfIdForSuggestion}
-        handleSelectShelfForSuggestion={handleSelectShelfForSuggestion}
-        isSelectedBookAlreadyInShelf={isSelectedBookAlreadyInShelf}
+        alreadyInShelfId={isSelectedBookAlreadyInShelf && selectedShelfId != null ? selectedShelfId : undefined}
         isAddingToShelf={isAddingToShelf}
         addToShelfError={addToShelfError}
-        currentShelfName={isInsideShelf && selectedShelfName ? selectedShelfName : undefined}
       />
 
       <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>

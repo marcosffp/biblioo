@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Download, Share2, Link2, Check, Loader2, AlertCircle } from "lucide-react";
 import { getAccessToken } from "@/services/auth";
-
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { generateShareCard } from "@/services/profile";
 
 export type ShareCapsuleModalProps = {
   open: boolean;
@@ -49,13 +49,7 @@ export function ShareCapsuleModal({
 
       try {
         const token = getAccessToken();
-        const res = await fetch(`${API_BASE_URL}/share/card?type=dna`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-
-        if (!res.ok) throw new Error("Falha ao gerar imagem");
-
-        const blob = await res.blob();
+        const blob = await generateShareCard("dna", token);
         if (cancelled) return;
 
         objectUrl = URL.createObjectURL(blob);
@@ -164,11 +158,14 @@ export function ShareCapsuleModal({
               )}
 
               {imageUrl && !isLoadingImage && (
-                <img
+                <Image
                   src={imageUrl}
                   alt="Cápsula literária"
+                  width={600}
+                  height={900}
                   className="w-full rounded-3xl"
                   draggable={false}
+                  unoptimized
                 />
               )}
             </div>

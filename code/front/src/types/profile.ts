@@ -1,5 +1,5 @@
 import type { ShelfBook } from "@/hooks/useBookcasePage";
-import type { ShelfItemSummaryResponse } from "@/services/profile";
+import type { ShelfItemSummaryResponse } from "@/types/api";
 
 export type DisplayShelfBook = Omit<ShelfBook, "shelfItemId"> & {
   shelfItemId: number;

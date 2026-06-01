@@ -1,7 +1,7 @@
 ﻿import { AuthSession, LoginRequest, RegisterRequest } from "@/types";
 import { getJwtExpiry } from "@/utils/jwt";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 export const AUTH_SESSION_STORAGE_KEY = "biblioo.auth.session";
 export const AUTH_GUARD_COOKIE_KEY = "biblioo.authenticated";
 

@@ -1,52 +1,18 @@
-import { getAccessToken } from "@/services/auth";
+import { optionalBearerHeaders, requiredBearerHeaders, jsonBearerHeaders } from "@/lib/api-headers";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export type BackendCommunityType = "PUBLIC" | "PRIVATE";
-
-export interface BackendCommunityResponse {
-  id: number;
-  name: string;
-  description?: string | null;
-  type: BackendCommunityType;
-  bookId: number;
-  ownerId: number;
-  memberCount: number;
-  createdAt: string;
-}
+import type {
+  BackendCommunityType,
+  BackendCommunityResponse,
+  PendingCommunityInviteResponse,
+  PendingCommunityJoinRequestResponse,
+  CreateCommunityPayload,
+  CommunityActionResult,
+} from "@/types/api";
 
 interface BackendPageResponse<T> {
   content: T[];
-}
-
-export interface PendingCommunityInviteResponse {
-  id: number;
-  communityId: number;
-  communityName: string;
-  inviterId: number;
-  inviterUsername: string;
-  status: string;
-  createdAt: string;
-}
-
-export interface PendingCommunityJoinRequestResponse {
-  id: number;
-  userId: number;
-  username: string | null;
-  avatarUrl: string | null;
-  status: string;
-  createdAt: string;
-}
-
-export interface CreateCommunityPayload {
-  name: string;
-  description?: string;
-  type: BackendCommunityType;
-  bookId: number;
-}
-
-export interface CommunityActionResult {
-  success: true;
 }
 
 export class CommunityApiError extends Error {
@@ -67,26 +33,6 @@ interface ListCommunitiesParams {
   token?: string | null;
 }
 
-function resolveToken(token?: string | null): string | null {
-  return token ?? getAccessToken();
-}
-
-function withOptionalBearerHeaders(token?: string | null): HeadersInit {
-  const resolved = resolveToken(token);
-  return resolved ? { Authorization: `Bearer ${resolved}` } : {};
-}
-
-function withRequiredBearerHeaders(token?: string | null): HeadersInit {
-  const resolved = resolveToken(token);
-
-  if (!resolved) {
-    throw new CommunityApiError("Usuário não autenticado.", 401);
-  }
-
-  return {
-    Authorization: `Bearer ${resolved}`,
-  };
-}
 
 async function readErrorMessage(response: Response): Promise<string> {
   try {
@@ -127,7 +73,7 @@ export async function listCommunities({
 
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}?${query.toString()}`, {
-      headers: withOptionalBearerHeaders(token),
+      headers: optionalBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possível carregar comunidades.");
@@ -147,10 +93,7 @@ export async function createCommunity(payload: CreateCommunityPayload, token?: s
   try {
     response = await fetch(`${API_BASE_URL}/communities`, {
       method: "POST",
-      headers: {
-        ...withRequiredBearerHeaders(token),
-        "Content-Type": "application/json",
-      },
+      headers: jsonBearerHeaders(token),
       body: JSON.stringify(payload),
     });
   } catch {
@@ -166,7 +109,7 @@ export async function joinCommunity(communityId: number, token?: string | null):
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/join`, {
       method: "POST",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possível conectar ao servidor para entrar na comunidade.");
@@ -195,7 +138,7 @@ export async function joinCommunityByInviteLink(
   try {
     response = await fetch(`${API_BASE_URL}/communities/join/${encodeURIComponent(normalizedToken)}`, {
       method: "POST",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para entrar com convite.");
@@ -218,7 +161,7 @@ export async function requestCommunityJoin(
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/join-requests`, {
       method: "POST",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para solicitar entrada.");
@@ -242,10 +185,7 @@ export async function inviteUserToCommunity(
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/invites`, {
       method: "POST",
-      headers: {
-        ...withRequiredBearerHeaders(token),
-        "Content-Type": "application/json",
-      },
+      headers: jsonBearerHeaders(token),
       body: JSON.stringify({ inviteeId }),
     });
   } catch {
@@ -269,7 +209,7 @@ export async function acceptCommunityInvite(
   try {
     response = await fetch(`${API_BASE_URL}/communities/invites/${inviteId}/accept`, {
       method: "POST",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para aceitar o convite.");
@@ -292,7 +232,7 @@ export async function declineCommunityInvite(
   try {
     response = await fetch(`${API_BASE_URL}/communities/invites/${inviteId}/decline`, {
       method: "POST",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para recusar o convite.");
@@ -315,7 +255,7 @@ export async function listPendingCommunityInvites(
 
   try {
     response = await fetch(`${API_BASE_URL}/communities/invites/pending?page=${page}&size=${size}`, {
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel carregar convites pendentes.");
@@ -339,7 +279,7 @@ export async function listPendingCommunityJoinRequests(
 
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/join-requests?page=${page}&size=${size}`, {
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel carregar solicitações pendentes.");
@@ -362,7 +302,7 @@ export async function approveCommunityJoinRequest(
   try {
     response = await fetch(`${API_BASE_URL}/communities/join-requests/${requestId}/approve`, {
       method: "POST",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para aprovar solicitacao.");
@@ -385,7 +325,7 @@ export async function rejectCommunityJoinRequest(
   try {
     response = await fetch(`${API_BASE_URL}/communities/join-requests/${requestId}/reject`, {
       method: "POST",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para rejeitar solicitacao.");
@@ -409,7 +349,7 @@ export async function removeCommunityMember(
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/members/${userId}`, {
       method: "DELETE",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para remover o membro.");
@@ -432,7 +372,7 @@ export async function leaveCommunity(
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/leave`, {
       method: "DELETE",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para sair da comunidade.");
@@ -454,7 +394,7 @@ export async function getCommunityInviteLink(
 
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}`, {
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel carregar os dados da comunidade.");
@@ -473,7 +413,7 @@ export async function revokeCommunityInviteLink(
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/invite-link`, {
       method: "DELETE",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel revogar o codigo de convite.");
@@ -494,7 +434,7 @@ export async function generateCommunityInviteLink(
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/invite-link`, {
       method: "POST",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel gerar o codigo de convite.");
@@ -515,10 +455,7 @@ export async function changeCommunityMemberRole(
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}/members/${userId}/role`, {
       method: "PUT",
-      headers: {
-        ...withRequiredBearerHeaders(token),
-        "Content-Type": "application/json",
-      },
+      headers: jsonBearerHeaders(token),
       body: JSON.stringify({ role }),
     });
   } catch {
@@ -542,7 +479,7 @@ export async function deleteCommunity(
   try {
     response = await fetch(`${API_BASE_URL}/communities/${communityId}`, {
       method: "DELETE",
-      headers: withRequiredBearerHeaders(token),
+      headers: requiredBearerHeaders(token),
     });
   } catch {
     throw new CommunityApiError("Não foi possivel conectar ao servidor para excluir a comunidade.");

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -9,7 +10,7 @@ import {
   CirclePlus,
   CornerUpLeft,
   Heart,
-  Image,
+  Image as ImageIcon,
   ImagePlus,
   Info,
   MoreHorizontal,
@@ -315,10 +316,12 @@ export function CommunityChatPanel({
           const displayUrl = community.coverUrl ?? community.bookCoverUrl;
           if (displayUrl) {
             return (
-              <img
+              <Image
                 src={displayUrl}
                 alt={community.name}
                 aria-hidden="true"
+                width={40}
+                height={40}
                 className="h-10 w-10 rounded-full object-cover"
               />
             );
@@ -531,10 +534,12 @@ export function CommunityChatPanel({
                             {!message.isDeleted && message.images && message.images.length > 0 ? (
                               <div className="grid grid-cols-2 gap-1.5">
                                 {message.images.map((imageUrl) => (
-                                  <img
+                                  <Image
                                     key={imageUrl}
                                     src={imageUrl}
                                     alt="Imagem anexada"
+                                    width={300}
+                                    height={112}
                                     className="h-28 w-full rounded-lg object-cover"
                                   />
                                 ))}
@@ -542,7 +547,7 @@ export function CommunityChatPanel({
                             ) : null}
 
                             {!message.isDeleted && message.gifUrl ? (
-                              <img src={message.gifUrl} alt="GIF anexado" className="max-h-44 w-full rounded-lg object-cover" />
+                              <Image src={message.gifUrl} alt="GIF anexado" width={400} height={176} className="max-h-44 w-full rounded-lg object-cover" />
                             ) : null}
                           </div>
                         )}
@@ -576,10 +581,12 @@ export function CommunityChatPanel({
             <div className="flex -space-x-1.5">
               {typingUsers.slice(0, 3).map((u) =>
                 u.avatarUrl ? (
-                  <img
+                  <Image
                     key={u.userId}
                     src={u.avatarUrl}
                     alt={u.username}
+                    width={20}
+                    height={20}
                     className="h-5 w-5 rounded-full border-2 border-white object-cover"
                   />
                 ) : (
@@ -707,7 +714,7 @@ export function CommunityChatPanel({
                 }}
                 className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
               >
-                <Image className="h-4 w-4 text-sky-600" />
+                <ImageIcon className="h-4 w-4 text-sky-600" />
                 Fotos e vídeos
               </button>
               <button

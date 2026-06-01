@@ -11,8 +11,9 @@ import {
   joinCommunityByInviteLink,
   listCommunities,
   requestCommunityJoin,
-  type BackendCommunityResponse,
 } from "@/services/community";
+import type { BackendCommunityResponse } from "@/types/api";
+import { formatMonthYear } from "@/utils/date";
 
 export type CommunityVisibility = "PUBLIC" | "PRIVATE";
 
@@ -74,22 +75,6 @@ interface CreateCommunityInput {
   selectedBook?: CommunityBookOption | null;
 }
 
-function toCreatedAtLabel(value?: string | null): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return undefined;
-  }
-
-  return date.toLocaleDateString("pt-BR", {
-    month: "long",
-    year: "numeric",
-  });
-}
-
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -106,13 +91,13 @@ interface BookInfo {
 async function loadBookInfoById(bookIds: number[]): Promise<Map<number, BookInfo>> {
   const uniqueBookIds = Array.from(new Set(bookIds));
   const entries = await Promise.all(
-    uniqueBookIds.map(async (bookId) => {
+    uniqueBookIds.map(async (bookId): Promise<[number, BookInfo]> => {
       try {
         const book = await getBookById(bookId);
         const author = book.authors?.join(", ") || "Autor desconhecido";
-        return [bookId, { title: `${book.title} - ${author}`, coverUrl: book.coverUrl }] as const;
+        return [bookId, { title: `${book.title} - ${author}`, coverUrl: book.coverUrl }];
       } catch {
-        return [bookId, { title: `Livro #${bookId}` }] as const;
+        return [bookId, { title: `Livro #${bookId}` }];
       }
     }),
   );
@@ -145,7 +130,7 @@ function mapToCommunity(
     isMember: context.mineIds.has(apiCommunity.id),
     ownerId: String(apiCommunity.ownerId),
     description: apiCommunity.description ?? undefined,
-    createdAtLabel: toCreatedAtLabel(apiCommunity.createdAt),
+    createdAtLabel: formatMonthYear(apiCommunity.createdAt),
   };
 }
 

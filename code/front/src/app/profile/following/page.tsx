@@ -9,11 +9,8 @@ import { getAccessToken } from "@/services/auth";
 import { humanizeUsername } from "@/utils/format";
 import { useFollowToggle } from "@/hooks/useFollowToggle";
 import { FollowUserCard } from "@/components/profile/FollowUserCard";
-import {
-  getMyProfile,
-  listFollowingByUsername,
-  type UserSummaryResponse,
-} from "@/services/profile";
+import { getMyProfile, listFollowingByUsername } from "@/services/profile";
+import type { UserSummaryResponse } from "@/types/api";
 
 export default function FollowingPage() {
   const router = useRouter();

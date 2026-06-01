@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UserPlus } from "lucide-react";
-import { AuthLayout, Button, PasswordInput, TextInput } from "@/components";
+import { AuthLayout, Button, isPasswordValid, PasswordInput, PasswordStrengthChecklist, TextInput } from "@/components";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { AuthApiError, registerWithEmailPassword } from "@/services";
 
@@ -44,8 +44,8 @@ function validateRegisterFields(
 
   if (!password.trim()) {
     nextErrors.password = "Senha obrigatória";
-  } else if (password.length < 8) {
-    nextErrors.password = "A senha deve ter no mínimo 8 caracteres";
+  } else if (!isPasswordValid(password)) {
+    nextErrors.password = "A senha não atende todos os requisitos indicados";
   }
 
   if (!confirmPassword.trim()) {
@@ -102,6 +102,7 @@ function RegisterForm() {
         email: normalizedEmail,
         password,
       });
+      localStorage.removeItem("biblioo.onboarding.completed");
       const next = searchParams.get("next") ?? "/onboarding";
       router.push(next);
     } catch (error) {
@@ -151,15 +152,18 @@ function RegisterForm() {
               className={INPUT_CLASS}
             />
 
-            <PasswordInput
-              label="Senha"
-              placeholder="********"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              disabled={isLoading}
-              error={errors.password}
-              className={INPUT_CLASS}
-            />
+            <div>
+              <PasswordInput
+                label="Senha"
+                placeholder="********"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                disabled={isLoading}
+                error={errors.password}
+                className={INPUT_CLASS}
+              />
+              <PasswordStrengthChecklist password={password} />
+            </div>
 
             <PasswordInput
               label="Confirmar senha"

@@ -1,4 +1,4 @@
-import { type NotificationSummary } from "@/services/notifications";
+import type { NotificationSummary } from "@/types/api";
 
 export function normalizeEntityId(value: number | string | null | undefined): number | null {
   if (value === null || value === undefined || value === "") return null;

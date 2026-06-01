@@ -2,7 +2,7 @@ import Link from "next/link";
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage, Button } from "@/components";
 import { humanizeUsername } from "@/utils/format";
-import type { UserSummaryResponse } from "@/services/profile";
+import type { UserSummaryResponse } from "@/types/api";
 
 interface FollowUserCardProps {
   user: UserSummaryResponse;

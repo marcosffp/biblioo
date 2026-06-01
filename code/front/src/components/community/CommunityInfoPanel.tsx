@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { BookOpen, Calendar, Check, Copy, Globe, Inbox, Link, Loader2, Lock, Star, Trash2, UserPlus, Users, X } from "lucide-react";
-import { searchUsersByUsername, type UserSummaryResponse } from "@/services/profile";
-import { approveCommunityJoinRequest, generateCommunityInviteLink, getCommunityInviteLink, listPendingCommunityJoinRequests, rejectCommunityJoinRequest, revokeCommunityInviteLink, type PendingCommunityJoinRequestResponse } from "@/services/community";
-import { getBookById, type BackendBookResponse } from "@/services/bookcase";
+import { searchUsersByUsername } from "@/services/profile";
+import { approveCommunityJoinRequest, generateCommunityInviteLink, getCommunityInviteLink, listPendingCommunityJoinRequests, rejectCommunityJoinRequest, revokeCommunityInviteLink } from "@/services/community";
+import { getBookById } from "@/services/bookcase";
+import type { UserSummaryResponse, PendingCommunityJoinRequestResponse, BackendBookResponse } from "@/types/api";
 import type { Community, CommunityMember } from "../../hooks/useCommunity";
 import { ConfirmActionModal } from "./ConfirmActionModal";
 import { parseBookTitle } from "@/utils/book-utils";
@@ -79,10 +81,11 @@ function JoinRequestsModal({
                     <div className="flex items-center gap-3">
                       <div className="h-11 w-11 overflow-hidden rounded-full border border-emerald-100 bg-white">
                         {req.avatarUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={req.avatarUrl}
                             alt={`Avatar de ${displayName}`}
+                            width={44}
+                            height={44}
                             className="h-full w-full object-cover"
                           />
                         ) : (
@@ -150,9 +153,11 @@ function MemberAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string | 
 
   if (avatarUrl) {
     return (
-      <img
+      <Image
         src={avatarUrl}
         alt={name}
+        width={32}
+        height={32}
         className="h-8 w-8 rounded-full object-cover"
       />
     );
@@ -513,9 +518,11 @@ export function CommunityInfoPanel({
           const displayUrl = editableCoverUrl || community.bookCoverUrl;
           if (displayUrl) {
             return (
-              <img
+              <Image
                 src={displayUrl}
                 alt={community.name}
+                width={80}
+                height={80}
                 className="mb-3 h-20 w-20 rounded-full object-cover ring-2 ring-emerald-100"
               />
             );
@@ -617,10 +624,11 @@ export function CommunityInfoPanel({
             {/* capa + metadados */}
             <div className="flex gap-3 p-3">
               {bookDetails.coverUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={bookDetails.coverUrl}
                   alt={bookDetails.title}
+                  width={64}
+                  height={96}
                   className="h-24 w-16 shrink-0 rounded-lg object-cover shadow-sm"
                 />
               ) : (

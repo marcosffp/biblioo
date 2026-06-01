@@ -1,130 +1,22 @@
 ﻿import { getAccessToken } from "./auth";
+import { requiredBearerHeaders } from "@/lib/api-headers";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export type BackendReadingStatus =
-  | "WANT_TO_READ"
-  | "READING"
-  | "REREADING"
-  | "COMPLETED"
-  | "ABANDONED";
-
-export interface BackendBookSuggestResponse {
-  id: number;
-  title: string;
-  authors: string[];
-  coverUrl?: string | null;
-}
-
-export interface BackendBookResponse {
-  id: number;
-  title: string;
-  authors: string[];
-  coverUrl?: string | null;
-  pageCount?: number | null;
-  averageRating?: number | null;
-  description?: string | null;
-  synopsis?: string | null;
-  readerCount?: number | null;
-}
-
-export interface BackendShelfSummaryResponse {
-  id: number;
-  name: string;
-  itemCount: number;
-  coverPreview: string[];
-}
-
-export interface BackendShelfResponse {
-  id: number;
-  name: string;
-  description?: string | null;
-  itemCount: number;
-  coverPreview: string[];
-}
-
-export interface BackendShelfItemSummaryResponse {
-  id: number;
-  bookId: number;
-  bookTitle: string;
-  bookCoverUrl?: string | null;
-  status: BackendReadingStatus;
-  progressPercent?: number | null;
-}
-
-export interface BackendShelfItemResponse {
-  id: number;
-  shelfId: number;
-  bookId: number;
-  bookTitle: string;
-  bookCoverUrl?: string | null;
-  status: BackendReadingStatus;
-  currentPage?: number | null;
-  totalPages?: number | null;
-  progressPercent?: number | null;
-}
-
-export interface BackendCollectionSummaryResponse {
-  id: number;
-  name: string;
-  shelfCount: number;
-  shelfPreviews: BackendCollectionShelfPreview[];
-}
-
-export interface BackendCollectionShelfPreview {
-  id: number;
-  name: string;
-  itemCount: number;
-  firstBookCoverUrl?: string | null;
-}
-
-export interface BackendCollectionResponse {
-  id: number;
-  name: string;
-  description?: string | null;
-  shelfCount: number;
-  shelfPreviews: BackendCollectionShelfPreview[];
-}
-
-export interface BackendCollectionStatisticsResponse {
-  collectionId: number;
-  totalBooks: number;
-  booksCompleted: number;
-  booksReading: number;
-  booksRereading: number;
-  booksWantToRead: number;
-  booksAbandoned: number;
-  totalPages: number;
-  pagesRead: number;
-}
-
-export interface BackendReviewResponse {
-  id: number;
-  userId: number;
-  bookId: number;
-  text?: string | null;
-  images: string[];
-  gifUrl?: string | null;
-  tags: string[];
-  hasSpoiler?: boolean | null;
-  rating: number;
-  commentCount: number;
-  likeCount: number;
-}
-
-export interface BackendFeedPostResponse {
-  id: number;
-  userId: number;
-  text: string;
-  images: string[];
-  gifUrl?: string | null;
-  tags?: string[];
-  hasSpoiler?: boolean;
-  commentCount: number;
-  likeCount: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import type {
+  BackendReadingStatus,
+  BackendBookSuggestResponse,
+  BackendBookResponse,
+  BackendShelfSummaryResponse,
+  BackendShelfResponse,
+  BackendShelfItemSummaryResponse,
+  BackendShelfItemResponse,
+  BackendCollectionSummaryResponse,
+  BackendCollectionResponse,
+  BackendCollectionStatisticsResponse,
+  BackendReviewResponse,
+  BackendFeedPostResponse,
+} from "@/types/api";
 
 interface BackendPageResponse<T> {
   content: T[];
@@ -140,16 +32,6 @@ export class BookcaseApiError extends Error {
   }
 }
 
-function buildAuthHeaders(): HeadersInit {
-  const accessToken = getAccessToken();
-  if (!accessToken) {
-    throw new BookcaseApiError("Usuário não autenticado.", 401);
-  }
-
-  return {
-    Authorization: `Bearer ${accessToken}`,
-  };
-}
 
 function readCurrentUserIdFromToken(accessToken: string): number | null {
   try {
@@ -244,7 +126,7 @@ export async function listShelves(): Promise<BackendShelfSummaryResponse[]> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/shelves`, {
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível carregar as estantes.");
@@ -257,7 +139,7 @@ export async function getShelfById(shelfId: number): Promise<BackendShelfRespons
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível carregar os detalhes da estante.");
@@ -272,7 +154,7 @@ export async function createShelf(name: string, description = ""): Promise<Backe
     response = await fetch(`${API_BASE_URL}/shelves`, {
       method: "POST",
       headers: {
-        ...buildAuthHeaders(),
+        ...requiredBearerHeaders(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -297,7 +179,7 @@ export async function updateShelf(
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
       method: "PUT",
       headers: {
-        ...buildAuthHeaders(),
+        ...requiredBearerHeaders(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -317,7 +199,7 @@ export async function deleteShelf(shelfId: number): Promise<void> {
   try {
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}`, {
       method: "DELETE",
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível apagar a estante.");
@@ -330,7 +212,7 @@ export async function listShelfItems(shelfId: number): Promise<BackendShelfItemS
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items`, {
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível carregar os itens da estante.");
@@ -346,7 +228,7 @@ export async function getShelfItemById(shelfId: number, itemId: number): Promise
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items/${itemId}`, {
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível carregar o item da estante.");
@@ -365,7 +247,7 @@ export async function addBookToShelf(
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items`, {
       method: "POST",
       headers: {
-        ...buildAuthHeaders(),
+        ...requiredBearerHeaders(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -385,7 +267,7 @@ export async function removeBookFromShelf(shelfId: number, itemId: number): Prom
   try {
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items/${itemId}`, {
       method: "DELETE",
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível remover o livro da estante.");
@@ -404,7 +286,7 @@ export async function updateShelfItemProgress(
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items/${itemId}/progress`, {
       method: "PATCH",
       headers: {
-        ...buildAuthHeaders(),
+        ...requiredBearerHeaders(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -428,7 +310,7 @@ export async function changeShelfItemStatus(
     response = await fetch(`${API_BASE_URL}/shelves/${shelfId}/items/${itemId}/status`, {
       method: "PATCH",
       headers: {
-        ...buildAuthHeaders(),
+        ...requiredBearerHeaders(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -446,7 +328,7 @@ export async function listCollections(): Promise<BackendCollectionSummaryRespons
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/collections`, {
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível carregar as coleções.");
@@ -459,7 +341,7 @@ export async function getCollectionById(collectionId: number): Promise<BackendCo
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/collections/${collectionId}`, {
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível carregar os detalhes da coleção.");
@@ -478,7 +360,7 @@ export async function createCollection(
     response = await fetch(`${API_BASE_URL}/collections`, {
       method: "POST",
       headers: {
-        ...buildAuthHeaders(),
+        ...requiredBearerHeaders(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -504,7 +386,7 @@ export async function updateCollection(
     response = await fetch(`${API_BASE_URL}/collections/${collectionId}`, {
       method: "PUT",
       headers: {
-        ...buildAuthHeaders(),
+        ...requiredBearerHeaders(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -528,7 +410,7 @@ export async function addShelfToCollection(
     response = await fetch(`${API_BASE_URL}/collections/${collectionId}/shelves`, {
       method: "PATCH",
       headers: {
-        ...buildAuthHeaders(),
+        ...requiredBearerHeaders(),
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -547,7 +429,7 @@ export async function deleteCollection(collectionId: number): Promise<void> {
   try {
     response = await fetch(`${API_BASE_URL}/collections/${collectionId}`, {
       method: "DELETE",
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível apagar a coleção.");
@@ -562,7 +444,7 @@ export async function getCollectionStatistics(
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/collections/${collectionId}/statistics`, {
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível carregar as estatísticas da coleção.");
@@ -592,7 +474,7 @@ export async function createBookReview(
   try {
     response = await fetch(`${API_BASE_URL}/feed/reviews`, {
       method: "POST",
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
       body: formData,
     });
   } catch {
@@ -616,7 +498,7 @@ export async function updateBookReview(
   try {
     response = await fetch(`${API_BASE_URL}/feed/reviews/${reviewId}`, {
       method: "PUT",
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
       body: formData,
     });
   } catch {
@@ -631,7 +513,7 @@ export async function deleteBookReview(reviewId: number): Promise<void> {
   try {
     response = await fetch(`${API_BASE_URL}/feed/reviews/${reviewId}`, {
       method: "DELETE",
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível excluir sua avaliação.");
@@ -656,7 +538,7 @@ export async function getMyBookReview(bookId: number): Promise<BackendReviewResp
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/feed/reviews/user/${userId}?page=0&size=100&sort=createdAt,desc`, {
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
     });
   } catch {
     throw new BookcaseApiError("Não foi possível carregar sua avaliação.");
@@ -707,7 +589,7 @@ export async function createFeedPost(
   try {
     response = await fetch(`${API_BASE_URL}/feed/posts`, {
       method: "POST",
-      headers: buildAuthHeaders(),
+      headers: requiredBearerHeaders(),
       body: formData,
     });
   } catch {
@@ -715,5 +597,21 @@ export async function createFeedPost(
   }
 
   return parseJsonResponse<BackendFeedPostResponse>(response, "Falha ao publicar no feed.");
+}
+
+export async function getActiveReadingDays(token?: string | null): Promise<number> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/shelves/me/active-reading-days`, {
+      headers: token
+        ? { Authorization: `Bearer ${token}` }
+        : requiredBearerHeaders(),
+    });
+  } catch {
+    return 0;
+  }
+  if (!response.ok) return 0;
+  const data = (await response.json()) as { count: number };
+  return data.count ?? 0;
 }
 

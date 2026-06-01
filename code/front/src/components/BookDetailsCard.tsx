@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { BookOpen, Star, Users, X } from "lucide-react";
+import Image from "next/image";
+import { BookOpen, Check, ChevronDown, Plus, Search, Star, Users, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export interface BookDetailsCardProps {
@@ -11,14 +12,11 @@ export interface BookDetailsCardProps {
   coverUrl?: string;
   synopsis?: string;
   onClose: () => void;
-  onAddToShelf: () => void;
+  onAddToShelf: (shelfId: number) => void;
   availableShelves?: Array<{ id: number; name: string }>;
-  selectedShelfId?: number | null;
-  onSelectShelf?: (shelfId: number) => void;
-  isAlreadyInShelf?: boolean;
+  alreadyInShelfIds?: number[];
   isAddingToShelf?: boolean;
   addToShelfError?: string;
-  currentShelfName?: string;
   pageCount?: number | null;
   averageRating?: number | null;
   readerCount?: number | null;
@@ -29,9 +27,11 @@ export interface BookDetailsCardProps {
 function BookCover({ coverUrl, title }: Readonly<{ coverUrl?: string; title: string }>) {
   if (coverUrl) {
     return (
-      <img
+      <Image
         src={coverUrl}
         alt={`Capa de ${title}`}
+        width={140}
+        height={190}
         className="h-[190px] w-[140px] rounded-[18px] object-cover shadow-[0_12px_30px_rgba(15,47,44,0.22)]"
       />
     );
@@ -102,71 +102,165 @@ function BookSynopsis({ synopsis }: Readonly<{ synopsis?: string }>) {
   );
 }
 
-function ShelfFooter({ currentShelfName, availableShelves, selectedShelfId, onSelectShelf, isAlreadyInShelf, isAddingToShelf, addToShelfError, onAddToShelf }: Readonly<{
-  currentShelfName?: string;
+function ShelfFooter({
+  availableShelves,
+  alreadyInShelfIds,
+  isAddingToShelf,
+  addToShelfError,
+  onAddToShelf,
+}: Readonly<{
   availableShelves: Array<{ id: number; name: string }>;
-  selectedShelfId: number | null;
-  onSelectShelf?: (id: number) => void;
-  isAlreadyInShelf: boolean;
+  alreadyInShelfIds: number[];
   isAddingToShelf: boolean;
   addToShelfError?: string;
-  onAddToShelf: () => void;
+  onAddToShelf: (shelfId: number) => void;
 }>) {
-  const isDisabled = isAlreadyInShelf || isAddingToShelf || (!currentShelfName && (availableShelves.length === 0 || selectedShelfId === null));
-  const label = isAlreadyInShelf ? "Já está na estante" : isAddingToShelf ? "Adicionando..." : "Adicionar à estante";
-  const btnClass = isDisabled
-    ? "cursor-not-allowed bg-[var(--bg-soft)] text-[var(--text-secondary)]"
-    : "bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-500)] text-white shadow-[0_12px_24px_rgba(19,147,122,0.28)] hover:-translate-y-0.5";
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const [pendingShelfId, setPendingShelfId] = React.useState<number | null>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const searchRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (!isAddingToShelf) setPendingShelfId(null);
+  }, [isAddingToShelf]);
+
+  React.useEffect(() => {
+    if (!isOpen) { setSearch(""); return; }
+    const id = setTimeout(() => searchRef.current?.focus(), 60);
+    return () => clearTimeout(id);
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [isOpen]);
+
+  const allInShelf =
+    availableShelves.length > 0 && availableShelves.every((s) => alreadyInShelfIds.includes(s.id));
+
+  const filtered = search.trim()
+    ? availableShelves.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()))
+    : availableShelves;
+
+  function handleShelfSelect(shelfId: number) {
+    if (alreadyInShelfIds.includes(shelfId)) return;
+    setPendingShelfId(shelfId);
+    setIsOpen(false);
+    onAddToShelf(shelfId);
+  }
 
   return (
-    <div className="border-t border-[var(--border-soft)] bg-white/90 px-6 py-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        {currentShelfName ? (
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">Na estante</p>
-            <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">{currentShelfName}</p>
-          </div>
-        ) : (
-          <div className="w-full sm:max-w-[340px]">
-            <label htmlFor="book-details-shelf-select" className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-              Adicionar na estante
-            </label>
-            <div className="relative mt-2">
-              <select
-                id="book-details-shelf-select"
-                value={selectedShelfId ?? ""}
-                onChange={(e) => onSelectShelf?.(Number(e.target.value))}
-                disabled={availableShelves.length === 0 || isAddingToShelf}
-                className="w-full appearance-none rounded-[14px] border border-[var(--border-soft)] bg-white py-2.5 pl-4 pr-10 text-sm font-medium text-[var(--text-primary)] shadow-sm outline-none transition focus:border-[var(--brand-500)] focus:ring-2 focus:ring-[hsl(var(--brand-500)/0.18)] disabled:cursor-not-allowed disabled:opacity-55"
-              >
-                <option value="" disabled>
-                  {availableShelves.length > 0 ? "Selecione uma estante…" : "Nenhuma estante disponível"}
-                </option>
-                {availableShelves.map((shelf) => (
-                  <option key={shelf.id} value={shelf.id}>{shelf.name}</option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[var(--text-secondary)]">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </span>
-            </div>
-          </div>
-        )}
+    <div className="border-t border-[var(--border-soft)] bg-white/90 px-6 py-4">
+      <div ref={containerRef} className="relative inline-block">
+        {/* Trigger */}
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          disabled={availableShelves.length === 0 || isAddingToShelf || allInShelf}
+          className="inline-flex items-center gap-2 rounded-[12px] bg-gradient-to-r from-[var(--brand-600)] to-[var(--brand-500)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(19,147,122,0.22)] transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none disabled:translate-y-0"
+        >
+          {isAddingToShelf ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+          ) : (
+            <Plus size={15} />
+          )}
+          <span>
+            {allInShelf
+              ? "Em todas as estantes"
+              : availableShelves.length === 0
+                ? "Nenhuma estante"
+                : "Adicionar na estante"}
+          </span>
+          {!allInShelf && availableShelves.length > 0 && (
+            <ChevronDown
+              size={14}
+              className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+            />
+          )}
+        </button>
 
-        <div className="flex flex-col items-start gap-2 sm:items-end">
-          <button
-            type="button"
-            onClick={onAddToShelf}
-            disabled={isDisabled}
-            className={`inline-flex items-center justify-center gap-2 rounded-[12px] px-5 py-2.5 text-sm font-semibold transition-all duration-200 ease-out ${btnClass}`}
-          >
-            {isAddingToShelf && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
-            {label}
-          </button>
-          {addToShelfError && <p className="text-xs text-red-600">{addToShelfError}</p>}
-        </div>
+        {/* Popover */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 4, scale: 0.97 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="absolute bottom-full left-0 z-50 mb-2 w-72 overflow-hidden rounded-[16px] border border-[var(--border-soft)] bg-white shadow-[0_16px_48px_rgba(15,47,44,0.18)]"
+            >
+              {/* Search — only when há mais de 4 estantes */}
+              {availableShelves.length > 4 && (
+                <div className="border-b border-[var(--border-soft)] px-3 py-2.5">
+                  <div className="flex items-center gap-2 rounded-[10px] bg-[var(--bg-soft)] px-3 py-1.5">
+                    <Search size={13} className="shrink-0 text-[var(--text-secondary)]" />
+                    <input
+                      ref={searchRef}
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Buscar estante…"
+                      className="flex-1 bg-transparent text-sm text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)/70]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Lista */}
+              <div className="max-h-[224px] overflow-y-auto py-1">
+                {filtered.length > 0 ? (
+                  filtered.map((shelf) => {
+                    const isLoading = pendingShelfId === shelf.id && isAddingToShelf;
+                    const isAlreadyHere = alreadyInShelfIds.includes(shelf.id);
+                    return (
+                      <button
+                        key={shelf.id}
+                        type="button"
+                        onClick={() => handleShelfSelect(shelf.id)}
+                        disabled={isLoading || isAlreadyHere}
+                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                          isAlreadyHere
+                            ? "cursor-not-allowed opacity-50"
+                            : "hover:bg-[var(--bg-soft)] disabled:opacity-60"
+                        }`}
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--bg-soft)]">
+                          {isLoading ? (
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--brand-500)/30] border-t-[var(--brand-500)]" />
+                          ) : isAlreadyHere ? (
+                            <Check size={13} className="text-emerald-600" />
+                          ) : (
+                            <BookOpen size={13} className="text-[var(--text-secondary)]" />
+                          )}
+                        </span>
+                        <span className="flex-1 truncate text-sm font-medium text-[var(--text-primary)]">
+                          {shelf.name}
+                        </span>
+                        {isAlreadyHere ? (
+                          <span className="shrink-0 text-xs font-medium text-emerald-600">Já adicionado</span>
+                        ) : (
+                          <Plus size={14} className="shrink-0 text-[var(--text-secondary)] opacity-0 transition-opacity group-hover:opacity-100" />
+                        )}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+                    Nenhuma estante encontrada
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {addToShelfError && (
+          <p className="mt-2 text-xs text-red-600">{addToShelfError}</p>
+        )}
       </div>
     </div>
   );
@@ -183,12 +277,9 @@ export function BookDetailsCard({
   onClose,
   onAddToShelf,
   availableShelves = [],
-  selectedShelfId = null,
-  onSelectShelf,
-  isAlreadyInShelf = false,
+  alreadyInShelfIds = [],
   isAddingToShelf = false,
   addToShelfError,
-  currentShelfName,
   pageCount,
   averageRating,
   readerCount,
@@ -238,11 +329,8 @@ export function BookDetailsCard({
             </div>
 
             <ShelfFooter
-              currentShelfName={currentShelfName}
               availableShelves={availableShelves}
-              selectedShelfId={selectedShelfId}
-              onSelectShelf={onSelectShelf}
-              isAlreadyInShelf={isAlreadyInShelf}
+              alreadyInShelfIds={alreadyInShelfIds}
               isAddingToShelf={isAddingToShelf}
               addToShelfError={addToShelfError}
               onAddToShelf={onAddToShelf}

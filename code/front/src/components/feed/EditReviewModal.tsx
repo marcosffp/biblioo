@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { BookcaseModal, RatingStars, BookCoverPlaceholder } from "@/components";
 import { updateBookReview } from "@/services/bookcase";
 
@@ -55,10 +56,11 @@ export function EditReviewModal({
         {/* Book info (read-only) */}
         <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
           {bookCoverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={bookCoverUrl}
               alt={bookTitle}
+              width={32}
+              height={48}
               className="h-12 w-8 shrink-0 rounded object-cover shadow-sm"
             />
           ) : (

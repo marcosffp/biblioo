@@ -1,9 +1,10 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Check, Loader2, Search, X } from "lucide-react";
-import { searchBooks, type BackendBookResponse } from "@/services/bookcase";
-import type { CreateVotingRequest, TieBreakRule } from "@/services/voting";
+import { searchBooks } from "@/services/bookcase";
+import type { BackendBookResponse, CreateVotingRequest, TieBreakRule } from "@/types/api";
 
 interface SelectedBook {
   id: number;
@@ -214,8 +215,7 @@ export function CreateVotingModal({ onClose, onSubmit }: Readonly<CreateVotingMo
                         className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors"
                       >
                         {book.coverUrl && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={book.coverUrl} alt={book.title} className="h-10 w-7 rounded object-cover shrink-0" />
+                          <Image src={book.coverUrl} alt={book.title} width={28} height={40} className="h-10 w-7 rounded object-cover shrink-0" />
                         )}
                         <div className="min-w-0">
                           <p className="truncate font-medium text-foreground">{book.title}</p>
@@ -239,8 +239,7 @@ export function CreateVotingModal({ onClose, onSubmit }: Readonly<CreateVotingMo
                   className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2"
                 >
                   {book.coverUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={book.coverUrl} alt={book.title} className="h-9 w-6 rounded object-cover shrink-0" />
+                    <Image src={book.coverUrl} alt={book.title} width={24} height={36} className="h-9 w-6 rounded object-cover shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">{book.title}</p>

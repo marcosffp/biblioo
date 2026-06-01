@@ -6,16 +6,19 @@ import { PostCard } from "@/components/PostCard";
 import { ReviewFeedCard } from "@/components/ReviewFeedCard";
 import { getBookById } from "@/services/bookcase";
 import { getAccessToken } from "@/services/auth";
-import { getUserActivityPosts, getUserActivityReviews, formatFeedTime } from "@/services/activity";
-import type { ActivityItem, ActivityReview } from "@/services/activity";
+import { getUserActivityPosts, getUserActivityReviews } from "@/services/activity";
+import { formatFeedTime } from "@/utils/date";
+import type { ActivityItem, ActivityReview } from "@/types/api";
 
 function ActivityReviewItem({
   review,
   authorName,
+  authorUsername,
   authorAvatarUrl,
 }: {
   review: ActivityReview;
   authorName: string;
+  authorUsername?: string;
   authorAvatarUrl?: string | null;
 }) {
   const [bookTitle, setBookTitle] = useState<string | null>(null);
@@ -37,6 +40,7 @@ function ActivityReviewItem({
     <ReviewFeedCard
       reviewId={review.id}
       authorName={authorName}
+      authorUsername={authorUsername}
       authorAvatarUrl={authorAvatarUrl}
       time={formatFeedTime(review.createdAt)}
       bookId={review.bookId}
@@ -94,6 +98,7 @@ export type UserActivityFeedProps = {
   userId: number;
   authorName: string;
   authorAvatarUrl?: string | null;
+  authorUsername?: string;
   isOwnProfile?: boolean;
 };
 
@@ -101,6 +106,7 @@ export function UserActivityFeed({
   userId,
   authorName,
   authorAvatarUrl,
+  authorUsername,
   isOwnProfile = false,
 }: UserActivityFeedProps) {
   const [items, setItems] = useState<ActivityItem[]>([]);
@@ -224,6 +230,7 @@ export function UserActivityFeed({
             <PostCard
               postId={item.id}
               author={authorName}
+              authorUsername={authorUsername}
               avatarUrl={authorAvatarUrl ?? undefined}
               time={formatFeedTime(item.createdAt)}
               content={item.text ?? undefined}
@@ -238,6 +245,7 @@ export function UserActivityFeed({
             <ActivityReviewItem
               review={item}
               authorName={authorName}
+              authorUsername={authorUsername}
               authorAvatarUrl={authorAvatarUrl}
             />
           )}
