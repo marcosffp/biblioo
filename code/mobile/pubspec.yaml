@@ -83,6 +83,8 @@ dev_dependencies:
 
   injectable_generator: ^2.4.0
 
+  flutter_launcher_icons: ^0.14.4
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -130,3 +132,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  remove_alpha_ios: true # Recomendado para evitar rejeição na App Store
