@@ -15,9 +15,13 @@ class PreferencesRepository {
     return models.map((m) => m.toEntity()).toList();
   }
 
-  Future<void> savePreferences(int userId, List<String> genres) async {
-    if (genres.isNotEmpty) {
-      await _remote.savePreferences(genres);
+  Future<void> savePreferences(
+    int userId,
+    List<String> genres,
+    List<int> bookIds,
+  ) async {
+    if (genres.isNotEmpty || bookIds.isNotEmpty) {
+      await _remote.savePreferences(genres, bookIds);
     }
     await _local.markOnboardingDone(userId);
   }

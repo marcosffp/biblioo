@@ -38,7 +38,11 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
   ) async {
     emit(state.copyWith(status: PreferencesStatus.submitting, errorMessage: null));
     try {
-      await _repository.savePreferences(event.userId, event.selectedGenres);
+      await _repository.savePreferences(
+        event.userId,
+        event.selectedGenres,
+        event.selectedBookIds,
+      );
       emit(state.copyWith(status: PreferencesStatus.done));
     } catch (_) {
       // 422 (preferências já existem) ou falha de rede — considera concluído localmente

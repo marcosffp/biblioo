@@ -14,11 +14,15 @@ class PreferencesRemoteDatasource {
   }
 
   /// POST /preferences — salva preferências do usuário (onboarding).
-  /// Lança DioException com status 422 se preferências já existem.
-  Future<void> savePreferences(List<String> genres) async {
+  /// Aceita gêneros (valores `original` de GET /genres) e ids de livros no
+  /// mesmo payload. Lança DioException com status 422 se preferências já existem.
+  Future<void> savePreferences(
+    List<String> genres,
+    List<int> bookIds,
+  ) async {
     await _dio.post<void>(
       '/preferences',
-      data: {'genres': genres},
+      data: {'genres': genres, 'bookIds': bookIds},
     );
   }
 }

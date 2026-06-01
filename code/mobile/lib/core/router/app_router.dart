@@ -62,7 +62,9 @@ String? _authRedirect(BuildContext context, GoRouterState state) {
 
   // Autenticado, mas onboarding pendente: prende em /onboarding.
   final userId = authState.session.user.id;
-  final onboardingDone = Injector.instance.preferencesRepo.isOnboardingDone(userId);
+  final onboardingDone = Injector.instance.preferencesRepo.isOnboardingDone(
+    userId,
+  );
   if (!onboardingDone) {
     return isOnboardingRoute ? null : '/onboarding';
   }
@@ -178,7 +180,8 @@ final appRouter = GoRouter(
 
     // ── SHELL (com bottom nav) ────────────────────────────
     StatefulShellRoute.indexedStack(
-      builder: (context, state, shell) => MainShell(shell: shell),
+      builder: (context, state, shell) =>
+          MainShell(shell: shell, currentUri: state.uri),
       branches: [
         // Tab 0 — Feed
         StatefulShellBranch(

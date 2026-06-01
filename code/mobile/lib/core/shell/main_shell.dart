@@ -4,14 +4,17 @@ import 'package:biblioo/shared/widgets/bibi_fab.dart';
 
 class MainShell extends StatelessWidget {
   final StatefulNavigationShell shell;
+  final Uri currentUri;
 
-  const MainShell({super.key, required this.shell});
+  const MainShell({super.key, required this.shell, required this.currentUri});
 
   @override
   Widget build(BuildContext context) {
     final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
     final showGlobalBibi =
-        isCurrentRoute && !_tabHasPrimaryFab(shell.currentIndex);
+        isCurrentRoute &&
+        !_tabHasPrimaryFab(shell.currentIndex) &&
+        !_isCommunityDetail(currentUri);
 
     return Scaffold(
       body: shell,
@@ -56,4 +59,11 @@ class MainShell extends StatelessWidget {
   }
 
   bool _tabHasPrimaryFab(int index) => index == 0 || index == 2;
+
+  bool _isCommunityDetail(Uri uri) {
+    final segments = uri.pathSegments;
+    if (segments.length < 2) return false;
+    if (segments.first != 'community') return false;
+    return int.tryParse(segments[1]) != null;
+  }
 }

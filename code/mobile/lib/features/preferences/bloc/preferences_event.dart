@@ -5,7 +5,12 @@ class PreferencesGenresLoadRequested extends PreferencesEvent {}
 class PreferencesSubmitted extends PreferencesEvent {
   final int userId;
   final List<String> selectedGenres;
-  PreferencesSubmitted(this.userId, this.selectedGenres);
+  final List<int> selectedBookIds;
+  PreferencesSubmitted(
+    this.userId,
+    this.selectedGenres,
+    this.selectedBookIds,
+  );
 }
 
 class PreferencesSkipped extends PreferencesEvent {
