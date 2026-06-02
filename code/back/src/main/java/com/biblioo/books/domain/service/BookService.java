@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -178,6 +179,12 @@ public class BookService implements BookUseCase {
   @Cacheable(value = "book-detail", key = "#id")
   public Book getById(Long id) {
     return repository.findById(id).orElseThrow(() -> new BookNotFoundException(id));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Optional<Book> findByIsbn(String isbn) {
+    return repository.findByIsbn(isbn);
   }
 
   @Override
