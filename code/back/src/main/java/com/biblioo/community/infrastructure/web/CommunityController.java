@@ -117,6 +117,16 @@ public class CommunityController {
     return ResponseEntity.ok(page);
   }
 
+  @GetMapping("/user/{userId}")
+  @Operation(summary = "Comunidades de um usuário")
+  public ResponseEntity<Page<CommunityResponse>> byUser(
+      @PathVariable Long userId,
+      @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+    Page<CommunityResponse> page =
+        communityUseCase.getUserCommunities(userId, pageable).map(communityMapper::toResponse);
+    return ResponseEntity.ok(page);
+  }
+
   @GetMapping("/book/{bookId}")
   @Operation(summary = "Comunidades de um livro")
   public ResponseEntity<Page<CommunityResponse>> byBook(

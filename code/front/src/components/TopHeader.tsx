@@ -2,6 +2,7 @@
 
 import React, { memo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { getAuthSession } from "@/services/auth";
 import { getMyProfile } from "@/services/profile";
 import { SearchBar } from "@/components/header/SearchBar";
@@ -63,13 +64,15 @@ export const TopHeader = memo(function TopHeader({
     >
       <div className="h-full w-full px-2 sm:px-4 lg:px-6 flex items-center gap-4 sm:gap-6">
         <div className="flex items-center gap-2 min-w-fit">
-          <Image
-            className="block h-8 w-auto min-w-[90px] object-contain object-left"
-            src="/biblioo-logo-branca.png"
-            alt="Biblioo"
-            width={120}
-            height={32}
-          />
+          <Link href="/feed">
+            <Image
+              className="block h-8 w-auto min-w-[90px] object-contain object-left"
+              src="/biblioo-logo-branca.png"
+              alt="Biblioo"
+              width={120}
+              height={32}
+            />
+          </Link>
         </div>
 
         <SearchBar searchPlaceholder={searchPlaceholder} />

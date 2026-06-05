@@ -142,6 +142,7 @@ export default function FeedPage() {
                           likes={likeCount}
                           comments={commentCount}
                           hasSpoiler={hasSpoiler ?? false}
+                          isLiked={item.content.likedByCurrentUser ?? false}
                           isOwn={isOwn}
                           onEdit={() => setEditingReview({
                             id: item.contentId,
@@ -171,6 +172,7 @@ export default function FeedPage() {
                         content={item.content.text ?? ""}
                         likes={item.content.likeCount}
                         comments={item.content.commentCount}
+                        isLiked={item.content.likedByCurrentUser ?? false}
                         bookId={item.content.bookId}
                         bookTitle={item.content.bookTitle}
                         bookAuthors={item.content.bookAuthors}
