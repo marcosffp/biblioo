@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
-import { Activity, BookOpen, BookOpenCheck, Flame, MessageSquare, MoreHorizontal, Users } from "lucide-react";
+import { Activity, BookOpen, BookOpenCheck, Flame, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -82,9 +82,6 @@ export default function SeguidorProfilePage() {
   const [profile, setProfile] = React.useState<UserProfileResponse | null>(null);
   const [followersCount, setFollowersCount] = React.useState(0);
   const [followingCount, setFollowingCount] = React.useState(0);
-  const [followersUsers, setFollowersUsers] = React.useState<UserSummaryResponse[]>([]);
-  const [followingUsers, setFollowingUsers] = React.useState<UserSummaryResponse[]>([]);
-  const [myFollowingUsernames, setMyFollowingUsernames] = React.useState<string[]>([]);
   const [followRelationship, setFollowRelationship] = React.useState<"none" | "following" | "requested">("none");
   const [isTogglingFollow, setIsTogglingFollow] = React.useState(false);
   const [isUnfollowConfirmOpen, setIsUnfollowConfirmOpen] = React.useState(false);
@@ -234,11 +231,8 @@ export default function SeguidorProfilePage() {
         if (cancelled) return;
 
         setProfile(loadedProfile);
-        setFollowersUsers(followersList);
-        setFollowingUsers(followingList);
         setFollowersCount(followersList.length);
         setFollowingCount(followingList.length);
-        setMyFollowingUsernames(myFollowing.map((user) => user.username.toLowerCase()));
         setFollowRelationship(followingState ? "following" : "none");
         setIsOwnProfile(ownProfileState);
         setBooksRead(computedBooksRead);
@@ -381,14 +375,9 @@ export default function SeguidorProfilePage() {
           }
           action={
             showFollowAction ? (
-              <div className="flex items-center gap-2">
-                <Button variant={isFollowing ? "outline" : "default"} onClick={handleToggleFollow} disabled={isTogglingFollow}>
-                  {followButtonLabel}
-                </Button>
-                <Button variant="ghost" size="icon" aria-label="Mais opcoes">
-                  <MoreHorizontal size={18} />
-                </Button>
-              </div>
+              <Button variant={isFollowing ? "outline" : "default"} onClick={handleToggleFollow} disabled={isTogglingFollow}>
+                {followButtonLabel}
+              </Button>
             ) : null
           }
         />
@@ -476,17 +465,7 @@ export default function SeguidorProfilePage() {
             ) : activeTab === "Comunidades" ? (
               <UserCommunitiesTab
                 isOwnProfile={isOwnProfile}
-                followersUsers={followersUsers.slice(0, 8).map((user) => ({
-                  id: user.id,
-                  username: user.username,
-                  sideLabel: myFollowingUsernames.includes(user.username.toLowerCase()) ? "Você segue" : "",
-                }))}
-                followingUsers={followingUsers.slice(0, 8).map((user) => ({
-                  id: user.id,
-                  username: user.username,
-                  sideLabel: "Leitor",
-                }))}
-                myFollowingUsernames={myFollowingUsernames}
+                userId={profile?.id}
               />
             ) : null}
           </>

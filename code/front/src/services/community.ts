@@ -87,6 +87,30 @@ export async function listCommunities({
   return data.content ?? [];
 }
 
+export async function listCommunitiesByUserId(
+  userId: number,
+  size = 20,
+  token?: string | null,
+): Promise<BackendCommunityResponse[]> {
+  const query = new URLSearchParams({ page: "0", size: String(size) });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/communities/user/${userId}?${query.toString()}`, {
+      headers: optionalBearerHeaders(token),
+    });
+  } catch {
+    throw new CommunityApiError("Não foi possível carregar comunidades do usuário.");
+  }
+
+  const data = await parseJsonResponse<BackendPageResponse<BackendCommunityResponse>>(
+    response,
+    "Falha ao carregar comunidades do usuário.",
+  );
+
+  return data.content ?? [];
+}
+
 export async function createCommunity(payload: CreateCommunityPayload, token?: string | null): Promise<BackendCommunityResponse> {
   let response: Response;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { motion } from "framer-motion";
@@ -19,7 +19,7 @@ import {
   TextInput,
 } from "@/components";
 
-export default function EstantePage() {
+function BookcasePageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -463,5 +463,13 @@ export default function EstantePage() {
         errorMessage={bookDetailsError}
       />
     </AppShell>
+  );
+}
+
+export default function EstantePage() {
+  return (
+    <Suspense>
+      <BookcasePageContent />
+    </Suspense>
   );
 }

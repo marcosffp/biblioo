@@ -30,6 +30,7 @@ export interface ReviewFeedCardProps {
   comments?: number;
   hasSpoiler?: boolean;
   isOwn?: boolean;
+  isLiked?: boolean;
   className?: string;
   onEdit?: () => void;
   onDelete?: () => Promise<void>;
@@ -94,6 +95,7 @@ export const ReviewFeedCard = memo(function ReviewFeedCard({
   comments = 0,
   hasSpoiler = false,
   isOwn = false,
+  isLiked = false,
   className,
   onEdit,
   onDelete,
@@ -106,7 +108,7 @@ export const ReviewFeedCard = memo(function ReviewFeedCard({
   const [bookModalOpen, setBookModalOpen] = useState(false);
   const [bookSynopsis, setBookSynopsis] = useState<string | null | undefined>(undefined);
 
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
   const [likePending, setLikePending] = useState(false);
   const [heartKey, setHeartKey] = useState(0);

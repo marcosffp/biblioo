@@ -261,6 +261,19 @@
             <version>3.2.3</version>
         </dependency>
         
+        <!-- Apache Commons CSV (parsing RFC 4180 para importação do Goodreads) -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+
+        <!-- Caffeine (cache de buckets para rate limiting de importação) -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- Micrometer (métricas do consumer de recomendação) -->
         <dependency>
             <groupId>io.micrometer</groupId>

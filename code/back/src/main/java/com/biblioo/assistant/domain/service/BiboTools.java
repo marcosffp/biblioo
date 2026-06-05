@@ -14,6 +14,7 @@ import com.biblioo.assistant.domain.port.out.AssistantCommunityPort;
 import com.biblioo.assistant.domain.port.out.AssistantDnaPort;
 import com.biblioo.assistant.domain.port.out.AssistantShelfPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -46,14 +47,14 @@ public class BiboTools {
           "Busca livros por título, autor ou palavra-chave. Retorna no máximo 5 resultados.")
   public List<BookResult> searchBooks(String query) {
     List<BookResult> results = bookPort.search(query, 5);
-    log("searchBooks", Map.of("query", query), results.size() + " livros encontrados");
+    log("searchBooks", params("query", query), results.size() + " livros encontrados");
     return results;
   }
 
   @Tool(description = "Lista todas as estantes do usuário autenticado.")
   public List<ShelfResult> listShelves() {
     List<ShelfResult> results = shelfPort.listShelves(UserIdHolder.get());
-    log("listShelves", Map.of(), results.size() + " estantes retornadas");
+    log("listShelves", params(), results.size() + " estantes retornadas");
     return results;
   }
 
@@ -65,10 +66,10 @@ public class BiboTools {
   public String createShelf(String name, String description) {
     try {
       ShelfResult result = shelfPort.createShelf(UserIdHolder.get(), name, description);
-      log("createShelf", Map.of("name", name, "description", description), "Estante criada com id=" + result.id());
+      log("createShelf", params("name", name, "description", description), "Estante criada com id=" + result.id());
       return "Estante criada com sucesso. id=" + result.id() + ", nome=" + result.name();
     } catch (RuntimeException e) {
-      log("createShelf", Map.of("name", name, "description", description), "Erro: " + e.getMessage());
+      log("createShelf", params("name", name, "description", description), "Erro: " + e.getMessage());
       return "Erro: " + e.getMessage();
     }
   }
@@ -82,7 +83,7 @@ public class BiboTools {
               + "status: WANT_TO_READ | READING | REREADING | COMPLETED | ABANDONED")
   public String addBookToShelf(Long shelfId, Long bookId, String status) {
     String result = shelfPort.addBookToShelf(UserIdHolder.get(), shelfId, bookId, status);
-    log("addBookToShelf", Map.of("shelfId", shelfId, "bookId", bookId, "status", status), result);
+    log("addBookToShelf", params("shelfId", shelfId, "bookId", bookId, "status", status), result);
     return result;
   }
 
@@ -109,7 +110,7 @@ public class BiboTools {
                         b.currentPage(),
                         b.totalPages()))
             .toList();
-    log("listShelfItems", Map.of("shelfId", shelfId), results.size() + " itens retornados");
+    log("listShelfItems", params("shelfId", shelfId), results.size() + " itens retornados");
     return results;
   }
 
@@ -122,7 +123,7 @@ public class BiboTools {
               + "newStatus: WANT_TO_READ | READING | REREADING | COMPLETED | ABANDONED")
   public String changeItemStatus(Long shelfId, Long itemId, String newStatus) {
     String result = shelfPort.changeItemStatus(UserIdHolder.get(), shelfId, itemId, newStatus);
-    log("changeItemStatus", Map.of("shelfId", shelfId, "itemId", itemId, "newStatus", newStatus), result);
+    log("changeItemStatus", params("shelfId", shelfId, "itemId", itemId, "newStatus", newStatus), result);
     return result;
   }
 
@@ -134,14 +135,14 @@ public class BiboTools {
               + "Nunca invente ou assuma esses IDs.")
   public String updateReadingProgress(Long shelfId, Long itemId, Integer currentPage) {
     String result = shelfPort.updateReadingProgress(UserIdHolder.get(), shelfId, itemId, currentPage);
-    log("updateReadingProgress", Map.of("shelfId", shelfId, "itemId", itemId, "currentPage", currentPage), result);
+    log("updateReadingProgress", params("shelfId", shelfId, "itemId", itemId, "currentPage", currentPage), result);
     return result;
   }
 
   @Tool(description = "Lista todas as coleções do usuário. Coleções agrupam estantes.")
   public List<CollectionResult> listCollections() {
     List<CollectionResult> results = collectionPort.listCollections(UserIdHolder.get());
-    log("listCollections", Map.of(), results.size() + " coleções retornadas");
+    log("listCollections", params(), results.size() + " coleções retornadas");
     return results;
   }
 
@@ -153,10 +154,10 @@ public class BiboTools {
   public String createCollection(String name, String description) {
     try {
       CollectionResult result = collectionPort.createCollection(UserIdHolder.get(), name, description);
-      log("createCollection", Map.of("name", name, "description", description), "Coleção criada com id=" + result.id());
+      log("createCollection", params("name", name, "description", description), "Coleção criada com id=" + result.id());
       return "Coleção criada com sucesso. id=" + result.id() + ", nome=" + result.name();
     } catch (RuntimeException e) {
-      log("createCollection", Map.of("name", name, "description", description), "Erro: " + e.getMessage());
+      log("createCollection", params("name", name, "description", description), "Erro: " + e.getMessage());
       return "Erro: " + e.getMessage();
     }
   }
@@ -168,7 +169,7 @@ public class BiboTools {
               + "Nunca invente ou assuma esses IDs.")
   public String addShelfToCollection(Long collectionId, Long shelfId) {
     String result = collectionPort.addShelfToCollection(UserIdHolder.get(), collectionId, shelfId);
-    log("addShelfToCollection", Map.of("collectionId", collectionId, "shelfId", shelfId), result);
+    log("addShelfToCollection", params("collectionId", collectionId, "shelfId", shelfId), result);
     return result;
   }
 
@@ -179,14 +180,14 @@ public class BiboTools {
               + "Nunca invente ou assuma esses IDs.")
   public String removeShelfFromCollection(Long collectionId, Long shelfId) {
     String result = collectionPort.removeShelfFromCollection(UserIdHolder.get(), collectionId, shelfId);
-    log("removeShelfFromCollection", Map.of("collectionId", collectionId, "shelfId", shelfId), result);
+    log("removeShelfFromCollection", params("collectionId", collectionId, "shelfId", shelfId), result);
     return result;
   }
 
   @Tool(description = "Lista as comunidades das quais o usuário faz parte.")
   public List<CommunityResult> listUserCommunities() {
     List<CommunityResult> results = communityPort.listUserCommunities(UserIdHolder.get());
-    log("listUserCommunities", Map.of(), results.size() + " comunidades retornadas");
+    log("listUserCommunities", params(), results.size() + " comunidades retornadas");
     return results;
   }
 
@@ -194,15 +195,15 @@ public class BiboTools {
       description =
           "Cria uma nova comunidade vinculada a um livro. type: PUBLIC ou PRIVATE. "
               + "bookId: ID do livro — use searchBooks para encontrar o ID antes de chamar esta ferramenta. "
-              + "Nunca invente um bookId. Se a operação retornar erro, informe o usuário.")
-  public CommunityResult createCommunity(String name, String description, String type, Long bookId) {
+              + "Nunca invente um bookId. Se a operação retornar erro, informe o usuário com a mensagem recebida.")
+  public String createCommunity(String name, String description, String type, Long bookId) {
     try {
       CommunityResult result = communityPort.createCommunity(UserIdHolder.get(), name, description, type, bookId);
-      log("createCommunity", Map.of("name", name, "type", type, "bookId", bookId), "Comunidade criada com id=" + result.id());
-      return result;
+      log("createCommunity", params("name", name, "type", type, "bookId", bookId), "Comunidade criada com id=" + result.id());
+      return "Comunidade criada com sucesso. id=" + result.id() + ", nome=" + result.name();
     } catch (RuntimeException e) {
-      log("createCommunity", Map.of("name", name, "type", type, "bookId", bookId), "Erro: " + e.getMessage());
-      return null;
+      log("createCommunity", params("name", name, "type", type, "bookId", bookId), "Erro: " + e.getMessage());
+      return "Erro: " + e.getMessage();
     }
   }
 
@@ -213,8 +214,21 @@ public class BiboTools {
               + "Se o status retornado for IN_FORMATION ou COMPUTING, informe ao usuário que seu DNA ainda não tem dados suficientes.")
   public UserDnaProfile getUserLiteraryProfile() {
     UserDnaProfile profile = dnaPort.getProfile(UserIdHolder.get());
-    log("getUserLiteraryProfile", Map.of(), "status=" + profile.status() + ", booksRead=" + profile.booksRead());
+    log("getUserLiteraryProfile", params(), "status=" + profile.status() + ", booksRead=" + profile.booksRead());
     return profile;
+  }
+
+  /**
+   * Constrói um mapa de parâmetros tolerante a valores nulos. Diferente de {@link Map#of}, aceita
+   * {@code null} — o modelo frequentemente omite parâmetros opcionais (ex.: description), e o
+   * function calling do Spring AI os passa como {@code null}.
+   */
+  private static Map<String, Object> params(Object... keyValues) {
+    Map<String, Object> map = new HashMap<>();
+    for (int i = 0; i + 1 < keyValues.length; i += 2) {
+      map.put(String.valueOf(keyValues[i]), keyValues[i + 1]);
+    }
+    return map;
   }
 
   private void log(String toolName, Map<String, Object> params, String resultSummary) {

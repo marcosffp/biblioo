@@ -29,6 +29,7 @@ export interface PostCardProps {
   images?: string[];
   gifUrl?: string | null;
   hasSpoiler?: boolean;
+  isLiked?: boolean;
 }
 
 export const PostCard = memo(function PostCard({
@@ -49,6 +50,7 @@ export const PostCard = memo(function PostCard({
   images,
   gifUrl,
   hasSpoiler,
+  isLiked = false,
 }: PostCardProps) {
   const [spoilerRevealed, setSpoilerRevealed] = useState(false);
   const [fetchedTitle, setFetchedTitle] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export const PostCard = memo(function PostCard({
   const [bookModalOpen, setBookModalOpen] = useState(false);
   const [bookSynopsis, setBookSynopsis] = useState<string | null | undefined>(undefined);
 
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(isLiked);
   const [likeCount, setLikeCount] = useState(likes);
   const [likePending, setLikePending] = useState(false);
   const [heartKey, setHeartKey] = useState(0);

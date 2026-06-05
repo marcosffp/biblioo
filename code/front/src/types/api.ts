@@ -236,6 +236,7 @@ export interface FeedEmbeddedContent {
   bookTitle?: string | null;
   bookAuthors?: string[] | null;
   bookCoverUrl?: string | null;
+  likedByCurrentUser?: boolean;
 }
 
 export interface FeedItem {
