@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { Plus } from "lucide-react";
 import { AppShell, ChipToggle, CommunityCard, PageHeader, SectionHeader } from "@/components";
 import { CommunityChatView } from "@/components/community/CommunityChatView";
@@ -9,7 +10,7 @@ import { CommunityJoinRequestsModal } from "@/components/community/CommunityJoin
 import { NonMemberCommunityModal } from "@/components/community/NonMemberCommunityModal";
 import { useCommunityPage } from "@/hooks/useCommunityPage";
 
-export default function ComunidadesPage() {
+function ComunidadesPageContent() {
   const {
     isLoadingCommunities,
     communitiesError,
@@ -245,5 +246,13 @@ export default function ComunidadesPage() {
         onReject={(requestId) => void handleRejectJoinRequest(requestId)}
       />
     </AppShell>
+  );
+}
+
+export default function ComunidadesPage() {
+  return (
+    <Suspense>
+      <ComunidadesPageContent />
+    </Suspense>
   );
 }
