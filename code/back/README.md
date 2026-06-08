@@ -27,6 +27,7 @@
 ![Upstash](https://img.shields.io/badge/Upstash-00E9A3?style=for-the-badge&logo=upstash&logoColor=white)
 ![CloudAMQP](https://img.shields.io/badge/CloudAMQP-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
 ![Bonsai.io](https://img.shields.io/badge/Bonsai.io-005EB8?style=for-the-badge&logo=opensearch&logoColor=white)
+![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)
 ![Neo4j Aura](https://img.shields.io/badge/Neo4j_Aura-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
 ![GCE](https://img.shields.io/badge/Compute_Engine-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
 ![Secret Manager](https://img.shields.io/badge/Secret_Manager-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
@@ -99,17 +100,17 @@ A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura
 
 | Módulo | Responsabilidade | Arquivos Java |
 |---|---|---|
-| `books` | Catálogo, estantes, coleções, histórico de leitura, busca via OpenSearch | ~67 |
-| `community` | Comunidades, chat WebSocket, votação de livros, convites, solicitações | ~98 |
-| `dna` | DNA Literário — cálculo de perfil de leitura do usuário | ~9 |
-| `feed` | Feed personalizado, posts, reviews, comentários, curtidas, fanout | ~68 |
-| `infrastructure` | Config global, seeding, Outbox, rate limiting, Cloudinary, OpenSearch | ~30+ |
-| `notification` | Notificações in-app e push via Firebase FCM | ~6 |
-| `recommendation` | 6 algoritmos de recomendação (ver detalhes abaixo) | ~24 |
-| `share` | Geração de cards de compartilhamento social | ~4 |
-| `trending` | Top 10 livros e comunidades em tendência (refresh a cada 15 min) | ~5 |
-| `user` | Autenticação, perfil, seguidores, busca por username | ~67 |
-| `assistant` | Assistente Bibo com Google Gemini, function calling, histórico Redis | ~21 |
+| `books` | Catálogo, estantes (com streak de leitura), coleções (com estatísticas), busca via OpenSearch | ~67 |
+| `community` | Comunidades públicas/privadas, chat WebSocket, votação de livros com estados, convites por link e direto, solicitações de entrada, gestão de roles | ~98 |
+| `dna` | DNA Literário — cálculo de perfil de leitura, temas literários, snapshots anuais | ~9 |
+| `feed` | Feed personalizado com cursor-based pagination, posts com imagens/GIFs, reviews, comentários aninhados, curtidas, fanout | ~68 |
+| `infrastructure` | Config global, Outbox, rate limiting, Cloudinary, OpenSearch (limpeza semanal) | ~30+ |
+| `notification` | Notificações in-app via SSE (web) e push via Firebase FCM (mobile), histórico, badge de não lidas | ~6 |
+| `recommendation` | 6 algoritmos de recomendação + Roll Dice universal (ver detalhes abaixo) | ~24 |
+| `share` | Importação de biblioteca Goodreads (CSV), geração de cards de compartilhamento social | ~4 |
+| `trending` | Top 10 livros e comunidades em tendência (janela 48h, refresh a cada 15 min) | ~5 |
+| `user` | Autenticação (e-mail/senha + Google OAuth + criação de senha), perfil, seguidores, busca por username | ~67 |
+| `assistant` | Assistente Bibo com Google Gemini, histórico de conversas no Redis, rate limit 20 req/min | ~21 |
 
 ### 🤖 Algoritmos de Recomendação
 
@@ -163,7 +164,7 @@ A trilha que combate o efeito de bolha. Propõe livros de **categorias distantes
 
 Combina duas fontes: o próprio histórico do usuário e o comportamento de leitores similares navegando o grafo Neo4j. O resultado mistura descoberta pessoal com descoberta social.
 
-**Como funciona:** **L1** — livros de autores já bem avaliados pelo próprio usuário (`min-rating: 4`) · **L2** — Neo4j 2 saltos até 30 usuários similares → livros que avaliaram bem · L2 com score alto pode superar L1 (zona de sobreposição `[0.6–0.7]` intencional)
+**Como funciona:** **L1** — livros de autores já bem avaliados pelo próprio usuário (`min-rating: 4`, concluídos há pelo menos 7 dias) · **L2** — Neo4j 2 saltos até 30 usuários similares → livros que avaliaram bem · L2 com score alto pode superar L1 (zona de sobreposição `[0.6–0.7]` intencional)
 
 ---
 
@@ -173,7 +174,7 @@ Combina duas fontes: o próprio histórico do usuário e o comportamento de leit
 
 A única trilha focada em releitura. Usa repetição espaçada para calcular, livro a livro, o momento ideal para reler com base na nota que o usuário deu e em quantas vezes já releu. Quanto maior a nota e mais releituras confirmadas, maior o intervalo sugerido.
 
-**Como funciona:** `intervalo = avaliação × 30 dias × 1.5^n_releituras` · ex: nota 5, 1ª vez → 150 dias · score = `0.7 × maturity + 0.3 × (avaliação / 5.0)` · livros dentro do intervalo ficam ocultos · `reread_count` rastreado em JSON de metadados por conta da constraint única em `shelf_items`
+**Como funciona:** `intervalo = avaliação × 30 dias × 1.5^n_releituras` · ex: nota 5, 1ª vez → 150 dias · mínimo de 90 dias desde a última leitura para aparecer · score = `0.7 × maturity + 0.3 × (avaliação / 5.0)` · livros dentro do intervalo ficam ocultos · `reread_count` rastreado em JSON de metadados por conta da constraint única em `shelf_items`
 
 ---
 
@@ -224,26 +225,6 @@ back/
 
 Documentação interativa disponível em `http://localhost:8080/swagger-ui.html` após subir a aplicação.
 
-### Usuários (`/users`)
-
-| Método | Rota | Descrição |
-|---|---|---|
-| `GET` | `/users/me` | Perfil do usuário autenticado |
-| `PUT` | `/users/me` | Atualizar username, bio, avatar, banner |
-| `PUT` | `/users/me/visibility` | Alternar perfil público/privado |
-| `POST` | `/users/me/avatar` | Upload de avatar (Cloudinary) |
-| `POST` | `/users/me/banner` | Upload de banner (Cloudinary) |
-| `GET` | `/users/{username}` | Perfil público de um usuário |
-| `POST` | `/users/{username}/follow` | Seguir usuário (204 público · 202 privado) |
-| `DELETE` | `/users/{username}/follow` | Deixar de seguir |
-| `GET` | `/users/{username}/followers` | Lista de seguidores |
-| `GET` | `/users/{username}/following` | Lista de seguidos |
-| `GET` | `/users/me/follow-requests` | Solicitações pendentes |
-| `POST` | `/users/me/follow-requests/{user}/accept` | Aceitar solicitação |
-| `DELETE` | `/users/me/follow-requests/{user}` | Rejeitar solicitação |
-| `DELETE` | `/users/me` | Excluir conta |
-| `GET` | `/users` | Busca por prefixo de username (OpenSearch) |
-
 ### Autenticação (`/auth`)
 
 | Método | Rota | Descrição |
@@ -253,8 +234,29 @@ Documentação interativa disponível em `http://localhost:8080/swagger-ui.html`
 | `POST` | `/auth/refresh` | Renovar access token |
 | `POST` | `/auth/logout` | Invalidar refresh token |
 | `POST` | `/auth/google` | Login via Google OAuth |
+| `POST` | `/auth/create-password` | Criar senha para contas criadas exclusivamente via Google |
 | `POST` | `/auth/forgot-password` | Enviar e-mail de redefinição |
 | `POST` | `/auth/reset-password` | Redefinir senha com token |
+
+### Usuários (`/users`)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/users/me` | Perfil do usuário autenticado |
+| `PUT` | `/users/me` | Atualizar username, bio, avatar, banner |
+| `PUT` | `/users/me/visibility` | Alternar perfil público/privado |
+| `POST` | `/users/me/avatar` | Upload de avatar (Cloudinary, async) |
+| `POST` | `/users/me/banner` | Upload de banner (Cloudinary, async) |
+| `DELETE` | `/users/me` | Excluir conta (irreversível) |
+| `GET` | `/users/{username}` | Perfil público de um usuário |
+| `POST` | `/users/{username}/follow` | Seguir usuário (204 público · 202 privado) |
+| `DELETE` | `/users/{username}/follow` | Deixar de seguir |
+| `GET` | `/users/{username}/followers` | Lista paginada de seguidores |
+| `GET` | `/users/{username}/following` | Lista paginada de seguidos |
+| `GET` | `/users/me/follow-requests` | Solicitações de follow pendentes |
+| `POST` | `/users/me/follow-requests/{username}/accept` | Aceitar solicitação |
+| `DELETE` | `/users/me/follow-requests/{username}` | Rejeitar solicitação |
+| `GET` | `/users` | Busca por prefixo de username (OpenSearch, mín. 2 chars) |
 
 ### Livros (`/books`)
 
@@ -263,54 +265,95 @@ Documentação interativa disponível em `http://localhost:8080/swagger-ui.html`
 | `GET` | `/books/search` | Busca por título, autor ou ISBN (OpenSearch + Google Books) |
 | `GET` | `/books/{id}` | Detalhes do livro |
 
+### Gêneros (`/genres`)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/genres` | Lista todos os gêneros com tradução pt-BR (cache 6h) |
+
 ### Estantes (`/shelves`)
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/shelves` | Listar estantes do usuário |
+| `GET` | `/shelves` | Listar estantes do usuário autenticado |
+| `GET` | `/shelves/{shelfId}` | Detalhes de uma estante |
+| `GET` | `/shelves/user/{userId}` | Listar estantes públicas de um usuário |
+| `GET` | `/shelves/user/{userId}/{shelfId}` | Detalhe de estante pública de outro usuário |
+| `GET` | `/shelves/me/active-reading-days` | Streak de leitura (dias distintos com progresso registrado) |
 | `POST` | `/shelves` | Criar estante |
-| `PUT` | `/shelves/{id}` | Renomear estante |
-| `DELETE` | `/shelves/{id}` | Excluir estante |
-| `POST` | `/shelves/{id}/items` | Adicionar livro à estante |
-| `DELETE` | `/shelves/{id}/items/{bookId}` | Remover livro |
+| `PUT` | `/shelves/{shelfId}` | Renomear / atualizar estante |
+| `DELETE` | `/shelves/{shelfId}` | Excluir estante e todos os itens |
+
+### Itens de estante (`/shelves/{shelfId}/items`)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/shelves/{shelfId}/items` | Listar itens da estante |
+| `GET` | `/shelves/{shelfId}/items/{itemId}` | Detalhes do item |
+| `GET` | `/shelves/{shelfId}/items/user/{userId}` | Itens de estante pública de outro usuário |
+| `GET` | `/shelves/{shelfId}/items/user/{userId}/{itemId}` | Item específico de outro usuário |
+| `POST` | `/shelves/{shelfId}/items` | Adicionar livro à estante |
+| `DELETE` | `/shelves/{shelfId}/items/{itemId}` | Remover livro da estante |
+| `PATCH` | `/shelves/{shelfId}/items/{itemId}/progress` | Atualizar página atual de leitura |
+| `PATCH` | `/shelves/{shelfId}/items/{itemId}/status` | Mudar status (QUERO_LER → LENDO → LIDO) |
 
 ### Coleções (`/collections`)
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/collections` | Listar coleções públicas |
-| `POST` | `/collections` | Criar coleção |
-| `PUT` | `/collections/{id}` | Editar coleção |
-| `DELETE` | `/collections/{id}` | Excluir coleção |
+| `GET` | `/collections` | Listar coleções do usuário autenticado |
+| `GET` | `/collections/{collectionId}` | Detalhes (com preview das estantes) |
+| `GET` | `/collections/user/{userId}` | Listar coleções públicas de outro usuário |
+| `GET` | `/collections/user/{userId}/{collectionId}` | Detalhe de coleção pública |
+| `GET` | `/collections/{collectionId}/statistics` | Estatísticas agregadas (livros, páginas, status) |
+| `POST` | `/collections` | Criar coleção (opcionalmente com IDs de estantes) |
+| `PUT` | `/collections/{collectionId}` | Editar nome/descrição |
+| `PATCH` | `/collections/{collectionId}/shelves` | Adicionar estante à coleção |
+| `DELETE` | `/collections/{collectionId}/shelves/{shelfId}` | Remover estante da coleção |
+| `DELETE` | `/collections/{collectionId}` | Excluir coleção |
 
 ### Feed (`/feed`)
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/feed` | Feed paginado do usuário autenticado |
-| `POST` | `/feed/posts` | Publicar post |
-| `DELETE` | `/feed/posts/{id}` | Excluir post |
-| `POST` | `/feed/posts/{id}/like` | Curtir post |
-| `DELETE` | `/feed/posts/{id}/like` | Descurtir post |
+| `GET` | `/feed` | Feed personalizado (cursor-based, máx. 50 itens) |
+| `GET` | `/feed/new-count` | Contagem de itens novos desde o último score visto |
 
-### Reviews (`/reviews`)
+### Posts (`/feed/posts`)
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `POST` | `/reviews` | Criar review de um livro |
-| `GET` | `/reviews/book/{bookId}` | Reviews de um livro |
-| `PUT` | `/reviews/{id}` | Editar review |
-| `DELETE` | `/reviews/{id}` | Excluir review |
-| `POST` | `/reviews/{id}/like` | Curtir review |
+| `POST` | `/feed/posts` | Publicar post (texto, até 5 imagens, 1 GIF, tags, spoiler, link de livro) |
+| `GET` | `/feed/posts/{postId}` | Detalhes do post |
+| `GET` | `/feed/posts/{postId}/basic` | Resumo do post |
+| `GET` | `/feed/posts/user/{userId}` | Posts paginados de um usuário |
+| `PUT` | `/feed/posts/{postId}` | Editar post |
+| `DELETE` | `/feed/posts/{postId}` | Excluir post |
+| `POST` | `/feed/posts/{postId}/like` | Curtir / descurtir post |
 
-### Comentários (`/comments`)
+### Comentários de posts (`/feed/posts/{postId}/comments`)
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `POST` | `/comments` | Comentar em post ou review |
-| `GET` | `/comments/{targetType}/{targetId}` | Listar comentários |
-| `DELETE` | `/comments/{id}` | Excluir comentário |
-| `POST` | `/comments/{id}/like` | Curtir comentário |
+| `POST` | `/feed/posts/{postId}/comments` | Comentar no post (texto, imagens, GIF) |
+| `GET` | `/feed/posts/{postId}/comments` | Listar comentários do post (paginado) |
+| `GET` | `/feed/posts/{postId}/comments/{commentId}` | Detalhes do comentário |
+| `PUT` | `/feed/posts/{postId}/comments/{commentId}` | Editar comentário |
+| `DELETE` | `/feed/posts/{postId}/comments/{commentId}` | Excluir comentário |
+| `POST` | `/feed/posts/{postId}/comments/{commentId}/like` | Curtir / descurtir comentário |
+
+### Reviews (`/feed/reviews`)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/feed/reviews` | Criar review (nota 1–5, texto opcional) |
+| `GET` | `/feed/reviews/{reviewId}` | Detalhes da review |
+| `GET` | `/feed/reviews/{reviewId}/basic` | Resumo da review |
+| `GET` | `/feed/reviews/user/{userId}` | Reviews paginadas de um usuário |
+| `GET` | `/feed/reviews/user/{userId}/basic` | Reviews de outro usuário (formato resumido) |
+| `PUT` | `/feed/reviews/{reviewId}` | Editar review |
+| `DELETE` | `/feed/reviews/{reviewId}` | Excluir review |
+| `POST` | `/feed/reviews/{reviewId}/like` | Curtir / descurtir review |
 
 ### Comunidades (`/communities`)
 
@@ -318,35 +361,84 @@ Documentação interativa disponível em `http://localhost:8080/swagger-ui.html`
 |---|---|---|
 | `POST` | `/communities` | Criar comunidade |
 | `GET` | `/communities/{id}` | Detalhes (com role do viewer) |
+| `GET` | `/communities` | Listar/buscar comunidades (paginado) |
+| `GET` | `/communities/mine` | Comunidades do usuário autenticado (paginado) |
+| `GET` | `/communities/book/{bookId}` | Comunidades vinculadas a um livro (paginado) |
 | `PUT` | `/communities/{id}` | Editar nome/descrição |
-| `POST` | `/communities/{id}/join` | Solicitar entrada |
-| `POST` | `/communities/{id}/invites` | Convidar usuário |
-| `GET` | `/communities/{id}/messages` | Histórico de mensagens |
-| `GET` | `/communities/{id}/voting` | Votação de livro ativa |
-| `POST` | `/communities/{id}/voting` | Criar votação |
-| `POST` | `/communities/{id}/voting/vote` | Registrar voto |
+| `DELETE` | `/communities/{id}` | Soft-delete da comunidade |
+| `POST` | `/communities/{id}/join` | Entrar em comunidade pública |
+| `DELETE` | `/communities/{id}/leave` | Sair da comunidade |
+| `POST` | `/communities/{id}/transfer-ownership` | Transferir propriedade da comunidade |
+
+**Membros**
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/communities/{id}/members` | Listar membros (paginado) |
+| `PUT` | `/communities/{id}/members/{userId}/role` | Alterar role (OWNER, MODERATOR, MEMBER) |
+| `DELETE` | `/communities/{id}/members/{userId}` | Remover membro |
+
+**Links de convite**
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/communities/{id}/invite-link` | Gerar / regenerar link de convite |
+| `DELETE` | `/communities/{id}/invite-link` | Revogar link de convite |
+| `POST` | `/communities/join/{token}` | Entrar via link de convite |
+
+**Convites diretos**
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/communities/{id}/invites` | Convidar usuário diretamente |
+| `GET` | `/communities/invites/pending` | Convites pendentes do usuário autenticado (paginado) |
+| `POST` | `/communities/invites/{inviteId}/accept` | Aceitar convite |
+| `POST` | `/communities/invites/{inviteId}/decline` | Recusar convite |
+
+**Solicitações de entrada (comunidades privadas)**
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/communities/{id}/join-requests` | Solicitar entrada em comunidade privada |
+| `GET` | `/communities/{id}/join-requests` | Listar solicitações pendentes |
+| `POST` | `/communities/join-requests/{requestId}/approve` | Aprovar solicitação |
+| `POST` | `/communities/join-requests/{requestId}/reject` | Rejeitar solicitação |
+
+### Votação de livros (`/communities/{communityId}/votings`)
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/communities/{communityId}/votings` | Criar votação (estado draft) |
+| `POST` | `/communities/{communityId}/votings/{votingId}/publish` | Publicar votação |
+| `POST` | `/communities/{communityId}/votings/{votingId}/vote` | Registrar / desfazer voto |
+| `POST` | `/communities/{communityId}/votings/{votingId}/close` | Encerrar votação antecipadamente |
+| `POST` | `/communities/{communityId}/votings/{votingId}/approve` | Aprovar livro vencedor |
+| `POST` | `/communities/{communityId}/votings/{votingId}/reject` | Rejeitar resultado |
+| `GET` | `/communities/{communityId}/votings/{votingId}` | Detalhes da votação |
+| `GET` | `/communities/{communityId}/votings` | Listar votações da comunidade (paginado) |
 
 ### Recomendações (`/recommendations`)
 
 | Método | Rota | Descrição |
 |---|---|---|
-| `GET` | `/recommendations` | Lista combinada das 6 trilhas |
-| `GET` | `/recommendations/because-you-read` | Trilha T1 |
-| `GET` | `/recommendations/favorite-genre` | Trilha T2 |
-| `GET` | `/recommendations/trending-communities` | Trilha T3 |
-| `GET` | `/recommendations/catalog-surprise` | Trilha T4 |
-| `GET` | `/recommendations/similar-authors` | Trilha T5 |
-| `GET` | `/recommendations/reread-worth-it` | Trilha T6 |
+| `GET` | `/recommendations/because-you-read` | Trilha T1 — co-leitura via Neo4j |
+| `GET` | `/recommendations/favorite-genre-now` | Trilha T2 — 3 gêneros dominantes atuais |
+| `GET` | `/recommendations/trending-in-communities` | Trilha T3 — decay exponencial de engajamento |
+| `GET` | `/recommendations/catalog-surprise` | Trilha T4 — Thompson Sampling (Beta(α,β)) |
+| `GET` | `/recommendations/similar-authors` | Trilha T5 — filtragem colaborativa 2 níveis |
+| `GET` | `/recommendations/reread-worth-it` | Trilha T6 — repetição espaçada |
+| `GET` | `/recommendations/roll-dice` | Roll Dice — seleção aleatória das 6 trilhas combinadas |
 
 ### Outros
 
 | Módulo | Rota base | Destaques |
 |---|---|---|
-| DNA Literário | `/dna` | Perfil, arquétipos literários, histórico de snapshots |
-| Trending | `/trending` | Top 10 livros e comunidades (cache Redis) |
-| Notificações | `/notifications` | Listagem, marcar como lida, registrar device token FCM |
-| Assistente Bibo | `/assistant` | Chat com Gemini, histórico de conversa, function calling |
-| Share | `/share` | Geração de cards de compartilhamento |
+| DNA Literário | `/dna` | Perfil, temas literários, snapshots anuais (mín. 5 livros) |
+| Trending | `/trending` | Top 10 livros e comunidades (janela 48h, cache Redis) |
+| Notificações | `/notifications` | SSE para web · FCM para mobile · histórico · badge de não lidas · gestão de device tokens |
+| Assistente Bibo | `/assistant` | Chat com Gemini, histórico de conversas (Redis), rate limit 20 req/min |
+| Importação | `/import` | Importação de biblioteca Goodreads via CSV (máx. 10 MB / 10 k linhas) |
+| Share | `/share` | Geração de cards de compartilhamento social |
 
 ---
 
