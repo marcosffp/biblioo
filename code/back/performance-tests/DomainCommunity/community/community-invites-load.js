@@ -11,8 +11,8 @@ const CONFIG = {
   bookId: 1,
 
   load: {
-    crudVus:    150,
-    listingVus: 60,
+    inviteVus: 150,
+    listVus:   60,
     duration:  '2m',
   },
 
@@ -155,7 +155,10 @@ export function inviteFlow(data) {
     Authorization:  `Bearer ${data.ownerToken}`,
   };
 
-  const invitee        = randomItem(data.invitees);
+  // Cada VU opera sobre um invitee EXCLUSIVO (partição por __VU), evitando que
+  // múltiplos VUs disputem o mesmo convite no decline (auto-colisão artificial).
+  // Pré-condição: inviteePoolSize >= inviteVus (230 >= 150) para haver 1 invitee por VU.
+  const invitee        = data.invitees[(__VU - 1) % data.invitees.length];
   const inviteeHeaders = { Authorization: `Bearer ${invitee.accessToken}` };
 
   // 1. Owner convida — 201 esperado, 4xx aceito (pode já ter convite pendente)

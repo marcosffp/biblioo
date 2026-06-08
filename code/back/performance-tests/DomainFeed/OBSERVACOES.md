@@ -22,8 +22,11 @@
 ### Pontos positivos / atenção
 - Aprovado em todos os testes. O spike teve o maior p(95) do grupo de interações (540ms), refletindo o custo de escrita concorrente de reações (toggle like). Ainda assim, dentro do threshold de 2500ms.
 
-## Review (resenhas) — ⚠️ PONTO CRÍTICO
-### Problema identificado
+## Review (resenhas) — ✅ RESOLVIDO (atualizado em 2026-05-30)
+
+> **Atualização:** a ação recomendada abaixo (rerodar isolado, com banco limpo) foi executada — e **confirmou que era contaminação de banco, não gargalo de código**. Com `setupTimeout` ampliado (spike 1200s / stress 1800s) e guard `SAFE_VU`/`SAFE_ITER` no log de setup, os três testes passaram: load p(95) **38.97ms**, spike **462.85ms**, stress **361.17ms**, 0% de falhas. A análise original abaixo permanece como registro histórico do diagnóstico que levou à confirmação. Resultados completos em `RELATORIO-DOMAINFEED.md` (seção 5).
+
+### Problema identificado (bateria original — contexto histórico)
 - **review-load reprovou:** p(95)=**3.5s** (threshold 1000ms), com mediana de apenas 19ms mas **max de 13.19s**. As respostas estão funcionalmente corretas (0% de falha, checks 100%), mas a latência tem uma **cauda longa severa** sob 210 VUs.
 - **review-spike e review-stress nem completaram o setup** (`setup() execution timed out` em 300s e 600s respectivamente). A preparação cria reviews em massa — o fato de estourar o timeout confirma que **criar/listar reviews é lento**.
 
@@ -42,6 +45,6 @@
 ---
 
 ## Observações Transversais
-1. **12 de 15 testes aprovados com 0% de falhas.** O núcleo social do produto (feed, post, comment, interação) é sólido e escala até 600 VUs.
-2. **Review é o único gargalo do DomainFeed** e o achado mais relevante desta bateria, ao lado do bug de concorrência já conhecido em `community-join-requests`.
-3. Todos os endpoints aprovados mostram o padrão saudável "median baixa, p(95) moderado"; review é o único com p(95) ordens de magnitude acima da mediana.
+1. **15 de 15 testes aprovados com 0% de falhas** (após reexecução isolada de review em 2026-05-30). O núcleo social do produto (feed, post, comment, interação) e as resenhas escalam até 600 VUs.
+2. **Review não é gargalo** — a suspeita inicial foi descartada: rerodado isolado com banco saudável, ficou em p(95) 39/463/361ms (load/spike/stress). O único bug aberto do produto segue sendo a race condition de `community-join-requests`.
+3. Todos os endpoints, incluindo review, mostram o padrão saudável "median baixa, p(95) moderado".

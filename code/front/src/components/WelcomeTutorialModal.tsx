@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowRight, ChevronLeft } from "lucide-react";
+import { X } from "lucide-react";
 
 const TUTORIAL_KEY = "biblioo.tutorial.seen";
 
@@ -10,7 +10,7 @@ const TUTORIAL_KEY = "biblioo.tutorial.seen";
 
 function IllustrationWelcome() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[260px]">
       {/* Background circle */}
       <circle cx="120" cy="100" r="80" fill="hsl(158,60%,93%)" />
       {/* Open book */}
@@ -44,7 +44,7 @@ function IllustrationWelcome() {
 
 function IllustrationShelf() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[260px]">
       <circle cx="120" cy="100" r="80" fill="hsl(158,60%,93%)" />
       {/* Shelf plank */}
       <rect x="44" y="148" width="152" height="8" rx="4" fill="#0f766e" />
@@ -81,7 +81,7 @@ function IllustrationShelf() {
 
 function IllustrationFeed() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[260px]">
       <circle cx="120" cy="100" r="80" fill="hsl(158,60%,93%)" />
       {/* Card 1 */}
       <rect x="50" y="58" width="140" height="46" rx="10" fill="white" />
@@ -122,7 +122,7 @@ function IllustrationFeed() {
 
 function IllustrationCommunity() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[260px]">
       <circle cx="120" cy="100" r="80" fill="hsl(158,60%,93%)" />
       {/* Center person */}
       <circle cx="120" cy="88" r="16" fill="#0d9488" />
@@ -160,7 +160,7 @@ function IllustrationCommunity() {
 
 function IllustrationDna() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[260px]">
       <circle cx="120" cy="100" r="80" fill="hsl(158,60%,93%)" />
       {/* Donut chart */}
       <circle cx="120" cy="98" r="46" fill="none" stroke="#e5e7eb" strokeWidth="18" />
@@ -190,7 +190,7 @@ function IllustrationDna() {
 
 function IllustrationGoal() {
   return (
-    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[220px]">
+    <svg viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-[260px]">
       <circle cx="120" cy="100" r="80" fill="hsl(158,60%,93%)" />
       {/* Progress bar background */}
       <rect x="54" y="118" width="132" height="14" rx="7" fill="#d1fae5" />
@@ -287,7 +287,7 @@ function WelcomeTutorialModal({ onClose }: Readonly<WelcomeTutorialModalProps>) 
       onClick={handleClose}
     >
       <motion.div
-        className="relative w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-[0_32px_80px_rgba(0,0,0,0.22)]"
+        className="relative w-full max-w-[400px] overflow-hidden rounded-[28px] bg-white shadow-[0_32px_80px_rgba(0,0,0,0.22)]"
         initial={{ opacity: 0, y: 24, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 16, scale: 0.97 }}
@@ -315,22 +315,22 @@ function WelcomeTutorialModal({ onClose }: Readonly<WelcomeTutorialModalProps>) 
         </div>
 
         {/* Progress dots */}
-        <div className="mt-4 flex items-center justify-center gap-1.5 px-6">
+        <div className="mt-4 flex items-center justify-center gap-2 px-6">
           {SLIDES.map((_, i) => (
             <motion.button
               key={i}
               type="button"
               onClick={() => setStep(i)}
               aria-label={`Ir para slide ${i + 1}`}
-              animate={{ width: i === step ? 20 : 6, opacity: i === step ? 1 : 0.35 }}
+              animate={{ width: i === step ? 24 : 7, opacity: i === step ? 1 : 0.28 }}
               transition={{ duration: 0.25 }}
-              className="h-1.5 rounded-full bg-[var(--brand-500)]"
+              className="h-[7px] rounded-full bg-[var(--brand-500)]"
             />
           ))}
         </div>
 
         {/* Illustration */}
-        <div className="mt-6 flex justify-center px-8">
+        <div className="mt-5 flex justify-center px-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -338,7 +338,7 @@ function WelcomeTutorialModal({ onClose }: Readonly<WelcomeTutorialModalProps>) 
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: -8 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="flex h-48 w-full items-center justify-center"
+              className="flex h-[220px] w-full items-center justify-center"
             >
               <Illustration />
             </motion.div>
@@ -353,29 +353,28 @@ function WelcomeTutorialModal({ onClose }: Readonly<WelcomeTutorialModalProps>) 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.22 }}
-            className="mt-5 px-8 text-center"
+            className="mt-4 px-7 text-center"
           >
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">{slide.title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">{slide.description}</p>
+            <h2 className="text-[22px] font-bold leading-tight text-[var(--text-primary)]">{slide.title}</h2>
+            <p className="mt-2.5 text-sm leading-relaxed text-[var(--text-secondary)]">{slide.description}</p>
           </motion.div>
         </AnimatePresence>
 
         {/* Buttons */}
-        <div className="mt-6 flex items-center gap-3 px-6 pb-6">
+        <div className="mt-5 flex items-center gap-3 px-5 pb-6">
           {step > 0 ? (
             <button
               type="button"
               onClick={handlePrev}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border-soft)] text-[var(--text-secondary)] transition hover:bg-[var(--bg-soft)]"
-              aria-label="Slide anterior"
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-[var(--border-soft)] text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-soft)] hover:text-[var(--text-primary)]"
             >
-              <ChevronLeft size={18} />
+              Anterior
             </button>
           ) : (
             <button
               type="button"
               onClick={handleClose}
-              className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+              className="inline-flex h-11 flex-1 items-center justify-center rounded-2xl border border-[var(--border-soft)] text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--bg-soft)] hover:text-[var(--text-primary)]"
             >
               Pular
             </button>
@@ -384,10 +383,9 @@ function WelcomeTutorialModal({ onClose }: Readonly<WelcomeTutorialModalProps>) 
           <button
             type="button"
             onClick={handleNext}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--brand-500)] py-3 text-sm font-semibold text-white shadow-[0_8px_20px_hsl(var(--brand-500)/0.30)] transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-600)]"
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-500)] text-sm font-semibold text-white shadow-[0_8px_20px_hsl(var(--brand-500)/0.30)] transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-600)]"
           >
             {isLast ? "Começar agora" : "Próximo"}
-            <ArrowRight size={15} />
           </button>
         </div>
       </motion.div>

@@ -2,7 +2,7 @@ name: biblioo
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -45,22 +45,22 @@ dependencies:
   package_info_plus: ^8.0.2
   image_picker: ^1.1.2
   path_provider: ^2.1.4
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^10.0.3
   google_sign_in: ^6.2.1
   flutter_dotenv: ^5.1.0
   app_links: ^6.4.0
   share_plus: ^10.0.2
 
   # local
-  drift: ^2.18.0        # banco local SQLite tipado
+  drift: ^2.18.0 # banco local SQLite tipado
   drift_flutter: ^0.2.0
   shared_preferences: ^2.3.0
 
   # sync
-  hive_flutter: ^1.1.0  # cache leve para respostas de API
+  hive_flutter: ^1.1.0 # cache leve para respostas de API
 
   # utilitários
-  get_it: ^8.0.0        # injeção de dependência
+  get_it: ^8.0.0 # injeção de dependência
   injectable: ^2.4.0
   freezed_annotation: ^2.4.0
   json_annotation: ^4.9.0
@@ -74,7 +74,7 @@ dev_dependencies:
     sdk: flutter
 
   build_runner: ^2.4.0
-  
+
   freezed: ^2.5.0
 
   json_serializable: ^6.8.0
@@ -82,6 +82,8 @@ dev_dependencies:
   drift_dev: ^2.18.0
 
   injectable_generator: ^2.4.0
+
+  flutter_launcher_icons: ^0.14.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -95,7 +97,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -134,3 +135,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  remove_alpha_ios: true # Recomendado para evitar rejeição na App Store

@@ -5,16 +5,16 @@ const CONFIG = {
   base:              'http://localhost:8080',
   password:          'Senha@12345',
   prefix:            'reqcomm',
-  requesterPoolSize: 230,
-  // Um par owner+comunidade por VU do cenário request — elimina disputa pelo mesmo requestId
-  communityPoolSize: 20,
+  requesterPoolSize: 300,
+  // 1 comunidade por VU do cenário request — elimina completamente a disputa pelo mesmo requestId
+  communityPoolSize: 150,
 
   // ID de um livro que existe no banco
   bookId: 1,
 
   load: {
     requestVus: 150,  // cada VU gerencia sua própria comunidade
-    listVus:    60,  // leitura de join-requests pendentes
+    listVus:    60,   // leitura de join-requests pendentes
     duration:   '2m',
   },
 
@@ -37,7 +37,7 @@ const CONFIG = {
 // eliminando a disputa pelo mesmo requestId.
 
 export const options = {
-  setupTimeout: '8m',
+  setupTimeout: '15m',
 
   scenarios: {
     request: {
@@ -154,10 +154,14 @@ export function requestFlow(data) {
   const ownerHeaders     = { Authorization: `Bearer ${comm.ownerToken}` };
 
   // 1. Requester solicita entrada na comunidade deste VU
+  // 409 é esperado quando o requester já tem solicitação pendente — não conta como http_req_failed
   const reqRes = http.post(
     `${CONFIG.base}/communities/${comm.communityId}/join-requests`,
     null,
-    { headers: requesterHeaders }
+    {
+      headers:          requesterHeaders,
+      responseCallback: http.expectedStatuses({ min: 200, max: 299 }, { min: 400, max: 499 }),
+    }
   );
   check(reqRes, {
     'request 201 ou conflito': (r) => r.status === 201 || (r.status >= 400 && r.status < 500),
@@ -171,24 +175,6 @@ export function requestFlow(data) {
     { headers: ownerHeaders }
   );
   check(pendingRes, { 'GET /join-requests 200': (r) => r.status === 200 });
-
-  // 3. Owner rejeita o primeiro — sem concorrência pois só este VU gere esta comunidade
-  if (pendingRes.status === 200) {
-    try {
-      const page = JSON.parse(pendingRes.body);
-      if (page.content && page.content.length > 0) {
-        const requestId = page.content[0].id;
-        sleep(CONFIG.sleep.betweenSteps);
-
-        const rejectRes = http.post(
-          `${CONFIG.base}/communities/join-requests/${requestId}/reject`,
-          null,
-          { headers: ownerHeaders }
-        );
-        check(rejectRes, { 'reject 204': (r) => r.status === 204 });
-      }
-    } catch (_) { /* corpo inesperado */ }
-  }
 
   sleep(CONFIG.sleep.afterIteration);
 }

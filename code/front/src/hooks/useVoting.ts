@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  type VotingResponse,
-  type VotingEventPayload,
-  type CreateVotingRequest,
   getVotings,
   createVoting,
   publishVoting,
@@ -11,6 +8,7 @@ import {
   approveVoting,
   rejectVoting,
 } from "@/services/voting";
+import type { VotingResponse, VotingEventPayload, CreateVotingRequest } from "@/types/api";
 
 const STATUS_PRIORITY = ["ACTIVE", "DRAFT", "CLOSED", "APPROVED", "REJECTED"] as const;
 

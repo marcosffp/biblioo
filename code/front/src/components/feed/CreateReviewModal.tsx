@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { X } from "lucide-react";
 import { BookcaseModal, RatingStars, BookCoverPlaceholder } from "@/components";
 import {
@@ -120,8 +121,7 @@ export function CreateReviewModal({ onClose, onPublished }: CreateReviewModalPro
                         className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-emerald-50 transition-colors border-b border-gray-100 last:border-0"
                       >
                         {book.bookCoverUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={book.bookCoverUrl} alt={book.bookTitle} className="h-10 w-7 shrink-0 rounded object-cover" />
+                          <Image src={book.bookCoverUrl} alt={book.bookTitle} width={28} height={40} className="h-10 w-7 shrink-0 rounded object-cover" />
                         ) : (
                           <div className="h-10 w-7 shrink-0"><BookCoverPlaceholder /></div>
                         )}
@@ -136,10 +136,11 @@ export function CreateReviewModal({ onClose, onPublished }: CreateReviewModalPro
         ) : (
           <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
             {selectedBook.bookCoverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={selectedBook.bookCoverUrl}
                 alt={selectedBook.bookTitle}
+                width={32}
+                height={48}
                 className="h-12 w-8 shrink-0 rounded object-cover shadow-sm"
               />
             ) : (

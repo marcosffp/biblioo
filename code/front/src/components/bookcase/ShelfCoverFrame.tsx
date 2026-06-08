@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { BookCoverPlaceholder } from "@/components";
 
 interface ShelfCoverFrameProps {
@@ -22,9 +23,11 @@ export function ShelfCoverFrame({ covers, shelfName, size = "md" }: Readonly<She
   if (visibleCovers.length === 1) {
     return (
       <div className={`${frameSizeClassName} overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)]`}>
-        <img
+        <Image
           src={visibleCovers[0]}
           alt={`Capa da estante ${shelfName}`}
+          width={size === "lg" ? 96 : 80}
+          height={size === "lg" ? 96 : 80}
           className="h-full w-full object-cover"
         />
       </div>
@@ -35,10 +38,12 @@ export function ShelfCoverFrame({ covers, shelfName, size = "md" }: Readonly<She
     return (
       <div className={`grid ${frameSizeClassName} grid-cols-2 grid-rows-1 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1`}>
         {visibleCovers.map((coverUrl, index) => (
-          <img
+          <Image
             key={`${coverUrl}-${index}`}
             src={coverUrl}
             alt={`Capa ${index + 1} da estante ${shelfName}`}
+            width={size === "lg" ? 48 : 40}
+            height={size === "lg" ? 48 : 40}
             className="block h-full w-full rounded-[6px] object-cover"
           />
         ))}
@@ -49,21 +54,9 @@ export function ShelfCoverFrame({ covers, shelfName, size = "md" }: Readonly<She
   if (visibleCovers.length === 3) {
     return (
       <div className={`grid ${frameSizeClassName} grid-cols-2 grid-rows-2 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1`}>
-        <img
-          src={visibleCovers[0]}
-          alt={`Capa 1 da estante ${shelfName}`}
-          className="block h-full w-full rounded-[6px] object-cover"
-        />
-        <img
-          src={visibleCovers[1]}
-          alt={`Capa 2 da estante ${shelfName}`}
-          className="block h-full w-full rounded-[6px] object-cover"
-        />
-        <img
-          src={visibleCovers[2]}
-          alt={`Capa 3 da estante ${shelfName}`}
-          className="col-span-2 block h-full w-full rounded-[6px] object-cover"
-        />
+        <Image src={visibleCovers[0]} alt={`Capa 1 da estante ${shelfName}`} width={size === "lg" ? 48 : 40} height={size === "lg" ? 48 : 40} className="block h-full w-full rounded-[6px] object-cover" />
+        <Image src={visibleCovers[1]} alt={`Capa 2 da estante ${shelfName}`} width={size === "lg" ? 48 : 40} height={size === "lg" ? 48 : 40} className="block h-full w-full rounded-[6px] object-cover" />
+        <Image src={visibleCovers[2]} alt={`Capa 3 da estante ${shelfName}`} width={size === "lg" ? 96 : 80} height={size === "lg" ? 48 : 40} className="col-span-2 block h-full w-full rounded-[6px] object-cover" />
       </div>
     );
   }
@@ -71,10 +64,12 @@ export function ShelfCoverFrame({ covers, shelfName, size = "md" }: Readonly<She
   return (
     <div className={`grid ${frameSizeClassName} grid-cols-2 grid-rows-2 gap-1 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border-soft)] bg-[var(--bg-soft)] p-1`}>
       {visibleCovers.map((coverUrl, index) => (
-        <img
+        <Image
           key={`${coverUrl}-${index}`}
           src={coverUrl}
           alt={`Capa ${index + 1} da estante ${shelfName}`}
+          width={size === "lg" ? 48 : 40}
+          height={size === "lg" ? 48 : 40}
           className="block h-full w-full rounded-[6px] object-cover"
         />
       ))}

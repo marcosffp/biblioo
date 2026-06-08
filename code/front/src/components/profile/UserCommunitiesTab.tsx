@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CommunityCard } from "@/components/CommunityCard";
-import { ProfileFollowersPanel } from "@/components/profile/ProfileFollowersPanel";
-import { listCommunities, type BackendCommunityResponse } from "@/services/community";
+import { listCommunities, listCommunitiesByUserId } from "@/services/community";
+import type { BackendCommunityResponse } from "@/types/api";
 import { getAccessToken } from "@/services/auth";
 import { getBookById } from "@/services/bookcase";
 
@@ -37,20 +37,14 @@ function useCommunityBooks(communities: BackendCommunityResponse[]) {
   return bookTitles;
 }
 
-type FollowerUser = { id: number; username: string; sideLabel?: string };
-
 export type UserCommunitiesTabProps = {
   isOwnProfile: boolean;
-  followersUsers?: FollowerUser[];
-  followingUsers?: FollowerUser[];
-  myFollowingUsernames?: string[];
+  userId?: number;
 };
 
 export function UserCommunitiesTab({
   isOwnProfile,
-  followersUsers = [],
-  followingUsers = [],
-  myFollowingUsernames = [],
+  userId,
 }: UserCommunitiesTabProps) {
   const router = useRouter();
   const [communities, setCommunities] = useState<BackendCommunityResponse[]>([]);
@@ -59,16 +53,18 @@ export function UserCommunitiesTab({
   const bookTitles = useCommunityBooks(communities);
 
   useEffect(() => {
-    if (!isOwnProfile) {
-      setIsLoading(false);
-      return;
-    }
-
     let cancelled = false;
     const run = async () => {
       const token = getAccessToken();
       try {
-        const data = await listCommunities({ mine: true, token: token ?? undefined, size: 20 });
+        let data: BackendCommunityResponse[];
+        if (isOwnProfile) {
+          data = await listCommunities({ mine: true, token: token ?? undefined, size: 20 });
+        } else if (userId !== undefined) {
+          data = await listCommunitiesByUserId(userId, 20, token);
+        } else {
+          data = [];
+        }
         if (!cancelled) setCommunities(data);
       } catch {
         // silently handled by empty state
@@ -81,28 +77,7 @@ export function UserCommunitiesTab({
     return () => {
       cancelled = true;
     };
-  }, [isOwnProfile]);
-
-  if (!isOwnProfile) {
-    return (
-      <section className="grid gap-4 lg:grid-cols-2">
-        <ProfileFollowersPanel
-          title="Seguidores"
-          emptyLabel="Nenhum seguidor visível."
-          users={followersUsers.slice(0, 8).map((u) => ({
-            id: u.id,
-            username: u.username,
-            sideLabel: myFollowingUsernames.includes(u.username.toLowerCase()) ? "Você segue" : "",
-          }))}
-        />
-        <ProfileFollowersPanel
-          title="Seguindo"
-          emptyLabel="Não segue nenhum usuário visível."
-          users={followingUsers.slice(0, 8).map((u) => ({ id: u.id, username: u.username, sideLabel: "Leitor" }))}
-        />
-      </section>
-    );
-  }
+  }, [isOwnProfile, userId]);
 
   if (isLoading) {
     return (
@@ -131,7 +106,9 @@ export function UserCommunitiesTab({
         </div>
         <p className="text-sm font-semibold text-gray-700">Nenhuma comunidade ainda</p>
         <p className="mt-1 text-xs text-gray-400">
-          Encontre clubes de leitura e conversas para compartilhar suas leituras.
+          {isOwnProfile
+            ? "Encontre clubes de leitura e conversas para compartilhar suas leituras."
+            : "Este usuário ainda não participa de nenhuma comunidade."}
         </p>
       </div>
     );

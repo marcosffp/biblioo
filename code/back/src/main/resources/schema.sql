@@ -48,6 +48,16 @@ ALTER TABLE books ADD COLUMN IF NOT EXISTS complexity_score INT NULL;
 -- DNA Literário: reread_count no ShelfItem
 ALTER TABLE shelf_items ADD COLUMN IF NOT EXISTS reread_count INT NOT NULL DEFAULT 0;
 
+-- Dias ativos de leitura: cada livro atualizado por dia conta como +1 (mesmo livro 2x no mesmo dia = 1)
+CREATE TABLE IF NOT EXISTS reading_active_days (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id     BIGINT NOT NULL,
+    book_id     BIGINT NOT NULL,
+    active_date DATE   NOT NULL,
+    UNIQUE KEY uk_user_book_date (user_id, book_id, active_date),
+    INDEX idx_rad_user_id (user_id)
+);
+
 -- DNA Literário: índice composto para consulta de histórico de leitura por usuário
 CREATE INDEX IF NOT EXISTS idx_si_user_status
     ON shelf_items (shelf_id, status, book_id);
@@ -81,6 +91,8 @@ CREATE TABLE IF NOT EXISTS assistant_action_log (
     created_at      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     INDEX idx_assistant_log_user (user_id),
     INDEX idx_assistant_log_conv (conversation_id)
+);
+
 -- Sistema de Votação de Livros
 CREATE TABLE IF NOT EXISTS community_votings (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

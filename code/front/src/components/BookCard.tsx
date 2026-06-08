@@ -1,4 +1,5 @@
-﻿import React from "react";
+﻿import React, { memo } from "react";
+import Image from "next/image";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { RatingStars } from "./RatingStars";
 import { ProgressBar } from "./ProgressBar";
@@ -17,7 +18,7 @@ export interface BookCardProps {
   className?: string;
 }
 
-export function BookCard({
+export const BookCard = memo(function BookCard({
   title,
   author,
   coverUrl,
@@ -38,7 +39,7 @@ export function BookCard({
       } ${className ?? ""}`.trim()}
     >
       {coverUrl ? (
-        <img
+        <Image
           src={coverUrl}
           alt={`Capa de ${title}`}
           className="rounded-md object-cover"
@@ -75,7 +76,7 @@ export function BookCard({
       </div>
     </div>
   );
-}
+});
 
 export default BookCard;
 

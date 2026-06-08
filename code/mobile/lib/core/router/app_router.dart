@@ -51,7 +51,8 @@ String? _authRedirect(BuildContext context, GoRouterState state) {
   final isAuthed = authState is AuthAuthenticated;
   final loc = state.matchedLocation;
 
-  final isAuthRoute = loc == '/login' || loc == '/register';
+  final isAuthRoute =
+      loc == '/login' || loc == '/register' || loc == '/forgot-password';
   final isOnboardingRoute = loc == '/onboarding';
 
   // Não autenticado: só pode ficar nas telas de auth.
@@ -60,7 +61,10 @@ String? _authRedirect(BuildContext context, GoRouterState state) {
   }
 
   // Autenticado, mas onboarding pendente: prende em /onboarding.
-  final onboardingDone = Injector.instance.preferencesRepo.isOnboardingDone();
+  final userId = authState.session.user.id;
+  final onboardingDone = Injector.instance.preferencesRepo.isOnboardingDone(
+    userId,
+  );
   if (!onboardingDone) {
     return isOnboardingRoute ? null : '/onboarding';
   }
@@ -176,7 +180,8 @@ final appRouter = GoRouter(
 
     // ── SHELL (com bottom nav) ────────────────────────────
     StatefulShellRoute.indexedStack(
-      builder: (context, state, shell) => MainShell(shell: shell),
+      builder: (context, state, shell) =>
+          MainShell(shell: shell, currentUri: state.uri),
       branches: [
         // Tab 0 — Feed
         StatefulShellBranch(

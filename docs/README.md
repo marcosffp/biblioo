@@ -1,6 +1,6 @@
 # Biblioo
 
-**Bernardo Souza Alvim, bernardo.alvim@sga.pucminas.b**
+**Bernardo Souza Alvim, bernardo.alvim@sga.pucminas.br**
 
 **Carlos José Gomes Batista Figueiredo, carlos.figueiredo.1507022@sga.pucminas.br**
 
@@ -26,55 +26,61 @@ João Paulo Carneiro Aramuni
 
 _Curso de Engenharia de Software, Campus Lourdes_
 
-_Instituto de Informática e Ciências Exatas – Pontifícia Universidade de Minas Gerais (PUC MINAS), Belo Horizonte – MG – Brasil_
+_Instituto de Informática e Ciências Exatas – Pontifícia Universidade Católica de Minas Gerais (PUC MINAS), Belo Horizonte – MG – Brasil_
 
 ---
 
-_**Resumo**. Escrever aqui o resumo. O resumo deve contextualizar rapidamente o trabalho, descrever seu objetivo e, ao final, 
-mostrar algum resultado relevante do trabalho (até 10 linhas)._
+_**Resumo**. O Biblioo é uma plataforma de comunidade literária web e mobile desenvolvida para leitores ativos brasileiros. O sistema resolve a fragmentação das experiências digitais de leitura ao reunir em um único ambiente: organização de estantes personalizadas com rastreamento de progresso, feed social com posts e reviews, comunidades com chat em tempo real via WebSocket, seis algoritmos independentes de recomendação personalizada — combinando grafo de relacionamentos (Neo4j), filtragem colaborativa, aprendizado bayesiano (Thompson Sampling) e repetição espaçada —, DNA Literário com arquétipo e perfil de leitura do usuário, notificações em tempo real e o assistente conversacional Bibo, integrado ao Google Gemini, capaz de executar ações diretamente na plataforma. A arquitetura segue o estilo Hexagonal em um monólito modular com 11 domínios, implantado em dois ambientes no Google Cloud Run com pipeline CI/CD automatizado. Uma suíte de 72 testes de performance (K6) validou os requisitos não funcionais definidos — nenhuma falha funcional foi registrada em toda a carga de testes, com throughput máximo de 1 538 req/s e latência p95 de 11 ms para o chat em tempo real._
 
 ---
 
 ## SUMÁRIO
 
-1. [Apresentação](1.apresentacao.md#apresentacao "Apresentação") <br />
-	1.1. Problema <br />
-	1.2. Objetivos do trabalho <br />
-	1.3. Definições e Abreviaturas <br />
- 
-2. [Nosso Produto](2.nosso_produto.md#produto "Nosso Produto") <br />
-	2.1. Visão do Produto <br />
-   	2.2. Nosso Produto <br />
-   	2.3. Personas <br />
+1. [Apresentação](1.apresentacao.md#apresentacao "Apresentação")
+   - 1.1. Problema
+   - 1.2. Objetivos do trabalho
+   - 1.3. Definições e Abreviaturas
 
-3. [Requisitos](3.requisitos.md#requisitos "Requisitos") <br />
-	3.1. Requisitos Funcionais <br />
-	3.2. Requisitos Não-Funcionais <br />
-	3.3. Restrições Arquiteturais <br />
-	3.4. Mecanismos Arquiteturais <br />
+2. [Nosso Produto](2.nosso_produto.md#produto "Nosso Produto")
+   - 2.1. Visão do Produto
+   - 2.2. É / Não É · Faz / Não Faz
+   - 2.3. Personas
 
-4. [Modelagem](4.modelagem.md#modelagem "Modelagem e projeto arquitetural") <br />
-	4.1. Visão de Negócio <br />
-	4.2. Visão Lógica <br />
-	4.3. Modelo de dados (opcional) <br />
+3. [Requisitos](3.requisitos.md#requisitos "Requisitos")
+   - 3.1. Requisitos Funcionais (RF-01 a RF-40)
+   - 3.2. Requisitos Não Funcionais (RNF-01 a RNF-22)
+   - 3.3. Restrições Arquiteturais
+   - 3.4. Mecanismos Arquiteturais
 
-5. [Wireframes](5.wireframe.md#wireframes "Wireframes") <br />
+4. [Modelagem](4.modelagem.md#modelagem "Modelagem e Projeto Arquitetural")
+   - 4.1. Histórias de Usuário
+   - 4.2. Visão Lógica
+   - 4.3. Modelo de Dados
 
-6. [Solução](6.solucao.md#solucao "Projeto da Solução") <br />
+5. [Wireframes](5.wireframe.md#wireframes "Wireframes")
+   - Web: Login, Feed, Estante, Coleção, Comunidades, Perfil, Recomendação
+   - Mobile: Login, Feed, Estante, Comunidade, Perfil, Recomendação, Chat
 
-7. [Avaliação](7.avaliacao.md#avaliacao "Avaliação da Arquitetura") <br />
-	7.1. Cenários <br />
-	7.2. Avaliação <br />
+6. [Projeto da Solução](6.solucao.md#solucao "Projeto da Solução")
 
-[Ferramentas](#ferramentas "Ferramentas")<br />
+7. [Avaliação da Arquitetura](7.avaliacao.md#avaliacao "Avaliação da Arquitetura")
+   - 7.1. Cenários
+   - 7.2. Avaliação (ATAM — 5 cenários com dados de testes K6)
+   - 7.3. Avaliação Geral da Arquitetura
+
+---
 
 <a name="ferramentas"></a>
-# Ferramentas
+## Ferramentas e Ambientes
 
-_Inclua o URL do repositório (Github, Bitbucket, etc) onde você armazenou o código da sua prova de conceito/protótipo arquitetural da aplicação como anexos. A inclusão da URL desse repositório de código servirá como base para garantir a autenticidade dos trabalhos._
-
-| Ambiente  | Plataforma              |Link de Acesso |
-|-----------|-------------------------|---------------|
-|Repositório de código | GitHub | https://github.com/XXXXXXX | 
-|Hospedagem do site | Heroku |  https://XXXXXXX.herokuapp.com | 
-|Protótipo Interativo | MavelApp ou Figma | https://figma.com/XXXXXXX |
+| Ambiente | Plataforma | Link de Acesso |
+|---|---|---|
+| Repositório de código (privado) | GitHub — organização PUC Minas | https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo |
+| Repositório público (espelho CI/CD) | GitHub | https://github.com/marcosffp/biblioo |
+| Backend — ambiente portfolio | Google Cloud Run | https://biblioo-portfolio-595140312227.us-central1.run.app |
+| Backend — ambiente produção | Google Cloud Run | https://biblioo-producao-595140312227.us-central1.run.app |
+| Documentação interativa da API | Swagger UI (via backend) | https://biblioo-producao-595140312227.us-central1.run.app/swagger-ui.html |
+| Wireframes interativos | Figma | — |
+| Schemas do banco de dados | Repositório (`docs/schema/`) | `biblioo.dbml` · `biblioo.components.puml` |
+| Wireframes estáticos | Repositório (`docs/wireframe/`) | `web/` · `mobile/` |
+| Atas de reunião | Repositório (`assets/atas/`) | ATA-2026-03-17 · ATA-2026-04-26 · ATA-2026-05-29 |

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useParams } from "next/navigation";
-import { Activity, BookMarked, BookOpen, MessageSquare, MoreHorizontal, Sparkles, Users } from "lucide-react";
+import { Activity, BookOpen, BookOpenCheck, Flame, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -11,9 +11,9 @@ import {
   ProfileShelfBookCard,
   ProfileStatsGrid,
   ProfileTabs,
+  ProgressBar,
   UnfollowPrivateConfirmModal,
   UserActivityFeed,
-  UserReviewsTab,
   UserCommunitiesTab,
 } from "@/components";
 import { ShelfBookDetailsPanel } from "@/components/bookcase/ShelfBookDetailsPanel";
@@ -37,20 +37,24 @@ import {
   listMyFollowing,
   listShelfItemsByUserId,
   unfollowUser,
-  type DnaResponse,
-  type DnaProgressResponse,
-  type UserSummaryResponse,
-  type UserProfileResponse,
 } from "@/services/profile";
+import type { DnaResponse, DnaProgressResponse, UserSummaryResponse, UserProfileResponse } from "@/types/api";
 
 const BOOKS_PER_PAGE = 10;
 
-const tabs = ["Biblioteca", "Atividade", "Comunidades", "Resenhas"] as const;
+const tabs = ["Biblioteca", "Atividade", "Comunidades"] as const;
 
-type PanelShelfBook = ShelfBook & { shelfId?: number };
+type PanelShelfBook = ShelfBook & {
+  shelfId?: number;
+};
 
 function toPanelBook(book: DisplayShelfBook): PanelShelfBook {
-  return { ...book, shelfItemId: book.shelfItemId, readingStatus: "quero-ler" };
+  return {
+    ...book,
+    shelfItemId: book.shelfItemId,
+    // In another user's profile, show a neutral default status in the details panel.
+    readingStatus: "quero-ler",
+  };
 }
 
 function normalizeUsernameParam(value: string): string {
@@ -59,6 +63,14 @@ function normalizeUsernameParam(value: string): string {
 
 
 const noop = () => undefined;
+
+function FireIcon({ count }: { count: number }) {
+  if (count === 0) return <Flame size={16} className="text-muted-foreground/30" />;
+  if (count <= 5)  return <Flame size={16} className="animate-flame-slow text-yellow-400" />;
+  if (count <= 15) return <Flame size={16} className="animate-flame-slow text-orange-400" />;
+  if (count <= 30) return <Flame size={16} className="animate-flame text-orange-500" />;
+  return <Flame size={16} className="animate-flame text-red-500" />;
+}
 
 export default function SeguidorProfilePage() {
   const params = useParams<{ username: string }>();
@@ -70,9 +82,6 @@ export default function SeguidorProfilePage() {
   const [profile, setProfile] = React.useState<UserProfileResponse | null>(null);
   const [followersCount, setFollowersCount] = React.useState(0);
   const [followingCount, setFollowingCount] = React.useState(0);
-  const [followersUsers, setFollowersUsers] = React.useState<UserSummaryResponse[]>([]);
-  const [followingUsers, setFollowingUsers] = React.useState<UserSummaryResponse[]>([]);
-  const [myFollowingUsernames, setMyFollowingUsernames] = React.useState<string[]>([]);
   const [followRelationship, setFollowRelationship] = React.useState<"none" | "following" | "requested">("none");
   const [isTogglingFollow, setIsTogglingFollow] = React.useState(false);
   const [isUnfollowConfirmOpen, setIsUnfollowConfirmOpen] = React.useState(false);
@@ -80,7 +89,6 @@ export default function SeguidorProfilePage() {
   const [shelfBooks, setShelfBooks] = React.useState<DisplayShelfBook[]>([]);
   const [booksRead, setBooksRead] = React.useState(0);
   const [pagesRead, setPagesRead] = React.useState(0);
-  const [readersReached, setReadersReached] = React.useState(0);
   const [dna, setDna] = React.useState<DnaResponse | DnaProgressResponse | null>(null);
   const [isShelfBookDetailsOpen, setIsShelfBookDetailsOpen] = React.useState(false);
   const [selectedShelfBook, setSelectedShelfBook] = React.useState<DisplayShelfBook | null>(null);
@@ -123,7 +131,6 @@ export default function SeguidorProfilePage() {
 
         let computedBooksRead = 0;
         let computedPagesRead = 0;
-        let computedReadersReached = 0;
         let computedShelfBooks: DisplayShelfBook[] = [];
 
         if (!loadedProfile.restricted) {
@@ -174,10 +181,6 @@ export default function SeguidorProfilePage() {
             0,
           );
 
-          computedReadersReached = pageCountEntries.reduce(
-            (total, entry) => total + Math.max(0, entry.readerCount ?? 0),
-            0,
-          );
 
           computedShelfBooks = await Promise.all(
             uniqueItems.map(async (item) => {
@@ -228,16 +231,12 @@ export default function SeguidorProfilePage() {
         if (cancelled) return;
 
         setProfile(loadedProfile);
-        setFollowersUsers(followersList);
-        setFollowingUsers(followingList);
         setFollowersCount(followersList.length);
         setFollowingCount(followingList.length);
-        setMyFollowingUsernames(myFollowing.map((user) => user.username.toLowerCase()));
         setFollowRelationship(followingState ? "following" : "none");
         setIsOwnProfile(ownProfileState);
         setBooksRead(computedBooksRead);
         setPagesRead(computedPagesRead);
-        setReadersReached(computedReadersReached);
         setShelfBooks(computedShelfBooks);
 
         if (!loadedProfile.restricted) {
@@ -329,7 +328,6 @@ export default function SeguidorProfilePage() {
   const initial = displayName[0]?.toUpperCase() ?? "U";
   const booksReadLabel = booksRead.toLocaleString("pt-BR");
   const pagesReadLabel = pagesRead.toLocaleString("pt-BR");
-  const readersReachedLabel = readersReached.toLocaleString("pt-BR");
   const showFollowAction = Boolean(getAccessToken()) && !isOwnProfile;
 
   const isFollowing = followRelationship === "following";
@@ -344,12 +342,10 @@ export default function SeguidorProfilePage() {
     followButtonLabel = "Solicitar para seguir";
   }
 
-  const readerStatusLabel = booksRead > 0 ? "Leitor assíduo" : isLoading ? "Carregando" : "Começando agora";
   const tabIcons = {
     Biblioteca: BookOpen,
     Atividade: Activity,
     Comunidades: Users,
-    Resenhas: MessageSquare,
   };
 
   return (
@@ -379,14 +375,9 @@ export default function SeguidorProfilePage() {
           }
           action={
             showFollowAction ? (
-              <div className="flex items-center gap-2">
-                <Button variant={isFollowing ? "outline" : "default"} onClick={handleToggleFollow} disabled={isTogglingFollow}>
-                  {followButtonLabel}
-                </Button>
-                <Button variant="ghost" size="icon" aria-label="Mais opcoes">
-                  <MoreHorizontal size={18} />
-                </Button>
-              </div>
+              <Button variant={isFollowing ? "outline" : "default"} onClick={handleToggleFollow} disabled={isTogglingFollow}>
+                {followButtonLabel}
+              </Button>
             ) : null
           }
         />
@@ -399,10 +390,9 @@ export default function SeguidorProfilePage() {
           <>
             <ProfileStatsGrid
               items={[
-                { label: "Livros lidos", value: booksReadLabel, icon: <BookOpen size={16} className="text-primary-dark" /> },
-                { label: "Páginas lidas", value: pagesReadLabel, icon: <BookMarked size={16} className="text-primary-dark" /> },
-                { label: "Status", value: readerStatusLabel, icon: <Sparkles size={16} className="text-premium" /> },
-                { label: "Leitores alcançados", value: readersReachedLabel, icon: <Users size={16} className="text-primary-dark" /> },
+                { label: "Livros lidos", value: booksReadLabel, icon: <BookOpen size={16} />, tooltip: "Total de livros com status 'Lido' em todas as estantes." },
+                { label: "Páginas lidas", value: pagesReadLabel, icon: <BookOpenCheck size={16} />, tooltip: "Soma das páginas lidas, calculada pelo progresso registrado em cada livro." },
+                { label: "Dias ativos", value: "—", icon: <FireIcon count={0} />, tooltip: "Dias em que o usuário atualizou o progresso de algum livro." },
               ]}
             />
 
@@ -417,7 +407,7 @@ export default function SeguidorProfilePage() {
               <section>
                 {shelfBooks.length > 0 ? (
                   <>
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,190px))] items-start gap-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 items-start gap-3 justify-center">
                       {shelfBooks.slice(currentPage * BOOKS_PER_PAGE, (currentPage + 1) * BOOKS_PER_PAGE).map((book) => (
                         <ProfileShelfBookCard
                           key={book.shelfItemId}
@@ -467,6 +457,7 @@ export default function SeguidorProfilePage() {
                 <UserActivityFeed
                   userId={profile.id}
                   authorName={displayName}
+                  authorUsername={profile.username}
                   authorAvatarUrl={profile.avatarUrl ?? null}
                   isOwnProfile={isOwnProfile}
                 />
@@ -474,27 +465,8 @@ export default function SeguidorProfilePage() {
             ) : activeTab === "Comunidades" ? (
               <UserCommunitiesTab
                 isOwnProfile={isOwnProfile}
-                followersUsers={followersUsers.slice(0, 8).map((user) => ({
-                  id: user.id,
-                  username: user.username,
-                  sideLabel: myFollowingUsernames.includes(user.username.toLowerCase()) ? "Você segue" : "",
-                }))}
-                followingUsers={followingUsers.slice(0, 8).map((user) => ({
-                  id: user.id,
-                  username: user.username,
-                  sideLabel: "Leitor",
-                }))}
-                myFollowingUsernames={myFollowingUsernames}
+                userId={profile?.id}
               />
-            ) : activeTab === "Resenhas" ? (
-              profile ? (
-                <UserReviewsTab
-                  userId={profile.id}
-                  authorName={displayName}
-                  authorAvatarUrl={profile.avatarUrl ?? null}
-                  emptyMessage="As resenhas deste usuário aparecerão aqui quando forem publicadas."
-                />
-              ) : null
             ) : null}
           </>
         )}
@@ -509,7 +481,6 @@ export default function SeguidorProfilePage() {
         onCancel={() => setIsUnfollowConfirmOpen(false)}
         onConfirm={handleConfirmPrivateUnfollow}
       />
-
       <ShelfBookDetailsPanel
         isOpen={isShelfBookDetailsOpen}
         book={selectedShelfBook ? toPanelBook(selectedShelfBook) : null}

@@ -1,38 +1,8 @@
-import { getAccessToken } from "./auth";
-import { formatFeedTime } from "./feed";
+import { optionalBearerHeaders } from "@/lib/api-headers";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export interface ActivityPost {
-  type: "POST";
-  id: number;
-  userId: number;
-  bookId: number | null;
-  text: string | null;
-  images: string[];
-  gifUrl: string | null;
-  tags: string[];
-  hasSpoiler: boolean;
-  likeCount: number;
-  commentCount: number;
-  createdAt: string;
-  likedByCurrentUser: boolean;
-}
-
-export interface ActivityReview {
-  type: "REVIEW";
-  id: number;
-  userId: number;
-  bookId: number | null;
-  text: string | null;
-  rating: number;
-  likeCount: number;
-  commentCount: number;
-  createdAt: string;
-  likedByCurrentUser: boolean;
-}
-
-export type ActivityItem = ActivityPost | ActivityReview;
+import type { ActivityPost, ActivityReview } from "@/types/api";
 
 interface PostApiResponse {
   id: number;
@@ -78,10 +48,6 @@ export class ActivityApiError extends Error {
   }
 }
 
-function optionalBearerHeaders(token?: string | null): HeadersInit {
-  const resolved = token ?? getAccessToken();
-  return resolved ? { Authorization: `Bearer ${resolved}` } : {};
-}
 
 export async function getUserActivityPosts(
   userId: number,
@@ -155,5 +121,3 @@ export async function getUserActivityReviews(
 
   return { items, hasMore: data.last === false };
 }
-
-export { formatFeedTime };

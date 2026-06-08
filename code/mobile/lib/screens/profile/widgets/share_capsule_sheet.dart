@@ -85,8 +85,22 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
     return file;
   }
 
-  Future<void> _shareCapsule(Uint8List bytes, String destination) async {
+  Future<void> _shareCapsule(
+    BuildContext context,
+    Uint8List bytes,
+    String destination,
+  ) async {
     if (_sharing) return;
+
+    final renderBox = context.findRenderObject();
+    final overlayBox = Navigator.of(
+      context,
+    ).overlay?.context.findRenderObject();
+    final shareOrigin = renderBox is RenderBox && renderBox.hasSize
+        ? renderBox.localToGlobal(Offset.zero) & renderBox.size
+        : overlayBox is RenderBox && overlayBox.hasSize
+        ? overlayBox.localToGlobal(Offset.zero) & overlayBox.size
+        : const Rect.fromLTWH(0, 0, 1, 1);
 
     setState(() => _sharing = true);
     try {
@@ -99,6 +113,7 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
             '${widget.booksRead} livros lidos - ${widget.pagesRead} paginas lidas\n'
             '${widget.userHandle}\n'
             'Compartilhar via $destination',
+        sharePositionOrigin: shareOrigin,
       );
     } finally {
       if (mounted) {
@@ -110,22 +125,13 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final destinations = <_ShareDestination>[
-      const _ShareDestination(label: 'WhatsApp', icon: Icons.chat_bubble_outline),
-      const _ShareDestination(label: 'Telegram', icon: Icons.send_outlined),
-      const _ShareDestination(label: 'Instagram', icon: Icons.camera_alt_outlined),
-      const _ShareDestination(label: 'X', icon: Icons.close),
-      const _ShareDestination(label: 'TikTok', icon: Icons.music_note_outlined),
-      const _ShareDestination(label: 'Mais', icon: Icons.more_horiz),
-    ];
 
     return BlocProvider.value(
       value: _bloc,
       child: BlocBuilder<ShareBloc, ShareState>(
         builder: (context, state) {
           final isLoading = state is ShareLoading || state is ShareInitial;
-          final errorMessage =
-              state is ShareError ? state.message : null;
+          final errorMessage = state is ShareError ? state.message : null;
           final capsule = state is ShareLoaded ? state.capsule : null;
           final bytes = capsule?.bytes;
 
@@ -138,8 +144,9 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
               return Container(
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(28)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
                 ),
                 child: SingleChildScrollView(
                   controller: scrollController,
@@ -199,140 +206,51 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
                           ),
                           borderRadius: BorderRadius.circular(28),
                         ),
-                        padding: const EdgeInsets.all(14),
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(22),
-                            child: isLoading
-                                ? const Center(
+                        padding: const EdgeInsets.all(6),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 200,
+                                  child: Center(
                                     child: CircularProgressIndicator(),
-                                  )
-                                : errorMessage != null
-                                ? _ShareErrorState(
-                                    message: errorMessage,
-                                    onRetry: () => context.read<ShareBloc>().add(
-                                      ShareCapsuleRequested(
-                                        userId: widget.userId,
-                                        refreshRemote: true,
-                                      ),
-                                    ),
-                                  )
-                                : bytes == null
-                                ? const SizedBox.shrink()
-                                : Image.memory(
-                                    bytes,
-                                    fit: BoxFit.cover,
-                                    filterQuality: FilterQuality.high,
                                   ),
-                          ),
+                                )
+                              : errorMessage != null
+                              ? _ShareErrorState(
+                                  message: errorMessage,
+                                  onRetry: () => context.read<ShareBloc>().add(
+                                    ShareCapsuleRequested(
+                                      userId: widget.userId,
+                                      refreshRemote: true,
+                                    ),
+                                  ),
+                                )
+                              : bytes == null
+                              ? const SizedBox.shrink()
+                              : Image.memory(
+                                  bytes,
+                                  width: double.infinity,
+                                  fit: BoxFit.fitWidth,
+                                  filterQuality: FilterQuality.high,
+                                ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 22,
-                            backgroundColor: theme.colorScheme.primary,
-                            backgroundImage: widget.avatarUrl == null ||
-                                    widget.avatarUrl!.isEmpty
-                                ? null
-                                : NetworkImage(widget.avatarUrl!),
-                            child: widget.avatarUrl == null
-                                ? Text(
-                                    _initials(widget.userName),
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      color: theme.colorScheme.onPrimary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.userName,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  widget.userHandle,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Flexible(
-                            child: Wrap(
-                              alignment: WrapAlignment.end,
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                _StatPill(
-                                  label: 'Livros',
-                                  value: widget.booksRead.toString(),
-                                ),
-                                _StatPill(
-                                  label: 'Paginas',
-                                  value: widget.pagesRead.toString(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ),
                       const SizedBox(height: 20),
-                      Text(
-                        'Compartilhar em',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: destinations.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.95,
-                        ),
-                        itemBuilder: (context, index) {
-                          final destination = destinations[index];
-                          return _ShareDestinationTile(
-                            destination: destination,
-                            onTap: () {
-                              if (bytes == null) return;
-                              _shareCapsule(bytes, destination.label);
-                            },
-                            enabled: !isLoading && errorMessage == null,
-                            loading: _sharing,
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
-                          onPressed: (isLoading ||
+                          onPressed:
+                              (isLoading ||
                                   errorMessage != null ||
                                   _sharing ||
                                   bytes == null)
                               ? null
                               : () => _shareCapsule(
-                                    bytes,
-                                    'seletor do sistema',
-                                  ),
+                                  context,
+                                  bytes,
+                                  'seletor do sistema',
+                                ),
                           icon: const Icon(Icons.ios_share_outlined),
                           label: Text(
                             _sharing
@@ -348,120 +266,6 @@ class _ShareCapsuleSheetState extends State<ShareCapsuleSheet> {
             },
           );
         },
-      ),
-    );
-  }
-
-  String _initials(String value) {
-    final parts = value.trim().split(RegExp(r'\s+'));
-    if (parts.length >= 2) {
-      return '${parts.first[0]}${parts[1][0]}'.toUpperCase();
-    }
-    if (value.isEmpty) return '?';
-    return value.substring(0, value.length.clamp(0, 2)).toUpperCase();
-  }
-}
-
-class _ShareDestination {
-  final String label;
-  final IconData icon;
-
-  const _ShareDestination({required this.label, required this.icon});
-}
-
-class _ShareDestinationTile extends StatelessWidget {
-  final _ShareDestination destination;
-  final VoidCallback onTap;
-  final bool enabled;
-  final bool loading;
-
-  const _ShareDestinationTile({
-    required this.destination,
-    required this.onTap,
-    required this.enabled,
-    required this.loading,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return IgnorePointer(
-      ignoring: !enabled || loading,
-      child: Opacity(
-        opacity: enabled ? 1 : 0.45,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    destination.icon,
-                    color: theme.colorScheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  destination.label,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatPill extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _StatPill({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
       ),
     );
   }

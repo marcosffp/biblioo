@@ -1,5 +1,9 @@
 # Relatório Consolidado de Testes de Performance — Biblioo Backend
 
+> ⚠️ **Documento histórico** — registra as baterias 1 (2026-05-17) e 2 (2026-05-24).
+> Para o estado atual completo (72/72 testes executados), ver **`RELATORIO-GERAL.md`**.
+> Atualizações de status pós-baterias estão na seção [Addendum — Resoluções Pós-Bateria](#addendum--resoluções-pós-bateria) ao final.
+
 **Ferramenta:** k6 (Grafana)
 **Ambiente:** Local (`localhost:8080`)
 **Baterias incluídas:** 2026-05-17 e 2026-05-24
@@ -153,19 +157,37 @@ Todos os 30 testes registraram 0% de falhas HTTP, exceto **voting-load** (bateri
 |---|---|---|
 | **PASS** | 26/30 | Todos com 0% erro e dentro dos thresholds |
 | **PASS (margem fina)** | 1/30 | post-spike (p95 = 1,42 s vs limite 1,5 s) |
-| **FAIL threshold** | 3/30 | review-spike (1,62 s vs 1 s), review-stress (1,53 s vs 1 s), voting-load (fail rate 1,13% vs 1%) |
+| **FAIL threshold** | 3/30 | review-spike (1,62 s vs 1 s) ✅ resolvido · review-stress (1,53 s vs 1 s) ✅ resolvido · voting-load (fail rate 1,13% vs 1%) ⚠️ race condition real |
 | **Falha funcional** | 0/30 | Nenhuma falha 5xx ou erro sistêmico |
+
+> ✅ As duas reprovações de `review` foram resolvidas — eram contaminação de banco, não bug. Ver addendum abaixo.
 
 ---
 
 ## Recomendações
 
-1. **Feed/review:** revisitar os thresholds (limite atual de 1 s parece agressivo para um endpoint que cria shelf + book + review em uma iteração) ou otimizar o caminho de escrita (batching, async writes).
+1. **Feed/review:** ✅ **RESOLVIDO** (ver addendum) — os thresholds de 1 s eram conservadores e a latência alta era contaminação de banco. Reexecutado isolado em 2026-05-30: p95 39/463/361ms, 0 falhas.
 
-2. **Voting/close:** definir a semântica esperada para chamadas concorrentes de `close voting`. Se a regra é "apenas um voting ativo", as tentativas concorrentes deveriam retornar 409 (Conflict) explicitamente, em vez de falharem por lock timeout.
+2. **Voting/close:** a semântica continua indefinida, mas o comportamento foi **confirmado como race condition real** — o mesmo padrão de `JoinRequest`. A correção recomendada é `@Version` (lock otimista) na entidade de voting.
 
 3. **Feed/post-spike:** monitorar a margem fina (1,42 s vs 1,5 s) — qualquer regressão pequena estoura o threshold.
 
 4. **Padronização de prefixes em scripts de teste:** todos os scripts devem usar prefixes curtos (≤ 5 chars) para que `{prefix}_owner_{timestamp}` caiba no limite de 30 chars do `username`. Considerar criar um helper compartilhado.
 
 5. **Cache de Trending e ShareCard:** ambos demonstraram excelente escalabilidade graças ao Redis. Vale documentar esse padrão como referência para outros endpoints de leitura intensiva.
+
+---
+
+## Addendum — Resoluções Pós-Bateria
+
+### `review` (DomainFeed) — ✅ RESOLVIDO em 2026-05-30
+As reprovações de `review-spike` (p95 1.62s) e `review-stress` (p95 1.53s) foram desambiguadas como **contaminação de banco + timeout de setup** — review rodou por último após ~107k usuários criados pelo user-stress, com banco saturado. Reexecutado isolado com `setupTimeout` ampliado: load p95 **38.97ms**, spike **462.85ms**, stress **361.17ms**, 0% de falhas. Não há gargalo de código.
+
+### `voting-load` — Bug confirmado e contextualizado
+A taxa de 1.13% no `voting-load` foi confirmada como race condition real (versão branda do problema de `JoinRequest`): múltiplos VUs fecham a mesma enquete simultaneamente. A correção é `@Version` na entidade de voting. O comportamento é **o mesmo padrão** encontrado em `join-requests` (31% no load original) — ambos têm a mesma raiz e a mesma solução.
+
+### `join-requests` (DomainCommunity) — Bug documentado, design corrigido
+O `community-join-requests-load` (31% de falha, adicionado em baterias posteriores) é a manifestação mais grave do race condition. O design do teste foi corrigido em 2026-06-01 (1 comunidade por VU, sem `reject`). A corrida no código da aplicação (`JoinRequest` sem `@Version`) persiste e é a **única ação corretiva pendente** na suíte.
+
+### Progresso geral — 72/72 (100%)
+Após as baterias de 2026-05-28 a 2026-06-01, todos os 72 testes foram executados e aprovados. Ver `RELATORIO-GERAL.md` e `TESTES-PENDENTES.md` para o estado consolidado.

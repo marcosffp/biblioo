@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { cn } from "@/lib/utils";
 import { sendAssistantMessage } from "@/services/assistant";
 import { getAuthSession } from "@/services/auth";
+import { formatDateLabel } from "@/utils/date";
 import Image from "next/image";
 
 type Message = {
@@ -52,22 +53,6 @@ const SUGGESTIONS = [
   "Sortear meu próximo livro",
 ];
 
-function isSameDay(a: Date, b: Date): boolean {
-  return (
-    a.getDate() === b.getDate() &&
-    a.getMonth() === b.getMonth() &&
-    a.getFullYear() === b.getFullYear()
-  );
-}
-
-function formatDateLabel(date: Date): string {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (isSameDay(date, today)) return "Hoje";
-  if (isSameDay(date, yesterday)) return "Ontem";
-  return date.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
-}
 
 function groupByDate(messages: Message[]): ChatItem[] {
   const result: ChatItem[] = [];

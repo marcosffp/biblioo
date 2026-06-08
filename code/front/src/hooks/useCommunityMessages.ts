@@ -9,12 +9,15 @@ import {
   getCommunityWebSocketEndpoint,
   syncCommunityMessagesAfter,
   uploadCommunityMessageMedia,
-  type BackendCommunityMember,
-  type BackendCommunityMessage,
-  type BackendMessageEventPayload,
 } from "@/services/community-messages";
-import type { VotingEventPayload } from "@/services/voting";
+import type {
+  BackendCommunityMember,
+  BackendCommunityMessage,
+  BackendMessageEventPayload,
+  VotingEventPayload,
+} from "@/types/api";
 import type { CommunityChatMessage, CommunityMember } from "@/hooks/useCommunity";
+import { formatMessageTime } from "@/utils/date";
 
 interface SendMessageInput {
   content: string;
@@ -53,18 +56,6 @@ function parseMessageEvent(payload: string): BackendMessageEventPayload | null {
   }
 }
 
-function formatMessageTime(value?: string | null): string {
-  if (!value) {
-    return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  }
-
-  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-}
 
 function mapMember(item: BackendCommunityMember): CommunityMember {
   const username = item.username?.trim() ? item.username.trim() : `membro-${item.userId}`;
@@ -263,7 +254,7 @@ export function useCommunityMessages(communityId: string) {
   }, []);
 
   const handleRealtimeEvent = useCallback(
-    (payload: string) => {
+    async (payload: string) => {
       const event = parseMessageEvent(payload);
       if (!event) {
         return;
@@ -317,6 +308,11 @@ export function useCommunityMessages(communityId: string) {
         return;
       }
 
+      // For MEMBER_JOINED: refresh first so the new member's name is already in the map
+      if (event.data.type === "MEMBER_JOINED") {
+        await refreshMembers();
+      }
+
       const mapped = mapBackendMessageToUi(event.data, {
         currentUserId,
         memberNameById: memberNameByIdRef.current,
@@ -326,25 +322,25 @@ export function useCommunityMessages(communityId: string) {
         mapped.userName = "Membro";
       }
 
-      // Refresh member list so the panel stays in sync when someone joins or leaves
-      if (event.data.type === "MEMBER_JOINED" || event.data.type === "MEMBER_LEFT") {
-        void refreshMembers();
-      }
-
       replaceOrAppendMessage(mapped, event.data.clientMessageId);
+
+      // For MEMBER_LEFT: refresh AFTER mapping so the leaving member's name is still available
+      if (event.data.type === "MEMBER_LEFT") {
+        await refreshMembers();
+      }
     },
     [currentUserId, refreshMembers, replaceOrAppendMessage],
   );
 
   const onCreatedFrame = useCallback(
     (frame: IMessage) => {
-      handleRealtimeEvent(frame.body);
+      void handleRealtimeEvent(frame.body);
     },
     [handleRealtimeEvent],
   );
 
   const onErrorFrame = useCallback((frame: IMessage) => {
-    handleRealtimeEvent(frame.body);
+    void handleRealtimeEvent(frame.body);
   }, [handleRealtimeEvent]);
 
   const onTypingFrame = useCallback(
@@ -570,7 +566,7 @@ export function useCommunityMessages(communityId: string) {
             userId: currentUserId ?? "me",
             userName: "Voce",
             text: normalizedContent || "Mídia anexada",
-            time: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+            time: formatMessageTime(),
             isMine: true,
             isSpoiler: hasSpoiler,
             heartCount: 0,

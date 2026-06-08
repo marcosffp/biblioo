@@ -27,12 +27,17 @@ const CONFIG = {
 };
 
 // ── Helpers de log estruturado ───────────────────────────────────────────────
+// Guards: __VU/__ITER não existem no contexto de setup() do k6 — acessá-los
+// direto dispara ReferenceError e derruba o setup quando um request falha lá dentro.
+const SAFE_VU   = () => (typeof __VU   !== 'undefined' ? __VU   : 0);
+const SAFE_ITER = () => (typeof __ITER !== 'undefined' ? __ITER : -1);
+
 function logWarn(context, extra = {}) {
-  console.warn(JSON.stringify({ vu: __VU, iter: __ITER, ...context, ...extra }));
+  console.warn(JSON.stringify({ vu: SAFE_VU(), iter: SAFE_ITER(), ...context, ...extra }));
 }
 
 function logError(context, extra = {}) {
-  console.error(JSON.stringify({ vu: __VU, iter: __ITER, ...context, ...extra }));
+  console.error(JSON.stringify({ vu: SAFE_VU(), iter: SAFE_ITER(), ...context, ...extra }));
 }
 
 // ── parseUserId ──────────────────────────────────────────────────────────────
@@ -185,7 +190,7 @@ export function setup() {
 
 // ── options ──────────────────────────────────────────────────────────────────
 export const options = {
-  setupTimeout: '600s',
+  setupTimeout: '1800s',
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
     { duration: CONFIG.stress.stageDuration, target: 0 },

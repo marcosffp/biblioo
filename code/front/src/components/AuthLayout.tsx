@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { BookOpen } from "lucide-react";
 
 interface AuthLayoutProps {
@@ -62,10 +63,12 @@ export function AuthLayout({ children }: Readonly<AuthLayoutProps>) {
             className="pointer-events-none absolute bottom-10 right-5"
             style={{ opacity: 0.06 }}
           >
-            <img
-              src="biblioo-carinha-branca-logo.png"
+            <Image
+              src="/biblioo-carinha-branca-logo.png"
               alt=""
-              className="w-[220px] h-auto"
+              width={220}
+              height={220}
+              style={{ width: "220px", height: "auto" }}
             />
           </div>
 
@@ -73,13 +76,17 @@ export function AuthLayout({ children }: Readonly<AuthLayoutProps>) {
           <div className="relative flex h-full flex-col justify-between px-14 py-14">
 
             {/* Wordmark */}
-            <span className="font-display text-sm font-semibold text-white">
-              <img
-                src="./biblioo-logo-branca.png"
+            <div className="flex items-center gap-2">
+              <Image
+                src="/biblioo-carinha-branca-logo.png"
                 alt="Biblioo"
-                className="h-9 w-auto"
+                width={36}
+                height={36}
+                priority
+                style={{ height: "2.25rem", width: "auto" }}
               />
-            </span>
+              <span className="font-display text-xl font-bold text-white">biblioo</span>
+            </div>
 
             {/* Core copy */}
             <div>
@@ -153,13 +160,17 @@ export function AuthLayout({ children }: Readonly<AuthLayoutProps>) {
           className="flex flex-col justify-end px-6 pb-8 pt-10 lg:hidden"
           style={{ backgroundColor: "#1a8162", minHeight: "180px" }}
         >
-          <span className="font-display text-sm font-semibold text-white">
-            <img
-              src="biblioo-logo-branca.png"
+          <div className="flex items-center gap-1.5">
+            <Image
+              src="/biblioo-carinha-branca-logo.png"
               alt="Biblioo"
-              className="h-6 w-auto"
+              width={24}
+              height={24}
+              priority
+              style={{ height: "1.5rem", width: "auto" }}
             />
-          </span>
+            <span className="font-display text-xl font-bold text-white">biblioo</span>
+          </div>
           <p className="mt-2 font-display text-2xl font-semibold leading-tight text-white">
             Sua próxima leitura
             <br />

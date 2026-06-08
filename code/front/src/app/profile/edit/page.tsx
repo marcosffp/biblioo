@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -15,8 +16,8 @@ import {
   uploadMyAvatar,
   uploadMyBanner,
   type ProfilePreferences,
-  type UserProfileResponse,
 } from "@/services/profile";
+import type { UserProfileResponse } from "@/types/api";
 
 export default function EditarPerfilPage() {
   const router = useRouter();
@@ -259,11 +260,13 @@ export default function EditarPerfilPage() {
               aria-label="Alterar foto do usuário"
             >
               {avatarPreviewUrl || avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={avatarPreviewUrl ?? avatarUrl ?? ""}
                   alt="Foto do usuário"
+                  width={64}
+                  height={64}
                   className="h-full w-full object-cover"
+                  unoptimized
                 />
               ) : (
                 <span>U</span>

@@ -1,53 +1,8 @@
 import { getAccessToken } from "./auth";
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080").replace(/\/$/, "");
+import { API_BASE_URL } from "@/lib/api-config";
 
-export type VotingStatus = "DRAFT" | "ACTIVE" | "CLOSED" | "APPROVED" | "REJECTED";
-export type TieBreakRule = "RANDOM_DRAW" | "ADMIN_CHOICE";
-
-export interface VotingOptionResponse {
-  id: number;
-  bookId: number;
-  bookTitle: string;
-  bookCoverUrl: string | null;
-  voteCount: number;
-}
-
-export interface VotingResponse {
-  id: number;
-  communityId: number;
-  title: string;
-  status: VotingStatus;
-  tieBreakRule: TieBreakRule;
-  startsAt: string;
-  endsAt: string;
-  closedAt: string | null;
-  winnerOptionId: number | null;
-  rejectionReason: string | null;
-  createdBy: number;
-  createdAt: string;
-  options: VotingOptionResponse[];
-  myVotedOptionId: number | null;
-}
-
-export interface VotingPage {
-  content: VotingResponse[];
-  totalElements: number;
-  last: boolean;
-}
-
-export interface VotingEventPayload {
-  eventType: "VOTING_CREATED" | "VOTE_UPDATED" | "VOTING_CLOSED" | "VOTING_APPROVED" | "VOTING_REJECTED";
-  data: VotingResponse;
-}
-
-export interface CreateVotingRequest {
-  title: string;
-  tieBreakRule: TieBreakRule;
-  startsAt: string;
-  endsAt: string;
-  options: { bookId: number }[];
-}
+import type { VotingPage, VotingResponse, CreateVotingRequest } from "@/types/api";
 
 function authHeaders(): Record<string, string> {
   const token = getAccessToken();

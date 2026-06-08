@@ -1,16 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { BookOpen, ChevronLeft, ChevronRight, Star, Users } from "lucide-react";
 import { AppShell, BookCoverPlaceholder, PageHeader, SkeletonBlock } from "@/components";
 import { BookDetailsCard } from "@/components/BookDetailsCard";
-import {
-  addBookToShelf,
-  getBookById,
-  listShelves,
-  type BackendBookResponse,
-  type BackendShelfSummaryResponse,
-} from "@/services/bookcase";
+import { addBookToShelf, getBookById, listShelves } from "@/services/bookcase";
 import {
   getBecauseYouRead,
   getCatalogSurprise,
@@ -19,11 +14,15 @@ import {
   getSimilarAuthors,
   getTrendingInCommunities,
   rollDice,
-  type BecauseYouReadData,
-  type DiceRollBook,
-  type FavoriteGenreNowData,
-  type RecommendedBook,
 } from "@/services/recommendations";
+import type {
+  BackendBookResponse,
+  BackendShelfSummaryResponse,
+  BecauseYouReadData,
+  DiceRollBook,
+  FavoriteGenreNowData,
+  RecommendedBook,
+} from "@/types/api";
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
@@ -158,7 +157,7 @@ function RecBookCard({
     >
       <div className="relative overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--bg-surface)] shadow-sm transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-md">
         {book.coverUrl ? (
-          <img src={book.coverUrl} alt={book.title} className="h-56 w-full object-cover" />
+          <Image src={book.coverUrl} alt={book.title} width={160} height={224} className="h-56 w-full object-cover" />
         ) : (
           <div className="h-56 w-full overflow-hidden">
             <BookCoverPlaceholder title={book.title} />
@@ -168,7 +167,7 @@ function RecBookCard({
           <RatingBadge value={book.averageRating} />
         </div>
       </div>
-      <div className="mt-2 px-0.5">
+      <div className="mt-2 flex h-[3.5rem] flex-col justify-between px-0.5">
         <p className="line-clamp-2 text-sm font-semibold leading-tight text-[var(--text-primary)]">
           {book.title}
         </p>
@@ -177,7 +176,9 @@ function RecBookCard({
             <Users className="h-3 w-3" />
             {book.readerCount.toLocaleString("pt-BR")} leitores
           </p>
-        ) : null}
+        ) : (
+          <div className="mt-0.5 h-4" />
+        )}
       </div>
     </button>
   );
@@ -335,15 +336,15 @@ function HeroBanner({
         >
           <div className={`transition-all duration-500 ${animating ? "opacity-25 blur-sm scale-95" : "opacity-100 blur-0 scale-100"}`}>
             {visibleBook?.coverUrl ? (
-              <img
+              <Image
                 src={visibleBook.coverUrl}
                 alt={visibleBook.title}
+                width={96}
+                height={144}
                 className="h-36 w-24 rounded-lg object-cover shadow-lg transition hover:scale-105"
               />
             ) : (
-              <div className="flex h-36 w-24 items-center justify-center rounded-lg bg-white/10">
-                <BookOpen className="h-10 w-10 text-white/50" />
-              </div>
+              <BookCoverPlaceholder title={visibleBook?.title} className="h-36 w-24 rounded-lg shadow-lg" />
             )}
           </div>
         </button>
@@ -438,18 +439,16 @@ export default function ParaVocePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadingBook, setIsLoadingBook] = useState(false);
   const [shelves, setShelves] = useState<BackendShelfSummaryResponse[]>([]);
-  const [selectedShelfId, setSelectedShelfId] = useState<number | null>(null);
   const [isAddingToShelf, setIsAddingToShelf] = useState(false);
   const [addToShelfError, setAddToShelfError] = useState("");
-  const [isAlreadyInShelf, setIsAlreadyInShelf] = useState(false);
+  const [addedToShelfId, setAddedToShelfId] = useState<number | null>(null);
 
   const openBook = useCallback(async (bookId: number) => {
     setIsLoadingBook(true);
     setIsModalOpen(true);
     setModalBook(null);
-    setSelectedShelfId(null);
     setAddToShelfError("");
-    setIsAlreadyInShelf(false);
+    setAddedToShelfId(null);
 
     try {
       const [book, shelfList] = await Promise.all([
@@ -465,19 +464,19 @@ export default function ParaVocePage() {
     }
   }, []);
 
-  const handleAddToShelf = useCallback(async () => {
-    if (!modalBook || selectedShelfId === null) return;
+  const handleAddToShelf = useCallback(async (shelfId: number) => {
+    if (!modalBook) return;
     setIsAddingToShelf(true);
     setAddToShelfError("");
     try {
-      await addBookToShelf(selectedShelfId, modalBook.id);
-      setIsAlreadyInShelf(true);
+      await addBookToShelf(shelfId, modalBook.id);
+      setAddedToShelfId(shelfId);
     } catch (e) {
       setAddToShelfError(e instanceof Error ? e.message : "Erro ao adicionar à estante.");
     } finally {
       setIsAddingToShelf(false);
     }
-  }, [modalBook, selectedShelfId]);
+  }, [modalBook]);
 
   const closeModal = useCallback(() => {
     setIsModalOpen(false);
@@ -613,11 +612,9 @@ export default function ParaVocePage() {
           averageRating={modalBook?.averageRating}
           readerCount={modalBook?.readerCount}
           onClose={closeModal}
-          onAddToShelf={() => void handleAddToShelf()}
+          onAddToShelf={(shelfId) => void handleAddToShelf(shelfId)}
           availableShelves={shelves.map((s) => ({ id: s.id, name: s.name }))}
-          selectedShelfId={selectedShelfId}
-          onSelectShelf={setSelectedShelfId}
-          isAlreadyInShelf={isAlreadyInShelf}
+          alreadyInShelfIds={addedToShelfId != null ? [addedToShelfId] : []}
           isAddingToShelf={isAddingToShelf}
           addToShelfError={addToShelfError}
         />

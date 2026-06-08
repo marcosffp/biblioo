@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { BookOpen } from "lucide-react";
 import { ReviewFeedCard } from "@/components/ReviewFeedCard";
 import { getBookById } from "@/services/bookcase";
-import { getUserActivityReviews, formatFeedTime } from "@/services/activity";
-import type { ActivityReview } from "@/services/activity";
+import { getUserActivityReviews } from "@/services/activity";
+import { formatFeedTime } from "@/utils/date";
+import type { ActivityReview } from "@/types/api";
 
 function ReviewItem({
   review,

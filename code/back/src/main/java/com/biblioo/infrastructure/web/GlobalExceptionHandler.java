@@ -255,7 +255,14 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
   @ExceptionHandler(MaxUploadSizeExceededException.class)
   ResponseEntity<ErrorResponse> handleMaxUploadSize(
       MaxUploadSizeExceededException ex, HttpServletRequest request) {
-    return buildError(HttpStatus.BAD_REQUEST, "Arquivo excede o tamanho máximo de 5MB", request);
+    return buildError(HttpStatus.BAD_REQUEST, "Arquivo excede o tamanho máximo permitido", request);
+  }
+
+  @ExceptionHandler(com.biblioo.share.domain.exception.GoodreadsImportException.class)
+  ResponseEntity<ErrorResponse> handleGoodreadsImport(
+      com.biblioo.share.domain.exception.GoodreadsImportException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.valueOf(422), ex.getMessage(), request);
   }
 
   @ExceptionHandler(org.springframework.dao.InvalidDataAccessApiUsageException.class)

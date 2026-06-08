@@ -12,7 +12,9 @@ import {
   ReviewFeedCard,
   SkeletonBlock,
 } from "@/components";
-import { FeedApiError, FeedItem, formatFeedTime, getFeed } from "@/services/feed";
+import { FeedApiError, getFeed } from "@/services/feed";
+import { formatFeedTime } from "@/utils/date";
+import type { FeedItem } from "@/types/api";
 import { deleteBookReview } from "@/services/bookcase";
 import { getAccessToken } from "@/services/auth";
 import { getJwtUserId } from "@/utils/jwt";
@@ -126,6 +128,7 @@ export default function FeedPage() {
                         <ReviewFeedCard
                           reviewId={item.contentId}
                           authorName={authorName}
+                          authorUsername={item.authorUsername ?? undefined}
                           authorAvatarUrl={item.authorAvatarUrl}
                           time={time}
                           bookId={bookId}
@@ -139,6 +142,7 @@ export default function FeedPage() {
                           likes={likeCount}
                           comments={commentCount}
                           hasSpoiler={hasSpoiler ?? false}
+                          isLiked={item.content.likedByCurrentUser ?? false}
                           isOwn={isOwn}
                           onEdit={() => setEditingReview({
                             id: item.contentId,
@@ -162,11 +166,13 @@ export default function FeedPage() {
                       <PostCard
                         postId={item.contentId}
                         author={authorName}
+                        authorUsername={item.authorUsername ?? undefined}
                         avatarUrl={item.authorAvatarUrl ?? undefined}
                         time={time}
                         content={item.content.text ?? ""}
                         likes={item.content.likeCount}
                         comments={item.content.commentCount}
+                        isLiked={item.content.likedByCurrentUser ?? false}
                         bookId={item.content.bookId}
                         bookTitle={item.content.bookTitle}
                         bookAuthors={item.content.bookAuthors}
