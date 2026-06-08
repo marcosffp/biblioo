@@ -14,7 +14,7 @@ public class WebConfig implements WebMvcConfigurer {
   public void addCorsMappings(CorsRegistry registry) {
     registry
         .addMapping("/**")
-        .allowedOrigins("http://127.0.0.1:5500", "http://localhost:5500", "http://localhost:3000","http://localhost:8080","https://biblioo-2bmm06ika-marcos-albertos-projects.vercel.app/register")
+        .allowedOrigins("http://127.0.0.1:5500", "http://localhost:5500", "http://localhost:3000","http://localhost:8080","https://biblioo-rust.vercel.app")
         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         .allowedHeaders("Authorization", "Content-Type", "X-Requested-With")
         .allowCredentials(false)
