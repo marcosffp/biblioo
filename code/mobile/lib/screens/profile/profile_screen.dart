@@ -19,12 +19,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'widgets/share_capsule_sheet.dart';
 import 'widgets/profile_dna_section.dart';
 import 'widgets/profile_details_section.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/profile_privacy_notice.dart';
 import 'widgets/profile_stats_card.dart';
-import 'widgets/share_capsule_sheet.dart';
 
 enum ProfileTarget { me, user }
 
