@@ -107,8 +107,10 @@ class AuthInterceptor extends Interceptor {
       final response = await _dio.fetch(opts);
       handler.resolve(response);
     } on DioException catch (e) {
+      final statusToClearSession = [401, 403];
+
       // Só força logout quando refresh foi realmente rejeitado por auth.
-      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+      if (statusToClearSession.contains(e.response?.statusCode)) {
         await _secure.clearTokens();
         await _local.clearSessionUser();
       }
