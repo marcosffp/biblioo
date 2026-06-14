@@ -1,12 +1,7 @@
 package com.biblioo.infrastructure.config.seed;
 
-import com.biblioo.user.domain.model.User;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,7 +16,7 @@ public class SeedOrchestrator {
   private final CommunitySeedService communitySeedService;
   private final FeedSeedService feedSeedService;
 
- /*  @EventListener(ApplicationReadyEvent.class)
+  /*  @EventListener(ApplicationReadyEvent.class)
   @Async
   public void run() {
     log.info("[Seed] Verificando e populando dados de seed...");

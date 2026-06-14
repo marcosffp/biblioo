@@ -39,9 +39,7 @@ public class FavoriteGenreNowComputeService {
                 .createNativeQuery("SELECT id FROM categories WHERE name IN (:names)")
                 .setParameter("names", genreNames)
                 .getResultList())
-        .stream()
-        .map(r -> ((Number) r).longValue())
-        .toList();
+        .stream().map(r -> ((Number) r).longValue()).toList();
   }
 
   @SuppressWarnings("unchecked")
@@ -136,9 +134,11 @@ public class FavoriteGenreNowComputeService {
             .setParameter("candidateLimit", candidateLimit)
             .getResultList();
 
-
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_genre"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_genre"))
         .toList();
   }
 
@@ -190,10 +190,13 @@ public class FavoriteGenreNowComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-
-
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_genre_popular"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(),
+                    ((Number) r[1]).doubleValue(),
+                    "sql_genre_popular"))
         .toList();
   }
 }

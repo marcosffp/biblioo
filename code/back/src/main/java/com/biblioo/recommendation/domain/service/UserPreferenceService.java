@@ -30,14 +30,19 @@ public class UserPreferenceService implements UserPreferenceUseCase {
   @Transactional
   public UserPreference savePreferences(Long userId, List<String> genres, List<Long> bookIds) {
     if (repository.findByUserId(userId).isPresent()) {
-      throw new InvalidPreferenceException("Preferências já foram configuradas e não podem ser alteradas");
+      throw new InvalidPreferenceException(
+          "Preferências já foram configuradas e não podem ser alteradas");
     }
 
     List<String> normalizedGenres =
-        genres.stream().filter(Objects::nonNull).map(String::trim).filter(s -> !s.isBlank()).distinct().toList();
+        genres.stream()
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .filter(s -> !s.isBlank())
+            .distinct()
+            .toList();
 
-    List<Long> uniqueBookIds =
-        bookIds.stream().filter(Objects::nonNull).distinct().toList();
+    List<Long> uniqueBookIds = bookIds.stream().filter(Objects::nonNull).distinct().toList();
 
     if (!normalizedGenres.isEmpty()) {
       validateGenres(normalizedGenres);
@@ -47,11 +52,12 @@ public class UserPreferenceService implements UserPreferenceUseCase {
       validateBooks(uniqueBookIds);
     }
 
-    UserPreference preference = UserPreference.builder()
-        .userId(userId)
-        .genres(new ArrayList<>(normalizedGenres))
-        .bookIds(new ArrayList<>(uniqueBookIds))
-        .build();
+    UserPreference preference =
+        UserPreference.builder()
+            .userId(userId)
+            .genres(new ArrayList<>(normalizedGenres))
+            .bookIds(new ArrayList<>(uniqueBookIds))
+            .build();
 
     UserPreference saved = repository.save(preference);
 

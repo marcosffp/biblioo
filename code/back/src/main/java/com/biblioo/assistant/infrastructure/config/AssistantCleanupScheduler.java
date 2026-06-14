@@ -10,7 +10,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "assistant.cleanup.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+    name = "assistant.cleanup.enabled",
+    havingValue = "true",
+    matchIfMissing = true)
 class AssistantCleanupScheduler {
 
   private final AssistantCleanupService cleanupService;

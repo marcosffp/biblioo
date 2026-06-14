@@ -30,7 +30,8 @@ public class TrendingService implements TrendingUseCase {
     return trendingComputePort.computeTopBooks();
   }
 
-  @CacheEvict(cacheNames = {"trending-communities", "trending-books"}, allEntries = true)
-  public void evictAllTrendingCaches() {
-  }
+  @CacheEvict(
+      cacheNames = {"trending-communities", "trending-books"},
+      allEntries = true)
+  public void evictAllTrendingCaches() {}
 }

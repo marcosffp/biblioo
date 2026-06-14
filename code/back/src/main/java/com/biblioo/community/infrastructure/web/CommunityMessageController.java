@@ -9,7 +9,6 @@ import com.biblioo.community.infrastructure.dto.message.MessageEventPayload;
 import com.biblioo.community.infrastructure.dto.message.MessageResponse;
 import com.biblioo.community.infrastructure.dto.message.ReactMessageRequest;
 import com.biblioo.community.infrastructure.dto.message.SendMessageRequest;
-
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.security.Principal;
@@ -26,7 +25,9 @@ import org.springframework.stereotype.Controller;
 
 @Controller
 @RequiredArgsConstructor
-@Tag(name = "Community Messaging", description = "Endpoints para envio, edição, exclusão e reação de mensagens em comunidades.")
+@Tag(
+    name = "Community Messaging",
+    description = "Endpoints para envio, edição, exclusão e reação de mensagens em comunidades.")
 public class CommunityMessageController {
 
   private final CommunityMessageUseCase messageUseCase;
@@ -72,7 +73,9 @@ public class CommunityMessageController {
   }
 
   @MessageMapping("/community/{communityId}/messages/{messageId}/react")
-  @Tag(name = "React to Message", description = "Adiciona ou remove uma reação (ex.: ❤️) a uma mensagem em uma comunidade.")
+  @Tag(
+      name = "React to Message",
+      description = "Adiciona ou remove uma reação (ex.: ❤️) a uma mensagem em uma comunidade.")
   public void react(
       @DestinationVariable Long communityId,
       @DestinationVariable Long messageId,
@@ -83,14 +86,18 @@ public class CommunityMessageController {
   }
 
   @MessageMapping("/community/{communityId}/typing")
-  @Tag(name = "Typing Indicator", description = "Notifica que um usuário está digitando em uma comunidade.")
+  @Tag(
+      name = "Typing Indicator",
+      description = "Notifica que um usuário está digitando em uma comunidade.")
   public void typing(@DestinationVariable Long communityId, Principal principal) {
     messageUseCase.notifyTyping(communityId, userId(principal));
   }
 
   @MessageExceptionHandler({CommunityBusinessException.class, CommunityAccessDeniedException.class})
   @SendToUser("/queue/errors")
-  @Tag(name = "Error Handling", description = "Lida com erros de domínio nas operações de mensagens.")
+  @Tag(
+      name = "Error Handling",
+      description = "Lida com erros de domínio nas operações de mensagens.")
   public MessageEventPayload handleDomainError(Exception ex) {
     MessageResponse error =
         new MessageResponse(

@@ -6,6 +6,8 @@ public record DnaProgressResponse(int booksRead, int booksRequired, String messa
     return new DnaProgressResponse(
         booksRead,
         5,
-        "DNA em formação: leia mais " + (5 - booksRead) + " livro(s) para desbloquear seu DNA literário.");
+        "DNA em formação: leia mais "
+            + (5 - booksRead)
+            + " livro(s) para desbloquear seu DNA literário.");
   }
 }

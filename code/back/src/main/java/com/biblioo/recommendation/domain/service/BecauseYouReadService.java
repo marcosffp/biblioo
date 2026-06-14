@@ -53,7 +53,6 @@ public class BecauseYouReadService {
     List<BookScore> processed = postProcess(candidates);
 
     resultRepository.upsertByr(userId, processed, seedBookTitle);
-
   }
 
   @CacheEvict(value = "rec-byr", key = "#userId")
@@ -65,7 +64,6 @@ public class BecauseYouReadService {
     List<BookScore> processed = postProcess(candidates);
     String seedTitle = computeService.getBookTitle(bookId);
     resultRepository.upsertByr(userId, processed, seedTitle);
-
   }
 
   @Cacheable(value = "rec-byr", key = "#userId")

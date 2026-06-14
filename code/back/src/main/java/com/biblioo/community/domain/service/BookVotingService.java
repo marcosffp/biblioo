@@ -40,14 +40,15 @@ public class BookVotingService implements BookVotingUseCase {
   private final BookVotingMapper mapper;
   private final VotingBroadcastPort broadcastPort;
 
-
   @Override
   @Transactional
   public VotingResponse createVoting(Long adminId, Long communityId, CreateVotingRequest request) {
     requireOwner(communityId, adminId);
 
-    if (request.endsAt().isBefore(request.startsAt()) || request.endsAt().isEqual(request.startsAt())) {
-      throw new CommunityBusinessException("A data de encerramento deve ser posterior à data de início.");
+    if (request.endsAt().isBefore(request.startsAt())
+        || request.endsAt().isEqual(request.startsAt())) {
+      throw new CommunityBusinessException(
+          "A data de encerramento deve ser posterior à data de início.");
     }
 
     BookVoting voting =
@@ -66,25 +67,24 @@ public class BookVotingService implements BookVotingUseCase {
     List<BookVotingOption> options =
         request.options().stream()
             .map(
-          opt -> {
-            CommunityBookSummary bookSummary = bookLookup.getById(opt.bookId());
-            if (bookSummary == null) {
-            throw new CommunityBusinessException(
-              "Livro não encontrado no catálogo: " + opt.bookId());
-            }
-            return optionRepository.save(
-              BookVotingOption.builder()
-                .votingId(savedVoting.getId())
-                .bookId(bookSummary.id())
-                .bookTitle(bookSummary.title())
-                .bookCoverUrl(bookSummary.coverUrl())
-                .build());
-          })
+                opt -> {
+                  CommunityBookSummary bookSummary = bookLookup.getById(opt.bookId());
+                  if (bookSummary == null) {
+                    throw new CommunityBusinessException(
+                        "Livro não encontrado no catálogo: " + opt.bookId());
+                  }
+                  return optionRepository.save(
+                      BookVotingOption.builder()
+                          .votingId(savedVoting.getId())
+                          .bookId(bookSummary.id())
+                          .bookTitle(bookSummary.title())
+                          .bookCoverUrl(bookSummary.coverUrl())
+                          .build());
+                })
             .toList();
 
     return mapper.toResponse(savedVoting, options, null);
   }
-
 
   @Override
   @Transactional
@@ -104,11 +104,11 @@ public class BookVotingService implements BookVotingUseCase {
 
     List<BookVotingOption> options = optionRepository.findByVotingId(votingId);
     VotingResponse response = mapper.toResponse(voting, options, null);
-    broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTING_CREATED, response));
+    broadcastPort.broadcast(
+        communityId, new VotingEventPayload(VotingEventPayload.VOTING_CREATED, response));
 
     return response;
   }
-
 
   @Override
   @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -160,11 +160,11 @@ public class BookVotingService implements BookVotingUseCase {
 
     List<BookVotingOption> options = optionRepository.findByVotingId(votingId);
     VotingResponse broadcast = mapper.toResponse(voting, options, null);
-    broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTE_UPDATED, broadcast));
+    broadcastPort.broadcast(
+        communityId, new VotingEventPayload(VotingEventPayload.VOTE_UPDATED, broadcast));
 
     return mapper.toResponse(voting, options, myVotedOptionId);
   }
-
 
   @Override
   @Transactional
@@ -180,11 +180,11 @@ public class BookVotingService implements BookVotingUseCase {
 
     List<BookVotingOption> options = optionRepository.findByVotingId(votingId);
     VotingResponse response = mapper.toResponse(voting, options, null);
-    broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTING_CLOSED, response));
+    broadcastPort.broadcast(
+        communityId, new VotingEventPayload(VotingEventPayload.VOTING_CLOSED, response));
 
     return response;
   }
-
 
   @Override
   @Transactional
@@ -194,7 +194,8 @@ public class BookVotingService implements BookVotingUseCase {
 
     BookVoting voting = getVotingOrThrow(votingId, communityId);
     if (voting.getStatus() != VotingStatus.CLOSED) {
-      throw new VotingNotActiveException("Apenas votações encerradas podem ter resultado aprovado.");
+      throw new VotingNotActiveException(
+          "Apenas votações encerradas podem ter resultado aprovado.");
     }
 
     if (voting.getWinnerOptionId() == null) {
@@ -225,11 +226,11 @@ public class BookVotingService implements BookVotingUseCase {
 
     List<BookVotingOption> options = optionRepository.findByVotingId(votingId);
     VotingResponse response = mapper.toResponse(voting, options, null);
-    broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTING_APPROVED, response));
+    broadcastPort.broadcast(
+        communityId, new VotingEventPayload(VotingEventPayload.VOTING_APPROVED, response));
 
     return response;
   }
-
 
   @Override
   @Transactional
@@ -239,7 +240,8 @@ public class BookVotingService implements BookVotingUseCase {
 
     BookVoting voting = getVotingOrThrow(votingId, communityId);
     if (voting.getStatus() != VotingStatus.CLOSED) {
-      throw new VotingNotActiveException("Apenas votações encerradas podem ter resultado rejeitado.");
+      throw new VotingNotActiveException(
+          "Apenas votações encerradas podem ter resultado rejeitado.");
     }
 
     voting.setStatus(VotingStatus.REJECTED);
@@ -248,11 +250,11 @@ public class BookVotingService implements BookVotingUseCase {
 
     List<BookVotingOption> options = optionRepository.findByVotingId(votingId);
     VotingResponse response = mapper.toResponse(voting, options, null);
-    broadcastPort.broadcast(communityId, new VotingEventPayload(VotingEventPayload.VOTING_REJECTED, response));
+    broadcastPort.broadcast(
+        communityId, new VotingEventPayload(VotingEventPayload.VOTING_REJECTED, response));
 
     return response;
   }
-
 
   @Override
   @Transactional(readOnly = true)
@@ -288,7 +290,6 @@ public class BookVotingService implements BookVotingUseCase {
             });
   }
 
-
   @Override
   @Transactional
   public void closeExpiredVotings() {
@@ -301,10 +302,8 @@ public class BookVotingService implements BookVotingUseCase {
       broadcastPort.broadcast(
           voting.getCommunityId(),
           new VotingEventPayload(VotingEventPayload.VOTING_CLOSED, response));
-
     }
   }
-
 
   private BookVoting getVotingOrThrow(Long votingId, Long communityId) {
     return votingRepository
@@ -319,8 +318,7 @@ public class BookVotingService implements BookVotingUseCase {
             .orElseThrow(
                 () -> new CommunityAccessDeniedException("Você não é membro desta comunidade."));
     if (role != CommunityRole.OWNER) {
-      throw new CommunityAccessDeniedException(
-          "Apenas o proprietário pode gerenciar votações.");
+      throw new CommunityAccessDeniedException("Apenas o proprietário pode gerenciar votações.");
     }
   }
 

@@ -49,18 +49,15 @@ public class TrendingInCommunitiesConsumer {
 
       Long userId = message.getPayload().get("userId").asLong();
       Long bookId = message.getPayload().get("bookId").asLong();
-      
 
       try {
-        eventLogRepository.registerEvent(
-            logKey, TRAIL, userId, message.getPayload().toString());
+        eventLogRepository.registerEvent(logKey, TRAIL, userId, message.getPayload().toString());
       } catch (DuplicateEventException ex) {
         log.warn("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
       trendingInCommunitiesService.compute(userId, bookId, eventType);
-
 
     } catch (Exception ex) {
       log.error(

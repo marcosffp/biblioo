@@ -11,11 +11,11 @@ import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import org.springframework.data.domain.PageRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +44,9 @@ public class FeedFanoutService {
       String eventId, Long contentId, String contentType, Long authorId, long createdAtEpochMilli) {
     LocalDateTime createdAt =
         LocalDateTime.ofEpochSecond(
-            createdAtEpochMilli / 1000, (int) ((createdAtEpochMilli % 1000) * 1_000_000), ZoneOffset.UTC);
+            createdAtEpochMilli / 1000,
+            (int) ((createdAtEpochMilli % 1000) * 1_000_000),
+            ZoneOffset.UTC);
     FeedItem selfItem =
         FeedItem.builder()
             .userId(authorId)
@@ -68,7 +70,6 @@ public class FeedFanoutService {
     }
 
     long lastId = progress.getLastProcessedFollowerId();
-
 
     boolean hasMore = true;
     while (hasMore) {
@@ -118,8 +119,7 @@ public class FeedFanoutService {
     LocalDateTime since = LocalDateTime.now().minusDays(backfillDays);
     List<FeedItem> items =
         reviewRepository
-            .findRecentByAuthorIds(
-                List.of(followedUserId), since, PageRequest.of(0, 100))
+            .findRecentByAuthorIds(List.of(followedUserId), since, PageRequest.of(0, 100))
             .stream()
             .map(
                 r ->

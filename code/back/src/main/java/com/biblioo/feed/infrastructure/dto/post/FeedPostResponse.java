@@ -20,7 +20,18 @@ public record FeedPostResponse(
 
   public FeedPostResponse copyWithLikeStatus(boolean liked) {
     return new FeedPostResponse(
-        id, userId, bookId, text, images, gifUrl, tags, hasSpoiler,
-        commentCount, likeCount, createdAt, updatedAt, liked);
+        id,
+        userId,
+        bookId,
+        text,
+        images,
+        gifUrl,
+        tags,
+        hasSpoiler,
+        commentCount,
+        likeCount,
+        createdAt,
+        updatedAt,
+        liked);
   }
 }

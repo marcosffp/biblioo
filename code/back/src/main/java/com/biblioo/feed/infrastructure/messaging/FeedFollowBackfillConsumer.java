@@ -36,7 +36,12 @@ public class FeedFollowBackfillConsumer {
       feedFanoutService.processBackfill(newFollowerId, followedUserId);
 
     } catch (Exception ex) {
-      log.error("{} Falha ao processar backfill event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
+      log.error(
+          "{} Falha ao processar backfill event_id={}: {}",
+          LOG_PREFIX,
+          eventId,
+          ex.getMessage(),
+          ex);
       throw new RuntimeException(ex);
     } finally {
       MDC.clear();

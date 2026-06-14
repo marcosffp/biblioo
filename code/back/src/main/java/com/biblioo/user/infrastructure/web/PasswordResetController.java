@@ -45,6 +45,7 @@ public class PasswordResetController {
     passwordResetUseCase.resetPassword(request.token(), request.newPassword());
     return ResponseEntity.ok(new PasswordResetResponse("Senha redefinida com sucesso."));
   }
+
   @PostMapping("/create-password")
   @Operation(summary = "Cria uma senha para conta vinculada ao Google (sem senha prévia)")
   public ResponseEntity<PasswordResetResponse> createPassword(

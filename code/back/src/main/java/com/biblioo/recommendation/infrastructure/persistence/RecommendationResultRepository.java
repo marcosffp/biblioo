@@ -4,8 +4,8 @@ import com.biblioo.recommendation.domain.model.BecauseYouReadResult;
 import com.biblioo.recommendation.domain.model.BookScore;
 import com.biblioo.recommendation.domain.model.FavoriteGenreNowResult;
 import com.biblioo.recommendation.domain.model.RecommendationResult;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -45,8 +45,6 @@ public class RecommendationResultRepository {
         .setParameter("books", booksJson)
         .setParameter("computedAt", LocalDateTime.now())
         .executeUpdate();
-
-
   }
 
   @Transactional
@@ -71,8 +69,6 @@ public class RecommendationResultRepository {
         .setParameter("metadata", metadataJson)
         .setParameter("computedAt", LocalDateTime.now())
         .executeUpdate();
-
-
   }
 
   @Transactional(readOnly = true)
@@ -109,8 +105,6 @@ public class RecommendationResultRepository {
         .setParameter("metadata", rawMetadata)
         .setParameter("computedAt", LocalDateTime.now())
         .executeUpdate();
-
-
   }
 
   @Transactional
@@ -133,15 +127,16 @@ public class RecommendationResultRepository {
         .setParameter("metadata", metadataJson)
         .setParameter("computedAt", LocalDateTime.now())
         .executeUpdate();
-
-
   }
 
   @Transactional(readOnly = true)
   public BecauseYouReadResult findBecauseYouReadResult(Long userId) {
     return jpaRepository
         .findByUserIdAndTrailType(userId, "BECAUSE_YOU_READ")
-        .map(r -> new BecauseYouReadResult(deserializeSeedBookTitle(r.getMetadata()), deserialize(r.getBooks())))
+        .map(
+            r ->
+                new BecauseYouReadResult(
+                    deserializeSeedBookTitle(r.getMetadata()), deserialize(r.getBooks())))
         .orElse(new BecauseYouReadResult(null, List.of()));
   }
 
@@ -193,7 +188,8 @@ public class RecommendationResultRepository {
 
   private String serializeSeedBook(String seedBookTitle) {
     try {
-      return objectMapper.writeValueAsString(java.util.Map.of("seedBookTitle", seedBookTitle != null ? seedBookTitle : ""));
+      return objectMapper.writeValueAsString(
+          java.util.Map.of("seedBookTitle", seedBookTitle != null ? seedBookTitle : ""));
     } catch (Exception ex) {
       throw new RuntimeException("Falha ao serializar seedBookTitle", ex);
     }

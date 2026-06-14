@@ -42,9 +42,9 @@ public class FeedUserAdapter implements UserPort, CommunityUserLookupPort {
   @Override
   public Map<Long, CommunityUserSummary> getByIds(List<Long> userIds) {
     return userRepository.findAllById(userIds).stream()
-        .collect(Collectors.toMap(
-            User::getId,
-            u -> new CommunityUserSummary(u.getId(), u.getUsername(), u.getAvatarUrl())
-        ));
+        .collect(
+            Collectors.toMap(
+                User::getId,
+                u -> new CommunityUserSummary(u.getId(), u.getUsername(), u.getAvatarUrl())));
   }
 }

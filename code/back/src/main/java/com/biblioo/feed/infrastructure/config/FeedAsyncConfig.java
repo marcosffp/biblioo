@@ -15,7 +15,8 @@ public class FeedAsyncConfig {
     executor.setMaxPoolSize(8);
     executor.setQueueCapacity(500);
     executor.setThreadNamePrefix("feed-async-");
-    executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+    executor.setRejectedExecutionHandler(
+        new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
     executor.initialize();
     return executor;
   }

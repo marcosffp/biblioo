@@ -45,7 +45,6 @@ public class GoodreadsImportController {
 
     Long userId = Long.parseLong(principal.getUsername());
 
-
     try {
       GoodreadsImportResult result =
           goodreadsImportUseCase.importCsv(

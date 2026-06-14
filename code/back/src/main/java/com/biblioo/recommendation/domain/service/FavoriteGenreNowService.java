@@ -63,7 +63,8 @@ public class FavoriteGenreNowService {
     }
 
     // Estágio 1 — livros com reviews suficientes (dado confiável)
-    List<BookScore> primary = computeService.computeBooks(userId, categoryIds, candidateLimit, minReviews);
+    List<BookScore> primary =
+        computeService.computeBooks(userId, categoryIds, candidateLimit, minReviews);
 
     List<BookScore> books;
     if (primary.size() >= candidateLimit) {
@@ -82,11 +83,9 @@ public class FavoriteGenreNowService {
 
       books = new ArrayList<>(primary);
       books.addAll(fallback);
-
     }
 
     resultRepository.upsertWithMetadata(userId, TRAIL_TYPE, books, genreNames);
-
   }
 
   @Cacheable(value = "rec-fgn", key = "#userId")

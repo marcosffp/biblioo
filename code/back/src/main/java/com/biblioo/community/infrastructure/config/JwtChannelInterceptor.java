@@ -1,10 +1,8 @@
 package com.biblioo.community.infrastructure.config;
 
 import com.biblioo.user.infrastructure.security.JwtService;
-
-import lombok.RequiredArgsConstructor;
-
 import java.util.Collections;
+import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;

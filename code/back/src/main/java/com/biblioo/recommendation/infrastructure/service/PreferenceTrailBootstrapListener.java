@@ -23,12 +23,12 @@ public class PreferenceTrailBootstrapListener {
   public void onPreferencesSaved(PreferencesSavedEvent event) {
     Long userId = event.getUserId();
 
-
     if (!event.getGenres().isEmpty()) {
       try {
         favoriteGenreNowService.compute(userId);
       } catch (Exception ex) {
-        log.warn("[Bootstrap] Falha ao computar FGN cold-start userId={}: {}", userId, ex.getMessage());
+        log.warn(
+            "[Bootstrap] Falha ao computar FGN cold-start userId={}: {}", userId, ex.getMessage());
       }
     }
 
@@ -36,9 +36,9 @@ public class PreferenceTrailBootstrapListener {
       try {
         becauseYouReadService.computeFromPreference(userId, event.getBookIds().get(0));
       } catch (Exception ex) {
-        log.warn("[Bootstrap] Falha ao computar BYR cold-start userId={}: {}", userId, ex.getMessage());
+        log.warn(
+            "[Bootstrap] Falha ao computar BYR cold-start userId={}: {}", userId, ex.getMessage());
       }
     }
-
   }
 }

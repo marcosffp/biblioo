@@ -48,7 +48,6 @@ public class BecauseYouReadConsumer {
       String finishedAt = payload.get("finishedAt").asText();
       String seedBookTitle = resolveSeedBookTitle(bookId);
 
-
       try {
         eventLogRepository.registerEvent(
             eventId, message.getEventType(), userId, objectMapper.writeValueAsString(payload));
@@ -58,7 +57,6 @@ public class BecauseYouReadConsumer {
       }
 
       becauseYouReadService.compute(userId, bookId, shelfItemId, finishedAt, seedBookTitle);
-
 
     } catch (Exception ex) {
       log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
@@ -72,7 +70,11 @@ public class BecauseYouReadConsumer {
     try {
       return bookUseCase.getById(bookId).getTitle();
     } catch (Exception ex) {
-      log.warn("{} Não foi possível resolver título para bookId={}: {}", LOG_PREFIX, bookId, ex.getMessage());
+      log.warn(
+          "{} Não foi possível resolver título para bookId={}: {}",
+          LOG_PREFIX,
+          bookId,
+          ex.getMessage());
       return null;
     }
   }

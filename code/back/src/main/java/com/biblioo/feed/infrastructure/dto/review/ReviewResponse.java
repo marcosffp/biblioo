@@ -14,6 +14,7 @@ public record ReviewResponse(
     boolean likedByCurrentUser) {
 
   public ReviewResponse copyWithLikeStatus(boolean liked) {
-    return new ReviewResponse(id, userId, bookId, text, rating, commentCount, likeCount, createdAt, liked);
+    return new ReviewResponse(
+        id, userId, bookId, text, rating, commentCount, likeCount, createdAt, liked);
   }
 }

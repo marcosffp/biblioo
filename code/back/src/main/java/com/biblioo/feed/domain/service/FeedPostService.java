@@ -45,13 +45,13 @@ public class FeedPostService implements FeedPostUseCase {
 
     if (!userPort.existsById(userId)) {
       throw new FeedPostBusinessException("Usuário não encontrado.");
-    } 
+    }
 
     var post =
         FeedPost.builder()
             .userId(userId)
             .bookId(bookId)
-            .text(text!=null && !text.trim().isEmpty() ? text : null)
+            .text(text != null && !text.trim().isEmpty() ? text : null)
             .tags(tags != null ? new ArrayList<>(tags) : new ArrayList<>())
             .hasSpoiler(hasSpoiler)
             .build();
@@ -100,7 +100,7 @@ public class FeedPostService implements FeedPostUseCase {
     }
 
     post.setBookId(bookId);
-    post.setText(text!=null && !text.trim().isEmpty() ? text : null);
+    post.setText(text != null && !text.trim().isEmpty() ? text : null);
     post.setTags(tags != null ? new ArrayList<>(tags) : new ArrayList<>());
     post.setHasSpoiler(hasSpoiler);
 
@@ -143,10 +143,14 @@ public class FeedPostService implements FeedPostUseCase {
     if (post.getGifUrl() != null && !post.getGifUrl().isBlank()) urlsToDelete.add(post.getGifUrl());
 
     if (post.getCommentCount() != null && post.getCommentCount() > 0) {
-      commentRepository.findByParentIdAndIsDeletedFalse(postId).forEach(c -> {
-        if (c.getImages() != null) urlsToDelete.addAll(c.getImages());
-        if (c.getGifUrl() != null && !c.getGifUrl().isBlank()) urlsToDelete.add(c.getGifUrl());
-      });
+      commentRepository
+          .findByParentIdAndIsDeletedFalse(postId)
+          .forEach(
+              c -> {
+                if (c.getImages() != null) urlsToDelete.addAll(c.getImages());
+                if (c.getGifUrl() != null && !c.getGifUrl().isBlank())
+                  urlsToDelete.add(c.getGifUrl());
+              });
       feedPostRepository.softDeletePost(postId, userId);
       commentRepository.softDeleteAllByParentId(postId);
     } else {
@@ -210,9 +214,7 @@ public class FeedPostService implements FeedPostUseCase {
   }
 
   private String uploadGif(byte[] gif, String referenceId) {
-    return feedImagePort
-        .uploadImage(gif, referenceId, UUID.randomUUID() + "_gif")
-        .join();
+    return feedImagePort.uploadImage(gif, referenceId, UUID.randomUUID() + "_gif").join();
   }
 
   private void deleteImagesAsync(List<String> urls) {

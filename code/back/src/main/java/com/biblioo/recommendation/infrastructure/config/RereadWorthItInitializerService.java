@@ -19,9 +19,9 @@ public class RereadWorthItInitializerService {
   private final RereadWorthItComputeService computeService;
 
   /**
-   * CT-11 — Pré-computa o trilho RereadWorthIt para todos os usuários que ainda não têm
-   * resultado salvo. Roda assincronamente após o contexto estar pronto para não atrasar o startup.
-   * É idempotente: ignora usuários que já têm resultado.
+   * CT-11 — Pré-computa o trilho RereadWorthIt para todos os usuários que ainda não têm resultado
+   * salvo. Roda assincronamente após o contexto estar pronto para não atrasar o startup. É
+   * idempotente: ignora usuários que já têm resultado.
    */
   @EventListener(ApplicationReadyEvent.class)
   @Async
@@ -32,8 +32,6 @@ public class RereadWorthItInitializerService {
     if (userIds.isEmpty()) {
       return;
     }
-
-
 
     int ok = 0;
     int fail = 0;
@@ -46,6 +44,5 @@ public class RereadWorthItInitializerService {
         fail++;
       }
     }
-
   }
 }

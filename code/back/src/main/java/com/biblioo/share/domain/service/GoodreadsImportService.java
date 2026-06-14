@@ -73,8 +73,7 @@ public class GoodreadsImportService implements GoodreadsImportUseCase {
       parsed = csvParser.parse(bounded);
 
       if (bounded.overflowed()) {
-        throw new GoodreadsImportException(
-            "Arquivo excede o tamanho máximo de 10MB após leitura.");
+        throw new GoodreadsImportException("Arquivo excede o tamanho máximo de 10MB após leitura.");
       }
     } catch (GoodreadsImportException e) {
       throw e;
@@ -89,8 +88,6 @@ public class GoodreadsImportService implements GoodreadsImportUseCase {
 
     Shelf shelf = findOrCreateImportShelf(userId);
 
-
-
     for (GoodreadsImportRow row : parsed.rows()) {
       RowOutcome outcome = processRow(userId, shelf.getId(), row, errors);
       if (outcome.shelfResult() == ShelfResult.IMPORTED) imported++;
@@ -100,7 +97,6 @@ public class GoodreadsImportService implements GoodreadsImportUseCase {
 
     int failed = errors.size() - parsed.errors().size();
     int totalRows = parsed.rows().size() + parsed.errors().size();
-
 
     return new GoodreadsImportResult(
         totalRows, imported, skipped, failed, reviewsImported, List.copyOf(errors));
@@ -115,8 +111,7 @@ public class GoodreadsImportService implements GoodreadsImportUseCase {
             new GoodreadsImportError(
                 0,
                 row.title(),
-                "Livro não encontrado no catálogo"
-                    + ". Tente buscá-lo manualmente."));
+                "Livro não encontrado no catálogo" + ". Tente buscá-lo manualmente."));
         return RowOutcome.failed();
       }
 
@@ -211,13 +206,12 @@ public class GoodreadsImportService implements GoodreadsImportUseCase {
 
     // 3. External API — precise ISBN search (isbn: prefix forces exact match in Google Books)
     if (row.isbn13() != null || row.isbn() != null) {
-      String isbnQuery =
-          row.isbn13() != null ? "isbn:" + row.isbn13() : "isbn:" + row.isbn();
+      String isbnQuery = row.isbn13() != null ? "isbn:" + row.isbn13() : "isbn:" + row.isbn();
       try {
         List<Book> enriched = bookEnrichService.enrichSync(isbnQuery);
         Optional<Book> matched = enriched.stream().filter(b -> isbnMatches(b, row)).findFirst();
         if (matched.isPresent()) return matched;
- 
+
       } catch (Exception e) {
         log.warn("Busca por ISBN falhou para '{}': {}", row.title(), e.getMessage());
       }
@@ -252,7 +246,8 @@ public class GoodreadsImportService implements GoodreadsImportUseCase {
     // or the first 4+ words match (livros com subtítulos longos no Goodreads)
     if (bookTitle.equals(searchTitle)) return true;
     if (bookTitle.contains(searchTitle) || searchTitle.contains(bookTitle)) return true;
-    return firstWords(bookTitle, 4).equals(firstWords(searchTitle, 4)) && !firstWords(bookTitle, 4).isBlank();
+    return firstWords(bookTitle, 4).equals(firstWords(searchTitle, 4))
+        && !firstWords(bookTitle, 4).isBlank();
   }
 
   private String normalize(String s) {

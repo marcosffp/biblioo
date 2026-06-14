@@ -25,8 +25,8 @@ public class SimilarAuthorsConsumer {
   private final ObjectMapper objectMapper;
 
   /**
-   * Prefixo "SA:" isola a chave de idempotência dos demais trails que consomem
-   * o mesmo shelf.reading.completed (BYR, FGN, CS, RWI).
+   * Prefixo "SA:" isola a chave de idempotência dos demais trails que consomem o mesmo
+   * shelf.reading.completed (BYR, FGN, CS, RWI).
    */
   @RabbitListener(
       queues = RabbitMQConfig.SA_QUEUE,
@@ -44,7 +44,6 @@ public class SimilarAuthorsConsumer {
 
       Long userId = message.getPayload().get("userId").asLong();
 
-
       try {
         eventLogRepository.registerEvent(
             logKey, TRAIL, userId, objectMapper.writeValueAsString(message.getPayload()));
@@ -53,7 +52,6 @@ public class SimilarAuthorsConsumer {
       }
 
       similarAuthorsService.compute(userId);
-
 
     } catch (Exception ex) {
       log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);

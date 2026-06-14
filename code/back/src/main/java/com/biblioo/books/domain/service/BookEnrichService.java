@@ -17,7 +17,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
@@ -43,10 +42,11 @@ public class BookEnrichService {
     var saved = persistNewBooks(externalBooks);
     if (!saved.isEmpty()) return new ArrayList<>(saved);
 
-    var isbns = externalBooks.stream()
-        .map(Book::getIsbn)
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+    var isbns =
+        externalBooks.stream()
+            .map(Book::getIsbn)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
     if (!isbns.isEmpty()) {
       List<Book> fromDb = repository.findByIsbnIn(isbns);
       if (!fromDb.isEmpty()) return new ArrayList<>(fromDb);
@@ -60,7 +60,8 @@ public class BookEnrichService {
       var externalBooks = external.search(query);
       persistNewBooks(externalBooks);
     } catch (Exception e) {
-      log.warn("Enriquecimento assíncrono falhou para query='" + query + "'. Causa: " + e.getMessage());
+      log.warn(
+          "Enriquecimento assíncrono falhou para query='" + query + "'. Causa: " + e.getMessage());
     }
     return CompletableFuture.completedFuture(null);
   }
@@ -81,7 +82,9 @@ public class BookEnrichService {
       CompletableFuture.runAsync(() -> search.indexAll(saved), bookEnrichExecutor);
       return saved;
     } catch (DataIntegrityViolationException e) {
-      log.warn("Inserção concorrente detectada. Livros já foram salvos por outra thread. Causa: {}", e.getMessage());
+      log.warn(
+          "Inserção concorrente detectada. Livros já foram salvos por outra thread. Causa: {}",
+          e.getMessage());
       return List.of();
     }
   }

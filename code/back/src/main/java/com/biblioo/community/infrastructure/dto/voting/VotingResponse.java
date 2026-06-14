@@ -2,7 +2,6 @@ package com.biblioo.community.infrastructure.dto.voting;
 
 import com.biblioo.community.domain.model.enumeration.TieBreakRule;
 import com.biblioo.community.domain.model.enumeration.VotingStatus;
-
 import java.time.LocalDateTime;
 import java.util.List;
 

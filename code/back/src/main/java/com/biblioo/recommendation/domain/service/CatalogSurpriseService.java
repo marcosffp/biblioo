@@ -29,9 +29,9 @@ public class CatalogSurpriseService {
   private int candidatePoolMultiplier;
 
   /**
-   * Atualiza o estado α/β do bandit no Redis.
-   * Chamado pelo consumer ao receber evento de interação do usuário com um livro.
-   * Também evicta o cache para que a próxima leitura reflita o novo estado.
+   * Atualiza o estado α/β do bandit no Redis. Chamado pelo consumer ao receber evento de interação
+   * do usuário com um livro. Também evicta o cache para que a próxima leitura reflita o novo
+   * estado.
    */
   public void updateBanditState(Long userId, Long bookId, String status) {
     log.info("[CS] Atualizando bandit userId={} bookId={} status={}", userId, bookId, status);
@@ -56,14 +56,13 @@ public class CatalogSurpriseService {
   /**
    * Computa recomendações de categorias distantes com Thompson Sampling.
    *
-   * <p>O resultado é cacheado por um TTL curto (configurado em {@code rec-cs}).
-   * O TTL curto preserva boa parte da natureza estocástica do Thompson Sampling
-   * (theta varia entre sessões distintas) sem pagar o custo de computação a cada
-   * request individual — que seria insuportável sob alta concorrência.
+   * <p>O resultado é cacheado por um TTL curto (configurado em {@code rec-cs}). O TTL curto
+   * preserva boa parte da natureza estocástica do Thompson Sampling (theta varia entre sessões
+   * distintas) sem pagar o custo de computação a cada request individual — que seria insuportável
+   * sob alta concorrência.
    *
-   * <p>Trade-off intencional: usuários verão o mesmo sample dentro da janela
-   * do TTL. Para variar mais, reduzir o TTL em {@code CacheConfig}; para
-   * melhorar a performance sob spike, aumentar.
+   * <p>Trade-off intencional: usuários verão o mesmo sample dentro da janela do TTL. Para variar
+   * mais, reduzir o TTL em {@code CacheConfig}; para melhorar a performance sob spike, aumentar.
    */
   @Cacheable(value = "rec-cs", key = "#userId")
   public CatalogSurpriseResult getCatalogSurprise(Long userId) {

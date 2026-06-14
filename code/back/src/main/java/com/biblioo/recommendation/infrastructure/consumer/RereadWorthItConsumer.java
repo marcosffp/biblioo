@@ -25,8 +25,8 @@ public class RereadWorthItConsumer {
   private final ObjectMapper objectMapper;
 
   /**
-   * Prefixo "RWI:" isola a chave de idempotência dos demais trails que consomem
-   * o mesmo shelf.reading.completed (BYR, FGN, CS).
+   * Prefixo "RWI:" isola a chave de idempotência dos demais trails que consomem o mesmo
+   * shelf.reading.completed (BYR, FGN, CS).
    */
   @RabbitListener(
       queues = RabbitMQConfig.RWI_QUEUE,
@@ -44,7 +44,6 @@ public class RereadWorthItConsumer {
 
       Long userId = message.getPayload().get("userId").asLong();
 
-
       try {
         eventLogRepository.registerEvent(
             logKey, TRAIL, userId, objectMapper.writeValueAsString(message.getPayload()));
@@ -54,7 +53,6 @@ public class RereadWorthItConsumer {
       }
 
       rereadWorthItService.compute(userId);
-
 
     } catch (Exception ex) {
       log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);

@@ -21,9 +21,9 @@ public class SimilarAuthorsComputeService {
    * {@code minDaysSinceCompleted} dias. Livros sem avaliação são tratados como nota neutra (3
    * estrelas), que está abaixo do limiar padrão de 4 — não geram autor confirmado.
    *
-   * <p>Score = 0.6 + 0.2 × (user_author_avg − 4) + 0.2 × (book_avg / 5) → intervalo [0.6, 1.0].
-   * O componente user_author_avg torna o score específico por usuário, quebrando a ordem idêntica
-   * que ocorria quando apenas a média global do livro era usada.
+   * <p>Score = 0.6 + 0.2 × (user_author_avg − 4) + 0.2 × (book_avg / 5) → intervalo [0.6, 1.0]. O
+   * componente user_author_avg torna o score específico por usuário, quebrando a ordem idêntica que
+   * ocorria quando apenas a média global do livro era usada.
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
@@ -80,9 +80,11 @@ public class SimilarAuthorsComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "confirmed_author"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "confirmed_author"))
         .toList();
   }
 
@@ -192,15 +194,19 @@ public class SimilarAuthorsComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "discovered_author"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(),
+                    ((Number) r[1]).doubleValue(),
+                    "discovered_author"))
         .toList();
   }
 
   /**
-   * Retorna IDs de usuários sem resultado SIMILAR_AUTHORS salvo. Usado pelo inicializador
-   * para pré-computação no startup (CT-20).
+   * Retorna IDs de usuários sem resultado SIMILAR_AUTHORS salvo. Usado pelo inicializador para
+   * pré-computação no startup (CT-20).
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
@@ -224,8 +230,8 @@ public class SimilarAuthorsComputeService {
   }
 
   /**
-   * Fallback global — usado quando nenhum candidato de nível 1 ou 2 foi encontrado.
-   * Retorna os livros mais bem avaliados que o usuário ainda não leu.
+   * Fallback global — usado quando nenhum candidato de nível 1 ou 2 foi encontrado. Retorna os
+   * livros mais bem avaliados que o usuário ainda não leu.
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
@@ -254,9 +260,11 @@ public class SimilarAuthorsComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "fallback_global"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "fallback_global"))
         .toList();
   }
 }

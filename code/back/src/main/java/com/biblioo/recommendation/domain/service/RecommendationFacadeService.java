@@ -32,12 +32,12 @@ public class RecommendationFacadeService implements RecommendationUseCase {
   private final CacheManager cacheManager;
 
   /**
-   * Limite de queries simultâneas que tocam o banco/Redis de computação.
-   * Não se aplica a cache hits — estes são servidos diretamente do Redis
-   * sem passar pelo semáforo. Deve ser próximo ao hikari.maximum-pool-size.
+   * Limite de queries simultâneas que tocam o banco/Redis de computação. Não se aplica a cache hits
+   * — estes são servidos diretamente do Redis sem passar pelo semáforo. Deve ser próximo ao
+   * hikari.maximum-pool-size.
    *
-   * <p>Regra prática: (hikari.maximum-pool-size - 2), reservando 2 conexões
-   * para consumers e operações administrativas.
+   * <p>Regra prática: (hikari.maximum-pool-size - 2), reservando 2 conexões para consumers e
+   * operações administrativas.
    */
   @Value("${recommendation.db-concurrency-limit:20}")
   private int dbConcurrencyLimit;
@@ -50,18 +50,18 @@ public class RecommendationFacadeService implements RecommendationUseCase {
   }
 
   /**
-   * Tenta retornar o valor diretamente do cache, sem adquirir o semáforo.
-   * Se o cache estiver frio ou tiver expirado, delega para {@code fn} sob throttle.
+   * Tenta retornar o valor diretamente do cache, sem adquirir o semáforo. Se o cache estiver frio
+   * ou tiver expirado, delega para {@code fn} sob throttle.
    *
-   * <p>Esse padrão é necessário porque {@code @Cacheable} fica dentro do método
-   * de serviço — ou seja, dentro do {@code throttled()} — e o semáforo acabaria
-   * bloqueando cache hits desnecessariamente. Com 300 VUs e semáforo de 20 permits,
-   * mesmo uma resposta Redis de 5ms criaria uma fila de ~1780 threads aguardando,
-   * elevando o p95 para vários segundos mesmo com cache quente.
+   * <p>Esse padrão é necessário porque {@code @Cacheable} fica dentro do método de serviço — ou
+   * seja, dentro do {@code throttled()} — e o semáforo acabaria bloqueando cache hits
+   * desnecessariamente. Com 300 VUs e semáforo de 20 permits, mesmo uma resposta Redis de 5ms
+   * criaria uma fila de ~1780 threads aguardando, elevando o p95 para vários segundos mesmo com
+   * cache quente.
    *
-   * @param cacheName  nome do cache Redis conforme {@code CacheConfig}
-   * @param userId     chave de cache (mesma usada pelo {@code @Cacheable} dos serviços)
-   * @param fn         supplier que chama o método de serviço (executa somente em cache miss)
+   * @param cacheName nome do cache Redis conforme {@code CacheConfig}
+   * @param userId chave de cache (mesma usada pelo {@code @Cacheable} dos serviços)
+   * @param fn supplier que chama o método de serviço (executa somente em cache miss)
    */
   @SuppressWarnings("unchecked")
   private <T> T cachedOrThrottled(String cacheName, Long userId, Supplier<T> fn) {
@@ -102,7 +102,8 @@ public class RecommendationFacadeService implements RecommendationUseCase {
 
   @Override
   public CatalogSurpriseResult getCatalogSurprise(Long userId) {
-    return cachedOrThrottled("rec-cs", userId, () -> catalogSurpriseService.getCatalogSurprise(userId));
+    return cachedOrThrottled(
+        "rec-cs", userId, () -> catalogSurpriseService.getCatalogSurprise(userId));
   }
 
   @Override

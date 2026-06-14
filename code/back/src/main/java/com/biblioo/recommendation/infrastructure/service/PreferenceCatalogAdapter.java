@@ -31,8 +31,6 @@ public class PreferenceCatalogAdapter {
                 .createNativeQuery("SELECT id FROM books WHERE id IN (:ids)")
                 .setParameter("ids", ids)
                 .getResultList())
-        .stream()
-        .map(r -> ((Number) r).longValue())
-        .toList();
+        .stream().map(r -> ((Number) r).longValue()).toList();
   }
 }

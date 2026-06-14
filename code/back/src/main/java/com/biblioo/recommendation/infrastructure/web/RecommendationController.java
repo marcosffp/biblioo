@@ -200,24 +200,25 @@ public class RecommendationController {
 
   private List<RecommendationResponse> toRecommendationResponses(List<BookScore> scores) {
     List<Long> ids = scores.stream().map(BookScore::getBookId).toList();
-    Map<Long, Book> books = bookUseCase.getByIds(ids).stream()
-        .collect(Collectors.toMap(Book::getId, b -> b));
+    Map<Long, Book> books =
+        bookUseCase.getByIds(ids).stream().collect(Collectors.toMap(Book::getId, b -> b));
 
     return scores.stream()
         .filter(score -> books.containsKey(score.getBookId()))
-        .map(score -> {
-          Book book = books.get(score.getBookId());
-          return RecommendationResponse.builder()
-              .id(book.getId())
-              .title(book.getTitle())
-              .description(book.getDescription())
-              .pageCount(book.getPageCount())
-              .readerCount(book.getReaderCount())
-              .averageRating(book.getAverageRating())
-              .coverUrl(book.getCoverUrl())
-              .score(score.getScore())
-              .build();
-        })
+        .map(
+            score -> {
+              Book book = books.get(score.getBookId());
+              return RecommendationResponse.builder()
+                  .id(book.getId())
+                  .title(book.getTitle())
+                  .description(book.getDescription())
+                  .pageCount(book.getPageCount())
+                  .readerCount(book.getReaderCount())
+                  .averageRating(book.getAverageRating())
+                  .coverUrl(book.getCoverUrl())
+                  .score(score.getScore())
+                  .build();
+            })
         .toList();
   }
 }

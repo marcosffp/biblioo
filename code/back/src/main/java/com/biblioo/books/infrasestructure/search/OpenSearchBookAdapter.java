@@ -66,14 +66,11 @@ public class OpenSearchBookAdapter {
           BoolQuery.of(
               bq ->
                   bq.must(m -> m.multiMatch(mustClause))
-                    .should(s -> s.matchPhrasePrefix(phraseTitleBoost)));
+                      .should(s -> s.matchPhrasePrefix(phraseTitleBoost)));
 
       var request =
           SearchRequest.of(
-              sr ->
-                  sr.index(INDEX_NAME)
-                      .query(q -> q.bool(boolQuery))
-                      .size(MAX_SEARCH_RESULTS));
+              sr -> sr.index(INDEX_NAME).query(q -> q.bool(boolQuery)).size(MAX_SEARCH_RESULTS));
 
       var response = client.search(request, BookDocument.class);
 

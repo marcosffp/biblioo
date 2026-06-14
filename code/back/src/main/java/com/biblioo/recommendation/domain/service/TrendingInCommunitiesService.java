@@ -51,7 +51,6 @@ public class TrendingInCommunitiesService {
    */
   public void compute(Long userId, Long bookId, String eventType) {
 
-
     if (trendingRepository.hasContributedRecently(
         userId, bookId, eventType, deduplicationWindowHours)) {
 
@@ -62,8 +61,6 @@ public class TrendingInCommunitiesService {
 
     trendingRepository.registerContribution(userId, bookId, eventType);
     trendingRepository.incrementScore(bookId, weight, decayPerHour);
-
-
   }
 
   /**
@@ -87,8 +84,6 @@ public class TrendingInCommunitiesService {
 
     List<BookScore> combined = new ArrayList<>(organic);
     combined.addAll(fallback);
-
-
 
     return new TrendingInCommunitiesResult(combined);
   }

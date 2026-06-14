@@ -52,10 +52,8 @@ public class FavoriteGenreNowConsumer {
 
       favoriteGenreNowService.compute(userId);
 
-
     } catch (Exception ex) {
-      log.error(
-          "{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
+      log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
       throw new RuntimeException(ex);
     } finally {
       MDC.clear();

@@ -5,7 +5,6 @@ import com.biblioo.infrastructure.messaging.config.RabbitMQConfig;
 import com.biblioo.infrastructure.messaging.model.EventMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +24,7 @@ public class BookStatsDlqConsumer {
         message.getEventType(),
         message.getAggregateId(),
         "Mensagem chegou à DLQ após esgotar todas as tentativas de repetição");
-        
+
     messageIdempotencyPort.markAsFailed(
         message.getEventId(),
         "Mensagem chegou à DLQ após esgotar todas as tentativas de repetição");

@@ -28,6 +28,5 @@ public class EventLogRepository {
           eventId);
       throw new DuplicateEventException(eventId);
     }
-
   }
 }

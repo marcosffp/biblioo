@@ -14,8 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public interface FeedItemRepository extends JpaRepository<FeedItem, Long> {
 
-  @Query(
-      "SELECT f FROM FeedItem f WHERE f.userId = :userId ORDER BY f.score DESC, f.id DESC")
+  @Query("SELECT f FROM FeedItem f WHERE f.userId = :userId ORDER BY f.score DESC, f.id DESC")
   List<FeedItem> findTopByUserIdOrderByScoreDesc(@Param("userId") Long userId, Pageable pageable);
 
   @Query(

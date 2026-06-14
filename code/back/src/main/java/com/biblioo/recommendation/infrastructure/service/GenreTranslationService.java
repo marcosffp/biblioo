@@ -26,25 +26,27 @@ public class GenreTranslationService {
   public GenreTranslationService(ChatClient.Builder chatClientBuilder, ObjectMapper objectMapper) {
     this.chatClient = chatClientBuilder.build();
     this.objectMapper = objectMapper;
-    this.retryTemplate =
-        RetryTemplate.builder().maxAttempts(1).retryOn(Exception.class).build();
+    this.retryTemplate = RetryTemplate.builder().maxAttempts(1).retryOn(Exception.class).build();
   }
 
   public Map<String, String> translateBatch(List<String> genres) {
     if (genres == null || genres.isEmpty()) return Map.of();
 
-    List<String> batch = genres.size() > MAX_BATCH_SIZE ? genres.subList(0, MAX_BATCH_SIZE) : genres;
+    List<String> batch =
+        genres.size() > MAX_BATCH_SIZE ? genres.subList(0, MAX_BATCH_SIZE) : genres;
 
     return retryTemplate.execute(
         ctx -> {
-          String raw = CompletableFuture
-              .supplyAsync(() -> chatClient.prompt().user(buildPrompt(batch)).call().content())
-              .orTimeout(TRANSLATION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-              .join();
+          String raw =
+              CompletableFuture.supplyAsync(
+                      () -> chatClient.prompt().user(buildPrompt(batch)).call().content())
+                  .orTimeout(TRANSLATION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                  .join();
           return parseResponse(raw, batch);
         },
         ctx -> {
-          log.warn("[GenreTranslation] Gemini indisponível ({}). Retornando originais.",
+          log.warn(
+              "[GenreTranslation] Gemini indisponível ({}). Retornando originais.",
               ctx.getLastThrowable() != null ? ctx.getLastThrowable().getMessage() : "timeout");
           return buildFallback(batch);
         });
@@ -64,10 +66,7 @@ public class GenreTranslationService {
   private Map<String, String> parseResponse(String response, List<String> genres) {
     try {
       String cleaned =
-          response
-              .strip()
-              .replaceAll("(?s)^```(?:json)?\\s*", "")
-              .replaceAll("\\s*```\\s*$", "");
+          response.strip().replaceAll("(?s)^```(?:json)?\\s*", "").replaceAll("\\s*```\\s*$", "");
 
       Map<String, String> parsed =
           objectMapper.readValue(cleaned, new TypeReference<LinkedHashMap<String, String>>() {});

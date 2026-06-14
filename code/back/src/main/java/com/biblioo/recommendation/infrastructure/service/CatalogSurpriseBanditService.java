@@ -32,8 +32,8 @@ public class CatalogSurpriseBanditService {
   private long redisTtlDays;
 
   /**
-   * Cap para limitar o custo de O(α+β) no sample de Beta(α,β).
-   * Após paramCap interações, o parâmetro é tratado como se fosse paramCap.
+   * Cap para limitar o custo de O(α+β) no sample de Beta(α,β). Após paramCap interações, o
+   * parâmetro é tratado como se fosse paramCap.
    */
   @Value("${recommendation.catalog-surprise.param-cap:30}")
   private int paramCap;
@@ -83,7 +83,8 @@ public class CatalogSurpriseBanditService {
       // Redis HINCRBY começa em 0; sem esta adição o primeiro COMPLETED não alteraria
       // o sample (Redis a=1 == prior=1 → Beta(1,1) = cold start, incremento invisível).
       // Com adição: cold start → α=1+0=1, após 1 COMPLETED → α=1+1=2, como esperado.
-      int storedAlpha = (vals != null && vals.containsKey("a")) ? parseIntSafe(vals.get("a"), 0) : 0;
+      int storedAlpha =
+          (vals != null && vals.containsKey("a")) ? parseIntSafe(vals.get("a"), 0) : 0;
       int storedBeta = (vals != null && vals.containsKey("b")) ? parseIntSafe(vals.get("b"), 0) : 0;
       int alpha = alphaPrior + storedAlpha;
       int beta = betaPrior + storedBeta;
@@ -93,9 +94,9 @@ public class CatalogSurpriseBanditService {
   }
 
   /**
-   * Amostra Beta(α, β) pelo método de somas de Gamas com parâmetro inteiro.
-   * Gamma(k) ≈ -Σ ln(U_i) para U_i ~ Uniform(0,1), válido para k inteiro ≥ 1.
-   * Parâmetros são limitados a paramCap para garantir custo O(1) na prática.
+   * Amostra Beta(α, β) pelo método de somas de Gamas com parâmetro inteiro. Gamma(k) ≈ -Σ ln(U_i)
+   * para U_i ~ Uniform(0,1), válido para k inteiro ≥ 1. Parâmetros são limitados a paramCap para
+   * garantir custo O(1) na prática.
    */
   private double sampleBeta(int alpha, int beta) {
     ThreadLocalRandom rng = ThreadLocalRandom.current();

@@ -33,7 +33,8 @@ public class GoogleBooksAdapter {
     this.bookEnrichExecutor = bookEnrichExecutor;
   }
 
-  // "v2:" força o Redis a ignorar o cache antigo (gerado com a query intitle:palavra+intitle:palavra
+  // "v2:" força o Redis a ignorar o cache antigo (gerado com a query
+  // intitle:palavra+intitle:palavra
   // que era muito restritiva e ficou salvo com resultados ruins)
   @Cacheable(value = "google-books", key = "'v2:' + #query.strip().toLowerCase()", sync = true)
   public List<Book> search(String query) {
@@ -44,7 +45,10 @@ public class GoogleBooksAdapter {
             .orTimeout(4, TimeUnit.SECONDS)
             .exceptionally(
                 e -> {
-                  log.warn("Google Books fase 1 timeout/erro. query='{}'. Causa: {}", query, e.getMessage());
+                  log.warn(
+                      "Google Books fase 1 timeout/erro. query='{}'. Causa: {}",
+                      query,
+                      e.getMessage());
                   return List.of();
                 });
 
@@ -54,7 +58,10 @@ public class GoogleBooksAdapter {
             .orTimeout(4, TimeUnit.SECONDS)
             .exceptionally(
                 e -> {
-                  log.warn("Google Books fase 2 timeout/erro. query='{}'. Causa: {}", query, e.getMessage());
+                  log.warn(
+                      "Google Books fase 2 timeout/erro. query='{}'. Causa: {}",
+                      query,
+                      e.getMessage());
                   return List.of();
                 });
 
@@ -72,7 +79,10 @@ public class GoogleBooksAdapter {
               .orTimeout(3, TimeUnit.SECONDS)
               .exceptionally(
                   e -> {
-                    log.warn("Google Books fase 3 (autor) timeout. author='{}'. Causa: {}", mainAuthor, e.getMessage());
+                    log.warn(
+                        "Google Books fase 3 (autor) timeout. author='{}'. Causa: {}",
+                        mainAuthor,
+                        e.getMessage());
                     return List.of();
                   });
       combined = ranker.merge(combined, future3.join());
@@ -87,7 +97,8 @@ public class GoogleBooksAdapter {
         .flatMap(b -> b.getAuthors().stream())
         .filter(a -> a != null && !a.isBlank())
         .collect(Collectors.groupingBy(a -> a, Collectors.counting()))
-        .entrySet().stream()
+        .entrySet()
+        .stream()
         .max(Map.Entry.comparingByValue())
         .map(Map.Entry::getKey)
         .orElse(null);

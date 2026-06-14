@@ -55,9 +55,11 @@ public class TrendingInCommunitiesComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "fallback_new"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "fallback_new"))
         .toList();
   }
 }

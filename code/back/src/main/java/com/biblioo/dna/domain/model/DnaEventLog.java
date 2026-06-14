@@ -12,9 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(
-    name = "dna_event_log",
-    indexes = @Index(columnList = "event_id", unique = true))
+@Table(name = "dna_event_log", indexes = @Index(columnList = "event_id", unique = true))
 public class DnaEventLog {
 
   @Id

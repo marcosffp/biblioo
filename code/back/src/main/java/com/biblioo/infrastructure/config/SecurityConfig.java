@@ -34,8 +34,7 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth
-                    .requestMatchers("/ws/**")
+                auth.requestMatchers("/ws/**")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/auth/create-password")
                     .authenticated()
@@ -45,7 +44,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/books/**")
                     .permitAll()
-                    .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
+                    .requestMatchers("/actuator/health", "/actuator/prometheus")
+                    .permitAll()
                     .requestMatchers(
                         HttpMethod.GET, "/communities/mine", "/communities/invites/pending")
                     .authenticated()

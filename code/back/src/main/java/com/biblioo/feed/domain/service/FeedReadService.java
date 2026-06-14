@@ -99,8 +99,7 @@ public class FeedReadService implements FeedUseCase {
       LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
       readItems =
           reviewRepository
-              .findRecentByAuthorIds(
-                  highVolumeAuthorIds, cutoff, PageRequest.of(0, warmSize / 2))
+              .findRecentByAuthorIds(highVolumeAuthorIds, cutoff, PageRequest.of(0, warmSize / 2))
               .stream()
               .map(
                   r ->

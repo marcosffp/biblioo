@@ -35,9 +35,7 @@ public class CommentInteractionController {
   private final CommentEnricher commentEnricher;
 
   public CommentInteractionController(
-      CommentUseCase commentUseCase,
-      CommentMapper commentMapper,
-      CommentEnricher commentEnricher) {
+      CommentUseCase commentUseCase, CommentMapper commentMapper, CommentEnricher commentEnricher) {
     this.commentUseCase = commentUseCase;
     this.commentMapper = commentMapper;
     this.commentEnricher = commentEnricher;
@@ -83,7 +81,8 @@ public class CommentInteractionController {
       @Parameter(description = "ID do comentário pai") @PathVariable Long commentId,
       @Parameter(description = "Texto da resposta") @RequestParam String text) {
     Long userId = Long.parseLong(principal.getUsername());
-    Comment reply = commentUseCase.createReply(userId, commentId, Jsoup.clean(text, Safelist.none()));
+    Comment reply =
+        commentUseCase.createReply(userId, commentId, Jsoup.clean(text, Safelist.none()));
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(commentEnricher.enrich(commentMapper.toBasicResponse(reply)));
   }

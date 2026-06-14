@@ -34,8 +34,7 @@ public class GoodreadsCsvParser {
   private static final Pattern ISBN_PATTERN = Pattern.compile("=?\"?([0-9X]*)\"?");
   private static final Pattern ISBN10_PATTERN = Pattern.compile("^[0-9]{9}[0-9X]$");
   private static final Pattern ISBN13_PATTERN = Pattern.compile("^97[89][0-9]{10}$");
-  private static final DateTimeFormatter GR_DATE_FMT =
-      DateTimeFormatter.ofPattern("yyyy/MM/dd");
+  private static final DateTimeFormatter GR_DATE_FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
   private static final Set<String> VALID_EXCLUSIVE_SHELVES =
       Set.of("read", "currently-reading", "to-read");
@@ -104,8 +103,7 @@ public class GoodreadsCsvParser {
 
     long bookId = parseLongRequired(record, COL_BOOK_ID, rowNum);
     String title =
-        stripCsvInjection(
-            requireNonBlank(safeGet(record, COL_TITLE), "Title é obrigatório"));
+        stripCsvInjection(requireNonBlank(safeGet(record, COL_TITLE), "Title é obrigatório"));
     String author =
         stripCsvInjection(
             normalizeAuthor(requireNonBlank(safeGet(record, COL_AUTHOR), "Author é obrigatório")));
@@ -169,16 +167,11 @@ public class GoodreadsCsvParser {
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   private void validateRecordSize(CSVRecord record, int rowNum) {
-    for (String col :
-        List.of(COL_TITLE, COL_MY_REVIEW, COL_PRIVATE_NOTES, COL_AUTHOR)) {
+    for (String col : List.of(COL_TITLE, COL_MY_REVIEW, COL_PRIVATE_NOTES, COL_AUTHOR)) {
       String val = safeGet(record, col);
       if (val != null && val.length() > MAX_FIELD_LENGTH) {
         throw new IllegalArgumentException(
-            "Campo '"
-                + col
-                + "' excede o tamanho máximo de "
-                + MAX_FIELD_LENGTH
-                + " caracteres");
+            "Campo '" + col + "' excede o tamanho máximo de " + MAX_FIELD_LENGTH + " caracteres");
       }
     }
   }
@@ -211,8 +204,6 @@ public class GoodreadsCsvParser {
     String value = m.group(1);
     return (value == null || value.isBlank()) ? null : value;
   }
-
-
 
   // Converts YYYY/MM/DD to LocalDate; empty or malformed -> null
   LocalDate parseDate(String raw) {

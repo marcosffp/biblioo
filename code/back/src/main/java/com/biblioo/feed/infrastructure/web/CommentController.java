@@ -156,7 +156,9 @@ public class CommentController {
     Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     Comment comment = commentUseCase.getCommentById(commentId);
     return ResponseEntity.ok(
-        commentMapper.toResponse(comment).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, commentId)));
+        commentMapper
+            .toResponse(comment)
+            .copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, commentId)));
   }
 
   @PostMapping("/{commentId}/like")

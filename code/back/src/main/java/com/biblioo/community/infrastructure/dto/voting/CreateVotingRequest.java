@@ -1,11 +1,10 @@
 package com.biblioo.community.infrastructure.dto.voting;
 
+import com.biblioo.community.domain.model.enumeration.TieBreakRule;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import com.biblioo.community.domain.model.enumeration.TieBreakRule;
 
 public record CreateVotingRequest(
     @NotBlank(message = "O título da votação é obrigatório") @Size(max = 200) String title,

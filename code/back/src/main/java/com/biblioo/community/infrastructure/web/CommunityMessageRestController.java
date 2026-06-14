@@ -5,7 +5,6 @@ import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.infrastructure.dto.mapper.CommunityMessageMapper;
 import com.biblioo.community.infrastructure.dto.message.MessageMediaUploadResponse;
 import com.biblioo.community.infrastructure.dto.message.MessageResponse;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
@@ -88,7 +87,6 @@ public class CommunityMessageRestController {
 
     return ResponseEntity.ok(response);
   }
-
 
   private void validateMediaFiles(List<MultipartFile> images, MultipartFile gif) {
     if (images != null) {

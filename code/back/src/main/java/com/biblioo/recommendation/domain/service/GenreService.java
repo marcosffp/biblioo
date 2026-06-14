@@ -30,7 +30,6 @@ public class GenreService implements GenreUseCase {
     List<String> rawNames = categoryQueryService.findAllNames();
     List<String> canonical = deduplicateAndNormalize(rawNames);
 
-
     Map<String, String> translations = translationService.translateBatch(canonical);
 
     return canonical.stream()
@@ -42,7 +41,8 @@ public class GenreService implements GenreUseCase {
                     .build())
         .sorted(
             Comparator.comparing(
-                GenreTranslation::getTranslated, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                GenreTranslation::getTranslated,
+                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
         .toList();
   }
 

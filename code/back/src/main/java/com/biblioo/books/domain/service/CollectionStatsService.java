@@ -58,7 +58,7 @@ public class CollectionStatsService implements CollectionStatsUseCase {
         computeProgress(items), computeTopGenres(books), computeAverageRating(books));
   }
 
-    @Override
+  @Override
   @Transactional(readOnly = true)
   public CollectionStatisticsResponse computeStatistics(Long userId, Long collectionId) {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
@@ -72,23 +72,30 @@ public class CollectionStatsService implements CollectionStatsUseCase {
       for (ShelfItem item : items) {
         totalBooks++;
         switch (item.getStatus()) {
-          case COMPLETED    -> booksCompleted++;
-          case READING      -> booksReading++;
-          case REREADING    -> booksRereading++;
+          case COMPLETED -> booksCompleted++;
+          case READING -> booksReading++;
+          case REREADING -> booksRereading++;
           case WANT_TO_READ -> booksWantToRead++;
-          case ABANDONED    -> booksAbandoned++;
+          case ABANDONED -> booksAbandoned++;
         }
-        if (item.getTotalPages()   != null) totalPages += item.getTotalPages();
-        if (item.getCurrentPage()  != null) pagesRead  += item.getCurrentPage();
+        if (item.getTotalPages() != null) totalPages += item.getTotalPages();
+        if (item.getCurrentPage() != null) pagesRead += item.getCurrentPage();
       }
     }
 
     return new CollectionStatisticsResponse(
-        collectionId, totalBooks, booksCompleted, booksReading,
-        booksRereading, booksWantToRead, booksAbandoned, totalPages, pagesRead);
+        collectionId,
+        totalBooks,
+        booksCompleted,
+        booksReading,
+        booksRereading,
+        booksWantToRead,
+        booksAbandoned,
+        totalPages,
+        pagesRead);
   }
 
-    private List<ShelfItem> loadItemsSafely(Long userId, Long shelfId) {
+  private List<ShelfItem> loadItemsSafely(Long userId, Long shelfId) {
     try {
       return shelfUseCase.listShelfItems(userId, shelfId);
     } catch (Exception e) {

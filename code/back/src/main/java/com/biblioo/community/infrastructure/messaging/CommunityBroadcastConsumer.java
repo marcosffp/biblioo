@@ -11,7 +11,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -27,19 +26,19 @@ public class CommunityBroadcastConsumer {
   public void handle(Message amqpMessage) {
     String senderInstanceId =
         (String)
-            amqpMessage.getMessageProperties().getHeader(WebSocketMessageBroadcastAdapter.HEADER_INSTANCE_ID);
+            amqpMessage
+                .getMessageProperties()
+                .getHeader(WebSocketMessageBroadcastAdapter.HEADER_INSTANCE_ID);
 
     if (applicationInstanceId.getValue().equals(senderInstanceId)) {
       return;
     }
 
-    String envelopeType =
-        (String) amqpMessage.getMessageProperties().getHeader("x-envelope-type");
+    String envelopeType = (String) amqpMessage.getMessageProperties().getHeader("x-envelope-type");
 
     try {
       if ("typing".equals(envelopeType)) {
-        String destination =
-            (String) amqpMessage.getMessageProperties().getHeader("x-destination");
+        String destination = (String) amqpMessage.getMessageProperties().getHeader("x-destination");
         TypingEventPayload payload =
             objectMapper.readValue(amqpMessage.getBody(), TypingEventPayload.class);
         messagingTemplate.convertAndSend(destination, payload);

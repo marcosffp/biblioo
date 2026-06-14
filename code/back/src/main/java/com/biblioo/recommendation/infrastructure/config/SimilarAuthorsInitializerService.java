@@ -19,9 +19,9 @@ public class SimilarAuthorsInitializerService {
   private final SimilarAuthorsComputeService computeService;
 
   /**
-   * CT-20 — Pré-computa o trilho SimilarAuthors para todos os usuários que ainda não têm
-   * resultado salvo. Roda assincronamente após o contexto estar pronto para não atrasar o startup.
-   * É idempotente: ignora usuários que já têm resultado.
+   * CT-20 — Pré-computa o trilho SimilarAuthors para todos os usuários que ainda não têm resultado
+   * salvo. Roda assincronamente após o contexto estar pronto para não atrasar o startup. É
+   * idempotente: ignora usuários que já têm resultado.
    */
   @EventListener(ApplicationReadyEvent.class)
   @Async
@@ -32,7 +32,6 @@ public class SimilarAuthorsInitializerService {
     if (userIds.isEmpty()) {
       return;
     }
-
 
     int ok = 0;
     int fail = 0;
@@ -45,6 +44,5 @@ public class SimilarAuthorsInitializerService {
         fail++;
       }
     }
-
   }
 }

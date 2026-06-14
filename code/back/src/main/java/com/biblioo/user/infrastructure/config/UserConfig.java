@@ -50,21 +50,28 @@ class UserConfig {
         googleUserFactory);
   }
 
-@Bean
-PasswordResetUseCase passwordResetUseCase(
-    UserRepository userRepo,
-    RefreshTokenRepository refreshTokenRepo,
-    PasswordResetTokenRepository resetTokenRepo,
-    PasswordEncoder passwordEncoder,
-    PasswordResetEmailPort emailPort,
-    @Value("${app.frontend.url}") String frontendUrl,
-    @Value("${app.password-reset.path}") String passwordResetPath,
-    @Value("${app.mobile.deep-link.url}") String mobileDeepLinkUrl,
-    @Value("${app.mobile.reset-path}") String mobileResetPath) {
-  return new PasswordResetService(
-      userRepo, refreshTokenRepo, resetTokenRepo, passwordEncoder, emailPort,
-      frontendUrl, passwordResetPath, mobileDeepLinkUrl, mobileResetPath);
-}
+  @Bean
+  PasswordResetUseCase passwordResetUseCase(
+      UserRepository userRepo,
+      RefreshTokenRepository refreshTokenRepo,
+      PasswordResetTokenRepository resetTokenRepo,
+      PasswordEncoder passwordEncoder,
+      PasswordResetEmailPort emailPort,
+      @Value("${app.frontend.url}") String frontendUrl,
+      @Value("${app.password-reset.path}") String passwordResetPath,
+      @Value("${app.mobile.deep-link.url}") String mobileDeepLinkUrl,
+      @Value("${app.mobile.reset-path}") String mobileResetPath) {
+    return new PasswordResetService(
+        userRepo,
+        refreshTokenRepo,
+        resetTokenRepo,
+        passwordEncoder,
+        emailPort,
+        frontendUrl,
+        passwordResetPath,
+        mobileDeepLinkUrl,
+        mobileResetPath);
+  }
 
   @Bean
   UserUseCase userUseCase(

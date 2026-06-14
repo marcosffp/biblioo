@@ -52,7 +52,8 @@ public class ReviewController {
   @PostMapping
   @Operation(
       summary = "Cria uma avaliação",
-      description = "Cria e publica imediatamente uma avaliação de um livro com nota (1-5) e texto opcional.")
+      description =
+          "Cria e publica imediatamente uma avaliação de um livro com nota (1-5) e texto opcional.")
   public ResponseEntity<ReviewResponse> createReview(
       @AuthenticationPrincipal UserDetails principal,
       @Parameter(description = "ID do livro avaliado", example = "1") @RequestParam("bookId")
@@ -120,7 +121,9 @@ public class ReviewController {
     Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     Review review = reviewUseCase.getReviewById(reviewId);
     return ResponseEntity.ok(
-        reviewMapper.toResponse(review).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, reviewId)));
+        reviewMapper
+            .toResponse(review)
+            .copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, reviewId)));
   }
 
   @GetMapping("/{reviewId}/basic")
@@ -143,7 +146,8 @@ public class ReviewController {
     List<Long> ids = reviews.getContent().stream().map(Review::getId).toList();
     Set<Long> likedIds = likeStatusResolver.resolve(viewerId, ids);
     return ResponseEntity.ok(
-        reviews.map(r -> reviewMapper.toResponse(r).copyWithLikeStatus(likedIds.contains(r.getId()))));
+        reviews.map(
+            r -> reviewMapper.toResponse(r).copyWithLikeStatus(likedIds.contains(r.getId()))));
   }
 
   @GetMapping("/user/{userId}/basic")
@@ -153,7 +157,9 @@ public class ReviewController {
       @PageableDefault(size = 10) Pageable pageable) {
 
     return ResponseEntity.ok(
-        reviewUseCase.getRecentReviewsByUserId(userId, pageable).map(reviewMapper::toBasicResponse));
+        reviewUseCase
+            .getRecentReviewsByUserId(userId, pageable)
+            .map(reviewMapper::toBasicResponse));
   }
 
   @PostMapping("/{reviewId}/like")

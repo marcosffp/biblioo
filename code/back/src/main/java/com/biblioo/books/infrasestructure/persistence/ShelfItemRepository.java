@@ -90,8 +90,7 @@ public interface ShelfItemRepository extends JpaRepository<ShelfItem, Long> {
         AND s.deletedAt IS NULL
         AND si.deletedAt IS NULL
       """)
-  boolean existsActiveByUserIdAndBookId(
-      @Param("userId") Long userId, @Param("bookId") Long bookId);
+  boolean existsActiveByUserIdAndBookId(@Param("userId") Long userId, @Param("bookId") Long bookId);
 
   @Query("SELECT COUNT(si) FROM ShelfItem si WHERE si.bookId = :bookId")
   long countByBookId(@Param("bookId") Long bookId);
