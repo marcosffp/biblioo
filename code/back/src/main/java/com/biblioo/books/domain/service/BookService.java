@@ -48,7 +48,6 @@ public class BookService implements BookUseCase {
   private static final int ENRICH_THRESHOLD = 5;
   private static final int MAX_RESULTS = 15;
 
-
   private final ConcurrentHashMap<String, CompletableFuture<List<BookSearchResult>>> inFlight =
       new ConcurrentHashMap<>();
 
@@ -69,7 +68,8 @@ public class BookService implements BookUseCase {
         try {
           cache.evict(key);
         } catch (Exception evictEx) {
-          log.warn("Falha ao evictar key='{}' do book-search. Causa: {}", key, evictEx.getMessage());
+          log.warn(
+              "Falha ao evictar key='{}' do book-search. Causa: {}", key, evictEx.getMessage());
         }
       }
       if (hit != null) {
@@ -209,7 +209,9 @@ public class BookService implements BookUseCase {
     if (!missingIds.isEmpty()) {
       List<Book> fromDb = repository.findAllById(missingIds);
       for (Book book : fromDb) {
-        bookCacheTemplate.opsForValue().set(BOOK_DETAIL_KEY_PREFIX + book.getId(), book, BOOK_DETAIL_TTL);
+        bookCacheTemplate
+            .opsForValue()
+            .set(BOOK_DETAIL_KEY_PREFIX + book.getId(), book, BOOK_DETAIL_TTL);
         result.put(book.getId(), book);
       }
     }

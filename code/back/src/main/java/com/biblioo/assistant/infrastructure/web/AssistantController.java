@@ -73,7 +73,8 @@ public class AssistantController {
         assistantUseCase.listConversations(userId).stream()
             .map(
                 s ->
-                    new ConversationSummaryResponse(s.id(), s.title(), s.createdAt(), s.updatedAt()))
+                    new ConversationSummaryResponse(
+                        s.id(), s.title(), s.createdAt(), s.updatedAt()))
             .toList();
     return ResponseEntity.ok(result);
   }
@@ -87,7 +88,8 @@ public class AssistantController {
                     .addLimit(
                         Bandwidth.builder()
                             .capacity(props.rateLimitPerMinutePerUser())
-                            .refillIntervally(props.rateLimitPerMinutePerUser(), Duration.ofMinutes(1))
+                            .refillIntervally(
+                                props.rateLimitPerMinutePerUser(), Duration.ofMinutes(1))
                             .build())
                     .build());
     if (!bucket.tryConsume(1)) {

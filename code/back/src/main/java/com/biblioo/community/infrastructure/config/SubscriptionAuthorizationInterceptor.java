@@ -1,12 +1,10 @@
 package com.biblioo.community.infrastructure.config;
 
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
-
-import lombok.RequiredArgsConstructor;
-
 import java.security.Principal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;

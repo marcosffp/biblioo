@@ -46,7 +46,7 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
       emit(state.copyWith(status: PreferencesStatus.done));
     } catch (_) {
       // 422 (preferências já existem) ou falha de rede — considera concluído localmente
-      await _repository.skipOnboarding(event.userId);
+      await _repository.skipOnboarding();
       emit(state.copyWith(status: PreferencesStatus.done));
     }
   }
@@ -55,7 +55,7 @@ class PreferencesBloc extends Bloc<PreferencesEvent, PreferencesState> {
     PreferencesSkipped event,
     Emitter<PreferencesState> emit,
   ) async {
-    await _repository.skipOnboarding(event.userId);
+    await _repository.skipOnboarding();
     emit(state.copyWith(status: PreferencesStatus.done));
   }
 }

@@ -10,7 +10,7 @@ public record NotificationResponse(
     String actorUsername,
     String actorAvatarUrl,
     Long entityId,
-  Long communityId,
+    Long communityId,
     boolean read,
     LocalDateTime createdAt) {
 

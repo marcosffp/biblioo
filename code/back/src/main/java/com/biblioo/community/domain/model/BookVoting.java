@@ -1,11 +1,9 @@
 package com.biblioo.community.domain.model;
 
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
-
 import com.biblioo.community.domain.model.enumeration.TieBreakRule;
 import com.biblioo.community.domain.model.enumeration.VotingStatus;
-
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.*;
 
 @Entity

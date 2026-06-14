@@ -97,7 +97,6 @@ public class LibrarySeedService {
     if (!users.isEmpty()) {
       try {
         if (shelfUseCase.listShelves(users.get(0).getId()).size() >= SHELF_NAMES.size()) {
-          log.info("[Seed-Library] Bibliotecas já populadas. Ignorando.");
           return;
         }
       } catch (Exception ignored) {
@@ -111,16 +110,14 @@ public class LibrarySeedService {
         populateShelfItems(user.getId(), shelves, bookIds, ui);
         ensureCollections(user.getId(), shelves, ui);
       } catch (Exception e) {
-        log.warn(
-            "[Seed-Library] Falha para '{}': {}", user.getUsername(), e.getMessage());
+        log.warn("[Seed-Library] Falha para '{}': {}", user.getUsername(), e.getMessage());
       }
     }
   }
 
   private List<Shelf> ensureShelves(Long userId) {
     List<Shelf> existing = shelfUseCase.listShelves(userId);
-    Set<String> existingNames =
-        existing.stream().map(Shelf::getName).collect(Collectors.toSet());
+    Set<String> existingNames = existing.stream().map(Shelf::getName).collect(Collectors.toSet());
 
     for (String name : SHELF_NAMES) {
       if (existingNames.contains(name)) continue;
@@ -128,7 +125,8 @@ public class LibrarySeedService {
         existing.add(shelfUseCase.createShelf(userId, name, null));
         existingNames.add(name);
       } catch (Exception e) {
-        log.debug("[Seed-Library] Estante '{}' ignorada (userId={}): {}", name, userId, e.getMessage());
+        log.warn(
+            "[Seed-Library] Estante '{}' ignorada (userId={}): {}", name, userId, e.getMessage());
       }
     }
 
@@ -169,9 +167,11 @@ public class LibrarySeedService {
         try {
           shelfUseCase.addShelfItem(userId, shelf.getId(), bookId, status);
         } catch (Exception e) {
-          log.debug(
+          log.warn(
               "[Seed-Library] Item ignorado (shelfId={}, bookId={}): {}",
-              shelf.getId(), bookId, e.getMessage());
+              shelf.getId(),
+              bookId,
+              e.getMessage());
         }
       }
     }
@@ -224,7 +224,8 @@ public class LibrarySeedService {
       collectionUseCase.createCollection(userId, name, description, shelfIds);
       existingNames.add(name);
     } catch (Exception e) {
-      log.debug("[Seed-Library] Coleção '{}' ignorada (userId={}): {}", name, userId, e.getMessage());
+      log.warn(
+          "[Seed-Library] Coleção '{}' ignorada (userId={}): {}", name, userId, e.getMessage());
     }
   }
 }

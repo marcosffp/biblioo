@@ -3,7 +3,6 @@ package com.biblioo.community.infrastructure.persistence;
 import com.biblioo.community.domain.model.CommunityMember;
 import com.biblioo.community.domain.model.CommunityMemberId;
 import com.biblioo.community.domain.model.enumeration.CommunityRole;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

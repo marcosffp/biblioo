@@ -30,10 +30,10 @@ public class NotificationService implements NotificationUseCase {
       Long entityId) {
     createAndDeliverInternal(
         type, recipientId, actorId, actorUsername, actorAvatarUrl, entityId, null);
-    }
+  }
 
-    @Transactional
-    public void createAndDeliver(
+  @Transactional
+  public void createAndDeliver(
       NotificationType type,
       Long recipientId,
       Long actorId,
@@ -41,18 +41,18 @@ public class NotificationService implements NotificationUseCase {
       String actorAvatarUrl,
       Long entityId,
       Long communityId) {
-      createAndDeliverInternal(
+    createAndDeliverInternal(
         type, recipientId, actorId, actorUsername, actorAvatarUrl, entityId, communityId);
-      }
+  }
 
-      private void createAndDeliverInternal(
-        NotificationType type,
-        Long recipientId,
-        Long actorId,
-        String actorUsername,
-        String actorAvatarUrl,
-        Long entityId,
-        Long communityId) {
+  private void createAndDeliverInternal(
+      NotificationType type,
+      Long recipientId,
+      Long actorId,
+      String actorUsername,
+      String actorAvatarUrl,
+      Long entityId,
+      Long communityId) {
 
     Notification notification =
         Notification.builder()

@@ -1,0 +1,37 @@
+steps:
+  # Build da imagem
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest'
+      - './back'
+
+  # Push da imagem
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest'
+
+  # Deploy portfolio
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - 'gcloud'
+      - 'run'
+      - 'deploy'
+      - 'biblioo-portfolio'
+      - '--image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest'
+      - '--region=us-central1'
+
+  # Deploy produção
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    args:
+      - 'gcloud'
+      - 'run'
+      - 'deploy'
+      - 'biblioo-producao'
+      - '--image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest'
+      - '--region=us-central1'
+
+images:
+  - 'us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest'

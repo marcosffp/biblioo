@@ -39,7 +39,7 @@ public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPor
 
     outboxEventService.saveAndSchedulePublish(
         RabbitMQConfig.EVENT_COMMUNITY_INVITE,
-      AGGREGATE_TYPE,
+        AGGREGATE_TYPE,
         communityId.toString(),
         RabbitMQConfig.NOTIFICATION_COMMUNITY_INVITE_ROUTING_KEY,
         payload);
@@ -63,7 +63,7 @@ public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPor
 
     outboxEventService.saveAndSchedulePublish(
         RabbitMQConfig.EVENT_COMMUNITY_JOIN_REQUEST,
-      AGGREGATE_TYPE,
+        AGGREGATE_TYPE,
         communityId.toString(),
         RabbitMQConfig.NOTIFICATION_COMMUNITY_JOIN_REQUEST_ROUTING_KEY,
         payload);
@@ -78,7 +78,7 @@ public class RabbitMQCommunityEventAdapter implements CommunityEventPublisherPor
 
     outboxEventService.saveAndSchedulePublish(
         RabbitMQConfig.EVENT_COMMUNITY_JOIN_APPROVED,
-      AGGREGATE_TYPE,
+        AGGREGATE_TYPE,
         communityId.toString(),
         RabbitMQConfig.NOTIFICATION_COMMUNITY_JOIN_APPROVED_ROUTING_KEY,
         payload);

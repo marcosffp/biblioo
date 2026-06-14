@@ -20,15 +20,16 @@ class BookPortAdapter implements AssistantBookPort {
     try {
       return bookUseCase.search(query).stream()
           .limit(limit)
-          .map(b -> {
-            List<String> authors;
-            try {
-              authors = List.copyOf(b.getAuthors());
-            } catch (Exception e) {
-              authors = List.of();
-            }
-            return new BookResult(b.getId(), b.getTitle(), authors, b.getAverageRating());
-          })
+          .map(
+              b -> {
+                List<String> authors;
+                try {
+                  authors = List.copyOf(b.getAuthors());
+                } catch (Exception e) {
+                  authors = List.of();
+                }
+                return new BookResult(b.getId(), b.getTitle(), authors, b.getAverageRating());
+              })
           .toList();
     } catch (Exception e) {
       log.warn("Erro na busca de livros: {}", e.getMessage());
@@ -41,15 +42,16 @@ class BookPortAdapter implements AssistantBookPort {
     if (ids == null || ids.isEmpty()) return List.of();
     try {
       return bookUseCase.getByIds(ids).stream()
-          .map(b -> {
-            List<String> authors;
-            try {
-              authors = List.copyOf(b.getAuthors());
-            } catch (Exception e) {
-              authors = List.of();
-            }
-            return new BookResult(b.getId(), b.getTitle(), authors, b.getAverageRating());
-          })
+          .map(
+              b -> {
+                List<String> authors;
+                try {
+                  authors = List.copyOf(b.getAuthors());
+                } catch (Exception e) {
+                  authors = List.of();
+                }
+                return new BookResult(b.getId(), b.getTitle(), authors, b.getAverageRating());
+              })
           .toList();
     } catch (Exception e) {
       log.warn("Erro ao buscar livros por ids: {}", e.getMessage());

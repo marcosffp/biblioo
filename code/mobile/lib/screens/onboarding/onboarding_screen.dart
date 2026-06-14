@@ -94,9 +94,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _skip() {
-    final userId = _currentUserId();
-    if (userId == null) return;
-    context.read<PreferencesBloc>().add(PreferencesSkipped(userId));
+    context.read<PreferencesBloc>().add(PreferencesSkipped());
   }
 
   @override

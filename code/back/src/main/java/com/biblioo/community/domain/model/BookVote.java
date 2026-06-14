@@ -9,7 +9,9 @@ import lombok.*;
     name = "community_votes",
     indexes = {@Index(name = "idx_cvote_option", columnList = "option_id")},
     uniqueConstraints = {
-      @UniqueConstraint(name = "uk_cv_user_voting", columnNames = {"voting_id", "user_id"})
+      @UniqueConstraint(
+          name = "uk_cv_user_voting",
+          columnNames = {"voting_id", "user_id"})
     })
 @Getter
 @Setter

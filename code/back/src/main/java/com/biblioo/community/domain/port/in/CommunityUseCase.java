@@ -3,7 +3,6 @@ package com.biblioo.community.domain.port.in;
 import com.biblioo.community.domain.model.*;
 import com.biblioo.community.domain.model.enumeration.CommunityRole;
 import com.biblioo.community.domain.model.enumeration.CommunityType;
-
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,13 +42,11 @@ public interface CommunityUseCase {
 
   Optional<CommunityRole> getMemberRole(Long communityId, Long userId);
 
-
   String generateInviteLink(Long actorId, Long communityId);
 
   void revokeInviteLink(Long actorId, Long communityId);
 
   void joinByInviteLink(Long userId, String token);
-
 
   CommunityInvite inviteUser(Long inviterId, Long communityId, Long inviteeId);
 
@@ -58,7 +55,6 @@ public interface CommunityUseCase {
   void declineInvite(Long userId, Long inviteId);
 
   Page<CommunityInvite> getPendingInvites(Long userId, Pageable pageable);
-
 
   CommunityJoinRequest requestToJoin(Long userId, Long communityId);
 

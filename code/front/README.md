@@ -30,6 +30,7 @@
 - [Utilitários e biblioteca](#-utilitários-e-biblioteca)
 - [WebSocket e tempo real](#-websocket-e-tempo-real)
 - [Variáveis de ambiente](#-variáveis-de-ambiente)
+- [Deploy](#-deploy)
 - [Instalação e execução](#-instalação-e-execução)
 - [Testes](#-testes)
 - [Padrão de código](#-padrão-de-código)
@@ -441,6 +442,21 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=seu_client_id_google
 ```
 
 > `NEXT_PUBLIC_` expõe a variável ao bundle do cliente. Nunca colocar secrets com esse prefixo.
+
+---
+
+## ☁️ Deploy
+
+O frontend está implantado na **Vercel**, com integração contínua via GitHub: cada push na branch `main` aciona um novo deploy automaticamente.
+
+🔗 **URL de produção:** [biblioo-rust.vercel.app](https://biblioo-rust.vercel.app)
+
+| Variável | Valor configurado na Vercel |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend de **Produção** (`biblioo-producao-595140312227.us-central1.run.app`) |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Mesmo Client ID do Google OAuth configurado no backend |
+
+> As variáveis de ambiente são definidas em **Project Settings → Environment Variables** no painel da Vercel, seguindo o mesmo formato do `.env.local` local.
 
 ---
 

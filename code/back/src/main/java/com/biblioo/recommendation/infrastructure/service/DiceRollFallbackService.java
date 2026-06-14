@@ -28,7 +28,6 @@ public class DiceRollFallbackService {
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info("[DiceRoll] Fallback global: {} livros disponíveis", rows.size());
     return rows.stream().map(r -> ((Number) r).longValue()).toList();
   }
 }

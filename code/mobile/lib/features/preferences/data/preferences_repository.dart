@@ -8,7 +8,7 @@ class PreferencesRepository {
 
   const PreferencesRepository(this._remote, this._local);
 
-  bool isOnboardingDone(int userId) => _local.isOnboardingDone(userId);
+  bool isOnboardingDone() => _local.isOnboardingDone();
 
   Future<List<Genre>> getGenres() async {
     final models = await _remote.getGenres();
@@ -23,7 +23,7 @@ class PreferencesRepository {
     if (genres.isNotEmpty || bookIds.isNotEmpty) {
       await _remote.savePreferences(genres, bookIds);
     }
-    await _local.markOnboardingDone(userId);
+    await _local.markOnboardingDone();
   }
 
   Future<void> skipOnboarding(int userId) => _local.markOnboardingDone(userId);

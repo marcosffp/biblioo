@@ -15,7 +15,6 @@ public class GoogleUserFactory {
 
   private final UserRepository userRepo;
 
-
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public User findOrCreate(GoogleUserInfo googleUser, String username) {
     return userRepo

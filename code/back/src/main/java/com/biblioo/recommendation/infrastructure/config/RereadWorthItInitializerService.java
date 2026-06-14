@@ -19,25 +19,19 @@ public class RereadWorthItInitializerService {
   private final RereadWorthItComputeService computeService;
 
   /**
-   * CT-11 — Pré-computa o trilho RereadWorthIt para todos os usuários que ainda não têm
-   * resultado salvo. Roda assincronamente após o contexto estar pronto para não atrasar o startup.
-   * É idempotente: ignora usuários que já têm resultado.
+   * CT-11 — Pré-computa o trilho RereadWorthIt para todos os usuários que ainda não têm resultado
+   * salvo. Roda assincronamente após o contexto estar pronto para não atrasar o startup. É
+   * idempotente: ignora usuários que já têm resultado.
    */
   @EventListener(ApplicationReadyEvent.class)
   @Async
   public void preComputeForExistingUsers() {
-    log.info("[RWI-Init] Iniciando pré-computação para usuários sem resultado");
 
     List<Long> userIds = computeService.findUsersNeedingInitialization();
 
     if (userIds.isEmpty()) {
-      log.info("[RWI-Init] Nenhum usuário precisando de inicialização");
       return;
     }
-
-    log.info(
-        "[RWI-Init] {} usuários sem resultado REREAD_WORTH_IT — iniciando pré-computação",
-        userIds.size());
 
     int ok = 0;
     int fail = 0;
@@ -50,7 +44,5 @@ public class RereadWorthItInitializerService {
         fail++;
       }
     }
-
-    log.info("[RWI-Init] Pré-computação concluída: ok={} falhas={}", ok, fail);
   }
 }

@@ -34,11 +34,13 @@ class CommunityPortAdapter implements AssistantCommunityPort {
     } catch (IllegalArgumentException e) {
       communityType = CommunityType.PUBLIC;
     }
-    Community community = communityUseCase.createCommunity(userId, name, description, communityType, bookId);
+    Community community =
+        communityUseCase.createCommunity(userId, name, description, communityType, bookId);
     return toResult(community);
   }
 
   private CommunityResult toResult(Community c) {
-    return new CommunityResult(c.getId(), c.getName(), c.getDescription(), c.getType().name(), c.getMemberCount());
+    return new CommunityResult(
+        c.getId(), c.getName(), c.getDescription(), c.getType().name(), c.getMemberCount());
   }
 }

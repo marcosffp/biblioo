@@ -38,7 +38,6 @@ public class FavoriteGenreNowService {
 
   @CacheEvict(value = "rec-fgn", key = "#userId")
   public void compute(Long userId) {
-    log.info("[FGN] Computando trilho FavoriteGenreNow para userId={}", userId);
 
     List<Object[]> genreRows = computeService.computeTopGenres(userId, topGenresCount);
 
@@ -49,25 +48,23 @@ public class FavoriteGenreNowService {
       // Cold-start: usa gêneros das preferências do usuário
       Optional<UserPreference> pref = userPreferenceRepository.findByUserId(userId);
       if (pref.isEmpty() || pref.get().getGenres().isEmpty()) {
-        log.info("[FGN] Sem histórico nem preferências de gênero para userId={}", userId);
         return;
       }
       List<String> preferredGenres = pref.get().getGenres();
       List<Long> resolvedIds = computeService.resolveGenreNamesToIds(preferredGenres);
       if (resolvedIds.isEmpty()) {
-        log.info("[FGN] Gêneros preferidos não mapeados para categoria userId={}", userId);
         return;
       }
       categoryIds = resolvedIds;
       genreNames = preferredGenres;
-      log.info("[FGN] Cold-start via preferências userId={}: gêneros={}", userId, genreNames);
     } else {
       categoryIds = genreRows.stream().map(r -> ((Number) r[0]).longValue()).toList();
       genreNames = genreRows.stream().map(r -> (String) r[1]).toList();
     }
 
     // Estágio 1 — livros com reviews suficientes (dado confiável)
-    List<BookScore> primary = computeService.computeBooks(userId, categoryIds, candidateLimit, minReviews);
+    List<BookScore> primary =
+        computeService.computeBooks(userId, categoryIds, candidateLimit, minReviews);
 
     List<BookScore> books;
     if (primary.size() >= candidateLimit) {
@@ -81,21 +78,14 @@ public class FavoriteGenreNowService {
           computeService.computeBooksByPopularity(userId, categoryIds, remaining, alreadyFound);
 
       if (primary.isEmpty() && fallback.isEmpty()) {
-        log.info("[FGN] Nenhum candidato nos gêneros para userId={}, mantendo resultado anterior", userId);
         return;
       }
 
       books = new ArrayList<>(primary);
       books.addAll(fallback);
-
-      log.info("[FGN] Resultado combinado: {} rated + {} popular para userId={}",
-          primary.size(), fallback.size(), userId);
     }
 
     resultRepository.upsertWithMetadata(userId, TRAIL_TYPE, books, genreNames);
-
-    log.info("[FGN] {} recomendações persistidas para userId={} gêneros={}",
-        books.size(), userId, genreNames);
   }
 
   @Cacheable(value = "rec-fgn", key = "#userId")

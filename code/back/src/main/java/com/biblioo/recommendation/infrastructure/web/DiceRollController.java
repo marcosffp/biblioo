@@ -1,5 +1,12 @@
 package com.biblioo.recommendation.infrastructure.web;
 
+import com.biblioo.books.domain.model.Book;
+import com.biblioo.books.domain.port.in.BookUseCase;
+import com.biblioo.recommendation.domain.port.in.DiceRollUseCase;
+import com.biblioo.recommendation.infrastructure.dto.DiceRollResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -7,24 +14,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.biblioo.books.domain.model.Book;
-import com.biblioo.books.domain.port.in.BookUseCase;
-import com.biblioo.recommendation.domain.port.in.DiceRollUseCase;
-import com.biblioo.recommendation.infrastructure.dto.DiceRollResponse;
-
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
-
 @RestController
 @RequestMapping("/roll-dice")
 @RequiredArgsConstructor
 @Tag(name = "Dice Roll", description = "Jogar o Dado - Recomendação Aleatória")
 public class DiceRollController {
-  
+
   private final DiceRollUseCase diceRollUseCase;
   private final BookUseCase bookUseCase;
-
 
   @GetMapping()
   @Operation(
@@ -54,6 +51,4 @@ public class DiceRollController {
             .coverUrl(book.getCoverUrl())
             .build());
   }
-
 }
-

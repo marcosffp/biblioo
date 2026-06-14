@@ -18,7 +18,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "opensearch.cleanup.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+    name = "opensearch.cleanup.enabled",
+    havingValue = "true",
+    matchIfMissing = true)
 public class OpenSearchIndexCleanupService {
 
   private static final String BOOKS_INDEX = "books";
@@ -40,13 +43,8 @@ public class OpenSearchIndexCleanupService {
   public void logIndexStats() {
     try {
       var stats = client.indices().stats(s -> s.index(List.of(BOOKS_INDEX, USERS_INDEX)));
-      stats.indices().forEach((index, indexStats) -> {
-        long docs = indexStats.total().docs().count();
-        long bytes = indexStats.total().store().sizeInBytes();
-        log.info("OpenSearch [{}]: {} docs, {} KB", index, docs, bytes / 1024);
-      });
+      stats.indices().forEach((index, indexStats) -> {});
     } catch (Exception e) {
-      log.debug("OpenSearch stats indisponível: {}", e.getMessage());
     }
   }
 
@@ -56,12 +54,11 @@ public class OpenSearchIndexCleanupService {
       List<String> orphans = collectOrphans(BOOKS_INDEX, mysqlIds);
       if (!orphans.isEmpty()) {
         bulkDelete(BOOKS_INDEX, orphans);
-        log.info("OpenSearch cleanup [books]: {} documentos órfãos removidos", orphans.size());
-      } else {
-        log.debug("OpenSearch cleanup [books]: nenhum documento órfão encontrado");
       }
     } catch (Exception e) {
-      log.warn("Falha no cleanup do índice books. Tentará novamente no próximo ciclo. Causa: {}", e.getMessage());
+      log.warn(
+          "Falha no cleanup do índice books. Tentará novamente no próximo ciclo. Causa: {}",
+          e.getMessage());
     }
   }
 
@@ -71,12 +68,11 @@ public class OpenSearchIndexCleanupService {
       List<String> orphans = collectOrphans(USERS_INDEX, mysqlIds);
       if (!orphans.isEmpty()) {
         bulkDelete(USERS_INDEX, orphans);
-        log.info("OpenSearch cleanup [users]: {} documentos órfãos removidos", orphans.size());
-      } else {
-        log.debug("OpenSearch cleanup [users]: nenhum documento órfão encontrado");
       }
     } catch (Exception e) {
-      log.warn("Falha no cleanup do índice users. Tentará novamente no próximo ciclo. Causa: {}", e.getMessage());
+      log.warn(
+          "Falha no cleanup do índice users. Tentará novamente no próximo ciclo. Causa: {}",
+          e.getMessage());
     }
   }
 
@@ -85,13 +81,15 @@ public class OpenSearchIndexCleanupService {
     String scrollId = null;
 
     try {
-      var response = client.search(
-          s -> s.index(indexName)
-                .source(src -> src.fetch(false))
-                .size(SCROLL_SIZE)
-                .scroll(t -> t.time("2m"))
-                .query(q -> q.matchAll(m -> m)),
-          Void.class);
+      var response =
+          client.search(
+              s ->
+                  s.index(indexName)
+                      .source(src -> src.fetch(false))
+                      .size(SCROLL_SIZE)
+                      .scroll(t -> t.time("2m"))
+                      .query(q -> q.matchAll(m -> m)),
+              Void.class);
 
       scrollId = response.scrollId();
       var hits = response.hits().hits();
@@ -108,16 +106,17 @@ public class OpenSearchIndexCleanupService {
         }
 
         String sid = scrollId;
-        response = client.scroll(
-            sr -> sr.scrollId(sid).scroll(t -> t.time("2m")),
-            Void.class);
+        response = client.scroll(sr -> sr.scrollId(sid).scroll(t -> t.time("2m")), Void.class);
         scrollId = response.scrollId();
         hits = response.hits().hits();
       }
     } finally {
       if (scrollId != null) {
         String sid = scrollId;
-        try { client.clearScroll(cs -> cs.scrollId(sid)); } catch (Exception ignored) {}
+        try {
+          client.clearScroll(cs -> cs.scrollId(sid));
+        } catch (Exception ignored) {
+        }
       }
     }
 
@@ -125,9 +124,10 @@ public class OpenSearchIndexCleanupService {
   }
 
   private void bulkDelete(String indexName, List<String> ids) throws IOException {
-    var ops = ids.stream()
-        .map(id -> BulkOperation.of(op -> op.delete(d -> d.index(indexName).id(id))))
-        .toList();
+    var ops =
+        ids.stream()
+            .map(id -> BulkOperation.of(op -> op.delete(d -> d.index(indexName).id(id))))
+            .toList();
     client.bulk(b -> b.operations(ops));
   }
 

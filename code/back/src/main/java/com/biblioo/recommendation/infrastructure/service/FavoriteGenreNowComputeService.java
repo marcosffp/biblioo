@@ -39,9 +39,7 @@ public class FavoriteGenreNowComputeService {
                 .createNativeQuery("SELECT id FROM categories WHERE name IN (:names)")
                 .setParameter("names", genreNames)
                 .getResultList())
-        .stream()
-        .map(r -> ((Number) r).longValue())
-        .toList();
+        .stream().map(r -> ((Number) r).longValue()).toList();
   }
 
   @SuppressWarnings("unchecked")
@@ -136,15 +134,11 @@ public class FavoriteGenreNowComputeService {
             .setParameter("candidateLimit", candidateLimit)
             .getResultList();
 
-    log.info(
-        "[FGN-Compute] primário: {} livros (rating_count>={}) para userId={} categorias={}",
-        rows.size(),
-        minReviews,
-        userId,
-        categoryIds);
-
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_genre"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_genre"))
         .toList();
   }
 
@@ -196,14 +190,13 @@ public class FavoriteGenreNowComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info(
-        "[FGN-Compute] fallback popularidade: {} livros para userId={} categorias={}",
-        rows.size(),
-        userId,
-        categoryIds);
-
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_genre_popular"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(),
+                    ((Number) r[1]).doubleValue(),
+                    "sql_genre_popular"))
         .toList();
   }
 }

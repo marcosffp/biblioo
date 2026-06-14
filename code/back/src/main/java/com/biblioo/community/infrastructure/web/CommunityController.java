@@ -19,12 +19,12 @@ import com.biblioo.community.infrastructure.dto.mapper.CommunityMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.springdoc.core.annotations.ParameterObject;
-import java.util.List;
-import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -43,7 +43,6 @@ public class CommunityController {
   private final CommunityUseCase communityUseCase;
   private final CommunityMapper communityMapper;
   private final CommunityUserLookupPort userLookup;
-
 
   @PostMapping
   @Operation(summary = "Criar uma comunidade")
@@ -94,7 +93,6 @@ public class CommunityController {
     return ResponseEntity.noContent().build();
   }
 
-
   @GetMapping
   @Operation(summary = "Listar/buscar comunidades")
   public ResponseEntity<Page<CommunityResponse>> list(
@@ -120,8 +118,7 @@ public class CommunityController {
   @GetMapping("/user/{userId}")
   @Operation(summary = "Comunidades de um usuário")
   public ResponseEntity<Page<CommunityResponse>> byUser(
-      @PathVariable Long userId,
-      @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+      @PathVariable Long userId, @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
     Page<CommunityResponse> page =
         communityUseCase.getUserCommunities(userId, pageable).map(communityMapper::toResponse);
     return ResponseEntity.ok(page);
@@ -135,7 +132,6 @@ public class CommunityController {
         communityUseCase.getCommunitiesByBook(bookId, pageable).map(communityMapper::toResponse);
     return ResponseEntity.ok(page);
   }
-
 
   @PostMapping("/{id}/join")
   @Operation(summary = "Entrar em uma comunidade pública")
@@ -165,18 +161,19 @@ public class CommunityController {
     List<Long> userIds = members.stream().map(CommunityMember::getUserId).toList();
     Map<Long, CommunityUserSummary> usersById = userLookup.getByIds(userIds);
 
-    Page<CommunityMemberResponse> page = members.map(member -> {
-      CommunityUserSummary user = usersById.get(member.getUserId());
-      return new CommunityMemberResponse(
-          member.getUserId(),
-          user != null ? user.username() : null,
-          user != null ? user.avatarUrl() : null,
-          member.getRole(),
-          member.getJoinedAt());
-    });
+    Page<CommunityMemberResponse> page =
+        members.map(
+            member -> {
+              CommunityUserSummary user = usersById.get(member.getUserId());
+              return new CommunityMemberResponse(
+                  member.getUserId(),
+                  user != null ? user.username() : null,
+                  user != null ? user.avatarUrl() : null,
+                  member.getRole(),
+                  member.getJoinedAt());
+            });
     return ResponseEntity.ok(page);
   }
-
 
   @PutMapping("/{id}/members/{userId}/role")
   @Operation(summary = "Alterar papel de um membro")
@@ -209,7 +206,6 @@ public class CommunityController {
     return ResponseEntity.noContent().build();
   }
 
-
   @PostMapping("/{id}/invite-link")
   @Operation(summary = "Gerar ou regenerar link de convite")
   public ResponseEntity<java.util.Map<String, String>> generateInviteLink(
@@ -233,7 +229,6 @@ public class CommunityController {
     communityUseCase.joinByInviteLink(currentUserId(principal), token);
     return ResponseEntity.noContent().build();
   }
-
 
   @PostMapping("/{id}/invites")
   @Operation(summary = "Convidar um usuário para a comunidade")
@@ -286,7 +281,6 @@ public class CommunityController {
     return ResponseEntity.ok(page);
   }
 
-
   @PostMapping("/{id}/join-requests")
   @Operation(summary = "Solicitar entrada em comunidade privada")
   public ResponseEntity<Void> requestToJoin(
@@ -334,7 +328,6 @@ public class CommunityController {
     communityUseCase.rejectJoinRequest(currentUserId(principal), requestId);
     return ResponseEntity.noContent().build();
   }
-
 
   private Long currentUserId(UserDetails principal) {
     return Long.parseLong(principal.getUsername());

@@ -1,9 +1,8 @@
 package com.biblioo.community.domain.model;
 
+import com.biblioo.community.domain.model.enumeration.InviteStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-
-import com.biblioo.community.domain.model.enumeration.InviteStatus;
 import lombok.*;
 
 @Entity

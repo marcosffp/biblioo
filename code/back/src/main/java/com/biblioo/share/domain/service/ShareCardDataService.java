@@ -98,8 +98,7 @@ public class ShareCardDataService {
           coverCandidates.stream()
               .map(
                   i ->
-                      executor.<BufferedImage>submit(
-                          () -> fetchCover(bookInfos.get(i).coverUrl())))
+                      executor.<BufferedImage>submit(() -> fetchCover(bookInfos.get(i).coverUrl())))
               .toList();
 
       List<BufferedImage> covers =
@@ -167,7 +166,6 @@ public class ShareCardDataService {
     }
   }
 
-
   private List<BookReadingRecord> selectDisplayBooks(
       List<BookReadingRecord> allHistory, List<ReviewRecord> reviews) {
     var historyByBook =
@@ -216,7 +214,6 @@ public class ShareCardDataService {
 
     return result;
   }
-
 
   private List<Map<String, Object>> getThemesForCard(
       LiteraryDna dna, List<BookReadingRecord> allHistory, List<ReviewRecord> reviews) {

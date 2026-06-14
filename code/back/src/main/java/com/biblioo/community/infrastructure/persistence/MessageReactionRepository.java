@@ -2,7 +2,6 @@ package com.biblioo.community.infrastructure.persistence;
 
 import com.biblioo.community.domain.model.MessageReaction;
 import com.biblioo.community.domain.model.enumeration.ReactionType;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

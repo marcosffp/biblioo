@@ -50,8 +50,8 @@ public class RereadWorthItService {
   private double rereadIntervalFactor;
 
   /**
-   * Computa e persiste recomendações de releitura para o usuário.
-   * Chamado pelo consumer a cada livro concluído e pelo inicializador no startup/cadastro.
+   * Computa e persiste recomendações de releitura para o usuário. Chamado pelo consumer a cada
+   * livro concluído e pelo inicializador no startup/cadastro.
    *
    * <p>O reread_count é mantido no metadata da linha em recommendation_results porque a tabela
    * shelf_items tem constraint única (shelf_id, book_id) — não é possível contar conclusões
@@ -60,7 +60,6 @@ public class RereadWorthItService {
    */
   @CacheEvict(value = "rec-rwi", key = "#userId")
   public void compute(Long userId) {
-    log.info("[RWI] Computando trilho RereadWorthIt para userId={}", userId);
 
     Optional<RecommendationResult> previous = resultRepository.findResultEntity(userId, TRAIL_TYPE);
     Map<Long, Integer> rereadCounts = readRereadCounts(previous);
@@ -72,7 +71,6 @@ public class RereadWorthItService {
       for (ReadingData r : readings) {
         if (r.finishedAt().isAfter(lastComputedDate)) {
           rereadCounts.merge(r.bookId(), 1, Integer::sum);
-          log.info("[RWI] Releitura detectada bookId={} userId={} count={}", r.bookId(), userId, rereadCounts.get(r.bookId()));
         }
       }
     }
@@ -80,18 +78,17 @@ public class RereadWorthItService {
     List<BookScore> candidates = computeScores(readings, rereadCounts);
 
     if (candidates.isEmpty()) {
-      log.info("[RWI] Nenhum candidato maduro para userId={}, aplicando fallback global", userId);
       candidates = computeService.computeFallback(userId, candidateLimit);
     }
 
-    resultRepository.upsertWithRawMetadata(userId, TRAIL_TYPE, candidates, serializeRereadCounts(rereadCounts));
-
-    log.info("[RWI] {} recomendações persistidas para userId={}", candidates.size(), userId);
+    resultRepository.upsertWithRawMetadata(
+        userId, TRAIL_TYPE, candidates, serializeRereadCounts(rereadCounts));
   }
 
   /**
    * Retorna resultado pré-computado. Quando nenhum resultado existe (usuário nunca computado),
-   * calcula e persiste o fallback global imediatamente para que chamadas subsequentes sejam rápidas.
+   * calcula e persiste o fallback global imediatamente para que chamadas subsequentes sejam
+   * rápidas.
    */
   @Cacheable(value = "rec-rwi", key = "#userId")
   public RereadWorthItResult get(Long userId) {
@@ -102,7 +99,6 @@ public class RereadWorthItService {
       return new RereadWorthItResult(books);
     }
 
-    log.info("[RWI] Sem resultado pré-computado para userId={}, calculando e persistindo fallback", userId);
     List<BookScore> fallback = computeService.computeFallback(userId, candidateLimit);
     fallbackWriter.persistRereadWorthIt(userId, fallback);
 
@@ -111,7 +107,8 @@ public class RereadWorthItService {
 
   // --- privados ---
 
-  private List<BookScore> computeScores(List<ReadingData> readings, Map<Long, Integer> rereadCounts) {
+  private List<BookScore> computeScores(
+      List<ReadingData> readings, Map<Long, Integer> rereadCounts) {
     return readings.stream()
         .map(r -> toBookScore(r, rereadCounts.getOrDefault(r.bookId(), 0)))
         .filter(bs -> bs.getScore() > 0)
@@ -121,8 +118,8 @@ public class RereadWorthItService {
   }
 
   private BookScore toBookScore(ReadingData r, int rereadCount) {
-    double intervalIdeal = r.userRating() * intervalBaseMultiplierDays
-        * Math.pow(rereadIntervalFactor, rereadCount);
+    double intervalIdeal =
+        r.userRating() * intervalBaseMultiplierDays * Math.pow(rereadIntervalFactor, rereadCount);
 
     if (r.daysSinceRead() < intervalIdeal) {
       return new BookScore(r.bookId(), 0.0, "within_interval");
@@ -139,12 +136,13 @@ public class RereadWorthItService {
       return new HashMap<>();
     }
     try {
-      Map<String, Object> meta = objectMapper.readValue(previous.get().getMetadata(),
-          new TypeReference<Map<String, Object>>() {});
+      Map<String, Object> meta =
+          objectMapper.readValue(
+              previous.get().getMetadata(), new TypeReference<Map<String, Object>>() {});
       Object raw = meta.get(METADATA_KEY);
       if (raw == null) return new HashMap<>();
-      Map<String, Integer> counts = objectMapper.convertValue(raw,
-          new TypeReference<Map<String, Integer>>() {});
+      Map<String, Integer> counts =
+          objectMapper.convertValue(raw, new TypeReference<Map<String, Integer>>() {});
       Map<Long, Integer> result = new HashMap<>();
       counts.forEach((k, v) -> result.put(Long.parseLong(k), v));
       return result;

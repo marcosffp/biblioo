@@ -84,7 +84,8 @@ public class CollectionController {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(col, previews, collectionStatsUseCase.computeStats(col)));
+    return ResponseEntity.ok(
+        mapper.toResponse(col, previews, collectionStatsUseCase.computeStats(col)));
   }
 
   @GetMapping("/user/{userId}")
@@ -119,7 +120,8 @@ public class CollectionController {
     Collection col = collectionUseCase.getCollection(userId, collectionId);
     List<ShelfPreview> previews = buildShelfPreviews(col.getShelves(), userId);
 
-    return ResponseEntity.ok(mapper.toResponse(col, previews, collectionStatsUseCase.computeStats(col)));
+    return ResponseEntity.ok(
+        mapper.toResponse(col, previews, collectionStatsUseCase.computeStats(col)));
   }
 
   @PostMapping
@@ -211,8 +213,7 @@ public class CollectionController {
       @Parameter(description = "ID da coleção", example = "1") @PathVariable Long collectionId) {
 
     Long userId = currentUserId(principal);
-       return ResponseEntity.ok(
-        collectionStatsUseCase.computeStatistics(userId, collectionId));
+    return ResponseEntity.ok(collectionStatsUseCase.computeStatistics(userId, collectionId));
   }
 
   @DeleteMapping("/{collectionId}")

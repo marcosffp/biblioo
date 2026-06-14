@@ -15,7 +15,6 @@ class VotingScheduler {
 
   @Scheduled(fixedDelay = 60_000)
   public void closeExpiredVotings() {
-    log.debug("Verificando votações expiradas...");
     bookVotingUseCase.closeExpiredVotings();
   }
 }

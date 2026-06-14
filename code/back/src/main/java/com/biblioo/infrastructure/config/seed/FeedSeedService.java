@@ -29,7 +29,6 @@ public class FeedSeedService {
   private final ShelfUseCase shelfUseCase;
   private final LikeRepository likeRepository;
 
-
   private static final int[] RATING_PATTERN = {
     5, 4, 5, 4, 3, 5, 4, 5, 3, 4, 5, 4, 5, 4, 3, 5, 4, 5, 4, 5, 5, 4, 3, 5, 4, 5, 4, 3, 5, 4
   };
@@ -107,21 +106,17 @@ public class FeedSeedService {
     {"booktube", "lendo", "biblioteca"}
   };
 
-
   public void seedFeed(List<User> users, List<Long> bookIds) {
     if (!users.isEmpty()) {
       try {
         if (reviewUseCase
             .getRecentReviewsByUserId(users.get(0).getId(), PageRequest.of(0, 1))
             .hasContent()) {
-          log.info("[Seed-Feed] Feed já populado. Ignorando.");
           return;
         }
       } catch (Exception ignored) {
       }
     }
-
-    log.info("[Seed-Feed] Iniciando seed de reviews, posts e interações...");
 
     createMissingReviews(users);
     createMissingPosts(users, bookIds);
@@ -135,12 +130,7 @@ public class FeedSeedService {
 
     addMissingReplies(users, topComments);
     addMissingLikes(users, allReviews, allPosts, topComments);
-
-    log.info(
-        "[Seed-Feed] Seed concluído. {} reviews, {} posts, {} comentários.",
-        allReviews.size(), allPosts.size(), topComments.size());
   }
-
 
   private void createMissingReviews(List<User> users) {
     for (int ui = 0; ui < users.size(); ui++) {
@@ -157,9 +147,12 @@ public class FeedSeedService {
         try {
           reviewUseCase.createReview(user.getId(), bookId, rating, text);
           created++;
-          log.debug("[Seed-Feed] Review criada (userId={}, bookId={}, rating={}).", user.getId(), bookId, rating);
         } catch (Exception e) {
-          log.debug("[Seed-Feed] Review ignorada (userId={}, bookId={}): {}", user.getId(), bookId, e.getMessage());
+          log.warn(
+              "[Seed-Feed] Review ignorada (userId={}, bookId={}): {}",
+              user.getId(),
+              bookId,
+              e.getMessage());
         }
       }
     }
@@ -176,7 +169,8 @@ public class FeedSeedService {
             .forEach(ids::add);
       }
     } catch (Exception e) {
-      log.debug("[Seed-Feed] Falha ao coletar livros concluídos (userId={}): {}", userId, e.getMessage());
+      log.warn(
+          "[Seed-Feed] Falha ao coletar livros concluídos (userId={}): {}", userId, e.getMessage());
     }
     return ids;
   }
@@ -190,12 +184,12 @@ public class FeedSeedService {
             .getContent()
             .forEach(reviews::add);
       } catch (Exception e) {
-        log.debug("[Seed-Feed] Falha ao coletar reviews (userId={}): {}", user.getId(), e.getMessage());
+        log.warn(
+            "[Seed-Feed] Falha ao coletar reviews (userId={}): {}", user.getId(), e.getMessage());
       }
     }
     return reviews;
   }
-
 
   private void createMissingPosts(List<User> users, List<Long> bookIds) {
     if (bookIds.isEmpty()) return;
@@ -215,13 +209,13 @@ public class FeedSeedService {
           List<String> tags = List.of(TAG_SETS[(ui + pi) % TAG_SETS.length]);
           try {
             feedPostUseCase.createPost(user.getId(), bookId, text, List.of(), null, tags, false);
-            log.debug("[Seed-Feed] Post criado (userId={}).", user.getId());
           } catch (Exception e) {
-            log.debug("[Seed-Feed] Post ignorado (userId={}): {}", user.getId(), e.getMessage());
+            log.warn("[Seed-Feed] Post ignorado (userId={}): {}", user.getId(), e.getMessage());
           }
         }
       } catch (Exception e) {
-        log.debug("[Seed-Feed] Falha ao verificar posts (userId={}): {}", user.getId(), e.getMessage());
+        log.warn(
+            "[Seed-Feed] Falha ao verificar posts (userId={}): {}", user.getId(), e.getMessage());
       }
     }
   }
@@ -235,12 +229,12 @@ public class FeedSeedService {
             .getContent()
             .forEach(posts::add);
       } catch (Exception e) {
-        log.debug("[Seed-Feed] Falha ao coletar posts (userId={}): {}", user.getId(), e.getMessage());
+        log.warn(
+            "[Seed-Feed] Falha ao coletar posts (userId={}): {}", user.getId(), e.getMessage());
       }
     }
     return posts;
   }
-
 
   private List<Comment> addMissingCommentsOnReviews(List<User> users, List<Review> reviews) {
     List<Comment> created = new ArrayList<>();
@@ -264,8 +258,7 @@ public class FeedSeedService {
     return created;
   }
 
-  private List<Comment> createComments(
-      List<User> users, Long ownerId, Long parentId, int seed) {
+  private List<Comment> createComments(List<User> users, Long ownerId, Long parentId, int seed) {
     List<Comment> created = new ArrayList<>();
     for (int k = 0; k < 3; k++) {
       int idx = (seed * 3 + k * 7 + 5) % users.size();
@@ -279,13 +272,11 @@ public class FeedSeedService {
             commentUseCase.createComment(commenter.getId(), parentId, text, List.of(), null);
         created.add(comment);
       } catch (Exception e) {
-        log.debug(
-            "[Seed-Feed] Comentário ignorado (parentId={}): {}", parentId, e.getMessage());
+        log.warn("[Seed-Feed] Comentário ignorado (parentId={}): {}", parentId, e.getMessage());
       }
     }
     return created;
   }
-
 
   private void addMissingReplies(List<User> users, List<Comment> topComments) {
     for (int ci = 0; ci < topComments.size(); ci++) {
@@ -312,18 +303,13 @@ public class FeedSeedService {
       try {
         commentUseCase.createReply(replier.getId(), comment.getId(), text);
       } catch (Exception e) {
-        log.debug(
-            "[Seed-Feed] Reply ignorada (commentId={}): {}", comment.getId(), e.getMessage());
+        log.warn("[Seed-Feed] Reply ignorada (commentId={}): {}", comment.getId(), e.getMessage());
       }
     }
   }
 
-
   private void addMissingLikes(
-      List<User> users,
-      List<Review> reviews,
-      List<FeedPost> posts,
-      List<Comment> topComments) {
+      List<User> users, List<Review> reviews, List<FeedPost> posts, List<Comment> topComments) {
 
     for (int ri = 0; ri < reviews.size(); ri++) {
       Review review = reviews.get(ri);
@@ -368,9 +354,11 @@ public class FeedSeedService {
         likeAction.run();
       }
     } catch (Exception e) {
-      log.debug(
+      log.warn(
           "[Seed-Feed] Curtida ignorada (contentId={}, userId={}): {}",
-          contentId, userId, e.getMessage());
+          contentId,
+          userId,
+          e.getMessage());
     }
   }
 }

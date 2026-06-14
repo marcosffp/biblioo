@@ -12,9 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Entity
 @Table(
     name = "literary_dna",
-    indexes = {
-      @Index(name = "idx_dna_user_id", columnList = "user_id", unique = true)
-    })
+    indexes = {@Index(name = "idx_dna_user_id", columnList = "user_id", unique = true)})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -84,11 +82,10 @@ public class LiteraryDna {
   @Column(name = "calculated_at")
   private LocalDateTime calculatedAt;
 
-  @Column
-private Integer totalPagesRead;
+  @Column private Integer totalPagesRead;
 
-@Column(columnDefinition = "TEXT")
-private String pagesByYearJson;
+  @Column(columnDefinition = "TEXT")
+  private String pagesByYearJson;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)

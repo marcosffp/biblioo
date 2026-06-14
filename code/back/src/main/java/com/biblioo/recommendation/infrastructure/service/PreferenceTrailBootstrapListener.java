@@ -22,14 +22,13 @@ public class PreferenceTrailBootstrapListener {
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void onPreferencesSaved(PreferencesSavedEvent event) {
     Long userId = event.getUserId();
-    log.info("[Bootstrap] Iniciando trilhos cold-start para userId={} gêneros={} livros={}",
-        userId, event.getGenres().size(), event.getBookIds().size());
 
     if (!event.getGenres().isEmpty()) {
       try {
         favoriteGenreNowService.compute(userId);
       } catch (Exception ex) {
-        log.warn("[Bootstrap] Falha ao computar FGN cold-start userId={}: {}", userId, ex.getMessage());
+        log.warn(
+            "[Bootstrap] Falha ao computar FGN cold-start userId={}: {}", userId, ex.getMessage());
       }
     }
 
@@ -37,10 +36,9 @@ public class PreferenceTrailBootstrapListener {
       try {
         becauseYouReadService.computeFromPreference(userId, event.getBookIds().get(0));
       } catch (Exception ex) {
-        log.warn("[Bootstrap] Falha ao computar BYR cold-start userId={}: {}", userId, ex.getMessage());
+        log.warn(
+            "[Bootstrap] Falha ao computar BYR cold-start userId={}: {}", userId, ex.getMessage());
       }
     }
-
-    log.info("[Bootstrap] Trilhos cold-start concluídos para userId={}", userId);
   }
 }

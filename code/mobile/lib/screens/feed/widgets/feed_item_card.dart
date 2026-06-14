@@ -315,46 +315,36 @@ class _AuthorRow extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        GestureDetector(
-          onTap: () => context.push('/user/$author'),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: theme.colorScheme.primaryContainer,
-                backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
-                    ? NetworkImage(avatarUrl!)
-                    : null,
-                child: avatarUrl == null || avatarUrl!.isEmpty
-                    ? Text(
-                        _initials(author),
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 10),
-            ],
-          ),
-        ),
-        Expanded(
-          child: GestureDetector(
-            onTap: () => context.push('/user/$author'),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(author, style: theme.textTheme.labelLarge),
-                Text(
-                  _relativeTime(createdAt),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: theme.colorScheme.primaryContainer,
+          backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
+              ? NetworkImage(avatarUrl!)
+              : null,
+          child: avatarUrl == null || avatarUrl!.isEmpty
+              ? Text(
+                  _initials(author),
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
+                )
+              : null,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(author, style: theme.textTheme.labelLarge),
+              Text(
+                _relativeTime(createdAt),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         if (trailing != null) trailing!,

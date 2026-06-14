@@ -66,7 +66,9 @@ public class BookSeedService {
   public List<Long> fetchBooks() {
     long existingCount = bookRepository.count();
     if (existingCount >= BOOK_QUERIES.size() / 2) {
-      log.info("[Seed-Books] {} livros já no banco. Carregando IDs sem chamar API externa.", existingCount);
+      log.info(
+          "[Seed-Books] {} livros já no banco. Carregando IDs sem chamar API externa.",
+          existingCount);
       return bookRepository.findAll(PageRequest.of(0, 200)).stream()
           .map(Book::getId)
           .collect(Collectors.toList());
@@ -81,12 +83,10 @@ public class BookSeedService {
             .map(BookSearchResult::getId)
             .filter(Objects::nonNull)
             .forEach(ids::add);
-        log.debug("[Seed-Books] '{}' → {} resultado(s).", query, results.size());
       } catch (Exception e) {
         log.warn("[Seed-Books] Falha ao buscar '{}': {}", query, e.getMessage());
       }
     }
-    log.info("[Seed-Books] {} livros disponíveis.", ids.size());
     return new ArrayList<>(ids);
   }
 }

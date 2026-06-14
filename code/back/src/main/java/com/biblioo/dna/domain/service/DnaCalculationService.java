@@ -17,68 +17,68 @@ public class DnaCalculationService {
   public static final int MONTHS_FOR_RECENCY = 1;
 
   /**
-   * Maps raw Google Books category strings to a controlled Portuguese vocabulary.
-   * Order matters: specific entries (e.g. "romance") must precede broad catch-alls
-   * (e.g. "fiction") to prevent mis-classification.
+   * Maps raw Google Books category strings to a controlled Portuguese vocabulary. Order matters:
+   * specific entries (e.g. "romance") must precede broad catch-alls (e.g. "fiction") to prevent
+   * mis-classification.
    */
   private static final Map<String, String> CATEGORY_NORMALIZATION = new LinkedHashMap<>();
 
   static {
     // Romance — must appear before the generic "fiction" catch-all
-    CATEGORY_NORMALIZATION.put("romance",              "Romance");
-    CATEGORY_NORMALIZATION.put("love stor",            "Romance");
-    CATEGORY_NORMALIZATION.put("erotic",               "Romance");
-    CATEGORY_NORMALIZATION.put("chick lit",            "Romance");
+    CATEGORY_NORMALIZATION.put("romance", "Romance");
+    CATEGORY_NORMALIZATION.put("love stor", "Romance");
+    CATEGORY_NORMALIZATION.put("erotic", "Romance");
+    CATEGORY_NORMALIZATION.put("chick lit", "Romance");
     // Fantasy / Sci-Fi
-    CATEGORY_NORMALIZATION.put("fantasy",              "Fantasia");
-    CATEGORY_NORMALIZATION.put("science fiction",      "Ficção Científica");
-    CATEGORY_NORMALIZATION.put("sci-fi",               "Ficção Científica");
-    CATEGORY_NORMALIZATION.put("dystop",               "Distopia");
-    CATEGORY_NORMALIZATION.put("paranormal",           "Paranormal");
-    CATEGORY_NORMALIZATION.put("supernatural",         "Paranormal");
-    CATEGORY_NORMALIZATION.put("urban fantasy",        "Paranormal");
+    CATEGORY_NORMALIZATION.put("fantasy", "Fantasia");
+    CATEGORY_NORMALIZATION.put("science fiction", "Ficção Científica");
+    CATEGORY_NORMALIZATION.put("sci-fi", "Ficção Científica");
+    CATEGORY_NORMALIZATION.put("dystop", "Distopia");
+    CATEGORY_NORMALIZATION.put("paranormal", "Paranormal");
+    CATEGORY_NORMALIZATION.put("supernatural", "Paranormal");
+    CATEGORY_NORMALIZATION.put("urban fantasy", "Paranormal");
     // Thriller / Mystery
-    CATEGORY_NORMALIZATION.put("mystery",              "Mistério");
-    CATEGORY_NORMALIZATION.put("detective",            "Mistério");
-    CATEGORY_NORMALIZATION.put("crime",                "Mistério");
-    CATEGORY_NORMALIZATION.put("thriller",             "Suspense");
-    CATEGORY_NORMALIZATION.put("suspense",             "Suspense");
-    CATEGORY_NORMALIZATION.put("horror",               "Terror");
+    CATEGORY_NORMALIZATION.put("mystery", "Mistério");
+    CATEGORY_NORMALIZATION.put("detective", "Mistério");
+    CATEGORY_NORMALIZATION.put("crime", "Mistério");
+    CATEGORY_NORMALIZATION.put("thriller", "Suspense");
+    CATEGORY_NORMALIZATION.put("suspense", "Suspense");
+    CATEGORY_NORMALIZATION.put("horror", "Terror");
     // Other fiction
-    CATEGORY_NORMALIZATION.put("historical",           "Ficção Histórica");
-    CATEGORY_NORMALIZATION.put("adventure",            "Aventura");
-    CATEGORY_NORMALIZATION.put("young adult",          "Young Adult");
-    CATEGORY_NORMALIZATION.put("ya fiction",           "Young Adult");
-    CATEGORY_NORMALIZATION.put("juvenile",             "Infantil");
-    CATEGORY_NORMALIZATION.put("children",             "Infantil");
-    CATEGORY_NORMALIZATION.put("literary fiction",     "Literatura");
-    CATEGORY_NORMALIZATION.put("literature",           "Literatura");
-    CATEGORY_NORMALIZATION.put("contemporary",         "Ficção Contemporânea");
+    CATEGORY_NORMALIZATION.put("historical", "Ficção Histórica");
+    CATEGORY_NORMALIZATION.put("adventure", "Aventura");
+    CATEGORY_NORMALIZATION.put("young adult", "Young Adult");
+    CATEGORY_NORMALIZATION.put("ya fiction", "Young Adult");
+    CATEGORY_NORMALIZATION.put("juvenile", "Infantil");
+    CATEGORY_NORMALIZATION.put("children", "Infantil");
+    CATEGORY_NORMALIZATION.put("literary fiction", "Literatura");
+    CATEGORY_NORMALIZATION.put("literature", "Literatura");
+    CATEGORY_NORMALIZATION.put("contemporary", "Ficção Contemporânea");
     // Non-fiction
-    CATEGORY_NORMALIZATION.put("biography",            "Biografia");
-    CATEGORY_NORMALIZATION.put("autobiography",        "Biografia");
-    CATEGORY_NORMALIZATION.put("memoir",               "Biografia");
-    CATEGORY_NORMALIZATION.put("self-help",            "Autoajuda");
-    CATEGORY_NORMALIZATION.put("self help",            "Autoajuda");
+    CATEGORY_NORMALIZATION.put("biography", "Biografia");
+    CATEGORY_NORMALIZATION.put("autobiography", "Biografia");
+    CATEGORY_NORMALIZATION.put("memoir", "Biografia");
+    CATEGORY_NORMALIZATION.put("self-help", "Autoajuda");
+    CATEGORY_NORMALIZATION.put("self help", "Autoajuda");
     CATEGORY_NORMALIZATION.put("personal development", "Autoajuda");
-    CATEGORY_NORMALIZATION.put("psychology",           "Psicologia");
-    CATEGORY_NORMALIZATION.put("philosophy",           "Filosofia");
-    CATEGORY_NORMALIZATION.put("business",             "Negócios");
-    CATEGORY_NORMALIZATION.put("economics",            "Negócios");
-    CATEGORY_NORMALIZATION.put("finance",              "Negócios");
-    CATEGORY_NORMALIZATION.put("comic",                "Quadrinhos");
-    CATEGORY_NORMALIZATION.put("graphic novel",        "Quadrinhos");
-    CATEGORY_NORMALIZATION.put("manga",                "Quadrinhos");
-    CATEGORY_NORMALIZATION.put("poetry",               "Poesia");
-    CATEGORY_NORMALIZATION.put("poem",                 "Poesia");
-    CATEGORY_NORMALIZATION.put("science",              "Ciência");
-    CATEGORY_NORMALIZATION.put("history",              "História");
-    CATEGORY_NORMALIZATION.put("social science",       "Ciências Sociais");
+    CATEGORY_NORMALIZATION.put("psychology", "Psicologia");
+    CATEGORY_NORMALIZATION.put("philosophy", "Filosofia");
+    CATEGORY_NORMALIZATION.put("business", "Negócios");
+    CATEGORY_NORMALIZATION.put("economics", "Negócios");
+    CATEGORY_NORMALIZATION.put("finance", "Negócios");
+    CATEGORY_NORMALIZATION.put("comic", "Quadrinhos");
+    CATEGORY_NORMALIZATION.put("graphic novel", "Quadrinhos");
+    CATEGORY_NORMALIZATION.put("manga", "Quadrinhos");
+    CATEGORY_NORMALIZATION.put("poetry", "Poesia");
+    CATEGORY_NORMALIZATION.put("poem", "Poesia");
+    CATEGORY_NORMALIZATION.put("science", "Ciência");
+    CATEGORY_NORMALIZATION.put("history", "História");
+    CATEGORY_NORMALIZATION.put("social science", "Ciências Sociais");
     // Broad catch-alls last
-    CATEGORY_NORMALIZATION.put("nonfiction",           "Não-Ficção");
-    CATEGORY_NORMALIZATION.put("non-fiction",          "Não-Ficção");
-    CATEGORY_NORMALIZATION.put("non fiction",          "Não-Ficção");
-    CATEGORY_NORMALIZATION.put("fiction",              "Ficção");
+    CATEGORY_NORMALIZATION.put("nonfiction", "Não-Ficção");
+    CATEGORY_NORMALIZATION.put("non-fiction", "Não-Ficção");
+    CATEGORY_NORMALIZATION.put("non fiction", "Não-Ficção");
+    CATEGORY_NORMALIZATION.put("fiction", "Ficção");
   }
 
   private static String normalizeCategory(String raw) {
@@ -90,22 +90,21 @@ public class DnaCalculationService {
     return raw;
   }
 
-public record DnaResult(
-    int booksReadCount,
-    int abandonedCount,
-    double complexityScore,
-    String complexityLabel,
-    Double avgDaysPerBook,
-    double rereadRate,
-    int rereadCount,
-    List<ThemeEntryDto> centralThemes,
-    LiteraryArchetype dominantArchetype,
-    List<LiteraryArchetype> secondaryArchetypes,
-    String mostAbandonedGenre,
-    Double avgTimePerBookDays,
-    int totalPagesRead,
-    Map<Integer, Integer> pagesByYear
-) {}
+  public record DnaResult(
+      int booksReadCount,
+      int abandonedCount,
+      double complexityScore,
+      String complexityLabel,
+      Double avgDaysPerBook,
+      double rereadRate,
+      int rereadCount,
+      List<ThemeEntryDto> centralThemes,
+      LiteraryArchetype dominantArchetype,
+      List<LiteraryArchetype> secondaryArchetypes,
+      String mostAbandonedGenre,
+      Double avgTimePerBookDays,
+      int totalPagesRead,
+      Map<Integer, Integer> pagesByYear) {}
 
   public boolean hasSufficientData(List<BookReadingRecord> history) {
     long completedCount = history.stream().filter(r -> "COMPLETED".equals(r.status())).count();
@@ -126,11 +125,11 @@ public record DnaResult(
   private Map<Integer, Integer> calculatePagesByYear(List<BookReadingRecord> completed) {
     return completed.stream()
         .filter(r -> r.finishedAt() != null && r.pageCount() != null)
-        .collect(Collectors.groupingBy(
-            r -> r.finishedAt().getYear(),
-            TreeMap::new,
-            Collectors.summingInt(BookReadingRecord::pageCount)
-        ));
+        .collect(
+            Collectors.groupingBy(
+                r -> r.finishedAt().getYear(),
+                TreeMap::new,
+                Collectors.summingInt(BookReadingRecord::pageCount)));
   }
 
   public DnaResult calculate(List<BookReadingRecord> history, List<ReviewRecord> reviews) {
@@ -149,19 +148,22 @@ public record DnaResult(
     Double avgDaysPerBook = calculateAvgDaysPerBook(completed);
     int totalRereads = completed.stream().mapToInt(r -> r.rereadCount()).sum();
     double rereadRate =
-        completed.isEmpty()
-            ? 0.0
-            : Math.round(totalRereads * 100.0 / completed.size()) / 100.0;
+        completed.isEmpty() ? 0.0 : Math.round(totalRereads * 100.0 / completed.size()) / 100.0;
     List<ThemeEntryDto> centralThemes = calculateCentralThemes(completed, ratingByBook);
     String mostAbandonedGenre = calculateMostAbandonedGenre(abandoned);
     Double avgTimePerBookDays = calculateAvgTimePerBook(completed);
 
     LiteraryArchetype dominantArchetype =
-        determineArchetype(complexityScore, avgDaysPerBook, rereadRate, centralThemes, completed.size());
+        determineArchetype(
+            complexityScore, avgDaysPerBook, rereadRate, centralThemes, completed.size());
     List<LiteraryArchetype> secondaryArchetypes =
         determineSecondaryArchetypes(
-            dominantArchetype, complexityScore, avgDaysPerBook, rereadRate,
-            centralThemes, completed.size());
+            dominantArchetype,
+            complexityScore,
+            avgDaysPerBook,
+            rereadRate,
+            centralThemes,
+            completed.size());
     int totalPagesRead = calculateTotalPages(completed);
     Map<Integer, Integer> pagesByYear = calculatePagesByYear(completed);
     return new DnaResult(
@@ -306,12 +308,12 @@ public record DnaResult(
     if (dominant != LiteraryArchetype.CLASSICS_SCHOLAR && complexityScore > 60)
       candidates.add(LiteraryArchetype.CLASSICS_SCHOLAR);
     if (dominant != LiteraryArchetype.COMPULSIVE_READER
-        && avgDays != null && avgDays < 7 && totalBooks >= 5)
-      candidates.add(LiteraryArchetype.COMPULSIVE_READER);
+        && avgDays != null
+        && avgDays < 7
+        && totalBooks >= 5) candidates.add(LiteraryArchetype.COMPULSIVE_READER);
     if (dominant != LiteraryArchetype.GENRE_DEVOTEE
         && !themes.isEmpty()
-        && themes.get(0).percentage() > 35)
-      candidates.add(LiteraryArchetype.GENRE_DEVOTEE);
+        && themes.get(0).percentage() > 35) candidates.add(LiteraryArchetype.GENRE_DEVOTEE);
 
     return candidates.stream().limit(2).toList();
   }

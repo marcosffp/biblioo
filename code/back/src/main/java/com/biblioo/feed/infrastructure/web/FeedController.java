@@ -84,10 +84,7 @@ public class FeedController {
 
     // Batch: busca dados de autor para todos os itens do feed em uma única query
     List<Long> authorIds =
-        slice.items().stream()
-            .map(FeedItem::getAuthorId)
-            .distinct()
-            .collect(Collectors.toList());
+        slice.items().stream().map(FeedItem::getAuthorId).distinct().collect(Collectors.toList());
     Map<Long, User> userMap =
         authorIds.isEmpty()
             ? Map.of()
@@ -135,7 +132,9 @@ public class FeedController {
       } else if ("POST".equals(item.getContentType())) {
         FeedPost p = postMap.get(item.getContentId());
         if (p == null) continue;
-        items.add(FeedItemResponse.from(item, p, authorUsername, authorAvatarUrl, likedIds.contains(p.getId())));
+        items.add(
+            FeedItemResponse.from(
+                item, p, authorUsername, authorAvatarUrl, likedIds.contains(p.getId())));
       }
     }
 
@@ -145,8 +144,7 @@ public class FeedController {
   @GetMapping("/new-count")
   @Operation(summary = "Retorna contagem de novos itens desde o último score visto")
   public ResponseEntity<Map<String, Long>> getNewItemsCount(
-      @AuthenticationPrincipal UserDetails principal,
-      @RequestParam Long sinceScore) {
+      @AuthenticationPrincipal UserDetails principal, @RequestParam Long sinceScore) {
     long count = feedUseCase.getNewItemsCount(extractUserId(principal), sinceScore);
     return ResponseEntity.ok(Map.of("newItems", count));
   }

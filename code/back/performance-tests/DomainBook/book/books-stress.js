@@ -4,7 +4,7 @@ import { sleep, check } from 'k6';
 const CONFIG = {
   base: 'http://localhost:8080',
 
-  bookIds: Array.from({ length: 35 }, (_, i) => i + 1),  // IDs 1–35
+  bookIds: Array.from({ length: 35 }, (_, i) => i + 1),
 
   queries: [
     'Dom Casmurro',
@@ -17,16 +17,16 @@ const CONFIG = {
 
   stress: {
     stageDuration: '30s',
-    stages: [20, 50, 100, 200, 300, 400],  // VUs por estágio (rampa crescente)
+    stages: [20, 50, 100, 200, 300, 400],
   },
 
   thresholds: {
-    p95General: 1000,  // ms
-    failRate:   0.05,  // 5% — stress
+    p95General: 1000,
+    failRate:   0.05,
   },
 
   sleep: {
-    afterIteration: 0.5,  // s
+    afterIteration: 0.5,
   },
 };
 

@@ -24,9 +24,7 @@ public class TrendingController {
   @Operation(summary = "Top 10 comunidades com maior atividade recente")
   public ResponseEntity<List<TrendingCommunityResponse>> getTopCommunities() {
     List<TrendingCommunityResponse> response =
-        trendingUseCase.getTopCommunities().stream()
-            .map(TrendingCommunityResponse::from)
-            .toList();
+        trendingUseCase.getTopCommunities().stream().map(TrendingCommunityResponse::from).toList();
     return ResponseEntity.ok(response);
   }
 

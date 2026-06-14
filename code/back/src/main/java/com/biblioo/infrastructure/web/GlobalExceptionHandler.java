@@ -37,7 +37,6 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-
   @ExceptionHandler(com.biblioo.assistant.domain.exception.AssistantRateLimitException.class)
   ResponseEntity<ErrorResponse> handleAssistantRateLimit(
       com.biblioo.assistant.domain.exception.AssistantRateLimitException ex,
@@ -50,7 +49,6 @@ public class GlobalExceptionHandler {
       com.biblioo.assistant.domain.exception.AssistantException ex, HttpServletRequest request) {
     return buildError(HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
   }
-
 
   @ExceptionHandler(DnaInFormationException.class)
   ResponseEntity<ErrorResponse> handleDnaInFormation(
@@ -98,14 +96,13 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
   }
 
-
   @ExceptionHandler(UserNotFoundException.class)
   ResponseEntity<ErrorResponse> handleUserNotFound(
       UserNotFoundException ex, HttpServletRequest request) {
     return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
   }
 
-    @ExceptionHandler(EmailAlreadyExistsException.class)
+  @ExceptionHandler(EmailAlreadyExistsException.class)
   ResponseEntity<ErrorResponse> handleEmailExists(
       EmailAlreadyExistsException ex, HttpServletRequest request) {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
@@ -117,12 +114,11 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
-
   @ExceptionHandler(RegistrationConflictException.class)
-ResponseEntity<ErrorResponse> handleRegistrationConflict(
-    RegistrationConflictException ex, HttpServletRequest request) {
-  return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
-}
+  ResponseEntity<ErrorResponse> handleRegistrationConflict(
+      RegistrationConflictException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
 
   @ExceptionHandler(InvalidCredentialsException.class)
   ResponseEntity<ErrorResponse> handleInvalidCredentials(
@@ -172,7 +168,6 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
-
   @ExceptionHandler(BookNotFoundException.class)
   ResponseEntity<ErrorResponse> handleBookNotFound(
       BookNotFoundException ex, HttpServletRequest request) {
@@ -184,7 +179,6 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
       ShelfBusinessException ex, HttpServletRequest request) {
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
-
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   ResponseEntity<ValidationErrorResponse> handleValidation(
@@ -260,8 +254,7 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
 
   @ExceptionHandler(com.biblioo.share.domain.exception.GoodreadsImportException.class)
   ResponseEntity<ErrorResponse> handleGoodreadsImport(
-      com.biblioo.share.domain.exception.GoodreadsImportException ex,
-      HttpServletRequest request) {
+      com.biblioo.share.domain.exception.GoodreadsImportException ex, HttpServletRequest request) {
     return buildError(HttpStatus.valueOf(422), ex.getMessage(), request);
   }
 
@@ -295,7 +288,6 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
     return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
   }
 
-
   private ResponseEntity<ErrorResponse> buildError(
       HttpStatus status, String message, HttpServletRequest request) {
     return ResponseEntity.status(status)
@@ -307,7 +299,6 @@ ResponseEntity<ErrorResponse> handleRegistrationConflict(
                 message,
                 request.getRequestURI()));
   }
-
 
   public record ErrorResponse(
       LocalDateTime timestamp, int status, String error, String message, String path) {}

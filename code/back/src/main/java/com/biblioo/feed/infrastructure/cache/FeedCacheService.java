@@ -123,7 +123,8 @@ public class FeedCacheService implements FeedCachePort {
     try {
       return objectMapper.writeValueAsString(item);
     } catch (JsonProcessingException ex) {
-      log.error("Falha ao serializar FeedItem contentId={}: {}", item.getContentId(), ex.getMessage());
+      log.error(
+          "Falha ao serializar FeedItem contentId={}: {}", item.getContentId(), ex.getMessage());
       return null;
     }
   }

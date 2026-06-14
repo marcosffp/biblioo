@@ -15,10 +15,11 @@ public class BecauseYouReadComputeService {
 
   @org.springframework.transaction.annotation.Transactional(readOnly = true)
   public String getBookTitle(Long bookId) {
-    List<?> result = entityManager
-        .createNativeQuery("SELECT title FROM books WHERE id = :bookId")
-        .setParameter("bookId", bookId)
-        .getResultList();
+    List<?> result =
+        entityManager
+            .createNativeQuery("SELECT title FROM books WHERE id = :bookId")
+            .setParameter("bookId", bookId)
+            .getResultList();
     return result.isEmpty() ? null : (String) result.get(0);
   }
 
@@ -83,7 +84,10 @@ public class BecauseYouReadComputeService {
             .getResultList();
 
     return rows.stream()
-        .map(row -> new BookScore(((Number) row[0]).longValue(), ((Number) row[1]).doubleValue(), "sql_fallback"))
+        .map(
+            row ->
+                new BookScore(
+                    ((Number) row[0]).longValue(), ((Number) row[1]).doubleValue(), "sql_fallback"))
         .toList();
   }
 }

@@ -50,17 +50,10 @@ public class TrendingInCommunitiesService {
    * @param eventType "message" para comentário publicado, "join" para entrada em comunidade
    */
   public void compute(Long userId, Long bookId, String eventType) {
-    log.info(
-        "[TIC] Processando evento={} userId={} bookId={}", eventType, userId, bookId);
 
     if (trendingRepository.hasContributedRecently(
         userId, bookId, eventType, deduplicationWindowHours)) {
-      log.info(
-          "[TIC] Deduplicação: userId={} bookId={} eventType={} já contribuiu nas últimas {}h, ignorando",
-          userId,
-          bookId,
-          eventType,
-          deduplicationWindowHours);
+
       return;
     }
 
@@ -68,9 +61,6 @@ public class TrendingInCommunitiesService {
 
     trendingRepository.registerContribution(userId, bookId, eventType);
     trendingRepository.incrementScore(bookId, weight, decayPerHour);
-
-    log.info(
-        "[TIC] Score atualizado bookId={} eventType={} weight={}", bookId, eventType, weight);
   }
 
   /**
@@ -94,13 +84,6 @@ public class TrendingInCommunitiesService {
 
     List<BookScore> combined = new ArrayList<>(organic);
     combined.addAll(fallback);
-
-    log.info(
-        "[TIC] get userId={} orgânico={} fallback={} total={}",
-        userId,
-        organic.size(),
-        fallback.size(),
-        combined.size());
 
     return new TrendingInCommunitiesResult(combined);
   }

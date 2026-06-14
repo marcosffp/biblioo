@@ -34,8 +34,7 @@ public class GoodreadsCsvParser {
   private static final Pattern ISBN_PATTERN = Pattern.compile("=?\"?([0-9X]*)\"?");
   private static final Pattern ISBN10_PATTERN = Pattern.compile("^[0-9]{9}[0-9X]$");
   private static final Pattern ISBN13_PATTERN = Pattern.compile("^97[89][0-9]{10}$");
-  private static final DateTimeFormatter GR_DATE_FMT =
-      DateTimeFormatter.ofPattern("yyyy/MM/dd");
+  private static final DateTimeFormatter GR_DATE_FMT = DateTimeFormatter.ofPattern("yyyy/MM/dd");
 
   private static final Set<String> VALID_EXCLUSIVE_SHELVES =
       Set.of("read", "currently-reading", "to-read");
@@ -92,7 +91,6 @@ public class GoodreadsCsvParser {
         } catch (Exception e) {
           String title = safeGet(record, COL_TITLE);
           errors.add(new GoodreadsImportError(rowNum, title, e.getMessage()));
-          log.debug("Linha {} ignorada: {}", rowNum, e.getMessage());
         }
         rowNum++;
       }
@@ -105,8 +103,7 @@ public class GoodreadsCsvParser {
 
     long bookId = parseLongRequired(record, COL_BOOK_ID, rowNum);
     String title =
-        stripCsvInjection(
-            requireNonBlank(safeGet(record, COL_TITLE), "Title é obrigatório"));
+        stripCsvInjection(requireNonBlank(safeGet(record, COL_TITLE), "Title é obrigatório"));
     String author =
         stripCsvInjection(
             normalizeAuthor(requireNonBlank(safeGet(record, COL_AUTHOR), "Author é obrigatório")));
@@ -117,7 +114,6 @@ public class GoodreadsCsvParser {
             .toList();
     String isbn = parseIsbn(safeGet(record, COL_ISBN));
     String isbn13 = parseIsbn(safeGet(record, COL_ISBN13));
-    validateIsbn(isbn, isbn13);
 
     int myRating = parseIntBounded(safeGet(record, COL_MY_RATING), 0, 0, 5);
     String publisher = stripCsvInjection(nullIfBlank(safeGet(record, COL_PUBLISHER)));
@@ -171,16 +167,11 @@ public class GoodreadsCsvParser {
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   private void validateRecordSize(CSVRecord record, int rowNum) {
-    for (String col :
-        List.of(COL_TITLE, COL_MY_REVIEW, COL_PRIVATE_NOTES, COL_AUTHOR)) {
+    for (String col : List.of(COL_TITLE, COL_MY_REVIEW, COL_PRIVATE_NOTES, COL_AUTHOR)) {
       String val = safeGet(record, col);
       if (val != null && val.length() > MAX_FIELD_LENGTH) {
         throw new IllegalArgumentException(
-            "Campo '"
-                + col
-                + "' excede o tamanho máximo de "
-                + MAX_FIELD_LENGTH
-                + " caracteres");
+            "Campo '" + col + "' excede o tamanho máximo de " + MAX_FIELD_LENGTH + " caracteres");
       }
     }
   }
@@ -214,22 +205,13 @@ public class GoodreadsCsvParser {
     return (value == null || value.isBlank()) ? null : value;
   }
 
-  private void validateIsbn(String isbn10, String isbn13) {
-    if (isbn10 != null && !ISBN10_PATTERN.matcher(isbn10).matches()) {
-      log.debug("ISBN10 inválido '{}' — será ignorado no lookup", isbn10);
-    }
-    if (isbn13 != null && !ISBN13_PATTERN.matcher(isbn13).matches()) {
-      log.debug("ISBN13 inválido '{}' — será ignorado no lookup", isbn13);
-    }
-  }
-
   // Converts YYYY/MM/DD to LocalDate; empty or malformed -> null
   LocalDate parseDate(String raw) {
     if (raw == null || raw.isBlank()) return null;
     try {
       return LocalDate.parse(raw.strip(), GR_DATE_FMT);
     } catch (DateTimeParseException e) {
-      log.debug("Data malformada '{}' — tratada como nula", raw);
+      log.warn("Data malformada '{}' — tratada como nula", raw);
       return null;
     }
   }

@@ -8,10 +8,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import java.util.Map;
 
 @Slf4j
 @Component
@@ -20,7 +20,7 @@ public class DnaMapper {
 
   private final ObjectMapper objectMapper;
 
-public DnaResponse toResponse(LiteraryDna dna) {
+  public DnaResponse toResponse(LiteraryDna dna) {
     return new DnaResponse(
         dna.getUserId(),
         dna.getStatus().name(),
@@ -37,18 +37,14 @@ public DnaResponse toResponse(LiteraryDna dna) {
         fromJson(dna.getSecondaryArchetypesJson(), new TypeReference<List<String>>() {}),
         dna.getMostAbandonedGenre(),
         dna.getAvgTimePerBookDays(),
-        dna.getTotalPagesRead(),                                                          // ← novo
+        dna.getTotalPagesRead(), // ← novo
         fromJson(dna.getPagesByYearJson(), new TypeReference<Map<Integer, Integer>>() {}), // ← novo
         dna.getCalculatedAt());
-}
+  }
 
   public DnaProgressResponse toProgressResponse(LiteraryDna dna) {
     return DnaProgressResponse.of(dna.getBooksReadCount() != null ? dna.getBooksReadCount() : 0);
   }
-
-
-
-
 
   private <T> T fromJson(String json, TypeReference<T> type) {
     if (json == null || json.isBlank()) return null;

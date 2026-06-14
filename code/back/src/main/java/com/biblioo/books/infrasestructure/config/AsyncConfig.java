@@ -9,7 +9,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 public class AsyncConfig {
 
-
   @Bean(name = "bookEnrichExecutor")
   public TaskExecutor bookEnrichExecutor() {
     var executor = new ThreadPoolTaskExecutor();

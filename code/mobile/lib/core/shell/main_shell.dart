@@ -18,7 +18,7 @@ class MainShell extends StatelessWidget {
 
     return Scaffold(
       body: shell,
-      // FAB flutuante do Bibo — acessível de qualquer aba (igual ao web)
+      // FAB flutuante da Bibi — acessível de qualquer aba (igual ao web)
       floatingActionButton: showGlobalBibi ? const BibiFab() : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,

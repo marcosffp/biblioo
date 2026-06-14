@@ -18,10 +18,10 @@ public class RereadWorthItComputeService {
   @PersistenceContext private EntityManager entityManager;
 
   /**
-   * Busca todos os livros concluídos pelo usuário há pelo menos {@code minDaysSinceRead} dias.
-   * O reread_count não é calculado aqui — ele é mantido no metadata do resultado persistido
-   * porque a tabela shelf_items tem constraint única (shelf_id, book_id), impossibilitando
-   * contar múltiplas conclusões por contagem de linhas.
+   * Busca todos os livros concluídos pelo usuário há pelo menos {@code minDaysSinceRead} dias. O
+   * reread_count não é calculado aqui — ele é mantido no metadata do resultado persistido porque a
+   * tabela shelf_items tem constraint única (shelf_id, book_id), impossibilitando contar múltiplas
+   * conclusões por contagem de linhas.
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
@@ -54,8 +54,6 @@ public class RereadWorthItComputeService {
             .setParameter("minDays", minDaysSinceRead)
             .getResultList();
 
-    log.info("[RWI] {} leituras elegíveis para userId={}", rows.size(), userId);
-
     return rows.stream()
         .map(
             r ->
@@ -68,10 +66,9 @@ public class RereadWorthItComputeService {
   }
 
   /**
-   * Fallback para usuários sem leituras maduras (todos dentro do intervalo ideal).
-   * Retorna os livros já lidos pelo usuário ordenados pela nota que ele deu —
-   * são candidatos naturais para releitura, diferente do SimilarAuthors que sugere
-   * livros ainda não lidos.
+   * Fallback para usuários sem leituras maduras (todos dentro do intervalo ideal). Retorna os
+   * livros já lidos pelo usuário ordenados pela nota que ele deu — são candidatos naturais para
+   * releitura, diferente do SimilarAuthors que sugere livros ainda não lidos.
    */
   @SuppressWarnings("unchecked")
   @Transactional(readOnly = true)
@@ -102,8 +99,6 @@ public class RereadWorthItComputeService {
             .setParameter("userId", userId)
             .setParameter("limit", limit)
             .getResultList();
-
-    log.info("[RWI] Fallback (leituras anteriores): {} livros para userId={}", rows.size(), userId);
 
     return rows.stream()
         .map(

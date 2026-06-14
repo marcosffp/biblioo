@@ -2,7 +2,6 @@ package com.biblioo.community.infrastructure.persistence;
 
 import com.biblioo.community.domain.model.BookVoting;
 import com.biblioo.community.domain.model.enumeration.VotingStatus;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -30,8 +29,7 @@ public interface BookVotingRepository extends JpaRepository<BookVoting, Long> {
   Page<BookVoting> findByCommunityIdOrdered(
       @Param("communityId") Long communityId, Pageable pageable);
 
-  @Query(
-      "SELECT v FROM BookVoting v WHERE v.status = :status AND v.endsAt <= :now")
+  @Query("SELECT v FROM BookVoting v WHERE v.status = :status AND v.endsAt <= :now")
   List<BookVoting> findExpiredActive(
       @Param("status") VotingStatus status, @Param("now") LocalDateTime now);
 }

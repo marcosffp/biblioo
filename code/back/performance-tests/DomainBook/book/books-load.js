@@ -56,7 +56,7 @@ export const options = {
     "http_req_duration{scenario:search}": ["p(95)<2000"],
     "http_req_duration{scenario:details}": ["p(95)<800"],
 
-    http_req_waiting: ["p(95)<1200"], // tempo no servidor
+    http_req_waiting: ["p(95)<1200"],
   },
 };
 

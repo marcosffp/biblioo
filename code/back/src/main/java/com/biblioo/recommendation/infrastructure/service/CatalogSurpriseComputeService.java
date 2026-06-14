@@ -64,7 +64,8 @@ public class CatalogSurpriseComputeService {
       try {
         return objectMapper.readValue(cached, BOOK_SCORE_LIST);
       } catch (Exception e) {
-        log.warn("[CS-Compute] Falha ao ler candidatos do cache userId={}: {}", userId, e.getMessage());
+        log.warn(
+            "[CS-Compute] Falha ao ler candidatos do cache userId={}: {}", userId, e.getMessage());
         stringRedisTemplate.delete(key);
       }
     }
@@ -133,16 +134,14 @@ public class CatalogSurpriseComputeService {
                         ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_distant"))
             .toList();
 
-    log.info(
-        "[CS-Compute] {} candidatos de categorias distantes para userId={} threshold={}",
-        result.size(),
-        userId,
-        distanceThreshold);
-
     try {
       stringRedisTemplate
           .opsForValue()
-          .set(key, objectMapper.writeValueAsString(result), CANDIDATES_TTL_MINUTES, TimeUnit.MINUTES);
+          .set(
+              key,
+              objectMapper.writeValueAsString(result),
+              CANDIDATES_TTL_MINUTES,
+              TimeUnit.MINUTES);
     } catch (Exception e) {
       log.warn("[CS-Compute] Falha ao cachear candidatos userId={}: {}", userId, e.getMessage());
     }

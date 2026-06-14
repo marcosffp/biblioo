@@ -22,7 +22,6 @@ public class FollowSeedService {
     if (users.size() >= 2) {
       try {
         if (userUseCase.isFollowing(users.get(0).getId(), users.get(1).getId())) {
-          log.info("[Seed-Follows] Relações de seguir já existem. Ignorando.");
           return;
         }
       } catch (Exception ignored) {
@@ -51,9 +50,8 @@ public class FollowSeedService {
             userUseCase.acceptFollowRequest(target.getId(), follower.getId());
           }
           followed.add(targetIdx);
-          log.debug("[Seed-Follows] {} → {}.", follower.getUsername(), target.getUsername());
         } catch (Exception e) {
-          log.debug(
+          log.warn(
               "[Seed-Follows] Ignorado ({} → {}): {}",
               follower.getUsername(),
               target.getUsername(),

@@ -17,14 +17,13 @@ class CollectionPortAdapter implements AssistantCollectionPort {
 
   @Override
   public List<CollectionResult> listCollections(Long userId) {
-    return collectionUseCase.listCollections(userId).stream()
-        .map(this::toResult)
-        .toList();
+    return collectionUseCase.listCollections(userId).stream().map(this::toResult).toList();
   }
 
   @Override
   public CollectionResult createCollection(Long userId, String name, String description) {
-    Collection collection = collectionUseCase.createCollection(userId, name, description, List.of());
+    Collection collection =
+        collectionUseCase.createCollection(userId, name, description, List.of());
     return toResult(collection);
   }
 

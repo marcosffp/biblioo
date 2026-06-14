@@ -4,7 +4,6 @@ import com.biblioo.community.domain.model.CommunityMessage;
 import com.biblioo.community.domain.model.enumeration.MessageType;
 import com.biblioo.community.domain.model.enumeration.ReactionType;
 import com.biblioo.community.infrastructure.dto.message.MessageMediaUploadResponse;
-
 import java.util.List;
 import java.util.Set;
 

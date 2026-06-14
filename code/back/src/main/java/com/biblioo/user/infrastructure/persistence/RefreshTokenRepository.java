@@ -1,9 +1,7 @@
 package com.biblioo.user.infrastructure.persistence;
 
 import com.biblioo.user.domain.model.RefreshToken;
-
 import jakarta.persistence.LockModeType;
-
 import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,6 +31,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("SELECT t FROM RefreshToken t WHERE t.token = :token")
   Optional<RefreshToken> findByTokenForUpdate(@Param("token") String token);
+
   default void deleteExpiredOrUsed(Long userId) {
     deleteExpiredOrUsedByUserId(userId, LocalDateTime.now());
   }

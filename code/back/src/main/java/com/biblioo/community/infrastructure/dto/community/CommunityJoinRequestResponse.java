@@ -1,8 +1,7 @@
 package com.biblioo.community.infrastructure.dto.community;
 
-import java.time.LocalDateTime;
-
 import com.biblioo.community.domain.model.enumeration.JoinRequestStatus;
+import java.time.LocalDateTime;
 
 public record CommunityJoinRequestResponse(
     Long id,
