@@ -114,14 +114,12 @@ public class FeedSeedService {
         if (reviewUseCase
             .getRecentReviewsByUserId(users.get(0).getId(), PageRequest.of(0, 1))
             .hasContent()) {
-          log.info("[Seed-Feed] Feed já populado. Ignorando.");
           return;
         }
       } catch (Exception ignored) {
       }
     }
 
-    log.info("[Seed-Feed] Iniciando seed de reviews, posts e interações...");
 
     createMissingReviews(users);
     createMissingPosts(users, bookIds);
@@ -136,9 +134,7 @@ public class FeedSeedService {
     addMissingReplies(users, topComments);
     addMissingLikes(users, allReviews, allPosts, topComments);
 
-    log.info(
-        "[Seed-Feed] Seed concluído. {} reviews, {} posts, {} comentários.",
-        allReviews.size(), allPosts.size(), topComments.size());
+
   }
 
 
@@ -157,9 +153,8 @@ public class FeedSeedService {
         try {
           reviewUseCase.createReview(user.getId(), bookId, rating, text);
           created++;
-          log.debug("[Seed-Feed] Review criada (userId={}, bookId={}, rating={}).", user.getId(), bookId, rating);
         } catch (Exception e) {
-          log.debug("[Seed-Feed] Review ignorada (userId={}, bookId={}): {}", user.getId(), bookId, e.getMessage());
+          log.warn("[Seed-Feed] Review ignorada (userId={}, bookId={}): {}", user.getId(), bookId, e.getMessage());
         }
       }
     }
@@ -176,7 +171,7 @@ public class FeedSeedService {
             .forEach(ids::add);
       }
     } catch (Exception e) {
-      log.debug("[Seed-Feed] Falha ao coletar livros concluídos (userId={}): {}", userId, e.getMessage());
+      log.warn("[Seed-Feed] Falha ao coletar livros concluídos (userId={}): {}", userId, e.getMessage());
     }
     return ids;
   }
@@ -190,7 +185,7 @@ public class FeedSeedService {
             .getContent()
             .forEach(reviews::add);
       } catch (Exception e) {
-        log.debug("[Seed-Feed] Falha ao coletar reviews (userId={}): {}", user.getId(), e.getMessage());
+        log.warn("[Seed-Feed] Falha ao coletar reviews (userId={}): {}", user.getId(), e.getMessage());
       }
     }
     return reviews;
@@ -215,13 +210,12 @@ public class FeedSeedService {
           List<String> tags = List.of(TAG_SETS[(ui + pi) % TAG_SETS.length]);
           try {
             feedPostUseCase.createPost(user.getId(), bookId, text, List.of(), null, tags, false);
-            log.debug("[Seed-Feed] Post criado (userId={}).", user.getId());
           } catch (Exception e) {
-            log.debug("[Seed-Feed] Post ignorado (userId={}): {}", user.getId(), e.getMessage());
+            log.warn("[Seed-Feed] Post ignorado (userId={}): {}", user.getId(), e.getMessage());
           }
         }
       } catch (Exception e) {
-        log.debug("[Seed-Feed] Falha ao verificar posts (userId={}): {}", user.getId(), e.getMessage());
+        log.warn("[Seed-Feed] Falha ao verificar posts (userId={}): {}", user.getId(), e.getMessage());
       }
     }
   }
@@ -235,7 +229,7 @@ public class FeedSeedService {
             .getContent()
             .forEach(posts::add);
       } catch (Exception e) {
-        log.debug("[Seed-Feed] Falha ao coletar posts (userId={}): {}", user.getId(), e.getMessage());
+        log.warn("[Seed-Feed] Falha ao coletar posts (userId={}): {}", user.getId(), e.getMessage());
       }
     }
     return posts;
@@ -279,7 +273,7 @@ public class FeedSeedService {
             commentUseCase.createComment(commenter.getId(), parentId, text, List.of(), null);
         created.add(comment);
       } catch (Exception e) {
-        log.debug(
+        log.warn(
             "[Seed-Feed] Comentário ignorado (parentId={}): {}", parentId, e.getMessage());
       }
     }
@@ -312,7 +306,7 @@ public class FeedSeedService {
       try {
         commentUseCase.createReply(replier.getId(), comment.getId(), text);
       } catch (Exception e) {
-        log.debug(
+        log.warn(
             "[Seed-Feed] Reply ignorada (commentId={}): {}", comment.getId(), e.getMessage());
       }
     }
@@ -368,7 +362,7 @@ public class FeedSeedService {
         likeAction.run();
       }
     } catch (Exception e) {
-      log.debug(
+      log.warn(
           "[Seed-Feed] Curtida ignorada (contentId={}, userId={}): {}",
           contentId, userId, e.getMessage());
     }

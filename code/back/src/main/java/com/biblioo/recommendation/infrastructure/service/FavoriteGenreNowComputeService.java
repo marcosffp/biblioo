@@ -136,12 +136,6 @@ public class FavoriteGenreNowComputeService {
             .setParameter("candidateLimit", candidateLimit)
             .getResultList();
 
-    log.info(
-        "[FGN-Compute] primário: {} livros (rating_count>={}) para userId={} categorias={}",
-        rows.size(),
-        minReviews,
-        userId,
-        categoryIds);
 
     return rows.stream()
         .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_genre"))
@@ -196,11 +190,7 @@ public class FavoriteGenreNowComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info(
-        "[FGN-Compute] fallback popularidade: {} livros para userId={} categorias={}",
-        rows.size(),
-        userId,
-        categoryIds);
+
 
     return rows.stream()
         .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_genre_popular"))

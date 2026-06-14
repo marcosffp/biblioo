@@ -29,6 +29,5 @@ public class EventLogRepository {
       throw new DuplicateEventException(eventId);
     }
 
-    log.debug("[EventLog] Evento registrado com sucesso event_id={}", eventId);
   }
 }

@@ -39,25 +39,22 @@ public class RereadWorthItConsumer {
     MDC.put("trail", TRAIL);
     try {
       if (eventLogRepository.existsByEventId(logKey)) {
-        log.info("{} Evento duplicado event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
       Long userId = message.getPayload().get("userId").asLong();
 
-      log.info("{} Processando event_id={} userId={}", LOG_PREFIX, eventId, userId);
 
       try {
         eventLogRepository.registerEvent(
             logKey, TRAIL, userId, objectMapper.writeValueAsString(message.getPayload()));
       } catch (DuplicateEventException ex) {
-        log.info("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
+        log.warn("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
       rereadWorthItService.compute(userId);
 
-      log.info("{} Concluído event_id={} userId={}", LOG_PREFIX, eventId, userId);
 
     } catch (Exception ex) {
       log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);

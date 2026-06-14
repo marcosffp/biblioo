@@ -84,7 +84,6 @@ public class CommunityTrendingRepository {
         .setParameter("decayRate", decayPerHour)
         .executeUpdate();
 
-    log.debug("[TIC] Score incrementado bookId={} weight={}", bookId, weight);
   }
 
   /**

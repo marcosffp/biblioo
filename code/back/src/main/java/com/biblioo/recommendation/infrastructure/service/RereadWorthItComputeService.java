@@ -54,7 +54,6 @@ public class RereadWorthItComputeService {
             .setParameter("minDays", minDaysSinceRead)
             .getResultList();
 
-    log.info("[RWI] {} leituras elegíveis para userId={}", rows.size(), userId);
 
     return rows.stream()
         .map(
@@ -103,7 +102,6 @@ public class RereadWorthItComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info("[RWI] Fallback (leituras anteriores): {} livros para userId={}", rows.size(), userId);
 
     return rows.stream()
         .map(

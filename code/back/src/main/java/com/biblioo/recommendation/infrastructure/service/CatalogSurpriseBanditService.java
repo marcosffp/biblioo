@@ -42,14 +42,12 @@ public class CatalogSurpriseBanditService {
     String key = buildKey(userId, bookId);
     redisTemplate.opsForHash().increment(key, "a", 1);
     redisTemplate.expire(key, redisTtlDays, TimeUnit.DAYS);
-    log.debug("[CS-Bandit] α++ userId={} bookId={}", userId, bookId);
   }
 
   public void incrementBeta(Long userId, Long bookId) {
     String key = buildKey(userId, bookId);
     redisTemplate.opsForHash().increment(key, "b", 1);
     redisTemplate.expire(key, redisTtlDays, TimeUnit.DAYS);
-    log.debug("[CS-Bandit] β++ userId={} bookId={}", userId, bookId);
   }
 
   /**

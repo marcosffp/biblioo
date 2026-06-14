@@ -81,12 +81,10 @@ public class BookSeedService {
             .map(BookSearchResult::getId)
             .filter(Objects::nonNull)
             .forEach(ids::add);
-        log.debug("[Seed-Books] '{}' → {} resultado(s).", query, results.size());
       } catch (Exception e) {
         log.warn("[Seed-Books] Falha ao buscar '{}': {}", query, e.getMessage());
       }
     }
-    log.info("[Seed-Books] {} livros disponíveis.", ids.size());
     return new ArrayList<>(ids);
   }
 }

@@ -71,7 +71,6 @@ public class CatalogSurpriseService {
     List<BookScore> candidates = computeService.getCandidates(userId, poolSize);
 
     if (candidates.isEmpty()) {
-      log.info("[CS] Nenhum candidato para userId={}", userId);
       return new CatalogSurpriseResult(List.of());
     }
 
@@ -90,7 +89,6 @@ public class CatalogSurpriseService {
             .limit(candidateLimit)
             .toList();
 
-    log.info("[CS] {} recomendações geradas para userId={}", ranked.size(), userId);
     return new CatalogSurpriseResult(ranked);
   }
 }

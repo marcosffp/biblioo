@@ -54,8 +54,6 @@ public class UserPreferenceService implements UserPreferenceUseCase {
         .build();
 
     UserPreference saved = repository.save(preference);
-    log.info("[Preferences] Preferências salvas userId={}: {} gêneros, {} livros",
-        userId, normalizedGenres.size(), uniqueBookIds.size());
 
     eventPublisher.publishEvent(new PreferencesSavedEvent(userId, normalizedGenres, uniqueBookIds));
 

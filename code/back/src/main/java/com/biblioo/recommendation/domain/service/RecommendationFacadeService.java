@@ -47,7 +47,6 @@ public class RecommendationFacadeService implements RecommendationUseCase {
   @PostConstruct
   private void init() {
     this.dbThrottle = new Semaphore(dbConcurrencyLimit, true);
-    log.info("[Recommendation] db-concurrency-limit={}", dbConcurrencyLimit);
   }
 
   /**

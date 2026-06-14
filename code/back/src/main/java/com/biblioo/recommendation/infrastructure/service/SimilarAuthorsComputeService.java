@@ -80,7 +80,6 @@ public class SimilarAuthorsComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info("[SA] Nível 1 (autores confirmados): {} candidatos para userId={}", rows.size(), userId);
 
     return rows.stream()
         .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "confirmed_author"))
@@ -193,7 +192,6 @@ public class SimilarAuthorsComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info("[SA] Nível 2 (autores descobertos): {} candidatos para userId={}", rows.size(), userId);
 
     return rows.stream()
         .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "discovered_author"))
@@ -256,7 +254,6 @@ public class SimilarAuthorsComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info("[SA] Fallback global: {} livros para userId={}", rows.size(), userId);
 
     return rows.stream()
         .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "fallback_global"))

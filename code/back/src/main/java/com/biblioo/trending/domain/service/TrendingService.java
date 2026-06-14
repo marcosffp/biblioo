@@ -32,6 +32,5 @@ public class TrendingService implements TrendingUseCase {
 
   @CacheEvict(cacheNames = {"trending-communities", "trending-books"}, allEntries = true)
   public void evictAllTrendingCaches() {
-    log.info("Cache de trending invalidado pelo scheduler");
   }
 }

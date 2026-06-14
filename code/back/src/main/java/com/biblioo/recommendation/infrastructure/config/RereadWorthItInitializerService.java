@@ -26,18 +26,14 @@ public class RereadWorthItInitializerService {
   @EventListener(ApplicationReadyEvent.class)
   @Async
   public void preComputeForExistingUsers() {
-    log.info("[RWI-Init] Iniciando pré-computação para usuários sem resultado");
 
     List<Long> userIds = computeService.findUsersNeedingInitialization();
 
     if (userIds.isEmpty()) {
-      log.info("[RWI-Init] Nenhum usuário precisando de inicialização");
       return;
     }
 
-    log.info(
-        "[RWI-Init] {} usuários sem resultado REREAD_WORTH_IT — iniciando pré-computação",
-        userIds.size());
+
 
     int ok = 0;
     int fail = 0;
@@ -51,6 +47,5 @@ public class RereadWorthItInitializerService {
       }
     }
 
-    log.info("[RWI-Init] Pré-computação concluída: ok={} falhas={}", ok, fail);
   }
 }

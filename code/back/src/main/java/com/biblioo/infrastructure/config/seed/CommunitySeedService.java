@@ -231,7 +231,6 @@ public class CommunitySeedService {
     try {
       if (communityUseCase.listCommunities("", PageRequest.of(0, 1)).getTotalElements()
           >= COMMUNITIES.size()) {
-        log.info("[Seed-Community] {} comunidades já existem. Ignorando.", COMMUNITIES.size());
         return;
       }
     } catch (Exception ignored) {
@@ -264,7 +263,6 @@ public class CommunitySeedService {
         page.getContent().stream().filter(c -> c.getName().equals(def.name())).findFirst();
 
     if (existing.isPresent()) {
-      log.debug("[Seed-Community] Comunidade '{}' já existe.", def.name());
       return existing.get();
     }
 
@@ -275,7 +273,6 @@ public class CommunitySeedService {
     try {
       Community community =
           communityUseCase.createCommunity(ownerId, def.name(), def.description(), def.type(), bookId);
-      log.debug("[Seed-Community] Comunidade '{}' criada (tipo={}).", def.name(), def.type());
       return community;
     } catch (Exception e) {
       log.warn("[Seed-Community] Falha ao criar '{}': {}", def.name(), e.getMessage());
@@ -307,12 +304,9 @@ public class CommunitySeedService {
               communityUseCase.inviteUser(ownerId, community.getId(), memberId);
           communityUseCase.acceptInvite(memberId, invite.getId());
         }
-        log.debug(
-            "[Seed-Community] Membro {} adicionado à '{}'.", memberId, community.getName());
+ 
       } catch (Exception e) {
-        log.debug(
-            "[Seed-Community] Membro {} ignorado em '{}': {}",
-            memberId, community.getName(), e.getMessage());
+ 
       }
     }
   }
@@ -322,11 +316,9 @@ public class CommunitySeedService {
       Community community, Long ownerId, List<Long> memberIds, String[][] messages) {
     try {
       if (!messageUseCase.getRecentMessages(community.getId(), ownerId).isEmpty()) {
-        log.debug("[Seed-Community] Mensagens já existem em '{}'. Pulando.", community.getName());
         return;
       }
     } catch (Exception e) {
-      log.debug("[Seed-Community] Falha ao verificar mensagens em '{}': {}", community.getName(), e.getMessage());
       return;
     }
 
@@ -341,8 +333,7 @@ public class CommunitySeedService {
         messageUseCase.sendMessage(
             community.getId(), authorId, content, null, Set.of(), List.of(), null, false, clientId);
       } catch (Exception e) {
-        log.debug(
-            "[Seed-Community] Mensagem ignorada em '{}': {}", community.getName(), e.getMessage());
+
       }
     }
   }
@@ -357,17 +348,14 @@ public class CommunitySeedService {
       int ci) {
     try {
       if (votingUseCase.listVotings(ownerId, community.getId(), PageRequest.of(0, 1)).hasContent()) {
-        log.debug("[Seed-Community] Votação já existe em '{}'. Pulando.", community.getName());
         return;
       }
     } catch (Exception e) {
-      log.debug("[Seed-Community] Falha ao verificar votações em '{}': {}", community.getName(), e.getMessage());
       return;
     }
 
     List<VotingOptionRequest> options = buildVotingOptions(ci, bookIds);
     if (options.size() < 3) {
-      log.debug("[Seed-Community] Livros insuficientes para votação em '{}'.", community.getName());
       return;
     }
 
@@ -391,7 +379,6 @@ public class CommunitySeedService {
         try {
           votingUseCase.castVote(voterId, community.getId(), active.id(), optionId);
         } catch (Exception e) {
-          log.debug("[Seed-Community] Voto ignorado em '{}': {}", community.getName(), e.getMessage());
         }
       }
 
@@ -404,11 +391,9 @@ public class CommunitySeedService {
         }
       }
 
-      log.debug(
-          "[Seed-Community] Votação criada em '{}' (fechada={}).", community.getName(), def.closeAndApprove());
+
     } catch (Exception e) {
-      log.warn(
-          "[Seed-Community] Falha ao criar votação em '{}': {}", community.getName(), e.getMessage());
+
     }
   }
 

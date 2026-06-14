@@ -29,7 +29,6 @@ public class FeedFanoutConsumer {
       boolean isPost = RabbitMQConfig.EVENT_POST_PUBLISHED.equals(eventType);
 
       if (!isReview && !isPost) {
-        log.debug("{} Tipo de evento ignorado: {}", LOG_PREFIX, eventType);
         return;
       }
 
@@ -39,12 +38,8 @@ public class FeedFanoutConsumer {
       Long authorId = payload.get("authorId").asLong();
       long createdAtEpochMilli = payload.get("createdAtEpochMilli").asLong();
 
-      log.info("{} Processando event_id={} contentType={} contentId={} authorId={}",
-          LOG_PREFIX, eventId, contentType, contentId, authorId);
-
       feedFanoutService.processFanout(eventId, contentId, contentType, authorId, createdAtEpochMilli);
 
-      log.info("{} Concluído event_id={}", LOG_PREFIX, eventId);
     } catch (Exception ex) {
       log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
       throw new RuntimeException(ex);

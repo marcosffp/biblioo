@@ -82,11 +82,6 @@ public class BookVotingService implements BookVotingUseCase {
           })
             .toList();
 
-    log.info(
-        "Votação criada id={} communityId={} adminId={}",
-        savedVoting.getId(),
-        communityId,
-        adminId);
     return mapper.toResponse(savedVoting, options, null);
   }
 

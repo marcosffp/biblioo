@@ -37,7 +37,6 @@ public class GenreTranslationService {
 
     return retryTemplate.execute(
         ctx -> {
-          log.info("[GenreTranslation] Traduzindo {} gêneros via Gemini", batch.size());
           String raw = CompletableFuture
               .supplyAsync(() -> chatClient.prompt().user(buildPrompt(batch)).call().content())
               .orTimeout(TRANSLATION_TIMEOUT_SECONDS, TimeUnit.SECONDS)

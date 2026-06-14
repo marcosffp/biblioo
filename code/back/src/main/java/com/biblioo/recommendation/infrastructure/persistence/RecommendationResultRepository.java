@@ -46,11 +46,7 @@ public class RecommendationResultRepository {
         .setParameter("computedAt", LocalDateTime.now())
         .executeUpdate();
 
-    log.info(
-        "[SQL] Upsert recommendation_results: user={} trail={} livros={}",
-        userId,
-        trailType,
-        bookScores.size());
+
   }
 
   @Transactional
@@ -76,12 +72,7 @@ public class RecommendationResultRepository {
         .setParameter("computedAt", LocalDateTime.now())
         .executeUpdate();
 
-    log.info(
-        "[SQL] Upsert recommendation_results com metadata: user={} trail={} livros={} gêneros={}",
-        userId,
-        trailType,
-        bookScores.size(),
-        genres);
+
   }
 
   @Transactional(readOnly = true)
@@ -119,11 +110,7 @@ public class RecommendationResultRepository {
         .setParameter("computedAt", LocalDateTime.now())
         .executeUpdate();
 
-    log.info(
-        "[SQL] Upsert recommendation_results com metadata raw: user={} trail={} livros={}",
-        userId,
-        trailType,
-        bookScores.size());
+
   }
 
   @Transactional
@@ -147,11 +134,7 @@ public class RecommendationResultRepository {
         .setParameter("computedAt", LocalDateTime.now())
         .executeUpdate();
 
-    log.info(
-        "[SQL] Upsert BYR: user={} livros={} seedBook='{}'",
-        userId,
-        bookScores.size(),
-        seedBookTitle);
+
   }
 
   @Transactional(readOnly = true)

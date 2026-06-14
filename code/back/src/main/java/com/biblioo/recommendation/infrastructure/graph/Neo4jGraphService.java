@@ -46,7 +46,6 @@ public class Neo4jGraphService {
                     "shelfItemId", shelfItemId));
             return null;
           });
-      log.debug("[Neo4j] MERGE READ: user={} -> book={}", userId, bookId);
     } catch (Neo4jException ex) {
       log.error(
           "[Neo4j] Falha ao fazer MERGE READ: user={} book={} causa={}",

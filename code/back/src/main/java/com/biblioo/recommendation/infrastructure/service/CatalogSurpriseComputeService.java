@@ -133,11 +133,7 @@ public class CatalogSurpriseComputeService {
                         ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "sql_distant"))
             .toList();
 
-    log.info(
-        "[CS-Compute] {} candidatos de categorias distantes para userId={} threshold={}",
-        result.size(),
-        userId,
-        distanceThreshold);
+
 
     try {
       stringRedisTemplate

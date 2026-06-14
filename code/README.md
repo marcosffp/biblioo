@@ -49,8 +49,11 @@ SPA em **Next.js 16 (App Router)** com **React 19** e TypeScript. Inclui:
 - **Chat em tempo real** via WebSocket/STOMP com `@stomp/stompjs` + `sockjs-client`
 - **Assistente Bibo** com streaming SSE via `@microsoft/fetch-event-source`
 - **Testes** com Vitest + Testing Library
+- **Deploy** na Vercel com integração contínua via GitHub (deploy automático a cada push na branch `main`)
 
 **Stack:** Next.js 16 · React 19 · TypeScript · Tailwind CSS · Radix UI · Framer Motion · Vitest
+
+🔗 **URL de produção:** [biblioo-rust.vercel.app](https://biblioo-rust.vercel.app)
 
 ---
 

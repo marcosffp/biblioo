@@ -92,7 +92,6 @@ public class GoodreadsCsvParser {
         } catch (Exception e) {
           String title = safeGet(record, COL_TITLE);
           errors.add(new GoodreadsImportError(rowNum, title, e.getMessage()));
-          log.debug("Linha {} ignorada: {}", rowNum, e.getMessage());
         }
         rowNum++;
       }
@@ -117,7 +116,6 @@ public class GoodreadsCsvParser {
             .toList();
     String isbn = parseIsbn(safeGet(record, COL_ISBN));
     String isbn13 = parseIsbn(safeGet(record, COL_ISBN13));
-    validateIsbn(isbn, isbn13);
 
     int myRating = parseIntBounded(safeGet(record, COL_MY_RATING), 0, 0, 5);
     String publisher = stripCsvInjection(nullIfBlank(safeGet(record, COL_PUBLISHER)));
@@ -214,14 +212,7 @@ public class GoodreadsCsvParser {
     return (value == null || value.isBlank()) ? null : value;
   }
 
-  private void validateIsbn(String isbn10, String isbn13) {
-    if (isbn10 != null && !ISBN10_PATTERN.matcher(isbn10).matches()) {
-      log.debug("ISBN10 inválido '{}' — será ignorado no lookup", isbn10);
-    }
-    if (isbn13 != null && !ISBN13_PATTERN.matcher(isbn13).matches()) {
-      log.debug("ISBN13 inválido '{}' — será ignorado no lookup", isbn13);
-    }
-  }
+
 
   // Converts YYYY/MM/DD to LocalDate; empty or malformed -> null
   LocalDate parseDate(String raw) {
@@ -229,7 +220,7 @@ public class GoodreadsCsvParser {
     try {
       return LocalDate.parse(raw.strip(), GR_DATE_FMT);
     } catch (DateTimeParseException e) {
-      log.debug("Data malformada '{}' — tratada como nula", raw);
+      log.warn("Data malformada '{}' — tratada como nula", raw);
       return null;
     }
   }

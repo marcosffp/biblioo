@@ -26,12 +26,10 @@ public class GenreService implements GenreUseCase {
   @Override
   @Cacheable(value = "genres-all", key = "'all'")
   public List<GenreTranslation> getAllGenres() {
-    log.info("[Genres] Cache miss — buscando gêneros do banco e traduzindo");
 
     List<String> rawNames = categoryQueryService.findAllNames();
     List<String> canonical = deduplicateAndNormalize(rawNames);
 
-    log.info("[Genres] {} gêneros únicos (de {} raw)", canonical.size(), rawNames.size());
 
     Map<String, String> translations = translationService.translateBatch(canonical);
 

@@ -44,11 +44,7 @@ public class GoodreadsImportController {
           MultipartFile file) {
 
     Long userId = Long.parseLong(principal.getUsername());
-    log.info(
-        "Iniciando importação Goodreads: userId={}, file={}, size={}",
-        userId,
-        file.getOriginalFilename(),
-        file.getSize());
+
 
     try {
       GoodreadsImportResult result =

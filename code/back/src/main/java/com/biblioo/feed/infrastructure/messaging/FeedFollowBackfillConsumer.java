@@ -33,11 +33,8 @@ public class FeedFollowBackfillConsumer {
       Long newFollowerId = payload.get("actorId").asLong();
       Long followedUserId = payload.get("recipientId").asLong();
 
-      log.info("{} Backfill event_id={} follower={} following={}", LOG_PREFIX, eventId, newFollowerId, followedUserId);
-
       feedFanoutService.processBackfill(newFollowerId, followedUserId);
 
-      log.info("{} Backfill concluído event_id={}", LOG_PREFIX, eventId);
     } catch (Exception ex) {
       log.error("{} Falha ao processar backfill event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
       throw new RuntimeException(ex);

@@ -60,7 +60,6 @@ public class RereadWorthItService {
    */
   @CacheEvict(value = "rec-rwi", key = "#userId")
   public void compute(Long userId) {
-    log.info("[RWI] Computando trilho RereadWorthIt para userId={}", userId);
 
     Optional<RecommendationResult> previous = resultRepository.findResultEntity(userId, TRAIL_TYPE);
     Map<Long, Integer> rereadCounts = readRereadCounts(previous);
@@ -72,7 +71,6 @@ public class RereadWorthItService {
       for (ReadingData r : readings) {
         if (r.finishedAt().isAfter(lastComputedDate)) {
           rereadCounts.merge(r.bookId(), 1, Integer::sum);
-          log.info("[RWI] Releitura detectada bookId={} userId={} count={}", r.bookId(), userId, rereadCounts.get(r.bookId()));
         }
       }
     }
@@ -80,13 +78,11 @@ public class RereadWorthItService {
     List<BookScore> candidates = computeScores(readings, rereadCounts);
 
     if (candidates.isEmpty()) {
-      log.info("[RWI] Nenhum candidato maduro para userId={}, aplicando fallback global", userId);
       candidates = computeService.computeFallback(userId, candidateLimit);
     }
 
     resultRepository.upsertWithRawMetadata(userId, TRAIL_TYPE, candidates, serializeRereadCounts(rereadCounts));
 
-    log.info("[RWI] {} recomendações persistidas para userId={}", candidates.size(), userId);
   }
 
   /**
@@ -102,7 +98,6 @@ public class RereadWorthItService {
       return new RereadWorthItResult(books);
     }
 
-    log.info("[RWI] Sem resultado pré-computado para userId={}, calculando e persistindo fallback", userId);
     List<BookScore> fallback = computeService.computeFallback(userId, candidateLimit);
     fallbackWriter.persistRereadWorthIt(userId, fallback);
 

@@ -181,7 +181,6 @@ public class FeedReadService implements FeedUseCase {
     try {
       long remaining = feedCachePort.countRemaining(userId, cursor);
       if (remaining < (long) (size * slidingWindowThreshold)) {
-        log.debug("Sliding window: pré-carregando feed para userId={}", userId);
         List<FeedItem> more = loadFromDb(userId);
         if (!more.isEmpty()) {
           feedCachePort.populate(userId, more);

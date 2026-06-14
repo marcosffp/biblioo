@@ -59,22 +59,16 @@ public class FeedFanoutService {
 
     long followerCount = followerQueryPort.countAcceptedFollowers(authorId);
     if (followerCount >= fanoutWriteThreshold) {
-      log.info(
-          "[FeedFanout] Autor userId={} tem {} seguidores (>= threshold {}). Fan-out on read.",
-          authorId, followerCount, fanoutWriteThreshold);
       return;
     }
 
     FeedFanoutProgress progress = getOrCreateProgress(eventId, contentId, authorId);
     if (progress.getStatus() == FanoutStatus.COMPLETED) {
-      log.info("[FeedFanout] eventId={} já concluído, descartando", eventId);
       return;
     }
 
     long lastId = progress.getLastProcessedFollowerId();
 
-    log.info("[FeedFanout] Iniciando fan-out eventId={} contentType={} contentId={} authorId={}",
-        eventId, contentType, contentId, authorId);
 
     boolean hasMore = true;
     while (hasMore) {
@@ -112,7 +106,6 @@ public class FeedFanoutService {
     }
 
     markCompleted(progress.getId());
-    log.info("[FeedFanout] Fan-out concluído eventId={} totalProcessados={}", eventId, progress.getTotalProcessed());
   }
 
   public void processBackfill(Long newFollowerId, Long followedUserId) {
@@ -144,7 +137,6 @@ public class FeedFanoutService {
 
     saveBatchIdempotent(items);
     feedCachePort.evict(newFollowerId);
-    log.info("[FeedBackfill] Backfill de {} reviews para userId={} seguindo userId={}", items.size(), newFollowerId, followedUserId);
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)

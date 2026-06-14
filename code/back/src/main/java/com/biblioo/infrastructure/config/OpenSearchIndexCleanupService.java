@@ -41,12 +41,8 @@ public class OpenSearchIndexCleanupService {
     try {
       var stats = client.indices().stats(s -> s.index(List.of(BOOKS_INDEX, USERS_INDEX)));
       stats.indices().forEach((index, indexStats) -> {
-        long docs = indexStats.total().docs().count();
-        long bytes = indexStats.total().store().sizeInBytes();
-        log.info("OpenSearch [{}]: {} docs, {} KB", index, docs, bytes / 1024);
       });
     } catch (Exception e) {
-      log.debug("OpenSearch stats indisponível: {}", e.getMessage());
     }
   }
 
@@ -56,9 +52,6 @@ public class OpenSearchIndexCleanupService {
       List<String> orphans = collectOrphans(BOOKS_INDEX, mysqlIds);
       if (!orphans.isEmpty()) {
         bulkDelete(BOOKS_INDEX, orphans);
-        log.info("OpenSearch cleanup [books]: {} documentos órfãos removidos", orphans.size());
-      } else {
-        log.debug("OpenSearch cleanup [books]: nenhum documento órfão encontrado");
       }
     } catch (Exception e) {
       log.warn("Falha no cleanup do índice books. Tentará novamente no próximo ciclo. Causa: {}", e.getMessage());
@@ -71,9 +64,6 @@ public class OpenSearchIndexCleanupService {
       List<String> orphans = collectOrphans(USERS_INDEX, mysqlIds);
       if (!orphans.isEmpty()) {
         bulkDelete(USERS_INDEX, orphans);
-        log.info("OpenSearch cleanup [users]: {} documentos órfãos removidos", orphans.size());
-      } else {
-        log.debug("OpenSearch cleanup [users]: nenhum documento órfão encontrado");
       }
     } catch (Exception e) {
       log.warn("Falha no cleanup do índice users. Tentará novamente no próximo ciclo. Causa: {}", e.getMessage());

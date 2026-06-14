@@ -34,7 +34,6 @@ public class DnaController {
   @GetMapping
   @Operation(summary = "Retorna o DNA literário do usuário autenticado")
   public ResponseEntity<?> getDna(@AuthenticationPrincipal UserDetails principal) {
-    System.out.println("Requisição para obter DNA do usuário: " + principal.getUsername());
     Long userId = extractUserId(principal);
     LiteraryDna dna = literaryDnaUseCase.getDna(userId);
 

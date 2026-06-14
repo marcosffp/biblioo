@@ -22,8 +22,7 @@ public class PreferenceTrailBootstrapListener {
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void onPreferencesSaved(PreferencesSavedEvent event) {
     Long userId = event.getUserId();
-    log.info("[Bootstrap] Iniciando trilhos cold-start para userId={} gêneros={} livros={}",
-        userId, event.getGenres().size(), event.getBookIds().size());
+
 
     if (!event.getGenres().isEmpty()) {
       try {
@@ -41,6 +40,5 @@ public class PreferenceTrailBootstrapListener {
       }
     }
 
-    log.info("[Bootstrap] Trilhos cold-start concluídos para userId={}", userId);
   }
 }

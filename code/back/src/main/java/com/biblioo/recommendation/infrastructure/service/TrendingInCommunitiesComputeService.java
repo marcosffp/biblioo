@@ -55,11 +55,6 @@ public class TrendingInCommunitiesComputeService {
             .setParameter("limit", limit)
             .getResultList();
 
-    log.info(
-        "[TIC-Fallback] {} livros de fallback para userId={} janela={}d",
-        rows.size(),
-        userId,
-        windowDays);
 
     return rows.stream()
         .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "fallback_new"))

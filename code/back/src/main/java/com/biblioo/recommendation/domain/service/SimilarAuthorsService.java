@@ -57,7 +57,6 @@ public class SimilarAuthorsService {
    */
   @CacheEvict(value = "rec-sa", key = "#userId")
   public void compute(Long userId) {
-    log.info("[SA] Computando trilho SimilarAuthors para userId={}", userId);
 
     List<BookScore> level1 =
         computeService.computeLevel1(userId, minRating, minDaysSinceCompleted, level1Limit);
@@ -73,7 +72,6 @@ public class SimilarAuthorsService {
     combined.addAll(level2);
 
     if (combined.isEmpty()) {
-      log.info("[SA] Nenhum candidato encontrado para userId={}, aplicando fallback global", userId);
       combined = computeService.computeFallback(userId, candidateLimit);
     } else {
       combined =
@@ -85,12 +83,7 @@ public class SimilarAuthorsService {
 
     resultRepository.upsert(userId, TRAIL_TYPE, combined);
 
-    log.info(
-        "[SA] {} recomendações persistidas para userId={} (l1={} l2={})",
-        combined.size(),
-        userId,
-        level1.size(),
-        level2.size());
+
   }
 
   /**
@@ -105,7 +98,6 @@ public class SimilarAuthorsService {
       return new SimilarAuthorsResult(books);
     }
 
-    log.info("[SA] Sem resultado pré-computado para userId={}, calculando e persistindo fallback", userId);
     List<BookScore> fallback = computeService.computeFallback(userId, candidateLimit);
     fallbackWriter.persistSimilarAuthors(userId, fallback);
 
