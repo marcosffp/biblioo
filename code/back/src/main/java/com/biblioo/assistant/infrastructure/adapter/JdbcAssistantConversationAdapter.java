@@ -70,4 +70,10 @@ class JdbcAssistantConversationAdapter implements AssistantConversationPort {
                 rs.getObject("updated_at", LocalDateTime.class)),
         userId);
   }
+
+  @Override
+  public int deleteOlderThan(LocalDateTime cutoff) {
+    return jdbcTemplate.update(
+        "DELETE FROM assistant_conversation WHERE updated_at < ?", cutoff);
+  }
 }
