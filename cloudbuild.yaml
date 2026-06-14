@@ -1,16 +1,21 @@
 steps:
+  # Build da imagem Docker do backend
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest', './code/back']
 
+  # Push da imagem para o Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest']
 
+  # Deploy no ambiente portfolio (OpenSearch externo via Bonsai.io — sem VPC)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     args: ['gcloud', 'run', 'deploy', 'biblioo-portfolio', '--image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest', '--region=us-central1']
 
+  # Deploy no ambiente produção (OpenSearch interno na VM GCE via VPC — requer vpc-egress)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    args: ['gcloud', 'run', 'deploy', 'biblioo-producao', '--image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest', '--region=us-central1']
+    args: ['gcloud', 'run', 'deploy', 'biblioo-producao', '--image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest', '--region=us-central1', '--network=default', '--subnet=default', '--vpc-egress=private-ranges-only']
 
+# Imagem gerada pelo pipeline
 images:
   - 'us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest'
 
