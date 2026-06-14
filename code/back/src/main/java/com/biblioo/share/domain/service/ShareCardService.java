@@ -66,14 +66,14 @@ public class ShareCardService implements ShareCardUseCase {
   private static final Duration MEM_CACHE_TTL = Duration.ofMinutes(5);
 
   private record CachedCard(byte[] data, Instant expiresAt) {
-    boolean valid() { return Instant.now().isBefore(expiresAt); }
+    boolean valid() {
+      return Instant.now().isBefore(expiresAt);
+    }
   }
 
   private final ConcurrentHashMap<Long, CachedCard> memCache = new ConcurrentHashMap<>();
-  private static final Locale PT_BR = new Locale.Builder()
-    .setLanguage("pt")
-    .setRegion("BR")
-    .build();
+  private static final Locale PT_BR =
+      new Locale.Builder().setLanguage("pt").setRegion("BR").build();
 
   private final ShareCardDataService shareCardDataService;
   private final RedisTemplate<String, byte[]> shareCardRedisTemplate;
@@ -144,8 +144,7 @@ public class ShareCardService implements ShareCardUseCase {
 
     yCalc +=
         Math.max(
-                tempG.getFontMetrics(F_USER).getHeight(),
-                tempG.getFontMetrics(F_LABEL).getHeight())
+                tempG.getFontMetrics(F_USER).getHeight(), tempG.getFontMetrics(F_LABEL).getHeight())
             + 6 * SCALE;
 
     boolean computed = DnaStatus.COMPUTED == data.dna().getStatus();
@@ -155,7 +154,8 @@ public class ShareCardService implements ShareCardUseCase {
             : "Em Formação";
     FontMetrics fma = tempG.getFontMetrics(F_ARCH);
     int cW = W - PAD_X * 2;
-    yCalc += fma.stringWidth(arch) <= cW ? fma.getHeight() + 6 * SCALE : fma.getHeight() * 2 + 6 * SCALE;
+    yCalc +=
+        fma.stringWidth(arch) <= cW ? fma.getHeight() + 6 * SCALE : fma.getHeight() * 2 + 6 * SCALE;
 
     yCalc += tempG.getFontMetrics(F_COMP).getHeight() + 8 * SCALE;
     yCalc += tempG.getFontMetrics(F_STATS_INLINE_B).getHeight() + 10 * SCALE;
@@ -205,9 +205,7 @@ public class ShareCardService implements ShareCardUseCase {
       int logoW =
           Math.min(
               100 * SCALE,
-              (int)
-                  Math.round(
-                      (double) bibliooLogo.getWidth() / bibliooLogo.getHeight() * LOGO_H));
+              (int) Math.round((double) bibliooLogo.getWidth() / bibliooLogo.getHeight() * LOGO_H));
       g.drawImage(bibliooLogo, PAD_X, PAD_Y, logoW, LOGO_H, null);
     } else {
       g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 14 * SCALE));
@@ -261,12 +259,7 @@ public class ShareCardService implements ShareCardUseCase {
     g.setColor(new Color(0, 0, 0, 40));
     for (int i = 1; i <= 6; i++) {
       g.fillRoundRect(
-          x - i * SCALE / 2,
-          y + i * SCALE,
-          cW + i * SCALE,
-          cH + i * SCALE,
-          8 * SCALE,
-          8 * SCALE);
+          x - i * SCALE / 2, y + i * SCALE, cW + i * SCALE, cH + i * SCALE, 8 * SCALE, 8 * SCALE);
     }
 
     g.setClip(coverShape);
@@ -455,7 +448,6 @@ public class ShareCardService implements ShareCardUseCase {
       }
     }
   }
-
 
   private String truncate(String text, FontMetrics fm, int maxW) {
     if (fm.stringWidth(text) <= maxW) return text;

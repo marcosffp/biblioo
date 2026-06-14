@@ -2,6 +2,7 @@ package com.biblioo.infrastructure.messaging.config;
 
 import org.aopalliance.aop.Advice;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.AnonymousQueue;
 import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -9,7 +10,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.amqp.core.AnonymousQueue;
 
 @Configuration
 public class RabbitMQConfig {
@@ -60,7 +60,6 @@ public class RabbitMQConfig {
   public static final String COMMUNITY_MESSAGE_DLQ_ROUTING_KEY = "community.message.dead";
   public static final String EVENT_COMMUNITY_MESSAGE_CREATED = "COMMUNITY_MESSAGE_CREATED";
 
-
   public static final String COMMUNITY_BROADCAST_EXCHANGE = "biblioo.community.broadcast";
 
   public static final String BYR_QUEUE = "rec.shelf.completed";
@@ -89,7 +88,8 @@ public class RabbitMQConfig {
 
   public static final String TIC_MESSAGE_QUEUE = "rec.trending-in-communities.message";
   public static final String TIC_MESSAGE_DLQ = "rec.trending-in-communities.message.dlq";
-  public static final String TIC_MESSAGE_DLQ_ROUTING_KEY = "rec.trending-in-communities.message.dead";
+  public static final String TIC_MESSAGE_DLQ_ROUTING_KEY =
+      "rec.trending-in-communities.message.dead";
   public static final String TIC_MESSAGE_ROUTING_KEY = "community.trending.message";
 
   public static final String TIC_JOIN_QUEUE = "rec.trending-in-communities.join";
@@ -97,7 +97,8 @@ public class RabbitMQConfig {
   public static final String TIC_JOIN_DLQ_ROUTING_KEY = "rec.trending-in-communities.join.dead";
   public static final String TIC_JOIN_ROUTING_KEY = "community.trending.join";
 
-  public static final String EVENT_COMMUNITY_MESSAGE_FOR_TRENDING = "COMMUNITY_MESSAGE_FOR_TRENDING";
+  public static final String EVENT_COMMUNITY_MESSAGE_FOR_TRENDING =
+      "COMMUNITY_MESSAGE_FOR_TRENDING";
   public static final String EVENT_COMMUNITY_JOIN_FOR_TRENDING = "COMMUNITY_JOIN_FOR_TRENDING";
 
   @Bean
@@ -263,7 +264,6 @@ public class RabbitMQConfig {
   public static final String FEED_BACKFILL_DLQ = "biblioo.feed.follow.backfill.dlq";
   public static final String FEED_BACKFILL_DLQ_ROUTING_KEY = "feed.backfill.dead";
 
-
   @Bean
   Queue catalogSurpriseQueue() {
     return QueueBuilder.durable(CATALOG_SURPRISE_QUEUE)
@@ -297,7 +297,6 @@ public class RabbitMQConfig {
         .to(dlxExchange)
         .with(CATALOG_SURPRISE_DLQ_ROUTING_KEY);
   }
-
 
   @Bean
   Queue ticMessageQueue() {
@@ -393,7 +392,6 @@ public class RabbitMQConfig {
     return BindingBuilder.bind(feedBackfillDlq).to(dlxExchange).with(FEED_BACKFILL_DLQ_ROUTING_KEY);
   }
 
-
   @Bean
   Queue saQueue() {
     return QueueBuilder.durable(SA_QUEUE)
@@ -416,7 +414,6 @@ public class RabbitMQConfig {
   Binding saDlqBinding(Queue saDlq, DirectExchange dlxExchange) {
     return BindingBuilder.bind(saDlq).to(dlxExchange).with(SA_DLQ_ROUTING_KEY);
   }
-
 
   @Bean
   Queue rwiQueue() {
@@ -490,7 +487,6 @@ public class RabbitMQConfig {
     return factory;
   }
 
-
   @Bean
   Queue dnaRecalcQueue() {
     return QueueBuilder.durable(DNA_RECALC_QUEUE)
@@ -529,7 +525,6 @@ public class RabbitMQConfig {
   Binding dnaRecalcDlqBinding(Queue dnaRecalcDlq, DirectExchange dlxExchange) {
     return BindingBuilder.bind(dnaRecalcDlq).to(dlxExchange).with(DNA_RECALC_DLQ_ROUTING_KEY);
   }
-
 
   @Bean
   FanoutExchange communityBroadcastExchange() {

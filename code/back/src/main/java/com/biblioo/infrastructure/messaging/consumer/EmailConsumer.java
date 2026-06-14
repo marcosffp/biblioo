@@ -48,7 +48,6 @@ public class EmailConsumer {
     this.restClient = restClientBuilder.build();
   }
 
-
   @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE, containerFactory = "emailListenerFactory")
   public void handle(EventMessage message) {
     String eventId = message.getEventId();
@@ -60,19 +59,22 @@ public class EmailConsumer {
         return;
       }
 
-
       JsonNode payload = message.getPayload();
 
       switch (message.getEventType()) {
         case RabbitMQConfig.EVENT_PASSWORD_RESET_REQUESTED -> handlePasswordResetEmail(payload);
-        case RabbitMQConfig.EVENT_PASSWORD_CHANGED        -> handlePasswordChangedEmail(payload);
-        default -> log.warn("[Email-Consumer] Tipo de evento desconhecido '{}' — ignorando", message.getEventType());
+        case RabbitMQConfig.EVENT_PASSWORD_CHANGED -> handlePasswordChangedEmail(payload);
+        default ->
+            log.warn(
+                "[Email-Consumer] Tipo de evento desconhecido '{}' — ignorando",
+                message.getEventType());
       }
 
       outboxEventService.markAsProcessed(eventId);
 
     } catch (Exception ex) {
-      log.error("[Email-Consumer] Falha ao processar event_id={}: {}", eventId, ex.getMessage(), ex);
+      log.error(
+          "[Email-Consumer] Falha ao processar event_id={}: {}", eventId, ex.getMessage(), ex);
       outboxEventService.markAsFailed(eventId, ex.getMessage());
       throw new RuntimeException("Falha ao enviar e-mail", ex);
     } finally {
@@ -80,37 +82,38 @@ public class EmailConsumer {
     }
   }
 
-
   private void handlePasswordResetEmail(JsonNode payload) {
-    String toEmail   = payload.get("toEmail").asText();
-    String username  = payload.get("username").asText();
+    String toEmail = payload.get("toEmail").asText();
+    String username = payload.get("username").asText();
     String resetLink = payload.get("resetLink").asText();
     sendEmail(toEmail, "Redefinição de senha — Biblioo", username, resetLink, "reset");
   }
 
   private void handlePasswordChangedEmail(JsonNode payload) {
-    String toEmail  = payload.get("toEmail").asText();
+    String toEmail = payload.get("toEmail").asText();
     String username = payload.get("username").asText();
     sendEmail(toEmail, "Sua senha foi alterada — Biblioo", username, null, "changed");
   }
 
-
-  private void sendEmail(String toEmail, String subject, String username, String resetLink, String type) {
+  private void sendEmail(
+      String toEmail, String subject, String username, String resetLink, String type) {
     String html = buildHtml(type, username, resetLink, "cid:logo");
     try {
       sendViaSendGrid(toEmail, subject, html);
     } catch (Exception ex) {
-      log.warn("[Email-Consumer] SendGrid falhou ({}), tentando fallback Gmail...", ex.getMessage());
+      log.warn(
+          "[Email-Consumer] SendGrid falhou ({}), tentando fallback Gmail...", ex.getMessage());
       sendViaGmail(toEmail, subject, html);
     }
   }
 
   private void sendViaSendGrid(String toEmail, String subject, String html) {
-    Map<String, Object> body = Map.of(
-        "personalizations", List.of(Map.of("to", List.of(Map.of("email", toEmail)))),
-        "from",    Map.of("email", fromEmail, "name", "Biblioo"),
-        "subject", subject,
-        "content", List.of(Map.of("type", "text/html", "value", html)));
+    Map<String, Object> body =
+        Map.of(
+            "personalizations", List.of(Map.of("to", List.of(Map.of("email", toEmail)))),
+            "from", Map.of("email", fromEmail, "name", "Biblioo"),
+            "subject", subject,
+            "content", List.of(Map.of("type", "text/html", "value", html)));
 
     restClient
         .post()
@@ -120,7 +123,6 @@ public class EmailConsumer {
         .body(body)
         .retrieve()
         .toBodilessEntity();
-
   }
 
   private void sendViaGmail(String toEmail, String subject, String html) {
@@ -134,21 +136,21 @@ public class EmailConsumer {
       helper.addInline("logo", new ClassPathResource("static/Logo_Biblioo_Branca.png"));
       mailSender.send(mime);
     } catch (MessagingException e) {
-      log.error("[Email-Consumer] Fallback Gmail também falhou para {}: {}", toEmail, e.getMessage());
+      log.error(
+          "[Email-Consumer] Fallback Gmail também falhou para {}: {}", toEmail, e.getMessage());
       throw new RuntimeException("Ambos os provedores de e-mail falharam", e);
     }
   }
 
-
   private String buildHtml(String type, String username, String resetLink, String logoSrc) {
     return switch (type) {
-      case "reset"   -> buildPasswordResetHtml(username, resetLink, logoSrc);
+      case "reset" -> buildPasswordResetHtml(username, resetLink, logoSrc);
       case "changed" -> buildPasswordChangedHtml(username, logoSrc);
-      default        -> throw new IllegalArgumentException("Tipo de e-mail desconhecido: " + type);
+      default -> throw new IllegalArgumentException("Tipo de e-mail desconhecido: " + type);
     };
   }
 
- private String buildPasswordResetHtml(String username, String resetLink, String logoSrc) {
+  private String buildPasswordResetHtml(String username, String resetLink, String logoSrc) {
     return """
         <!DOCTYPE html>
         <html lang="pt-BR">
@@ -326,11 +328,13 @@ public class EmailConsumer {
           </table>
         </body>
         </html>
-        """.formatted(logoSrc, username, resetLink, resetLink, resetLink);
+        """
+        .formatted(logoSrc, username, resetLink, resetLink, resetLink);
   }
 
   private String buildPasswordChangedHtml(String username, String logoSrc) {
-    String changedAt = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
+    String changedAt =
+        LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"));
     return """
         <!DOCTYPE html>
         <html lang="pt-BR">
@@ -483,6 +487,7 @@ public class EmailConsumer {
           </table>
         </body>
         </html>
-        """.formatted(logoSrc, username, changedAt);
+        """
+        .formatted(logoSrc, username, changedAt);
   }
 }

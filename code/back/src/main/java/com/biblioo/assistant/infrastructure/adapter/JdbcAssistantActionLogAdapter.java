@@ -1,6 +1,7 @@
 package com.biblioo.assistant.infrastructure.adapter;
 
 import com.biblioo.assistant.domain.port.out.AssistantActionLogPort;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -33,8 +34,15 @@ class JdbcAssistantActionLogAdapter implements AssistantActionLogPort {
           truncate(resultSummary, MAX_RESULT_LENGTH));
     } catch (Exception e) {
       log.warn(
-          "Falha ao salvar log de ação do assistente: toolName={}, erro={}", toolName, e.getMessage());
+          "Falha ao salvar log de ação do assistente: toolName={}, erro={}",
+          toolName,
+          e.getMessage());
     }
+  }
+
+  @Override
+  public int deleteOlderThan(LocalDateTime cutoff) {
+    return jdbcTemplate.update("DELETE FROM assistant_action_log WHERE created_at < ?", cutoff);
   }
 
   private String truncate(String value, int maxLength) {

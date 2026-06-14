@@ -53,21 +53,17 @@ public class BecauseYouReadService {
     List<BookScore> processed = postProcess(candidates);
 
     resultRepository.upsertByr(userId, processed, seedBookTitle);
-
   }
 
   @CacheEvict(value = "rec-byr", key = "#userId")
   public void computeFromPreference(Long userId, Long bookId) {
     List<BookScore> candidates = computeService.compute(userId, bookId);
     if (candidates.isEmpty()) {
-      log.info("[BYR] Cold-start: nenhum candidato para userId={} bookId={}", userId, bookId);
       return;
     }
     List<BookScore> processed = postProcess(candidates);
     String seedTitle = computeService.getBookTitle(bookId);
     resultRepository.upsertByr(userId, processed, seedTitle);
-    log.info("[BYR] Cold-start: {} recomendações para userId={} seedBook='{}'",
-        processed.size(), userId, seedTitle);
   }
 
   @Cacheable(value = "rec-byr", key = "#userId")

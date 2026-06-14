@@ -14,10 +14,10 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General:  1000,  // ms
-    p95Crud:     1500,  // ms
-    p95Listing:   1500,  // ms
-    failRate:    0.01,  // 1%
+    p95General:  1000,
+    p95Crud:     1500,
+    p95Listing:   1500,
+    failRate:    0.01,
   },
 
   sleep: {

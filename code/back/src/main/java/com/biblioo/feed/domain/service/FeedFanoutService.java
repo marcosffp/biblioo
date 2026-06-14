@@ -11,11 +11,11 @@ import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import org.springframework.data.domain.PageRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +44,9 @@ public class FeedFanoutService {
       String eventId, Long contentId, String contentType, Long authorId, long createdAtEpochMilli) {
     LocalDateTime createdAt =
         LocalDateTime.ofEpochSecond(
-            createdAtEpochMilli / 1000, (int) ((createdAtEpochMilli % 1000) * 1_000_000), ZoneOffset.UTC);
+            createdAtEpochMilli / 1000,
+            (int) ((createdAtEpochMilli % 1000) * 1_000_000),
+            ZoneOffset.UTC);
     FeedItem selfItem =
         FeedItem.builder()
             .userId(authorId)
@@ -59,22 +61,15 @@ public class FeedFanoutService {
 
     long followerCount = followerQueryPort.countAcceptedFollowers(authorId);
     if (followerCount >= fanoutWriteThreshold) {
-      log.info(
-          "[FeedFanout] Autor userId={} tem {} seguidores (>= threshold {}). Fan-out on read.",
-          authorId, followerCount, fanoutWriteThreshold);
       return;
     }
 
     FeedFanoutProgress progress = getOrCreateProgress(eventId, contentId, authorId);
     if (progress.getStatus() == FanoutStatus.COMPLETED) {
-      log.info("[FeedFanout] eventId={} já concluído, descartando", eventId);
       return;
     }
 
     long lastId = progress.getLastProcessedFollowerId();
-
-    log.info("[FeedFanout] Iniciando fan-out eventId={} contentType={} contentId={} authorId={}",
-        eventId, contentType, contentId, authorId);
 
     boolean hasMore = true;
     while (hasMore) {
@@ -112,7 +107,6 @@ public class FeedFanoutService {
     }
 
     markCompleted(progress.getId());
-    log.info("[FeedFanout] Fan-out concluído eventId={} totalProcessados={}", eventId, progress.getTotalProcessed());
   }
 
   public void processBackfill(Long newFollowerId, Long followedUserId) {
@@ -125,8 +119,7 @@ public class FeedFanoutService {
     LocalDateTime since = LocalDateTime.now().minusDays(backfillDays);
     List<FeedItem> items =
         reviewRepository
-            .findRecentByAuthorIds(
-                List.of(followedUserId), since, PageRequest.of(0, 100))
+            .findRecentByAuthorIds(List.of(followedUserId), since, PageRequest.of(0, 100))
             .stream()
             .map(
                 r ->
@@ -144,7 +137,6 @@ public class FeedFanoutService {
 
     saveBatchIdempotent(items);
     feedCachePort.evict(newFollowerId);
-    log.info("[FeedBackfill] Backfill de {} reviews para userId={} seguindo userId={}", items.size(), newFollowerId, followedUserId);
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)

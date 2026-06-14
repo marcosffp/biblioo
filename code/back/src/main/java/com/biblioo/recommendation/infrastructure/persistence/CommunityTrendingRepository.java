@@ -16,8 +16,8 @@ public class CommunityTrendingRepository {
 
   /**
    * Verifica se o usuário já contribuiu com o tipo de evento informado para este livro dentro da
-   * janela de deduplicação. A deduplicação é por tipo: "message" e "join" são janelas
-   * independentes — um usuário pode contribuir 2.0 + 0.5 = 2.5 por livro por dia.
+   * janela de deduplicação. A deduplicação é por tipo: "message" e "join" são janelas independentes
+   * — um usuário pode contribuir 2.0 + 0.5 = 2.5 por livro por dia.
    */
   @Transactional(readOnly = true)
   public boolean hasContributedRecently(
@@ -83,8 +83,6 @@ public class CommunityTrendingRepository {
         .setParameter("weight", weight)
         .setParameter("decayRate", decayPerHour)
         .executeUpdate();
-
-    log.debug("[TIC] Score incrementado bookId={} weight={}", bookId, weight);
   }
 
   /**
@@ -135,7 +133,10 @@ public class CommunityTrendingRepository {
             .getResultList();
 
     return rows.stream()
-        .map(r -> new BookScore(((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "trending"))
+        .map(
+            r ->
+                new BookScore(
+                    ((Number) r[0]).longValue(), ((Number) r[1]).doubleValue(), "trending"))
         .toList();
   }
 }

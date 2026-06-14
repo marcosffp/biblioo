@@ -28,7 +28,8 @@ public class GenreController {
               + "Use o campo 'original' ao enviar preferências de volta ao backend. "
               + "Resultado é cacheado por 6 horas.")
   public ResponseEntity<List<GenreResponse>> getAllGenres() {
-    List<GenreResponse> genres = genreUseCase.getAllGenres().stream().map(GenreResponse::from).toList();
+    List<GenreResponse> genres =
+        genreUseCase.getAllGenres().stream().map(GenreResponse::from).toList();
     return ResponseEntity.ok(genres);
   }
 }

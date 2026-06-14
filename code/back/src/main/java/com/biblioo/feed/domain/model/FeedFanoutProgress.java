@@ -22,9 +22,7 @@ import lombok.NoArgsConstructor;
 @Table(
     name = "feed_fanout_progress",
     indexes = {@Index(name = "idx_fanout_status", columnList = "status")},
-    uniqueConstraints = {
-      @UniqueConstraint(name = "uq_fanout_event", columnNames = "event_id")
-    })
+    uniqueConstraints = {@UniqueConstraint(name = "uq_fanout_event", columnNames = "event_id")})
 @Data
 @Builder
 @NoArgsConstructor

@@ -11,7 +11,6 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 
-
 @RequiredArgsConstructor
 public class CachedUserService implements UserUseCase {
 

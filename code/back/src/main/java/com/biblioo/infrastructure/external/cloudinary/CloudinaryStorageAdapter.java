@@ -31,6 +31,7 @@ public class CloudinaryStorageAdapter implements ProfileImagePort, FeedImagePort
     return CompletableFuture.completedFuture(
         upload(imageBytes, "biblioo/users/" + userId + "/banner"));
   }
+
   @Async("userTaskExecutor")
   @Override
   public CompletableFuture<String> uploadImage(byte[] imageBytes, String entityId, String imageId) {

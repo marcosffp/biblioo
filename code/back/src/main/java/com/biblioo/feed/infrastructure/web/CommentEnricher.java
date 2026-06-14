@@ -25,8 +25,7 @@ public class CommentEnricher {
     if (userIds.isEmpty()) return page;
 
     Map<Long, User> userMap =
-        userPort.getUsersByIds(userIds).stream()
-            .collect(Collectors.toMap(User::getId, u -> u));
+        userPort.getUsersByIds(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
 
     List<Long> commentIds = page.getContent().stream().map(CommentBasicResponse::id).toList();
     Set<Long> likedIds = likeStatusResolver.resolve(userId, commentIds);

@@ -50,15 +50,14 @@ public class ShelfController {
   public ResponseEntity<List<ShelfSummaryResponse>> listShelves(
       @AuthenticationPrincipal UserDetails principal) {
 
-        Long userId = currentUserId(principal);
+    Long userId = currentUserId(principal);
     List<Shelf> shelves = shelfUseCase.listShelves(userId);
 
-    List<ShelfSummaryResponse> response = shelves.stream()
-        .map(shelf -> buildSummaryResponse(userId, shelf))
-        .toList();
+    List<ShelfSummaryResponse> response =
+        shelves.stream().map(shelf -> buildSummaryResponse(userId, shelf)).toList();
 
     return ResponseEntity.ok(response);
-}
+  }
 
   @GetMapping("/{shelfId}")
   @Operation(
@@ -83,11 +82,10 @@ public class ShelfController {
   public ResponseEntity<List<ShelfSummaryResponse>> listUserShelves(
       @Parameter(description = "ID do usuário", example = "1") @PathVariable Long userId) {
 
-        List<Shelf> shelves = shelfUseCase.listShelves(userId);
+    List<Shelf> shelves = shelfUseCase.listShelves(userId);
 
-    List<ShelfSummaryResponse> response = shelves.stream()
-        .map(shelf -> buildSummaryResponse(userId, shelf))
-        .toList();
+    List<ShelfSummaryResponse> response =
+        shelves.stream().map(shelf -> buildSummaryResponse(userId, shelf)).toList();
 
     return ResponseEntity.ok(response);
   }
@@ -158,7 +156,8 @@ public class ShelfController {
   @GetMapping("/me/active-reading-days")
   @Operation(
       summary = "Dias ativos de leitura",
-      description = "Retorna o total de dias distintos em que o usuário autenticado registrou pelo menos uma atualização de progresso de leitura.")
+      description =
+          "Retorna o total de dias distintos em que o usuário autenticado registrou pelo menos uma atualização de progresso de leitura.")
   public ResponseEntity<java.util.Map<String, Long>> getActiveReadingDays(
       @AuthenticationPrincipal UserDetails principal) {
 
@@ -190,5 +189,5 @@ public class ShelfController {
     List<ShelfItem> items = shelfUseCase.listShelfItems(userId, shelf.getId());
     List<String> covers = buildCoverPreview(items);
     return mapper.toSummaryResponse(shelf, items.size(), covers);
-}
+  }
 }

@@ -1,10 +1,9 @@
 package com.biblioo.community.infrastructure.dto.message;
 
+import com.biblioo.community.domain.model.enumeration.MessageType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
-
-import com.biblioo.community.domain.model.enumeration.MessageType;
 
 public record MessageResponse(
     Long id,

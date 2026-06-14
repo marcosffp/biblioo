@@ -41,7 +41,6 @@ public class CommunityService implements CommunityUseCase {
   private final CommunityEventPublisherPort eventPublisher;
   private final CommunityMessageUseCase messageUseCase;
 
-
   @Override
   @Transactional
   public Community createCommunity(
@@ -134,7 +133,6 @@ public class CommunityService implements CommunityUseCase {
   public Page<Community> getUserCommunities(Long userId, Pageable pageable) {
     return communityRepository.findByMemberUserId(userId, pageable);
   }
-
 
   @Override
   @Transactional
@@ -280,7 +278,6 @@ public class CommunityService implements CommunityUseCase {
     return memberRepository.findRole(communityId, userId);
   }
 
-
   @Override
   @Transactional
   public CommunityInvite inviteUser(Long inviterId, Long communityId, Long inviteeId) {
@@ -328,7 +325,7 @@ public class CommunityService implements CommunityUseCase {
 
     CommunityUserSummary inviter = userLookup.getById(inviterId);
     eventPublisher.publishInviteSent(
-      invite.getId(),
+        invite.getId(),
         communityId,
         community.getName(),
         inviterId,
@@ -393,7 +390,6 @@ public class CommunityService implements CommunityUseCase {
   public Page<CommunityInvite> getPendingInvites(Long userId, Pageable pageable) {
     return inviteRepository.findPendingByInviteeId(userId, pageable);
   }
-
 
   @Override
   @Transactional
@@ -495,7 +491,6 @@ public class CommunityService implements CommunityUseCase {
     return joinRequestRepository.findPendingByCommunityId(communityId, pageable);
   }
 
-
   @Override
   @Transactional
   public String generateInviteLink(Long actorId, Long communityId) {
@@ -543,7 +538,6 @@ public class CommunityService implements CommunityUseCase {
     messageUseCase.createSystemMessage(community.getId(), userId, MessageType.MEMBER_JOINED);
     eventPublisher.publishMemberJoinedForTrending(userId, community.getBookId());
   }
-
 
   void addMember(Long communityId, Long userId, CommunityRole role) {
     CommunityMember member =

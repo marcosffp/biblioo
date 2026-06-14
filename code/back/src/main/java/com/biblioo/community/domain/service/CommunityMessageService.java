@@ -8,9 +8,9 @@ import com.biblioo.community.domain.model.enumeration.CommunityRole;
 import com.biblioo.community.domain.model.enumeration.MessageType;
 import com.biblioo.community.domain.model.enumeration.ReactionType;
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
+import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
 import com.biblioo.community.domain.port.out.MessageBroadcastPort;
 import com.biblioo.community.domain.port.out.MessageCachePort;
-import com.biblioo.community.domain.port.out.CommunityEventPublisherPort;
 import com.biblioo.community.domain.port.out.TypingUserPort;
 import com.biblioo.community.infrastructure.dto.message.MessageMediaUploadResponse;
 import com.biblioo.community.infrastructure.persistence.CommunityMemberRepository;
@@ -64,9 +64,13 @@ public class CommunityMessageService implements CommunityMessageUseCase {
   private final TypingUserPort typingUserPort;
 
   public record MessageSentEvent(CommunityMessage message) {}
+
   public record MessageEditedEvent(CommunityMessage message) {}
+
   public record MessageDeletedEvent(Long communityId, Long messageId) {}
+
   public record MessageReactionEvent(Long communityId, Long messageId, int newCount) {}
+
   private record ReactionStatus(Long communityId, Long messageId, int newCount) {}
 
   @EventListener
@@ -92,48 +96,44 @@ public class CommunityMessageService implements CommunityMessageUseCase {
     broadcastPort.broadcastReaction(event.communityId(), event.messageId(), event.newCount());
   }
 
-
   @Override
   @Transactional
   public void createSystemMessage(Long communityId, Long userId, MessageType type) {
     CommunityMessage message =
-        CommunityMessage.builder()
-            .communityId(communityId)
-            .authorId(userId)
-            .type(type)
-            .build();
+        CommunityMessage.builder().communityId(communityId).authorId(userId).type(type).build();
     CommunityMessage saved = messageRepository.save(message);
     eventPublisher.publishEvent(new MessageSentEvent(saved));
   }
 
+  @Override
+  public MessageMediaUploadResponse uploadMessageMedia(
+      Long communityId, Long userId, List<byte[]> images, byte[] gif) {
 
-@Override
-public MessageMediaUploadResponse uploadMessageMedia(
-    Long communityId, Long userId, List<byte[]> images, byte[] gif) {
+    if (!membershipCache.isMember(communityId, userId)) {
+      throw new CommunityAccessDeniedException("Apenas membros podem enviar mídia.");
+    }
 
-  if (!membershipCache.isMember(communityId, userId)) {
-    throw new CommunityAccessDeniedException("Apenas membros podem enviar mídia.");
+    List<String> imageUrls = new ArrayList<>();
+    if (images != null && !images.isEmpty()) {
+      images.stream()
+          .map(
+              bytes ->
+                  feedImagePort.uploadImage(
+                      bytes, "community-" + communityId, UUID.randomUUID().toString()))
+          .toList()
+          .forEach(f -> imageUrls.add(f.join()));
+    }
+
+    String gifUrl = null;
+    if (gif != null && gif.length > 0) {
+      gifUrl =
+          feedImagePort
+              .uploadImage(gif, "community-" + communityId, UUID.randomUUID() + "_gif")
+              .join();
+    }
+
+    return new MessageMediaUploadResponse(imageUrls, gifUrl);
   }
-
-  List<String> imageUrls = new ArrayList<>();
-  if (images != null && !images.isEmpty()) {
-    images.stream()
-        .map(bytes -> feedImagePort.uploadImage(
-            bytes, "community-" + communityId, UUID.randomUUID().toString()))
-        .toList()                          
-        .forEach(f -> imageUrls.add(f.join()));
-  }
-
-  String gifUrl = null;
-  if (gif != null && gif.length > 0) {
-    gifUrl = feedImagePort
-        .uploadImage(gif, "community-" + communityId, UUID.randomUUID() + "_gif")
-        .join();
-  }
-
-  return new MessageMediaUploadResponse(imageUrls, gifUrl);
-}
-
 
   @Override
   @Transactional
@@ -148,55 +148,59 @@ public MessageMediaUploadResponse uploadMessageMedia(
       boolean hasSpoiler,
       String clientMessageId) {
 
-    CommunityMessage savedMessage = transactionTemplate.execute(status -> {
-      boolean member = membershipCache.isMember(communityId, authorId);
-      if (!member) {
-        throw new CommunityAccessDeniedException("Apenas membros podem enviar mensagens.");
-      }
+    CommunityMessage savedMessage =
+        transactionTemplate.execute(
+            status -> {
+              boolean member = membershipCache.isMember(communityId, authorId);
+              if (!member) {
+                throw new CommunityAccessDeniedException("Apenas membros podem enviar mensagens.");
+              }
 
-      if (parentMessageId != null) {
-        CommunityMessage parent =
-            messageRepository
-                .findById(parentMessageId)
-                .orElseThrow(() -> new CommunityBusinessException("Mensagem pai não encontrada."));
-        if (!parent.getCommunityId().equals(communityId) || parent.isDeleted()) {
-          throw new CommunityBusinessException("Mensagem pai inválida.");
-        }
-      }
+              if (parentMessageId != null) {
+                CommunityMessage parent =
+                    messageRepository
+                        .findById(parentMessageId)
+                        .orElseThrow(
+                            () -> new CommunityBusinessException("Mensagem pai não encontrada."));
+                if (!parent.getCommunityId().equals(communityId) || parent.isDeleted()) {
+                  throw new CommunityBusinessException("Mensagem pai inválida.");
+                }
+              }
 
-      String safeContent = (content != null) ? Jsoup.clean(content.trim(), Safelist.none()) : "";
-      boolean hasMedia =
-          (images != null && !images.isEmpty()) || (gifUrl != null && !gifUrl.isBlank());
-      if (safeContent.isBlank() && !hasMedia) {
-        throw new CommunityBusinessException(
-            "A mensagem deve ter texto ou pelo menos uma imagem/GIF.");
-      }
+              String safeContent =
+                  (content != null) ? Jsoup.clean(content.trim(), Safelist.none()) : "";
+              boolean hasMedia =
+                  (images != null && !images.isEmpty()) || (gifUrl != null && !gifUrl.isBlank());
+              if (safeContent.isBlank() && !hasMedia) {
+                throw new CommunityBusinessException(
+                    "A mensagem deve ter texto ou pelo menos uma imagem/GIF.");
+              }
 
-      Set<String> safeTags =
-          tags == null
-              ? new HashSet<>()
-              : tags.stream()
-                  .filter(t -> t != null && !t.isBlank())
-                  .map(t -> Jsoup.clean(t.trim(), Safelist.none()))
-                  .filter(t -> !t.isBlank() && t.length() <= 50)
-                  .limit(MAX_TAGS)
-                  .collect(Collectors.toSet());
+              Set<String> safeTags =
+                  tags == null
+                      ? new HashSet<>()
+                      : tags.stream()
+                          .filter(t -> t != null && !t.isBlank())
+                          .map(t -> Jsoup.clean(t.trim(), Safelist.none()))
+                          .filter(t -> !t.isBlank() && t.length() <= 50)
+                          .limit(MAX_TAGS)
+                          .collect(Collectors.toSet());
 
-      CommunityMessage message =
-          CommunityMessage.builder()
-              .communityId(communityId)
-              .authorId(authorId)
-              .content(safeContent.isBlank() ? null : safeContent)
-              .parentMessageId(parentMessageId)
-              .tags(safeTags)
-              .images(images != null ? new ArrayList<>(images) : new ArrayList<>())
-              .gifUrl(gifUrl)
-              .hasSpoiler(hasSpoiler)
-              .clientMessageId(clientMessageId)
-              .build();
+              CommunityMessage message =
+                  CommunityMessage.builder()
+                      .communityId(communityId)
+                      .authorId(authorId)
+                      .content(safeContent.isBlank() ? null : safeContent)
+                      .parentMessageId(parentMessageId)
+                      .tags(safeTags)
+                      .images(images != null ? new ArrayList<>(images) : new ArrayList<>())
+                      .gifUrl(gifUrl)
+                      .hasSpoiler(hasSpoiler)
+                      .clientMessageId(clientMessageId)
+                      .build();
 
-      return messageRepository.save(message);
-    });
+              return messageRepository.save(message);
+            });
 
     eventPublisher.publishEvent(new MessageSentEvent(savedMessage));
 
@@ -210,61 +214,65 @@ public MessageMediaUploadResponse uploadMessageMedia(
 
   @Override
   public void editMessage(Long messageId, Long actorId, String newContent) {
-    CommunityMessage savedMessage = transactionTemplate.execute(status -> {
-      CommunityMessage message = requireActiveMessage(messageId);
+    CommunityMessage savedMessage =
+        transactionTemplate.execute(
+            status -> {
+              CommunityMessage message = requireActiveMessage(messageId);
 
-      if (!message.getAuthorId().equals(actorId)) {
-        throw new CommunityAccessDeniedException("Apenas o autor pode editar a mensagem.");
-      }
+              if (!message.getAuthorId().equals(actorId)) {
+                throw new CommunityAccessDeniedException("Apenas o autor pode editar a mensagem.");
+              }
 
-      LocalDateTime editDeadline = message.getCreatedAt().plusHours(EDIT_WINDOW_HOURS);
-      if (LocalDateTime.now().isAfter(editDeadline)) {
-        throw new CommunityBusinessException(
-            "Janela de edição expirada. Mensagens só podem ser editadas em até "
-                + EDIT_WINDOW_HOURS
-                + " horas.");
-      }
+              LocalDateTime editDeadline = message.getCreatedAt().plusHours(EDIT_WINDOW_HOURS);
+              if (LocalDateTime.now().isAfter(editDeadline)) {
+                throw new CommunityBusinessException(
+                    "Janela de edição expirada. Mensagens só podem ser editadas em até "
+                        + EDIT_WINDOW_HOURS
+                        + " horas.");
+              }
 
-      String safeContent = Jsoup.clean(newContent.trim(), Safelist.none());
-      if (safeContent.isBlank()) {
-        throw new CommunityBusinessException("Conteúdo da mensagem não pode ser vazio.");
-      }
+              String safeContent = Jsoup.clean(newContent.trim(), Safelist.none());
+              if (safeContent.isBlank()) {
+                throw new CommunityBusinessException("Conteúdo da mensagem não pode ser vazio.");
+              }
 
-      message.setContent(safeContent);
-      message.setEditedAt(LocalDateTime.now());
+              message.setContent(safeContent);
+              message.setEditedAt(LocalDateTime.now());
 
-      try {
-        return messageRepository.save(message);
-      } catch (ObjectOptimisticLockingFailureException e) {
-        throw new CommunityBusinessException(
-            "Conflito de edição: a mensagem foi modificada por outra sessão. Recarregue e tente novamente.");
-      }
-    });
+              try {
+                return messageRepository.save(message);
+              } catch (ObjectOptimisticLockingFailureException e) {
+                throw new CommunityBusinessException(
+                    "Conflito de edição: a mensagem foi modificada por outra sessão. Recarregue e tente novamente.");
+              }
+            });
 
     eventPublisher.publishEvent(new MessageEditedEvent(savedMessage));
   }
 
   @Override
   public void deleteMessage(Long messageId, Long actorId) {
-    CommunityMessage deletedMessage = transactionTemplate.execute(status -> {
-      CommunityMessage message = requireActiveMessage(messageId);
+    CommunityMessage deletedMessage =
+        transactionTemplate.execute(
+            status -> {
+              CommunityMessage message = requireActiveMessage(messageId);
 
-      boolean isAuthor = message.getAuthorId().equals(actorId);
-      boolean isModOrOwner =
-          memberRepository
-              .findRole(message.getCommunityId(), actorId)
-              .map(role -> role == CommunityRole.OWNER || role == CommunityRole.MODERATOR)
-              .orElse(false);
+              boolean isAuthor = message.getAuthorId().equals(actorId);
+              boolean isModOrOwner =
+                  memberRepository
+                      .findRole(message.getCommunityId(), actorId)
+                      .map(role -> role == CommunityRole.OWNER || role == CommunityRole.MODERATOR)
+                      .orElse(false);
 
-      if (!isAuthor && !isModOrOwner) {
-        throw new CommunityAccessDeniedException(
-            "Apenas o autor ou moderadores podem remover mensagens.");
-      }
+              if (!isAuthor && !isModOrOwner) {
+                throw new CommunityAccessDeniedException(
+                    "Apenas o autor ou moderadores podem remover mensagens.");
+              }
 
-      message.setDeleted(true);
-      message.setContent("[comentário removido]");
-      return messageRepository.save(message);
-    });
+              message.setDeleted(true);
+              message.setContent("[comentário removido]");
+              return messageRepository.save(message);
+            });
 
     List<String> urlsToDelete = new ArrayList<>(deletedMessage.getImages());
     if (deletedMessage.getGifUrl() != null && !deletedMessage.getGifUrl().isBlank())
@@ -278,30 +286,37 @@ public MessageMediaUploadResponse uploadMessageMedia(
 
   @Override
   public void toggleReaction(Long messageId, Long userId, ReactionType type) {
-    ReactionStatus result = transactionTemplate.execute(status -> {
-      CommunityMessage message = requireActiveMessage(messageId);
+    ReactionStatus result =
+        transactionTemplate.execute(
+            status -> {
+              CommunityMessage message = requireActiveMessage(messageId);
 
-      if (!membershipCache.isMember(message.getCommunityId(), userId)) {
-        throw new CommunityAccessDeniedException("Apenas membros podem reagir a mensagens.");
-      }
+              if (!membershipCache.isMember(message.getCommunityId(), userId)) {
+                throw new CommunityAccessDeniedException(
+                    "Apenas membros podem reagir a mensagens.");
+              }
 
-      try {
-        reactionRepository.save(
-            MessageReaction.builder().messageId(messageId).userId(userId).reactionType(type).build());
-        messageRepository.incrementHeartCount(messageId);
-      } catch (DataIntegrityViolationException e) {
-        reactionRepository.deleteByMessageIdAndUserIdAndReactionType(messageId, userId, type);
-        messageRepository.decrementHeartCount(messageId);
-      }
+              try {
+                reactionRepository.save(
+                    MessageReaction.builder()
+                        .messageId(messageId)
+                        .userId(userId)
+                        .reactionType(type)
+                        .build());
+                messageRepository.incrementHeartCount(messageId);
+              } catch (DataIntegrityViolationException e) {
+                reactionRepository.deleteByMessageIdAndUserIdAndReactionType(
+                    messageId, userId, type);
+                messageRepository.decrementHeartCount(messageId);
+              }
 
-      int newCount = messageRepository.findHeartCountById(messageId);
-      return new ReactionStatus(message.getCommunityId(), messageId, newCount);
-    });
+              int newCount = messageRepository.findHeartCountById(messageId);
+              return new ReactionStatus(message.getCommunityId(), messageId, newCount);
+            });
 
     eventPublisher.publishEvent(
         new MessageReactionEvent(result.communityId(), result.messageId(), result.newCount()));
   }
-
 
   @Override
   @Transactional(readOnly = true)
@@ -347,7 +362,6 @@ public MessageMediaUploadResponse uploadMessageMedia(
   public List<CommunityMessage> getMessagesAfter(Long communityId, Long afterId) {
     return messageRepository.findByCommunityIdAfterId(communityId, afterId);
   }
-
 
   @Override
   public void notifyTyping(Long communityId, Long userId) {

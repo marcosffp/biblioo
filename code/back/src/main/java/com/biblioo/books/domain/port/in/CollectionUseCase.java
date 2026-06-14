@@ -12,7 +12,7 @@ public interface CollectionUseCase {
       Long userId, String name, String description, List<Long> initialShelfIds);
 
   Collection updateCollection(Long userId, Long collectionId, String name, String description);
-  
+
   void addShelfToCollection(Long userId, Long collectionId, Long shelfId);
 
   void removeShelfFromCollection(Long userId, Long collectionId, Long shelfId);

@@ -66,10 +66,16 @@ public class BiboTools {
   public String createShelf(String name, String description) {
     try {
       ShelfResult result = shelfPort.createShelf(UserIdHolder.get(), name, description);
-      log("createShelf", params("name", name, "description", description), "Estante criada com id=" + result.id());
+      log(
+          "createShelf",
+          params("name", name, "description", description),
+          "Estante criada com id=" + result.id());
       return "Estante criada com sucesso. id=" + result.id() + ", nome=" + result.name();
     } catch (RuntimeException e) {
-      log("createShelf", params("name", name, "description", description), "Erro: " + e.getMessage());
+      log(
+          "createShelf",
+          params("name", name, "description", description),
+          "Erro: " + e.getMessage());
       return "Erro: " + e.getMessage();
     }
   }
@@ -123,7 +129,10 @@ public class BiboTools {
               + "newStatus: WANT_TO_READ | READING | REREADING | COMPLETED | ABANDONED")
   public String changeItemStatus(Long shelfId, Long itemId, String newStatus) {
     String result = shelfPort.changeItemStatus(UserIdHolder.get(), shelfId, itemId, newStatus);
-    log("changeItemStatus", params("shelfId", shelfId, "itemId", itemId, "newStatus", newStatus), result);
+    log(
+        "changeItemStatus",
+        params("shelfId", shelfId, "itemId", itemId, "newStatus", newStatus),
+        result);
     return result;
   }
 
@@ -134,8 +143,12 @@ public class BiboTools {
               + "(filtrando pelo bookId quando o usuário se referir ao livro pelo nome). "
               + "Nunca invente ou assuma esses IDs.")
   public String updateReadingProgress(Long shelfId, Long itemId, Integer currentPage) {
-    String result = shelfPort.updateReadingProgress(UserIdHolder.get(), shelfId, itemId, currentPage);
-    log("updateReadingProgress", params("shelfId", shelfId, "itemId", itemId, "currentPage", currentPage), result);
+    String result =
+        shelfPort.updateReadingProgress(UserIdHolder.get(), shelfId, itemId, currentPage);
+    log(
+        "updateReadingProgress",
+        params("shelfId", shelfId, "itemId", itemId, "currentPage", currentPage),
+        result);
     return result;
   }
 
@@ -153,11 +166,18 @@ public class BiboTools {
               + "Se a operação retornar erro (ex.: nome duplicado), informe o usuário com a mensagem recebida.")
   public String createCollection(String name, String description) {
     try {
-      CollectionResult result = collectionPort.createCollection(UserIdHolder.get(), name, description);
-      log("createCollection", params("name", name, "description", description), "Coleção criada com id=" + result.id());
+      CollectionResult result =
+          collectionPort.createCollection(UserIdHolder.get(), name, description);
+      log(
+          "createCollection",
+          params("name", name, "description", description),
+          "Coleção criada com id=" + result.id());
       return "Coleção criada com sucesso. id=" + result.id() + ", nome=" + result.name();
     } catch (RuntimeException e) {
-      log("createCollection", params("name", name, "description", description), "Erro: " + e.getMessage());
+      log(
+          "createCollection",
+          params("name", name, "description", description),
+          "Erro: " + e.getMessage());
       return "Erro: " + e.getMessage();
     }
   }
@@ -179,8 +199,12 @@ public class BiboTools {
               + "IMPORTANTE: use listCollections para obter o collectionId e listShelves para obter o shelfId. "
               + "Nunca invente ou assuma esses IDs.")
   public String removeShelfFromCollection(Long collectionId, Long shelfId) {
-    String result = collectionPort.removeShelfFromCollection(UserIdHolder.get(), collectionId, shelfId);
-    log("removeShelfFromCollection", params("collectionId", collectionId, "shelfId", shelfId), result);
+    String result =
+        collectionPort.removeShelfFromCollection(UserIdHolder.get(), collectionId, shelfId);
+    log(
+        "removeShelfFromCollection",
+        params("collectionId", collectionId, "shelfId", shelfId),
+        result);
     return result;
   }
 
@@ -198,11 +222,18 @@ public class BiboTools {
               + "Nunca invente um bookId. Se a operação retornar erro, informe o usuário com a mensagem recebida.")
   public String createCommunity(String name, String description, String type, Long bookId) {
     try {
-      CommunityResult result = communityPort.createCommunity(UserIdHolder.get(), name, description, type, bookId);
-      log("createCommunity", params("name", name, "type", type, "bookId", bookId), "Comunidade criada com id=" + result.id());
+      CommunityResult result =
+          communityPort.createCommunity(UserIdHolder.get(), name, description, type, bookId);
+      log(
+          "createCommunity",
+          params("name", name, "type", type, "bookId", bookId),
+          "Comunidade criada com id=" + result.id());
       return "Comunidade criada com sucesso. id=" + result.id() + ", nome=" + result.name();
     } catch (RuntimeException e) {
-      log("createCommunity", params("name", name, "type", type, "bookId", bookId), "Erro: " + e.getMessage());
+      log(
+          "createCommunity",
+          params("name", name, "type", type, "bookId", bookId),
+          "Erro: " + e.getMessage());
       return "Erro: " + e.getMessage();
     }
   }
@@ -214,7 +245,10 @@ public class BiboTools {
               + "Se o status retornado for IN_FORMATION ou COMPUTING, informe ao usuário que seu DNA ainda não tem dados suficientes.")
   public UserDnaProfile getUserLiteraryProfile() {
     UserDnaProfile profile = dnaPort.getProfile(UserIdHolder.get());
-    log("getUserLiteraryProfile", params(), "status=" + profile.status() + ", booksRead=" + profile.booksRead());
+    log(
+        "getUserLiteraryProfile",
+        params(),
+        "status=" + profile.status() + ", booksRead=" + profile.booksRead());
     return profile;
   }
 
@@ -238,6 +272,7 @@ public class BiboTools {
     } catch (Exception e) {
       log.warn("Falha ao serializar params de log para toolName={}", toolName);
     }
-    logPort.log(UserIdHolder.get(), ConversationIdHolder.get(), toolName, paramsJson, resultSummary);
+    logPort.log(
+        UserIdHolder.get(), ConversationIdHolder.get(), toolName, paramsJson, resultSummary);
   }
 }

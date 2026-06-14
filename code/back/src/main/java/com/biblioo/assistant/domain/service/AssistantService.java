@@ -145,7 +145,9 @@ public class AssistantService implements AssistantUseCase {
 
   private String generateTitle(String firstMessage) {
     String clean = firstMessage.strip();
-    return clean.length() <= TITLE_MAX_LENGTH ? clean : clean.substring(0, TITLE_MAX_LENGTH - 1) + "…";
+    return clean.length() <= TITLE_MAX_LENGTH
+        ? clean
+        : clean.substring(0, TITLE_MAX_LENGTH - 1) + "…";
   }
 
   private List<Message> buildMessages(List<ConversationTurn> history, String currentMessage) {

@@ -15,6 +15,5 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
   @Query(
       "SELECT COUNT(t) FROM PasswordResetToken t"
           + " WHERE t.userId = :userId AND t.createdAt > :since")
-  long countRecentRequests(
-      @Param("userId") Long userId, @Param("since") LocalDateTime since);
+  long countRecentRequests(@Param("userId") Long userId, @Param("since") LocalDateTime since);
 }

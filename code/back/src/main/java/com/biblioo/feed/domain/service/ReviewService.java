@@ -13,11 +13,9 @@ import com.biblioo.feed.domain.port.out.UserPort;
 import com.biblioo.feed.infrastructure.persistence.CommentRepository;
 import com.biblioo.feed.infrastructure.persistence.LikeRepository;
 import com.biblioo.feed.infrastructure.persistence.ReviewRepository;
-import lombok.RequiredArgsConstructor;
-
 import java.util.List;
 import java.util.Objects;
-
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -71,7 +69,8 @@ public class ReviewService implements ReviewUseCase, UserReviewsUseCase {
 
     long createdAtEpochMilli =
         savedReview.getCreatedAt().toInstant(java.time.ZoneOffset.UTC).toEpochMilli();
-    reviewFanoutPublisherPort.publishReviewCreated(savedReview.getId(), userId, createdAtEpochMilli);
+    reviewFanoutPublisherPort.publishReviewCreated(
+        savedReview.getId(), userId, createdAtEpochMilli);
 
     return savedReview;
   }
@@ -173,17 +172,14 @@ public class ReviewService implements ReviewUseCase, UserReviewsUseCase {
     return reviewRepository.findRecentReviewsByUserId(userId, pageable);
   }
 
-@Override
-public List<ReviewRecord> getReviewsByUserId(Long userId) {
+  @Override
+  public List<ReviewRecord> getReviewsByUserId(Long userId) {
 
-    return reviewRepository.findRatedReviewsByUserId(userId)
-            .stream()
-            .map(review -> new UserReviewsUseCase.ReviewRecord(
-                    review.getId(),
-                    review.getBookId(),
-                    review.getRating(),
-                    review.getUpdatedAt()
-            ))
-            .toList();
-}
+    return reviewRepository.findRatedReviewsByUserId(userId).stream()
+        .map(
+            review ->
+                new UserReviewsUseCase.ReviewRecord(
+                    review.getId(), review.getBookId(), review.getRating(), review.getUpdatedAt()))
+        .toList();
+  }
 }

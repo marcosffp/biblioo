@@ -4,7 +4,6 @@ import com.biblioo.community.domain.model.Community;
 import com.biblioo.community.domain.model.enumeration.CommunityRole;
 import com.biblioo.community.infrastructure.dto.community.CommunityDetailResponse;
 import com.biblioo.community.infrastructure.dto.community.CommunityResponse;
-
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

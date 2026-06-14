@@ -55,7 +55,8 @@ public class OpenSearchConfig {
 
                   if (StringUtils.hasText(user) && StringUtils.hasText(password)) {
                     var cp = new BasicCredentialsProvider();
-                    cp.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(user, password));
+                    cp.setCredentials(
+                        AuthScope.ANY, new UsernamePasswordCredentials(user, password));
                     httpClientBuilder.setDefaultCredentialsProvider(cp);
                   }
 

@@ -19,25 +19,19 @@ public class SimilarAuthorsInitializerService {
   private final SimilarAuthorsComputeService computeService;
 
   /**
-   * CT-20 — Pré-computa o trilho SimilarAuthors para todos os usuários que ainda não têm
-   * resultado salvo. Roda assincronamente após o contexto estar pronto para não atrasar o startup.
-   * É idempotente: ignora usuários que já têm resultado.
+   * CT-20 — Pré-computa o trilho SimilarAuthors para todos os usuários que ainda não têm resultado
+   * salvo. Roda assincronamente após o contexto estar pronto para não atrasar o startup. É
+   * idempotente: ignora usuários que já têm resultado.
    */
   @EventListener(ApplicationReadyEvent.class)
   @Async
   public void preComputeForExistingUsers() {
-    log.info("[SA-Init] Iniciando pré-computação para usuários sem resultado");
 
     List<Long> userIds = computeService.findUsersNeedingInitialization();
 
     if (userIds.isEmpty()) {
-      log.info("[SA-Init] Nenhum usuário precisando de inicialização");
       return;
     }
-
-    log.info(
-        "[SA-Init] {} usuários sem resultado SIMILAR_AUTHORS — iniciando pré-computação",
-        userIds.size());
 
     int ok = 0;
     int fail = 0;
@@ -50,7 +44,5 @@ public class SimilarAuthorsInitializerService {
         fail++;
       }
     }
-
-    log.info("[SA-Init] Pré-computação concluída: ok={} falhas={}", ok, fail);
   }
 }

@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Per-user in-memory rate limiter for Goodreads CSV imports. Each user is allowed at most
- * MAX_IMPORTS imports per WINDOW (sliding refill). Buckets are cached in-memory with a TTL to
- * avoid unbounded growth.
+ * MAX_IMPORTS imports per WINDOW (sliding refill). Buckets are cached in-memory with a TTL to avoid
+ * unbounded growth.
  */
 @Component
 public class ImportRateLimiter {
@@ -21,10 +21,7 @@ public class ImportRateLimiter {
   private static final Duration WINDOW = Duration.ofHours(1);
 
   private final Cache<Long, Bucket> buckets =
-      Caffeine.newBuilder()
-          .expireAfterAccess(2, TimeUnit.HOURS)
-          .maximumSize(50_000)
-          .build();
+      Caffeine.newBuilder().expireAfterAccess(2, TimeUnit.HOURS).maximumSize(50_000).build();
 
   public void checkAndConsume(Long userId) {
     Bucket bucket = buckets.get(userId, this::newBucket);
@@ -39,10 +36,7 @@ public class ImportRateLimiter {
   private Bucket newBucket(Long ignored) {
     return Bucket.builder()
         .addLimit(
-            Bandwidth.builder()
-                .capacity(MAX_IMPORTS)
-                .refillGreedy(MAX_IMPORTS, WINDOW)
-                .build())
+            Bandwidth.builder().capacity(MAX_IMPORTS).refillGreedy(MAX_IMPORTS, WINDOW).build())
         .build();
   }
 }

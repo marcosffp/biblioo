@@ -27,10 +27,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
   @Value("${rate.limit.enabled:true}")
   private boolean enabled;
 
-  private static final Set<String> TRUSTED_PROXIES =
-      Set.of(
-          "127.0.0.1",
-          "::1");
+  private static final Set<String> TRUSTED_PROXIES = Set.of("127.0.0.1", "::1");
 
   private static final int REQUESTS_PER_MINUTE = 10;
 
@@ -38,9 +35,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
   @Override
   protected void doFilterInternal(
-      HttpServletRequest request,
-      HttpServletResponse response,
-      FilterChain filterChain)
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
 
     if (!enabled) {
@@ -53,18 +48,14 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     String bucketKey = clientIp + ":" + endpoint;
 
-    Bucket bucket =
-        buckets.computeIfAbsent(bucketKey, key -> createNewBucket());
+    Bucket bucket = buckets.computeIfAbsent(bucketKey, key -> createNewBucket());
 
     if (bucket.tryConsume(1)) {
       filterChain.doFilter(request, response);
       return;
     }
 
-    log.warn(
-        "Rate limit excedido | ip={} | endpoint={}",
-        clientIp,
-        endpoint);
+    log.warn("Rate limit excedido | ip={} | endpoint={}", clientIp, endpoint);
 
     response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
@@ -72,7 +63,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     response
         .getWriter()
-        .write("""
+        .write(
+            """
             {
               "error": "Too many requests. Please try again later."
             }
@@ -84,14 +76,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     Bandwidth limit =
         Bandwidth.builder()
             .capacity(REQUESTS_PER_MINUTE)
-            .refillGreedy(
-                REQUESTS_PER_MINUTE,
-                Duration.ofMinutes(1))
+            .refillGreedy(REQUESTS_PER_MINUTE, Duration.ofMinutes(1))
             .build();
 
-    return Bucket.builder()
-        .addLimit(limit)
-        .build();
+    return Bucket.builder().addLimit(limit).build();
   }
 
   private String resolveClientIp(HttpServletRequest request) {
@@ -102,8 +90,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
       return remoteAddr;
     }
 
-    String xForwardedFor =
-        request.getHeader("X-Forwarded-For");
+    String xForwardedFor = request.getHeader("X-Forwarded-For");
 
     if (xForwardedFor == null || xForwardedFor.isBlank()) {
       return remoteAddr;
@@ -115,14 +102,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
       return remoteAddr;
     }
 
-    String candidateIp =
-        forwardedIps[forwardedIps.length - 1].trim();
+    String candidateIp = forwardedIps[forwardedIps.length - 1].trim();
 
     if (!isValidIp(candidateIp)) {
 
-      log.warn(
-          "IP inválido recebido no X-Forwarded-For: {}",
-          candidateIp);
+      log.warn("IP inválido recebido no X-Forwarded-For: {}", candidateIp);
 
       return remoteAddr;
     }
@@ -140,17 +124,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
   }
 
-
   private String normalizeEndpoint(String uri) {
 
     if (uri == null || uri.isBlank()) {
       return "unknown";
     }
 
-    return uri
-        .replaceAll("/\\d+", "/{id}")
-        .replaceAll(
-            "/[0-9a-fA-F\\-]{36}",
-            "/{uuid}");
+    return uri.replaceAll("/\\d+", "/{id}").replaceAll("/[0-9a-fA-F\\-]{36}", "/{uuid}");
   }
 }

@@ -99,8 +99,7 @@ public class FeedReadService implements FeedUseCase {
       LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
       readItems =
           reviewRepository
-              .findRecentByAuthorIds(
-                  highVolumeAuthorIds, cutoff, PageRequest.of(0, warmSize / 2))
+              .findRecentByAuthorIds(highVolumeAuthorIds, cutoff, PageRequest.of(0, warmSize / 2))
               .stream()
               .map(
                   r ->
@@ -181,7 +180,6 @@ public class FeedReadService implements FeedUseCase {
     try {
       long remaining = feedCachePort.countRemaining(userId, cursor);
       if (remaining < (long) (size * slidingWindowThreshold)) {
-        log.debug("Sliding window: pré-carregando feed para userId={}", userId);
         List<FeedItem> more = loadFromDb(userId);
         if (!more.isEmpty()) {
           feedCachePort.populate(userId, more);

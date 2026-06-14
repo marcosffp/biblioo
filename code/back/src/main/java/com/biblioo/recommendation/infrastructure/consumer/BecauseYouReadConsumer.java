@@ -38,7 +38,6 @@ public class BecauseYouReadConsumer {
 
     try {
       if (eventLogRepository.existsByEventId(eventId)) {
-        log.info("{} Evento duplicado event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
@@ -49,25 +48,15 @@ public class BecauseYouReadConsumer {
       String finishedAt = payload.get("finishedAt").asText();
       String seedBookTitle = resolveSeedBookTitle(bookId);
 
-      log.info(
-          "{} Processando event_id={} user={} book='{}' (id={})",
-          LOG_PREFIX,
-          eventId,
-          userId,
-          seedBookTitle,
-          bookId);
-
       try {
         eventLogRepository.registerEvent(
             eventId, message.getEventType(), userId, objectMapper.writeValueAsString(payload));
       } catch (DuplicateEventException ex) {
-        log.info("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
+        log.warn("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
       becauseYouReadService.compute(userId, bookId, shelfItemId, finishedAt, seedBookTitle);
-
-      log.info("{} Concluído event_id={} user={} book='{}'", LOG_PREFIX, eventId, userId, seedBookTitle);
 
     } catch (Exception ex) {
       log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
@@ -81,7 +70,11 @@ public class BecauseYouReadConsumer {
     try {
       return bookUseCase.getById(bookId).getTitle();
     } catch (Exception ex) {
-      log.warn("{} Não foi possível resolver título para bookId={}: {}", LOG_PREFIX, bookId, ex.getMessage());
+      log.warn(
+          "{} Não foi possível resolver título para bookId={}: {}",
+          LOG_PREFIX,
+          bookId,
+          ex.getMessage());
       return null;
     }
   }

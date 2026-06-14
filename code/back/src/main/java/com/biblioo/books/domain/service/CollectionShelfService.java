@@ -59,8 +59,7 @@ public class CollectionShelfService {
         @CacheEvict(value = "collection-detail", key = "#userId + ':' + #collectionId"),
         @CacheEvict(value = "collection-list", key = "#userId")
       })
-  public CompletableFuture<Void> removeShelfAsync(
-      Long userId, Long collectionId, Long shelfId) {
+  public CompletableFuture<Void> removeShelfAsync(Long userId, Long collectionId, Long shelfId) {
     Collection collection =
         collectionRepository
             .findByIdAndUserIdWithShelves(collectionId, userId)

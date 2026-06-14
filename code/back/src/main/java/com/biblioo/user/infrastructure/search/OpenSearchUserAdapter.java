@@ -15,9 +15,9 @@ import org.opensearch.client.opensearch.core.IndexRequest;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.transport.endpoints.BooleanResponse;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -59,10 +59,10 @@ public class OpenSearchUserAdapter implements UserSearchPort {
 
       List<User> indexedUsers =
           response.hits().hits().stream()
-          .map(Hit::source)
-          .filter(Objects::nonNull)
-          .map(UserDocument::toUser)
-          .toList();
+              .map(Hit::source)
+              .filter(Objects::nonNull)
+              .map(UserDocument::toUser)
+              .toList();
 
       if (!indexedUsers.isEmpty()) {
         return indexedUsers;

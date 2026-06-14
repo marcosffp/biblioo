@@ -226,7 +226,8 @@ public class UserSeedService {
                       User created = authUseCase.register(username, email, password).user();
                       userUseCase.updateProfile(created.getId(), null, bio, null, null);
                       userUseCase.updateVisibility(created.getId(), isPrivate);
-                      log.debug("[Seed-Users] Usuário '{}' criado (privado={}).", username, isPrivate);
+                      log.debug(
+                          "[Seed-Users] Usuário '{}' criado (privado={}).", username, isPrivate);
                       return userUseCase.getById(created.getId());
                     });
         users.add(user);

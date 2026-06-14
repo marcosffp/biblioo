@@ -56,47 +56,49 @@ public class PasswordResetService implements PasswordResetUseCase {
     this.mobileResetPath = mobileResetPath;
   }
 
-@Override
-@Transactional
-public PasswordResetResponse requestPasswordReset(String email, String clientType) {
+  @Override
+  @Transactional
+  public PasswordResetResponse requestPasswordReset(String email, String clientType) {
 
-  Optional<User> userOpt = userRepo.findByEmail(email);
+    Optional<User> userOpt = userRepo.findByEmail(email);
 
-  if (userOpt.isEmpty()) {
-    log.warn("[PasswordReset] E-mail não encontrado email={} — retornando resposta genérica", email);
+    if (userOpt.isEmpty()) {
+      log.warn(
+          "[PasswordReset] E-mail não encontrado email={} — retornando resposta genérica", email);
+      return new PasswordResetResponse(
+          "Se o e-mail estiver cadastrado, você receberá um link em breve.");
+    }
+
+    User user = userOpt.get();
+
+    LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+    long recentCount = resetTokenRepo.countRecentRequests(user.getId(), oneHourAgo);
+    if (recentCount >= MAX_REQUESTS_PER_HOUR) {
+      log.warn("[PasswordReset] Rate limit atingido userId={}", user.getId());
+      throw new PasswordResetRateLimitException();
+    }
+
+    String rawToken = UUID.randomUUID().toString().replace("-", "");
+    PasswordResetToken resetToken = new PasswordResetToken();
+    resetToken.setToken(rawToken);
+    resetToken.setUserId(user.getId());
+    resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(TOKEN_EXPIRATION_MINUTES));
+    resetTokenRepo.save(resetToken);
+
+    String resetLink = buildResetLink(clientType, rawToken);
+    emailPort.sendPasswordResetEmail(user.getEmail(), user.getUsername(), resetLink);
+
     return new PasswordResetResponse(
         "Se o e-mail estiver cadastrado, você receberá um link em breve.");
   }
 
-  User user = userOpt.get();
-
-  LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
-  long recentCount = resetTokenRepo.countRecentRequests(user.getId(), oneHourAgo);
-  if (recentCount >= MAX_REQUESTS_PER_HOUR) {
-    log.warn("[PasswordReset] Rate limit atingido userId={}", user.getId());
-    throw new PasswordResetRateLimitException();
+  private String buildResetLink(String clientType, String token) {
+    if ("mobile".equalsIgnoreCase(clientType)) {
+      return mobileDeepLinkUrl + mobileResetPath + "?token=" + token;
+    }
+    return frontendUrl + passwordResetPath + "?token=" + token;
   }
 
-  String rawToken = UUID.randomUUID().toString().replace("-", "");
-  PasswordResetToken resetToken = new PasswordResetToken();
-  resetToken.setToken(rawToken);
-  resetToken.setUserId(user.getId());
-  resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(TOKEN_EXPIRATION_MINUTES));
-  resetTokenRepo.save(resetToken);
-
-  String resetLink = buildResetLink(clientType, rawToken);
-  emailPort.sendPasswordResetEmail(user.getEmail(), user.getUsername(), resetLink);
-
-  return new PasswordResetResponse(
-      "Se o e-mail estiver cadastrado, você receberá um link em breve.");
-}
-
-private String buildResetLink(String clientType, String token) {
-  if ("mobile".equalsIgnoreCase(clientType)) {
-    return mobileDeepLinkUrl + mobileResetPath + "?token=" + token;
-  }
-  return frontendUrl + passwordResetPath + "?token=" + token;
-}
   @Override
   @Transactional
   public void resetPassword(String token, String newPassword) {
@@ -131,14 +133,12 @@ private String buildResetLink(String clientType, String token) {
     refreshTokenRepo.deleteAllByUserId(user.getId());
 
     emailPort.sendPasswordChangedConfirmation(user.getEmail(), user.getUsername());
-
   }
 
   @Override
   @Transactional
   public void createPassword(Long userId, String newPassword) {
-    User user =
-        userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+    User user = userRepo.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
 
     if (user.getPasswordHash() != null) {
       throw new PasswordAlreadyExistsException();
@@ -146,6 +146,5 @@ private String buildResetLink(String clientType, String token) {
 
     user.setPasswordHash(passwordEncoder.encode(newPassword));
     userRepo.save(user);
-
   }
 }

@@ -59,7 +59,9 @@ public class VotingBroadcastAdapter implements VotingBroadcastPort {
           envelope,
           msg -> {
             msg.getMessageProperties()
-                .setHeader(WebSocketMessageBroadcastAdapter.HEADER_INSTANCE_ID, applicationInstanceId.getValue());
+                .setHeader(
+                    WebSocketMessageBroadcastAdapter.HEADER_INSTANCE_ID,
+                    applicationInstanceId.getValue());
             msg.getMessageProperties().setHeader("x-envelope-type", "voting");
             return msg;
           });

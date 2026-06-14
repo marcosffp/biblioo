@@ -11,7 +11,6 @@ public interface UserUseCase {
 
   User getByUsername(String username);
 
-
   ProfileAccess getProfile(Long viewerId, String username);
 
   User updateProfile(Long userId, String username, String bio, String avatarUrl, String bannerUrl);
@@ -21,7 +20,6 @@ public interface UserUseCase {
   User uploadAvatar(Long userId, byte[] imageBytes);
 
   User uploadBanner(Long userId, byte[] imageBytes);
-
 
   FollowStatus follow(Long followerId, Long followedId);
 

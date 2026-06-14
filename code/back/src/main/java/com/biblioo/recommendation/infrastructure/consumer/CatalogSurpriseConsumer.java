@@ -25,12 +25,12 @@ public class CatalogSurpriseConsumer {
   private final ObjectMapper objectMapper;
 
   /**
-   * Ouve eventos de COMPLETED e ABANDONED na mesma fila (dois bindings distintos).
-   * Atualiza α ou β no Redis conforme o tipo do evento, alimentando o bandit para o próximo
-   * request de recomendação.
+   * Ouve eventos de COMPLETED e ABANDONED na mesma fila (dois bindings distintos). Atualiza α ou β
+   * no Redis conforme o tipo do evento, alimentando o bandit para o próximo request de
+   * recomendação.
    *
-   * <p>Prefixo "CS:" isola a chave de idempotência dos demais trails que consomem
-   * o mesmo eventId (ex.: BYR e FGN também consomem shelf.reading.completed).
+   * <p>Prefixo "CS:" isola a chave de idempotência dos demais trails que consomem o mesmo eventId
+   * (ex.: BYR e FGN também consomem shelf.reading.completed).
    */
   @RabbitListener(
       queues = RabbitMQConfig.CATALOG_SURPRISE_QUEUE,
@@ -43,7 +43,6 @@ public class CatalogSurpriseConsumer {
     MDC.put("trail", TRAIL);
     try {
       if (eventLogRepository.existsByEventId(logKey)) {
-        log.info("{} Evento duplicado event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
@@ -68,18 +67,14 @@ public class CatalogSurpriseConsumer {
         eventLogRepository.registerEvent(
             logKey, TRAIL, userId, objectMapper.writeValueAsString(message.getPayload()));
       } catch (DuplicateEventException ex) {
-        log.info("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
+        log.warn("{} Race condition em event_id={}, descartando", LOG_PREFIX, eventId);
         return;
       }
 
       catalogSurpriseService.updateBanditState(userId, bookId, status);
 
-      log.info(
-          "{} Concluído event_id={} user={} book={}", LOG_PREFIX, eventId, userId, bookId);
-
     } catch (Exception ex) {
-      log.error(
-          "{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
+      log.error("{} Falha ao processar event_id={}: {}", LOG_PREFIX, eventId, ex.getMessage(), ex);
       throw new RuntimeException(ex);
     } finally {
       MDC.clear();

@@ -47,17 +47,16 @@ public class SimilarAuthorsService {
   private int similarUsersLimit;
 
   /**
-   * Computa e persiste as recomendações SimilarAuthors para o usuário.
-   * Chamado pelo consumer a cada livro concluído.
+   * Computa e persiste as recomendações SimilarAuthors para o usuário. Chamado pelo consumer a cada
+   * livro concluído.
    *
    * <p>Combina nível 1 (autores confirmados) e nível 2 (autores descobertos), aplica ordenação
-   * global por score DESC antes de limitar a {@code candidateLimit}. A zona de sobreposição
-   * [0.6, 0.7] permite que um livro de nível 2 muito bem avaliado preceda um livro de nível 1
-   * mal avaliado — comportamento intencional (CT-15).
+   * global por score DESC antes de limitar a {@code candidateLimit}. A zona de sobreposição [0.6,
+   * 0.7] permite que um livro de nível 2 muito bem avaliado preceda um livro de nível 1 mal
+   * avaliado — comportamento intencional (CT-15).
    */
   @CacheEvict(value = "rec-sa", key = "#userId")
   public void compute(Long userId) {
-    log.info("[SA] Computando trilho SimilarAuthors para userId={}", userId);
 
     List<BookScore> level1 =
         computeService.computeLevel1(userId, minRating, minDaysSinceCompleted, level1Limit);
@@ -73,7 +72,6 @@ public class SimilarAuthorsService {
     combined.addAll(level2);
 
     if (combined.isEmpty()) {
-      log.info("[SA] Nenhum candidato encontrado para userId={}, aplicando fallback global", userId);
       combined = computeService.computeFallback(userId, candidateLimit);
     } else {
       combined =
@@ -84,18 +82,11 @@ public class SimilarAuthorsService {
     }
 
     resultRepository.upsert(userId, TRAIL_TYPE, combined);
-
-    log.info(
-        "[SA] {} recomendações persistidas para userId={} (l1={} l2={})",
-        combined.size(),
-        userId,
-        level1.size(),
-        level2.size());
   }
 
   /**
-   * Retorna resultado pré-computado. Quando nenhum resultado existe, computa e persiste
-   * o fallback global imediatamente para que chamadas subsequentes sejam rápidas (CT-27).
+   * Retorna resultado pré-computado. Quando nenhum resultado existe, computa e persiste o fallback
+   * global imediatamente para que chamadas subsequentes sejam rápidas (CT-27).
    */
   @Cacheable(value = "rec-sa", key = "#userId")
   public SimilarAuthorsResult get(Long userId) {
@@ -105,7 +96,6 @@ public class SimilarAuthorsService {
       return new SimilarAuthorsResult(books);
     }
 
-    log.info("[SA] Sem resultado pré-computado para userId={}, calculando e persistindo fallback", userId);
     List<BookScore> fallback = computeService.computeFallback(userId, candidateLimit);
     fallbackWriter.persistSimilarAuthors(userId, fallback);
 

@@ -4,7 +4,6 @@ import com.biblioo.community.domain.model.BookVoting;
 import com.biblioo.community.domain.model.BookVotingOption;
 import com.biblioo.community.infrastructure.dto.voting.VotingOptionResponse;
 import com.biblioo.community.infrastructure.dto.voting.VotingResponse;
-
 import java.util.List;
 import org.mapstruct.Mapper;
 

@@ -73,7 +73,10 @@ public class FeedPostController {
   // ── CRUD do Post ────────────────────────────────────────────────────────────
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @Operation(summary = "Cria um post no feed", description = "Permite texto, até 5 imagens, 1 GIF, tags, marcação de spoiler e vínculo opcional com um livro.")
+  @Operation(
+      summary = "Cria um post no feed",
+      description =
+          "Permite texto, até 5 imagens, 1 GIF, tags, marcação de spoiler e vínculo opcional com um livro.")
   public ResponseEntity<FeedPostResponse> createPost(
       @AuthenticationPrincipal UserDetails principal,
       @RequestParam(required = false) String text,
@@ -99,7 +102,9 @@ public class FeedPostController {
   }
 
   @PutMapping(value = "/{postId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @Operation(summary = "Edita um post", description = "Atualiza texto, imagens, GIF, tags, spoiler e vínculo com livro.")
+  @Operation(
+      summary = "Edita um post",
+      description = "Atualiza texto, imagens, GIF, tags, spoiler e vínculo com livro.")
   public ResponseEntity<FeedPostResponse> updatePost(
       @AuthenticationPrincipal UserDetails principal,
       @PathVariable Long postId,
@@ -121,8 +126,15 @@ public class FeedPostController {
 
     FeedPost result =
         feedPostUseCase.updatePost(
-            userId, postId, bookId, safeText, parseImages(images), imagesToDeleteUrls,
-            parseGif(gif), tags, hasSpoiler);
+            userId,
+            postId,
+            bookId,
+            safeText,
+            parseImages(images),
+            imagesToDeleteUrls,
+            parseGif(gif),
+            tags,
+            hasSpoiler);
 
     return ResponseEntity.ok(feedPostMapper.toResponse(result));
   }
@@ -143,7 +155,9 @@ public class FeedPostController {
     Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     FeedPost post = feedPostUseCase.getPostById(postId);
     return ResponseEntity.ok(
-        feedPostMapper.toResponse(post).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, postId)));
+        feedPostMapper
+            .toResponse(post)
+            .copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, postId)));
   }
 
   @GetMapping("/{postId}/basic")
@@ -163,7 +177,8 @@ public class FeedPostController {
     List<Long> ids = posts.getContent().stream().map(FeedPost::getId).toList();
     Set<Long> likedIds = likeStatusResolver.resolve(viewerId, ids);
     return ResponseEntity.ok(
-        posts.map(p -> feedPostMapper.toResponse(p).copyWithLikeStatus(likedIds.contains(p.getId()))));
+        posts.map(
+            p -> feedPostMapper.toResponse(p).copyWithLikeStatus(likedIds.contains(p.getId()))));
   }
 
   @PostMapping("/{postId}/like")
@@ -210,7 +225,9 @@ public class FeedPostController {
             viewerId));
   }
 
-  @PutMapping(value = "/{postId}/comments/{commentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PutMapping(
+      value = "/{postId}/comments/{commentId}",
+      consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Edita um comentário")
   public ResponseEntity<CommentResponse> updateComment(
       @AuthenticationPrincipal UserDetails principal,
@@ -224,7 +241,12 @@ public class FeedPostController {
     validateFiles(images, gif);
     Comment updated =
         commentUseCase.updateComment(
-            userId, commentId, sanitize(text), parseImages(images), imagesToDeleteUrls, parseGif(gif));
+            userId,
+            commentId,
+            sanitize(text),
+            parseImages(images),
+            imagesToDeleteUrls,
+            parseGif(gif));
     return ResponseEntity.ok(commentMapper.toResponse(updated));
   }
 
@@ -244,7 +266,9 @@ public class FeedPostController {
     Long viewerId = principal != null ? Long.parseLong(principal.getUsername()) : null;
     Comment comment = commentUseCase.getCommentById(commentId);
     return ResponseEntity.ok(
-        commentMapper.toResponse(comment).copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, commentId)));
+        commentMapper
+            .toResponse(comment)
+            .copyWithLikeStatus(likeStatusResolver.isLiked(viewerId, commentId)));
   }
 
   @PostMapping("/{postId}/comments/{commentId}/like")
@@ -274,7 +298,8 @@ public class FeedPostController {
         throw new FeedPostBusinessException("GIF excede o limite de 10 MB.");
       try {
         String type = new Tika().detect(gif.getInputStream());
-        if (!"image/gif".equals(type)) throw new FeedPostBusinessException("O arquivo deve ser image/gif.");
+        if (!"image/gif".equals(type))
+          throw new FeedPostBusinessException("O arquivo deve ser image/gif.");
       } catch (IOException e) {
         throw new FeedPostBusinessException("Erro ao processar o GIF.");
       }
@@ -297,19 +322,23 @@ public class FeedPostController {
     if (images == null) return new ArrayList<>();
     return new ArrayList<>(
         images.stream()
-            .map(f -> {
-              try { return f.getBytes(); }
-              catch (IOException e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Falha ao ler imagem.");
-              }
-            })
+            .map(
+                f -> {
+                  try {
+                    return f.getBytes();
+                  } catch (IOException e) {
+                    throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR, "Falha ao ler imagem.");
+                  }
+                })
             .toList());
   }
 
   private byte[] parseGif(MultipartFile gif) {
     if (gif == null) return null;
-    try { return gif.getBytes(); }
-    catch (IOException e) {
+    try {
+      return gif.getBytes();
+    } catch (IOException e) {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Falha ao ler GIF.");
     }
   }

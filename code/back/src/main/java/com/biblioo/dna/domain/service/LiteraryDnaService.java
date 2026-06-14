@@ -32,7 +32,13 @@ public class LiteraryDnaService implements LiteraryDnaUseCase {
   public LiteraryDna getDna(Long userId) {
     return literaryDnaRepository
         .findByUserId(userId)
-        .orElse(LiteraryDna.builder().userId(userId).status(DnaStatus.IN_FORMATION).booksReadCount(0).totalPagesRead(0).build());
+        .orElse(
+            LiteraryDna.builder()
+                .userId(userId)
+                .status(DnaStatus.IN_FORMATION)
+                .booksReadCount(0)
+                .totalPagesRead(0)
+                .build());
   }
 
   @Override
@@ -57,11 +63,7 @@ public class LiteraryDnaService implements LiteraryDnaUseCase {
     DnaResult result = calculationService.calculate(history, reviews);
     applyResult(dna, result);
     literaryDnaRepository.save(dna);
-
   }
-
-
-
 
   private void applyResult(LiteraryDna dna, DnaResult result) {
     dna.setStatus(DnaStatus.COMPUTED);

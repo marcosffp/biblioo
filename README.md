@@ -32,6 +32,7 @@
 ![Cloud Run](https://img.shields.io/badge/Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
 ![Cloud Build](https://img.shields.io/badge/Cloud_Build-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![TiDB Cloud](https://img.shields.io/badge/TiDB_Cloud-E1012B?style=for-the-badge&logo=tidb&logoColor=white)
 ![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)
@@ -180,6 +181,16 @@ Cloud Build trigger — acionado exclusivamente por push na branch prod
     ├─ gcloud run deploy biblioo-portfolio
     └─ gcloud run deploy biblioo-producao   ← troca de revisão sem downtime
 ```
+
+### Frontend Web
+
+O frontend web está implantado na **Vercel**, com integração direta ao repositório GitHub: cada push na branch `main` aciona um deploy automático.
+
+| | URL |
+|---|---|
+| Frontend Web | [`biblioo-rust.vercel.app`](https://biblioo-rust.vercel.app) |
+
+> A variável `NEXT_PUBLIC_API_URL` está configurada na Vercel apontando para o backend de **Produção** (`biblioo-producao-595140312227.us-central1.run.app`).
 
 ---
 

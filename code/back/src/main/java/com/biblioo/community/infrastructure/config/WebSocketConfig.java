@@ -26,10 +26,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   private String allowedOrigins;
 
   // @Lazy garante que o bean é recuperado do contexto já totalmente inicializado
-  // (afterPropertiesSet chamado), não durante a fase de construção de @EnableWebSocketMessageBroker.
-  @Autowired
-  @Lazy
-  private TaskScheduler webSocketHeartbeatScheduler;
+  // (afterPropertiesSet chamado), não durante a fase de construção de
+  // @EnableWebSocketMessageBroker.
+  @Autowired @Lazy private TaskScheduler webSocketHeartbeatScheduler;
 
   @Override
   public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -49,8 +48,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
    * Scheduler dedicado ao heartbeat do SimpleBroker. initialize() é chamado explicitamente para
    * garantir que o pool de threads existe no momento em que o SimpleBroker fizer o primeiro
    * schedule — independente de quando o Spring chamar afterPropertiesSet(). removeOnCancelPolicy
-   * garante que tasks de sessões fechadas sejam removidas da fila imediatamente, evitando
-   * acúmulo de referências de conexões zumbi.
+   * garante que tasks de sessões fechadas sejam removidas da fila imediatamente, evitando acúmulo
+   * de referências de conexões zumbi.
    */
   @Bean
   TaskScheduler webSocketHeartbeatScheduler() {

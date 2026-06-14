@@ -103,7 +103,6 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
     publishTypingToOtherInstances(destination, payload);
   }
 
-
   private void scheduleOrSend(String destination, MessageEventPayload event) {
     if (TransactionSynchronizationManager.isActualTransactionActive()) {
       TransactionSynchronizationManager.registerSynchronization(
@@ -132,12 +131,15 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
           "",
           envelope,
           msg -> {
-            msg.getMessageProperties().setHeader(HEADER_INSTANCE_ID, applicationInstanceId.getValue());
+            msg.getMessageProperties()
+                .setHeader(HEADER_INSTANCE_ID, applicationInstanceId.getValue());
             return msg;
           });
     } catch (Exception e) {
-      log.warn("[WebSocket] Falha ao publicar broadcast cross-instance dest={}: {}",
-          destination, e.getMessage());
+      log.warn(
+          "[WebSocket] Falha ao publicar broadcast cross-instance dest={}: {}",
+          destination,
+          e.getMessage());
     }
   }
 
@@ -148,14 +150,17 @@ public class WebSocketMessageBroadcastAdapter implements MessageBroadcastPort {
           "",
           payload,
           msg -> {
-            msg.getMessageProperties().setHeader(HEADER_INSTANCE_ID, applicationInstanceId.getValue());
+            msg.getMessageProperties()
+                .setHeader(HEADER_INSTANCE_ID, applicationInstanceId.getValue());
             msg.getMessageProperties().setHeader("x-envelope-type", "typing");
             msg.getMessageProperties().setHeader("x-destination", destination);
             return msg;
           });
     } catch (Exception e) {
-      log.warn("[WebSocket] Falha ao publicar typing cross-instance dest={}: {}",
-          destination, e.getMessage());
+      log.warn(
+          "[WebSocket] Falha ao publicar typing cross-instance dest={}: {}",
+          destination,
+          e.getMessage());
     }
   }
 }

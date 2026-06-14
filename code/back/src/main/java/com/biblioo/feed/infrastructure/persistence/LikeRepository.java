@@ -29,7 +29,5 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
               + " VALUES (:contentId, :userId, :type, NOW())",
       nativeQuery = true)
   int insertIgnore(
-      @Param("contentId") Long contentId,
-      @Param("userId") Long userId,
-      @Param("type") String type);
+      @Param("contentId") Long contentId, @Param("userId") Long userId, @Param("type") String type);
 }
