@@ -615,3 +615,50 @@ export async function getActiveReadingDays(token?: string | null): Promise<numbe
   return data.count ?? 0;
 }
 
+export interface GoodreadsImportError {
+  rowNumber: number;
+  title: string;
+  reason: string;
+}
+
+export interface GoodreadsImportResult {
+  totalRows: number;
+  imported: number;
+  skipped: number;
+  failed: number;
+  reviewsImported: number;
+  errors: GoodreadsImportError[];
+}
+
+export async function importGoodreadsLibrary(file: File): Promise<GoodreadsImportResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/import/goodreads`, {
+      method: "POST",
+      headers: requiredBearerHeaders(),
+      body: formData,
+    });
+  } catch {
+    throw new BookcaseApiError("Não foi possível conectar ao servidor para importar.");
+  }
+
+  if (!response.ok) {
+    let message = "Erro ao importar dados do Goodreads.";
+    try {
+      const body = (await response.json()) as { message?: string };
+      if (body?.message) message = body.message;
+    } catch {
+      try {
+        const text = await response.text();
+        if (text) message = text;
+      } catch { /* ignore */ }
+    }
+    throw new BookcaseApiError(message, response.status);
+  }
+
+  return response.json() as Promise<GoodreadsImportResult>;
+}
+

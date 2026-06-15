@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
-import { Activity, BookOpen, BookOpenCheck, Flame, Sparkles, Users } from "lucide-react";
+import { Activity, BookOpen, BookOpenCheck, Flame, Sparkles, Upload, Users } from "lucide-react";
 import {
   AppShell,
   Button,
@@ -34,9 +34,11 @@ import {
   getMyBookReview,
   getShelfItemById,
   getActiveReadingDays,
+  importGoodreadsLibrary,
   removeBookFromShelf,
   updateBookReview,
   updateShelfItemProgress,
+  type GoodreadsImportResult,
 } from "@/services/bookcase";
 import {
   getBookById,
@@ -68,6 +70,7 @@ const tabs = ["Biblioteca", "Atividade", "Comunidades"] as const;
 export default function PerfilPage() {
   const [activeTab, setActiveTab] = React.useState<(typeof tabs)[number]>("Biblioteca");
   const [shareCapsuleOpen, setShareCapsuleOpen] = React.useState(false);
+  const [isGoodreadsImportOpen, setIsGoodreadsImportOpen] = React.useState(false);
   const [isPublicProfile, setIsPublicProfile] = React.useState(true);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
@@ -635,6 +638,14 @@ export default function PerfilPage() {
               <Sparkles size={14} />
               Compartilhar cápsula
             </button>
+            <button
+              type="button"
+              onClick={() => setIsGoodreadsImportOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <Upload size={14} />
+              Importar Goodreads
+            </button>
             <Link
               href="/profile/edit"
               className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-transparent px-4 py-2 text-sm text-gray-700 shadow-sm hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700"
@@ -768,6 +779,10 @@ export default function PerfilPage() {
         favoriteAuthors={favoriteAuthors}
       />
 
+      {isGoodreadsImportOpen && (
+        <GoodreadsImportModal onClose={() => setIsGoodreadsImportOpen(false)} />
+      )}
+
       <ShelfBookDetailsPanel
         isOpen={isShelfBookDetailsOpen}
         book={selectedShelfBook}
@@ -791,6 +806,248 @@ export default function PerfilPage() {
         errorMessage={bookDetailsError}
       />
     </AppShell>
+  );
+}
+
+// ─── Goodreads Import Modal ───────────────────────────────────────────────────
+
+function GoodreadsImportModal({ onClose }: Readonly<{ onClose: () => void }>) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [status, setStatus] = React.useState<"idle" | "importing" | "done" | "error">("idle");
+  const [result, setResult] = React.useState<GoodreadsImportResult | null>(null);
+  const [errorMessage, setErrorMessage] = React.useState("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+    setErrorMessage("");
+  };
+
+  const handleImport = () => {
+    if (!selectedFile) return;
+    async function doImport() {
+      setStatus("importing");
+      setErrorMessage("");
+      try {
+        const importResult = await importGoodreadsLibrary(selectedFile!);
+        setResult(importResult);
+        setStatus("done");
+      } catch (err) {
+        setErrorMessage(
+          err instanceof BookcaseApiError && err.message
+            ? err.message
+            : "Não foi possível importar os dados. Tente novamente.",
+        );
+        setStatus("error");
+      }
+    }
+    void doImport();
+  };
+
+  const handleRetry = () => {
+    setStatus("idle");
+    setSelectedFile(null);
+    setResult(null);
+    setErrorMessage("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const isImporting = status === "importing";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      onClick={isImporting ? undefined : onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl bg-card p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {status === "idle" || status === "error" ? (
+          <>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <Upload size={18} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Importar do Goodreads</h3>
+                <p className="text-xs text-muted-foreground">Adicione sua biblioteca à estante</p>
+              </div>
+            </div>
+
+            {status === "error" && (
+              <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorMessage}
+              </div>
+            )}
+
+            <p className="mb-5 text-sm text-muted-foreground">
+              No Goodreads, vá em{" "}
+              <span className="font-medium text-foreground">Minha conta → Importar/Exportar</span>{" "}
+              e exporte sua biblioteca. Depois selecione o arquivo{" "}
+              <span className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
+                goodreads_library_export.csv
+              </span>{" "}
+              abaixo.
+            </p>
+
+            <button
+              type="button"
+              className="mb-5 w-full cursor-pointer rounded-xl border-2 border-dashed border-border bg-muted/30 px-6 py-8 text-center transition-colors hover:border-emerald-400 hover:bg-emerald-50/30"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {selectedFile ? (
+                <>
+                  <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-foreground">{selectedFile.name}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024).toFixed(1)} KB — Clique para trocar
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Upload size={18} />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">Clique para selecionar o arquivo CSV</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Máximo 10 MB</p>
+                </>
+              )}
+            </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.txt"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 rounded-xl border border-border py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={!selectedFile}
+                className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Importar
+              </button>
+            </div>
+          </>
+        ) : isImporting ? (
+          <div className="flex flex-col items-center py-10">
+            <div className="mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
+            <p className="text-base font-semibold text-foreground">Importando seus livros...</p>
+            <p className="mt-1 text-sm text-muted-foreground">Isso pode levar alguns instantes.</p>
+          </div>
+        ) : (
+          <>
+            <div className="mb-4 flex items-center gap-3">
+              {result && (result.imported > 0 || result.skipped > 0) ? (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </div>
+              )}
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Importação concluída</h3>
+                <p className="text-xs text-muted-foreground">{result?.totalRows ?? 0} linhas processadas</p>
+              </div>
+            </div>
+
+            {result && (
+              <div className="mb-5 grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-emerald-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-emerald-700">{result.imported}</p>
+                  <p className="mt-0.5 text-xs text-emerald-600">Importados</p>
+                </div>
+                <div className="rounded-xl bg-blue-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-blue-700">{result.skipped}</p>
+                  <p className="mt-0.5 text-xs text-blue-600">Já existiam</p>
+                </div>
+                <div className={`rounded-xl p-3 text-center ${result.failed > 0 ? "bg-red-50" : "bg-muted/50"}`}>
+                  <p className={`text-2xl font-bold ${result.failed > 0 ? "text-red-700" : "text-muted-foreground"}`}>
+                    {result.failed}
+                  </p>
+                  <p className={`mt-0.5 text-xs ${result.failed > 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                    Falhas
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {result && result.errors.length > 0 && (
+              <div className="mb-5 max-h-44 overflow-y-auto rounded-xl border border-border">
+                <div className="sticky top-0 border-b border-border bg-muted/80 px-4 py-2">
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {result.errors.length} erro(s) detalhados
+                  </p>
+                </div>
+                <ul className="divide-y divide-border">
+                  {result.errors.map((err) => (
+                    <li key={err.rowNumber} className="px-4 py-2.5">
+                      <p className="text-xs font-medium text-foreground">
+                        {err.title || `Linha ${err.rowNumber}`}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{err.reason}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="flex-1 rounded-xl border border-border py-2.5 text-sm text-foreground transition-colors hover:bg-muted"
+              >
+                Importar outro
+              </button>
+              {(result?.imported ?? 0) > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+                >
+                  Ver biblioteca
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+                >
+                  Fechar
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
