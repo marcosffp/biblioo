@@ -221,15 +221,18 @@ public class LibrarySeedService {
     if (!users.isEmpty()) {
       try {
         if (shelfUseCase.listShelves(users.get(0).getId()).size() >= SHELVES_PER_USER) {
+          log.info("[Seed-Library] Bibliotecas já populadas. Pulando etapa.");
           return;
         }
       } catch (Exception ignored) {
       }
     }
 
+    log.info("[Seed-Library] Populando bibliotecas para {} usuários...", users.size());
     for (int ui = 0; ui < users.size(); ui++) {
       User user = users.get(ui);
       try {
+        log.info("[Seed-Library] Usuário {}/{}: {}", ui + 1, users.size(), user.getUsername());
         List<Shelf> shelves = ensureShelves(user.getId(), ui);
         populateShelfItems(user.getId(), shelves, bookIds, ui);
         ensureCollections(user.getId(), shelves, ui);
@@ -238,6 +241,7 @@ public class LibrarySeedService {
         log.warn("[Seed-Library] Falha para '{}': {}", user.getUsername(), e.getMessage());
       }
     }
+    log.info("[Seed-Library] Concluído para todos os usuários.");
   }
 
   private List<Shelf> ensureShelves(Long userId, int userIndex) {

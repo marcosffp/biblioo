@@ -165,12 +165,14 @@ public class FeedSeedService {
         if (reviewUseCase
             .getRecentReviewsByUserId(users.get(0).getId(), PageRequest.of(0, 1))
             .hasContent()) {
+          log.info("[Seed-Feed] Feed já populado. Pulando etapa.");
           return;
         }
       } catch (Exception ignored) {
       }
     }
 
+    log.info("[Seed-Feed] Populando feed: reviews, posts, comentários e curtidas...");
     Map<Long, Book> booksById = loadBooks(bookIds);
 
     createMissingReviews(users, booksById);
@@ -185,16 +187,29 @@ public class FeedSeedService {
 
     addMissingReplies(users, topComments);
     addMissingLikes(users, allReviews, allPosts, topComments);
+    log.info("[Seed-Feed] Concluído: {} reviews, {} posts, {} comentários.",
+        allReviews.size(), allPosts.size(), topComments.size());
   }
 
   private Map<Long, Book> loadBooks(List<Long> bookIds) {
     Map<Long, Book> map = new HashMap<>();
     try {
-      bookRepository.findAllById(bookIds).forEach(b -> map.put(b.getId(), b));
+      List<List<Long>> batches = partition(bookIds, 50);
+      for (List<Long> batch : batches) {
+        bookRepository.findAllById(batch).forEach(b -> map.put(b.getId(), b));
+      }
     } catch (Exception e) {
       log.warn("[Seed-Feed] Falha ao carregar metadados dos livros: {}", e.getMessage());
     }
     return map;
+  }
+
+  private static <T> List<List<T>> partition(List<T> list, int size) {
+    List<List<T>> parts = new ArrayList<>();
+    for (int i = 0; i < list.size(); i += size) {
+      parts.add(list.subList(i, Math.min(i + size, list.size())));
+    }
+    return parts;
   }
 
   private String titleOf(Map<Long, Book> books, Long bookId) {

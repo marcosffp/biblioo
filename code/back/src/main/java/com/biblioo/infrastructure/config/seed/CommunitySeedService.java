@@ -656,13 +656,16 @@ public class CommunitySeedService {
     try {
       if (communityUseCase.listCommunities("", PageRequest.of(0, 1)).getTotalElements()
           >= COMMUNITIES.size()) {
+        log.info("[Seed-Community] {} comunidades já existem. Pulando etapa.", COMMUNITIES.size());
         return;
       }
     } catch (Exception ignored) {
     }
 
+    log.info("[Seed-Community] Criando {} comunidades...", COMMUNITIES.size());
     for (int ci = 0; ci < COMMUNITIES.size(); ci++) {
       CommunityDef def = COMMUNITIES.get(ci);
+      log.info("[Seed-Community] {}/{}: '{}'", ci + 1, COMMUNITIES.size(), def.name());
       try {
         Community community = ensureCommunity(def, users, bookIds, ci);
         if (community == null) continue;
@@ -680,6 +683,7 @@ public class CommunitySeedService {
         log.warn("[Seed-Community] Falha na comunidade '{}': {}", def.name(), e.getMessage());
       }
     }
+    log.info("[Seed-Community] Concluído.");
   }
 
   private Community ensureCommunity(
