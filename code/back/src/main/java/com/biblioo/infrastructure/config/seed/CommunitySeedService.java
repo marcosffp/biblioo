@@ -64,18 +64,54 @@ public class CommunitySeedService {
               3,
               new int[] {17, 0, 9, 12, 18, 5},
               new String[][] {
-                {"0", "Bem-vindos ao clube dos fãs de Tolkien! Aqui discutimos tudo sobre a Terra-Média."},
-                {"1", "Acabei de terminar O Silmarillion pela primeira vez. Ainda estou digerindo tudo isso."},
-                {"2", "O Silmarillion é incrível. Tolkien criou uma mitologia completa do zero. Impressionante."},
-                {"3", "A história de Beren e Lúthien é emocionante demais. Uma das histórias de amor mais épicas que já li."},
-                {"0", "Alguém já leu Os Filhos de Húrin? É o mais sombrio de todos, mas muito rico narrativamente."},
-                {"4", "Estou relendo O Hobbit antes de atacar a trilogia pela primeira vez. Alguma dica?"},
-                {"0", "Leia com calma, sem pressão. O Hobbit já prepara o terreno de forma deliciosa."},
-                {"5", "Não pule as canções e poemas! Tolkien era poeta também, e fazem parte da experiência completa."},
-                {"2", "A trilogia do Jackson envelheceu muito bem. O Abismo de Helm continua sendo uma das melhores batalhas do cinema."},
-                {"6", "O livro tem uma atmosfera ainda mais pesada nessa cena. O discurso de Theoden arrepia."},
-                {"1", "Curioso: alguém acompanha a série Anéis do Poder? Diverge bastante, mas amo qualquer coisa na Terra-Média."},
-                {"3", "Estou acompanhando. Tem problemas de fidelidade ao material, mas a produção visual é deslumbrante."}
+                {
+                  "0",
+                  "Bem-vindos ao clube dos fãs de Tolkien! Aqui discutimos tudo sobre a Terra-Média."
+                },
+                {
+                  "1",
+                  "Acabei de terminar O Silmarillion pela primeira vez. Ainda estou digerindo tudo isso."
+                },
+                {
+                  "2",
+                  "O Silmarillion é incrível. Tolkien criou uma mitologia completa do zero. Impressionante."
+                },
+                {
+                  "3",
+                  "A história de Beren e Lúthien é emocionante demais. Uma das histórias de amor mais épicas que já li."
+                },
+                {
+                  "0",
+                  "Alguém já leu Os Filhos de Húrin? É o mais sombrio de todos, mas muito rico narrativamente."
+                },
+                {
+                  "4",
+                  "Estou relendo O Hobbit antes de atacar a trilogia pela primeira vez. Alguma dica?"
+                },
+                {
+                  "0",
+                  "Leia com calma, sem pressão. O Hobbit já prepara o terreno de forma deliciosa."
+                },
+                {
+                  "5",
+                  "Não pule as canções e poemas! Tolkien era poeta também, e fazem parte da experiência completa."
+                },
+                {
+                  "2",
+                  "A trilogia do Jackson envelheceu muito bem. O Abismo de Helm continua sendo uma das melhores batalhas do cinema."
+                },
+                {
+                  "6",
+                  "O livro tem uma atmosfera ainda mais pesada nessa cena. O discurso de Theoden arrepia."
+                },
+                {
+                  "1",
+                  "Curioso: alguém acompanha a série Anéis do Poder? Diverge bastante, mas amo qualquer coisa na Terra-Média."
+                },
+                {
+                  "3",
+                  "Estou acompanhando. Tem problemas de fidelidade ao material, mas a produção visual é deslumbrante."
+                }
               },
               "Qual obra do Tolkien lemos juntos este mês?",
               true),
@@ -88,18 +124,54 @@ public class CommunitySeedService {
               6,
               new int[] {0, 12, 14, 4, 16, 3},
               new String[][] {
-                {"0", "Bem-vindos! Um espaço para FC em todas as suas facetas. Clássicos, modernos, hard sci-fi, space opera."},
-                {"5", "Finalmente uma comunidade assim! Terminei Duna pela segunda vez e cada releitura revela algo novo."},
-                {"2", "Duna é uma obra-prima de construção de mundo e crítica política. Única no gênero."},
-                {"3", "Fundação do Asimov foi o que me fez amar FC. A série do Apple TV+ também está muito boa."},
-                {"4", "Eu, Robô é essencial para entender a FC posterior. As Três Leis moldaram todo o gênero."},
-                {"1", "Alguém leu Jogador N.1? Li em dois dias. O livro é muito mais detalhado que o filme."},
-                {"0", "Li quando lançou! As referências de cultura pop são mais ricas e profundas na versão escrita."},
-                {"5", "Projeto Marte do Andy Weir é quase um manual de sobrevivência. A ciência é fascinantemente real."},
-                {"2", "Para FC mais literária: A Mão Esquerda das Trevas da Ursula Le Guin. Uma análise de gênero brilhante."},
-                {"3", "Le Guin é subestimadíssima! Uma das maiores do gênero e pouco reconhecida fora dos círculos literários."},
-                {"6", "Alguém tem sugestão de FC lançada nos últimos 5 anos? Quero renovar minha lista."},
-                {"4", "Exhalation do Ted Chiang! Contos que são ensaios filosóficos sobre o humano. Cada um é uma joia."}
+                {
+                  "0",
+                  "Bem-vindos! Um espaço para FC em todas as suas facetas. Clássicos, modernos, hard sci-fi, space opera."
+                },
+                {
+                  "5",
+                  "Finalmente uma comunidade assim! Terminei Duna pela segunda vez e cada releitura revela algo novo."
+                },
+                {
+                  "2",
+                  "Duna é uma obra-prima de construção de mundo e crítica política. Única no gênero."
+                },
+                {
+                  "3",
+                  "Fundação do Asimov foi o que me fez amar FC. A série do Apple TV+ também está muito boa."
+                },
+                {
+                  "4",
+                  "Eu, Robô é essencial para entender a FC posterior. As Três Leis moldaram todo o gênero."
+                },
+                {
+                  "1",
+                  "Alguém leu Jogador N.1? Li em dois dias. O livro é muito mais detalhado que o filme."
+                },
+                {
+                  "0",
+                  "Li quando lançou! As referências de cultura pop são mais ricas e profundas na versão escrita."
+                },
+                {
+                  "5",
+                  "Projeto Marte do Andy Weir é quase um manual de sobrevivência. A ciência é fascinantemente real."
+                },
+                {
+                  "2",
+                  "Para FC mais literária: A Mão Esquerda das Trevas da Ursula Le Guin. Uma análise de gênero brilhante."
+                },
+                {
+                  "3",
+                  "Le Guin é subestimadíssima! Uma das maiores do gênero e pouco reconhecida fora dos círculos literários."
+                },
+                {
+                  "6",
+                  "Alguém tem sugestão de FC lançada nos últimos 5 anos? Quero renovar minha lista."
+                },
+                {
+                  "4",
+                  "Exhalation do Ted Chiang! Contos que são ensaios filosóficos sobre o humano. Cada um é uma joia."
+                }
               },
               "Próxima leitura do clube de FC?",
               false),
@@ -112,18 +184,45 @@ public class CommunitySeedService {
               5,
               new int[] {1, 16, 10, 13, 11},
               new String[][] {
-                {"0", "Bem-vindos ao Leitores de Clássicos! Aqui discutimos as grandes obras que moldaram a literatura."},
-                {"1", "Orgulho e Preconceito continua perfeito depois de 200 anos. A ironia de Austen é cirúrgica e moderna."},
-                {"2", "Austen era brilhante na crítica social velada. Elizabeth Bennet é um ícone literário até hoje."},
-                {"3", "Estou relendo Dom Casmurro. A questão 'Capitu culpada?' me parece proposital por Machado. Ambiguidade genial."},
-                {"0", "Machado de Assis é um dos maiores da literatura mundial. É criminoso que não seja mais reconhecido lá fora."},
-                {"4", "Frankenstein me surpreendeu. Pensei que era terror puro, mas é uma reflexão profunda sobre criação e responsabilidade."},
+                {
+                  "0",
+                  "Bem-vindos ao Leitores de Clássicos! Aqui discutimos as grandes obras que moldaram a literatura."
+                },
+                {
+                  "1",
+                  "Orgulho e Preconceito continua perfeito depois de 200 anos. A ironia de Austen é cirúrgica e moderna."
+                },
+                {
+                  "2",
+                  "Austen era brilhante na crítica social velada. Elizabeth Bennet é um ícone literário até hoje."
+                },
+                {
+                  "3",
+                  "Estou relendo Dom Casmurro. A questão 'Capitu culpada?' me parece proposital por Machado. Ambiguidade genial."
+                },
+                {
+                  "0",
+                  "Machado de Assis é um dos maiores da literatura mundial. É criminoso que não seja mais reconhecido lá fora."
+                },
+                {
+                  "4",
+                  "Frankenstein me surpreendeu. Pensei que era terror puro, mas é uma reflexão profunda sobre criação e responsabilidade."
+                },
                 {"5", "Mary Shelley escreveu isso aos 18 anos. Simplesmente impressionante."},
-                {"1", "Drácula é melhor do que eu esperava! A estrutura epistolar torna a leitura muito mais imersiva."},
-                {"2", "O romance epistolar do Bram Stoker é muito mais sofisticado do que as adaptações cinematográficas."},
+                {
+                  "1",
+                  "Drácula é melhor do que eu esperava! A estrutura epistolar torna a leitura muito mais imersiva."
+                },
+                {
+                  "2",
+                  "O romance epistolar do Bram Stoker é muito mais sofisticado do que as adaptações cinematográficas."
+                },
                 {"3", "Qual clássico vocês indicam para quem está começando com o gênero?"},
                 {"0", "O Pequeno Príncipe! Curto, poético, com várias camadas de interpretação."},
-                {"4", "Dom Casmurro para literatura brasileira. Ou Orgulho e Preconceito para literatura estrangeira."}
+                {
+                  "4",
+                  "Dom Casmurro para literatura brasileira. Ou Orgulho e Preconceito para literatura estrangeira."
+                }
               },
               "Qual clássico lemos juntos no próximo mês?",
               true),
@@ -136,17 +235,47 @@ public class CommunitySeedService {
               8,
               new int[] {2, 15, 14, 9},
               new String[][] {
-                {"0", "Bem-vindos ao Suspense e Terror! Espaço para discussões com cuidado com spoilers."},
-                {"1", "A Paciente Silenciosa foi o thriller que mais me prendeu este ano. O final... não vi chegando."},
-                {"2", "Concordo! A estrutura narrativa de Michaelides é genial. Reli a última parte duas vezes."},
-                {"0", "It do King vai muito além do terror. É uma análise profunda do medo da infância e da amizade."},
-                {"3", "O Iluminado é aterrorizante de forma diferente. O isolamento e a loucura crescem de forma sufocante."},
-                {"4", "Caixa de Pássaros me deixou paranoico por dias. A ideia do monstro invisível é perturbadora."},
-                {"1", "Ilha do Medo é excepcional. Reli o começo depois do final para ver os indícios que perdi."},
-                {"2", "Garota Exemplar é fascinante como estudo de personagem. Amy Dunne é uma das vilãs mais elaboradas da ficção."},
+                {
+                  "0",
+                  "Bem-vindos ao Suspense e Terror! Espaço para discussões com cuidado com spoilers."
+                },
+                {
+                  "1",
+                  "A Paciente Silenciosa foi o thriller que mais me prendeu este ano. O final... não vi chegando."
+                },
+                {
+                  "2",
+                  "Concordo! A estrutura narrativa de Michaelides é genial. Reli a última parte duas vezes."
+                },
+                {
+                  "0",
+                  "It do King vai muito além do terror. É uma análise profunda do medo da infância e da amizade."
+                },
+                {
+                  "3",
+                  "O Iluminado é aterrorizante de forma diferente. O isolamento e a loucura crescem de forma sufocante."
+                },
+                {
+                  "4",
+                  "Caixa de Pássaros me deixou paranoico por dias. A ideia do monstro invisível é perturbadora."
+                },
+                {
+                  "1",
+                  "Ilha do Medo é excepcional. Reli o começo depois do final para ver os indícios que perdi."
+                },
+                {
+                  "2",
+                  "Garota Exemplar é fascinante como estudo de personagem. Amy Dunne é uma das vilãs mais elaboradas da ficção."
+                },
                 {"0", "Stephen King continua incomparável. Alguém leu suas obras mais recentes?"},
-                {"3", "Billy Summers! Diferente do King habitual, mais thriller que terror, mas igualmente envolvente."},
-                {"4", "E Não Sobrou Nenhum da Christie é perturbador. A solução do problema do narrador é brilhante."}
+                {
+                  "3",
+                  "Billy Summers! Diferente do King habitual, mais thriller que terror, mas igualmente envolvente."
+                },
+                {
+                  "4",
+                  "E Não Sobrou Nenhum da Christie é perturbador. A solução do problema do narrador é brilhante."
+                }
               },
               "Qual thriller lemos juntos este mês?",
               false),
@@ -159,18 +288,51 @@ public class CommunitySeedService {
               19,
               new int[] {13, 1, 10, 16, 11},
               new String[][] {
-                {"0", "Bem-vindos! A literatura brasileira é riquíssima e subestimada. Aqui celebramos nossos autores."},
-                {"1", "Torto Arado foi uma revelação. Itamar Vieira Junior escreveu algo único sobre o Brasil profundo."},
-                {"2", "A violência e a beleza do sertão convivem no livro de forma dolorosa e lírica ao mesmo tempo."},
-                {"0", "Machado de Assis é indispensável. Dom Casmurro, Memórias Póstumas... é o nosso Shakespeare."},
-                {"3", "Capitães da Areia do Jorge Amado. Impressionante como ele retrata a pobreza e a resiliência humana."},
-                {"4", "Vidas Secas do Graciliano Ramos me destruiu emocionalmente. Baleia é um dos personagens mais trágicos que já li."},
-                {"5", "O Cortiço do Aluísio Azevedo é uma fotografia brutal da desigualdade que ainda ressoa hoje."},
-                {"1", "Iracema do Alencar é o mito fundador do Brasil de forma poética e ao mesmo tempo problemática."},
-                {"0", "Contemporâneos: Conceição Evaristo, Silviano Santiago... temos grandes vozes que merecem mais espaço."},
-                {"2", "Torto Arado ganhou o Jabuti e merecia muito. É o tipo de livro que muda perspectivas."},
+                {
+                  "0",
+                  "Bem-vindos! A literatura brasileira é riquíssima e subestimada. Aqui celebramos nossos autores."
+                },
+                {
+                  "1",
+                  "Torto Arado foi uma revelação. Itamar Vieira Junior escreveu algo único sobre o Brasil profundo."
+                },
+                {
+                  "2",
+                  "A violência e a beleza do sertão convivem no livro de forma dolorosa e lírica ao mesmo tempo."
+                },
+                {
+                  "0",
+                  "Machado de Assis é indispensável. Dom Casmurro, Memórias Póstumas... é o nosso Shakespeare."
+                },
+                {
+                  "3",
+                  "Capitães da Areia do Jorge Amado. Impressionante como ele retrata a pobreza e a resiliência humana."
+                },
+                {
+                  "4",
+                  "Vidas Secas do Graciliano Ramos me destruiu emocionalmente. Baleia é um dos personagens mais trágicos que já li."
+                },
+                {
+                  "5",
+                  "O Cortiço do Aluísio Azevedo é uma fotografia brutal da desigualdade que ainda ressoa hoje."
+                },
+                {
+                  "1",
+                  "Iracema do Alencar é o mito fundador do Brasil de forma poética e ao mesmo tempo problemática."
+                },
+                {
+                  "0",
+                  "Contemporâneos: Conceição Evaristo, Silviano Santiago... temos grandes vozes que merecem mais espaço."
+                },
+                {
+                  "2",
+                  "Torto Arado ganhou o Jabuti e merecia muito. É o tipo de livro que muda perspectivas."
+                },
                 {"3", "Qual seria a obra mais importante para entender o Brasil como nação?"},
-                {"4", "Grande Sertão: Veredas do Guimarães Rosa. É o nosso Dom Quixote, complexo e único."}
+                {
+                  "4",
+                  "Grande Sertão: Veredas do Guimarães Rosa. É o nosso Dom Quixote, complexo e único."
+                }
               },
               "Qual obra brasileira lemos juntos?",
               true),
@@ -183,17 +345,47 @@ public class CommunitySeedService {
               9,
               new int[] {7, 17, 11, 3},
               new String[][] {
-                {"0", "Olá a todos! Criei essa comunidade para fãs de YA. Histórias de crescimento, amor e descoberta."},
-                {"1", "A Culpa é das Estrelas me fez chorar muito. John Green capturou algo muito genuíno sobre ser jovem."},
-                {"2", "Hazel e Augustus são inesquecíveis. A forma como o livro lida com a mortalidade é madura e honesta."},
-                {"3", "Harry Potter formou toda uma geração de leitores. Sou eternamente grata a essa série."},
-                {"4", "O capítulo final de Harry Potter me partiu o coração. A cena no Bosque Proibido..."},
-                {"0", "Extraordinário (Wonder) é muito poderoso. Me fez refletir sobre empatia de forma prática."},
-                {"1", "Auggie Pullman é inesquecível. A perspectiva múltipla do livro é um recurso narrativo incrível."},
-                {"2", "Série Divergente ou Jogos Vorazes: qual define melhor o YA distópico para vocês?"},
+                {
+                  "0",
+                  "Olá a todos! Criei essa comunidade para fãs de YA. Histórias de crescimento, amor e descoberta."
+                },
+                {
+                  "1",
+                  "A Culpa é das Estrelas me fez chorar muito. John Green capturou algo muito genuíno sobre ser jovem."
+                },
+                {
+                  "2",
+                  "Hazel e Augustus são inesquecíveis. A forma como o livro lida com a mortalidade é madura e honesta."
+                },
+                {
+                  "3",
+                  "Harry Potter formou toda uma geração de leitores. Sou eternamente grata a essa série."
+                },
+                {
+                  "4",
+                  "O capítulo final de Harry Potter me partiu o coração. A cena no Bosque Proibido..."
+                },
+                {
+                  "0",
+                  "Extraordinário (Wonder) é muito poderoso. Me fez refletir sobre empatia de forma prática."
+                },
+                {
+                  "1",
+                  "Auggie Pullman é inesquecível. A perspectiva múltipla do livro é um recurso narrativo incrível."
+                },
+                {
+                  "2",
+                  "Série Divergente ou Jogos Vorazes: qual define melhor o YA distópico para vocês?"
+                },
                 {"3", "Jogos Vorazes com folga! Katniss é muito mais complexa como protagonista."},
-                {"0", "Concordo! Mas Divergente tem uma construção de mundo mais detalhada nos livros."},
-                {"4", "Alguém leu É Assim que Acaba da Colleen Hoover? Está no limite entre YA e adulto. Muito intenso."}
+                {
+                  "0",
+                  "Concordo! Mas Divergente tem uma construção de mundo mais detalhada nos livros."
+                },
+                {
+                  "4",
+                  "Alguém leu É Assim que Acaba da Colleen Hoover? Está no limite entre YA e adulto. Muito intenso."
+                }
               },
               "Qual livro YA lemos este mês?",
               false),
@@ -206,18 +398,54 @@ public class CommunitySeedService {
               4,
               new int[] {14, 16, 6, 0, 12},
               new String[][] {
-                {"0", "Distopias são o espelho que a ficção usa para nos mostrar onde erramos. Bem-vindos!"},
-                {"1", "1984 do Orwell é mais atual do que nunca. Newspeak e pós-verdade estão acontecendo diante dos nossos olhos."},
-                {"0", "Assustador como Orwell previu mecanismos de controle tão específicos. A obra é literalmente profética."},
-                {"2", "Admirável Mundo Novo do Huxley vai na direção oposta: a distopia do prazer e do conforto. Talvez mais realista?"},
-                {"3", "A questão Huxley vs Orwell é fascinante. Neil Postman argumentou que Huxley tinha mais razão."},
-                {"4", "O Conto da Aia da Atwood é perturbador porque plausível. A descida para o totalitarismo é gradual."},
-                {"5", "Atwood disse que só incluiu coisas que já aconteceram na história humana. Isso é o que dá medo."},
-                {"1", "Fahrenheit 451 tem uma visão diferente: a censura vem da própria sociedade, não do governo."},
-                {"0", "A ideia de que não precisa proibir livros se as pessoas simplesmente não quiserem mais ler é genial e aterrorizante."},
-                {"2", "Alguém leu We do Zamyatin? Precede 1984 e Admirável Mundo Novo e os influenciou diretamente."},
-                {"3", "Não conhecia! Vou buscar agora. E Brave New World Revisited onde Huxley comenta sua própria obra?"},
-                {"4", "Huxley olha para os anos 50 e percebe que se subestimou: o mundo ia mais rápido do que imaginou."}
+                {
+                  "0",
+                  "Distopias são o espelho que a ficção usa para nos mostrar onde erramos. Bem-vindos!"
+                },
+                {
+                  "1",
+                  "1984 do Orwell é mais atual do que nunca. Newspeak e pós-verdade estão acontecendo diante dos nossos olhos."
+                },
+                {
+                  "0",
+                  "Assustador como Orwell previu mecanismos de controle tão específicos. A obra é literalmente profética."
+                },
+                {
+                  "2",
+                  "Admirável Mundo Novo do Huxley vai na direção oposta: a distopia do prazer e do conforto. Talvez mais realista?"
+                },
+                {
+                  "3",
+                  "A questão Huxley vs Orwell é fascinante. Neil Postman argumentou que Huxley tinha mais razão."
+                },
+                {
+                  "4",
+                  "O Conto da Aia da Atwood é perturbador porque plausível. A descida para o totalitarismo é gradual."
+                },
+                {
+                  "5",
+                  "Atwood disse que só incluiu coisas que já aconteceram na história humana. Isso é o que dá medo."
+                },
+                {
+                  "1",
+                  "Fahrenheit 451 tem uma visão diferente: a censura vem da própria sociedade, não do governo."
+                },
+                {
+                  "0",
+                  "A ideia de que não precisa proibir livros se as pessoas simplesmente não quiserem mais ler é genial e aterrorizante."
+                },
+                {
+                  "2",
+                  "Alguém leu We do Zamyatin? Precede 1984 e Admirável Mundo Novo e os influenciou diretamente."
+                },
+                {
+                  "3",
+                  "Não conhecia! Vou buscar agora. E Brave New World Revisited onde Huxley comenta sua própria obra?"
+                },
+                {
+                  "4",
+                  "Huxley olha para os anos 50 e percebe que se subestimou: o mundo ia mais rápido do que imaginou."
+                }
               },
               "Qual distopia lemos juntos?",
               true),
@@ -230,17 +458,50 @@ public class CommunitySeedService {
               15,
               new int[] {2, 10, 8, 0},
               new String[][] {
-                {"0", "Bem-vindos ao Mistério e Policial! Espaço para fãs do gênero com atenção aos spoilers."},
-                {"1", "Agatha Christie é a rainha absoluta. Assassinato no Expresso do Oriente é uma obra de engenho puro."},
-                {"2", "A solução do Expresso é ao mesmo tempo inesperada e completamente lógica. Genial."},
-                {"3", "E Não Sobrou Nenhum é perturbador de forma diferente. A tensão cresce a cada capítulo."},
-                {"4", "A Paciente Silenciosa tem uma revelação que muda tudo que você leu antes. Reli o começo depois."},
-                {"0", "O Código Da Vinci tem problemas históricos, mas funciona muito bem como thriller de entretenimento."},
-                {"1", "Dan Brown é criticado pela escrita, mas certamente domina a criação de tensão e urgência narrativa."},
-                {"2", "Ilha do Medo é excepcional. A solução questiona a natureza da própria realidade e da memória."},
-                {"3", "Garota Exemplar eleva o gênero. Gillian Flynn subverte as expectativas de forma muito sofisticada."},
-                {"0", "Alguma recomendação de policial brasileiro? Temos bons autores nesse gênero?"},
-                {"4", "Tony Bellotto! O Fantasma Sorridente é um noir brasileiro muito bem escrito, com São Paulo como pano de fundo."}
+                {
+                  "0",
+                  "Bem-vindos ao Mistério e Policial! Espaço para fãs do gênero com atenção aos spoilers."
+                },
+                {
+                  "1",
+                  "Agatha Christie é a rainha absoluta. Assassinato no Expresso do Oriente é uma obra de engenho puro."
+                },
+                {
+                  "2",
+                  "A solução do Expresso é ao mesmo tempo inesperada e completamente lógica. Genial."
+                },
+                {
+                  "3",
+                  "E Não Sobrou Nenhum é perturbador de forma diferente. A tensão cresce a cada capítulo."
+                },
+                {
+                  "4",
+                  "A Paciente Silenciosa tem uma revelação que muda tudo que você leu antes. Reli o começo depois."
+                },
+                {
+                  "0",
+                  "O Código Da Vinci tem problemas históricos, mas funciona muito bem como thriller de entretenimento."
+                },
+                {
+                  "1",
+                  "Dan Brown é criticado pela escrita, mas certamente domina a criação de tensão e urgência narrativa."
+                },
+                {
+                  "2",
+                  "Ilha do Medo é excepcional. A solução questiona a natureza da própria realidade e da memória."
+                },
+                {
+                  "3",
+                  "Garota Exemplar eleva o gênero. Gillian Flynn subverte as expectativas de forma muito sofisticada."
+                },
+                {
+                  "0",
+                  "Alguma recomendação de policial brasileiro? Temos bons autores nesse gênero?"
+                },
+                {
+                  "4",
+                  "Tony Bellotto! O Fantasma Sorridente é um noir brasileiro muito bem escrito, com São Paulo como pano de fundo."
+                }
               },
               "Qual policial lemos no clube este mês?",
               false),
