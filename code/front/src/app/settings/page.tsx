@@ -7,6 +7,7 @@ import { ArrowLeft, KeyRound, LogOut, Mail, ShieldAlert, Upload, User } from "lu
 import { AppShell } from "@/components";
 import { clearAuthSession, getAccessToken, forgotPassword } from "@/services/auth";
 import { getMyProfile } from "@/services/profile";
+import { BookcaseApiError, importGoodreadsLibrary, type GoodreadsImportResult } from "@/services/bookcase";
 import type { UserProfileResponse } from "@/types/api";
 
 function PasswordResetModal({ email, onClose }: Readonly<{ email: string; onClose: () => void }>) {
@@ -96,9 +97,13 @@ function SettingRow({ icon, label, description, action, disabled, iconBg = "bg-e
 
 export default function SettingsPage() {
   const router = useRouter();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [profile, setProfile] = React.useState<UserProfileResponse | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = React.useState(false);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [importStatus, setImportStatus] = React.useState<"idle" | "importing" | "done" | "error">("idle");
+  const [importResult, setImportResult] = React.useState<GoodreadsImportResult | null>(null);
+  const [importError, setImportError] = React.useState("");
 
   React.useEffect(() => {
     const token = getAccessToken();
@@ -107,6 +112,31 @@ export default function SettingsPage() {
   }, []);
 
   const email = profile?.email ?? "—";
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const selectedFile: File = file;
+    e.target.value = "";
+    setImportStatus("importing");
+    setImportError("");
+    setImportResult(null);
+    async function doImport() {
+      try {
+        const result = await importGoodreadsLibrary(selectedFile);
+        setImportResult(result);
+        setImportStatus("done");
+      } catch (err) {
+        setImportError(
+          err instanceof BookcaseApiError && err.message
+            ? err.message
+            : "Não foi possível importar os dados. Tente novamente.",
+        );
+        setImportStatus("error");
+      }
+    }
+    void doImport();
+  };
 
   const handleLogout = () => {
     setIsLoggingOut(true);
@@ -152,18 +182,126 @@ export default function SettingsPage() {
 
         {/* Importação */}
         <SectionCard title="Importação de dados" icon={<Upload size={15} />}>
-          <div className="rounded-xl border border-dashed border-border bg-muted/30 px-6 py-8 text-center">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-              <Upload size={18} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.txt"
+            className="hidden"
+            onChange={handleFileSelected}
+          />
+
+          {importStatus === "idle" || importStatus === "error" ? (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 px-6 py-8 text-center">
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Upload size={18} />
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">Importar do Goodreads</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                No Goodreads, vá em <span className="font-medium text-foreground">Minha conta → Importar/Exportar</span> e
+                exporte sua biblioteca. Depois selecione o arquivo CSV abaixo.
+              </p>
+              {importStatus === "error" && (
+                <p className="mx-auto mt-3 max-w-xs rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {importError}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+              >
+                <Upload size={14} />
+                Selecionar arquivo CSV
+              </button>
             </div>
-            <h3 className="text-sm font-semibold text-foreground">Importar do Goodreads</h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Faça upload do CSV exportado do Goodreads para adicionar seus livros à estante.
-            </p>
-            <button type="button" className="mt-5 inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700">
-              Selecionar arquivo CSV
-            </button>
-          </div>
+          ) : importStatus === "importing" ? (
+            <div className="flex flex-col items-center rounded-xl border border-dashed border-border bg-muted/30 py-10">
+              <div className="mb-3 h-8 w-8 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" />
+              <p className="text-sm font-semibold text-foreground">Importando seus livros...</p>
+              <p className="mt-1 text-xs text-muted-foreground">Isso pode levar alguns instantes.</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card p-5">
+              <div className="mb-4 flex items-center gap-3">
+                {importResult && (importResult.imported > 0 || importResult.skipped > 0) ? (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Importação concluída</p>
+                  <p className="text-xs text-muted-foreground">{importResult?.totalRows ?? 0} linhas processadas</p>
+                </div>
+              </div>
+
+              {importResult && (
+                <div className="mb-4 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-emerald-50 p-2">
+                    <p className="text-lg font-bold text-emerald-700">{importResult.imported}</p>
+                    <p className="text-[11px] text-emerald-600">Importados</p>
+                  </div>
+                  <div className="rounded-lg bg-blue-50 p-2">
+                    <p className="text-lg font-bold text-blue-700">{importResult.skipped}</p>
+                    <p className="text-[11px] text-blue-600">Já existiam</p>
+                  </div>
+                  <div className={`rounded-lg p-2 ${importResult.failed > 0 ? "bg-red-50" : "bg-muted/50"}`}>
+                    <p className={`text-lg font-bold ${importResult.failed > 0 ? "text-red-700" : "text-muted-foreground"}`}>
+                      {importResult.failed}
+                    </p>
+                    <p className={`text-[11px] ${importResult.failed > 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                      Falhas
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {importResult && importResult.errors.length > 0 && (
+                <div className="mb-4 max-h-40 overflow-y-auto rounded-lg border border-border">
+                  <div className="sticky top-0 border-b border-border bg-muted/80 px-3 py-1.5">
+                    <p className="text-[11px] font-semibold text-muted-foreground">
+                      {importResult.errors.length} erro(s)
+                    </p>
+                  </div>
+                  <ul className="divide-y divide-border">
+                    {importResult.errors.map((err) => (
+                      <li key={err.rowNumber} className="px-3 py-2">
+                        <p className="text-xs font-medium text-foreground">{err.title || `Linha ${err.rowNumber}`}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{err.reason}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setImportStatus("idle"); setImportResult(null); }}
+                  className="flex-1 rounded-xl border border-border py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                >
+                  Importar outro
+                </button>
+                {(importResult?.imported ?? 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => router.push("/profile")}
+                    className="flex-1 rounded-xl bg-emerald-600 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+                  >
+                    Ver perfil
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </SectionCard>
 
         {/* Sessão */}

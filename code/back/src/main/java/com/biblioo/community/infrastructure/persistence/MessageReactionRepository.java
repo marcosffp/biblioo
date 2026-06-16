@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface MessageReactionRepository extends JpaRepository<MessageReaction, Long> {
 
+  boolean existsByMessageIdAndUserIdAndReactionType(Long messageId, Long userId, ReactionType type);
   @Modifying
   @Query(
       "DELETE FROM MessageReaction r "

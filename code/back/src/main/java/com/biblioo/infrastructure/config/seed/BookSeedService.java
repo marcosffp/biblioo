@@ -1,6 +1,5 @@
 package com.biblioo.infrastructure.config.seed;
 
-import com.biblioo.books.domain.model.Book;
 import com.biblioo.books.domain.port.in.BookUseCase;
 import com.biblioo.books.infrasestructure.dto.book.BookSearchResult;
 import com.biblioo.books.infrasestructure.persistence.BookRepository;
@@ -9,10 +8,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -69,9 +66,7 @@ public class BookSeedService {
       log.info(
           "[Seed-Books] {} livros já no banco. Carregando IDs sem chamar API externa.",
           existingCount);
-      return bookRepository.findAll(PageRequest.of(0, 200)).stream()
-          .map(Book::getId)
-          .collect(Collectors.toList());
+      return bookRepository.findAllIds();
     }
 
     Set<Long> ids = new LinkedHashSet<>();

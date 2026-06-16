@@ -19,187 +19,128 @@ public class UserSeedService {
   private final AuthUseCase authUseCase;
   private final UserUseCase userUseCase;
 
+  // Ordem FIXA — CommunitySeedService referencia usuários por índice.
   static final List<String[]> USERS =
       List.of(
           new String[] {
-            "marcos_alberto",
+            "marcos-alb",
             "marcos.alberto@biblioo.dev",
             "Seed@2026!",
-            "Apaixonado por ficção científica e aventuras épicas. Sempre com um livro na mão."
+            "Ficção científica, space opera e aventuras épicas. Leio no metrô, no almoço e quando devia estar dormindo."
           },
           new String[] {
-            "ana_clara_souza",
+            "ana-clara",
             "ana.clara.souza@biblioo.dev",
             "Seed@2026!",
-            "Leitora voraz de romances históricos e literatura brasileira clássica."
+            "Colecionadora serial de leituras. Romances históricos são minha especialidade afetiva — e minha perdição."
           },
           new String[] {
-            "felipe_martins",
+            "felipe-mar",
             "felipe.martins@biblioo.dev",
             "Seed@2026!",
-            "Fã de suspense e thrillers psicológicos. Adoro uma boa reviravolta."
+            "Caçador de reviravoltas e conspirações literárias. Nenhum thriller está seguro de mim."
           },
           new String[] {
-            "julia_ferreira",
+            "julia-fer",
             "julia.ferreira@biblioo.dev",
             "Seed@2026!",
-            "Apaixonada por fantasia e mundos mágicos. Tolkien é meu autor favorito."
+            "A Terra-Média é minha segunda casa. Fantasia épica e mundos construídos com amor são tudo pra mim."
           },
           new String[] {
-            "lucas_henrique",
+            "lucas-hen",
             "lucas.henrique@biblioo.dev",
             "Seed@2026!",
-            "Curioso por distopias e reflexões sobre o futuro da humanidade."
+            "Orwell me acordou. Huxley me assustou. Atwood me fez agir. Distopias não são ficção, são avisos."
           },
           new String[] {
-            "beatriz_oliveira",
+            "beatriz-oli",
             "beatriz.oliveira@biblioo.dev",
             "Seed@2026!",
-            "Mergulhada em clássicos da literatura e poesia. Jane Austen é uma deusa."
+            "Vivo entre Austen, Tolstói e Machado de Assis. A literatura clássica é minha bússola e meu lar."
           },
           new String[] {
-            "gabriel_santos",
+            "gabriel-san",
             "gabriel.santos@biblioo.dev",
             "Seed@2026!",
-            "Entusiasta de ficção científica hard e exploração espacial. Asimov forever."
+            "Viajante do cosmos em papel e tinta. Asimov, Clarke e Dick são meus companheiros de jornada estelar."
           },
           new String[] {
-            "isabela_costa",
+            "isabela-cos",
             "isabela.costa@biblioo.dev",
             "Seed@2026!",
-            "Leitora de tudo um pouco, mas especialmente dramas contemporâneos."
+            "Leitora de tudo um pouco, mas especialmente dramas contemporâneos. Humor literário é sagrado."
           },
           new String[] {
-            "rafael_pereira",
+            "rafael-per",
             "rafael.pereira@biblioo.dev",
             "Seed@2026!",
-            "Fã de literatura de terror e horror psicológico. Stephen King é o mestre."
+            "Adoro quando a ficção me tira o sono. King, Lovecraft e Poe são meus pesadelos favoritos."
           },
           new String[] {
-            "camila_lima",
+            "camila-lim",
             "camila.lima@biblioo.dev",
             "Seed@2026!",
-            "Apreciadora de YA e histórias de crescimento pessoal. Choro com tudo."
+            "Especialista em choro literário. YA, romances e histórias de crescimento emocional são meu lar."
           },
           new String[] {
-            "thiago_rodrigues",
+            "thiago-rod",
             "thiago.rodrigues@biblioo.dev",
             "Seed@2026!",
-            "Amante de narrativas históricas e biopics literárias. A história nos ensina."
+            "A história como narrativa me fascina. Biopics, sagas históricas e ficção de época são minha paixão."
           },
           new String[] {
-            "larissa_alves",
+            "larissa-alv",
             "larissa.alves@biblioo.dev",
             "Seed@2026!",
-            "Devoro romances contemporâneos e literatura francesa. Paris me inspira."
+            "Entre Paris e São Paulo com um romance na bolsa. Literatura francesa e contemporânea brasileira."
           },
           new String[] {
-            "bruno_carvalho",
+            "bruno-car",
             "bruno.carvalho@biblioo.dev",
             "Seed@2026!",
-            "Nerd de ficção científica e space opera. Tenho mais livros do que roupas."
+            "Space opera, hard sci-fi e exploração intergaláctica. Tenho mais livros do que roupas e não me arrependo."
           },
           new String[] {
-            "amanda_nascimento",
+            "amanda-nas",
             "amanda.nascimento@biblioo.dev",
             "Seed@2026!",
-            "Apaixonada por literatura latino-americana e realismo mágico."
+            "Márquez, Borges, Allende — o realismo mágico é onde o impossível e o cotidiano dançam juntos."
           },
           new String[] {
-            "diego_araujo",
+            "diego-ara",
             "diego.araujo@biblioo.dev",
             "Seed@2026!",
-            "Leitor compulsivo de distopias. 1984 mudou minha vida."
+            "1984 me mudou. Agora vejo vigilância em tudo. Distopias são documentários disfarçados de ficção."
           },
           new String[] {
-            "fernanda_gomes",
+            "fernanda-gom",
             "fernanda.gomes@biblioo.dev",
             "Seed@2026!",
-            "Exploradora de mistérios e policiais clássicos. Agatha Christie rainha."
+            "Resolvo crimes literários desde os 12 anos. Agatha Christie é minha professora particular. Nenhum mistério escapa."
           },
           new String[] {
-            "eduardo_ribeiro",
+            "eduardo-rib",
             "eduardo.ribeiro@biblioo.dev",
             "Seed@2026!",
-            "Curioso por filosofia e ensaios. Livros são conversas com gênios mortos."
+            "Ensaios, filosofia aplicada e não-ficção intelectual. Livros são conversas com gênios mortos."
           },
           new String[] {
-            "natalia_vieira",
+            "natalia-vie",
             "natalia.vieira@biblioo.dev",
             "Seed@2026!",
-            "Leitora de fantasia urbana e contos de fadas recontados."
+            "Magia escondida nas cidades, fadas nas esquinas e mundos paralelos atrás de portas comuns."
           },
           new String[] {
-            "gustavo_mendes",
+            "gustavo-men",
             "gustavo.mendes@biblioo.dev",
             "Seed@2026!",
-            "Fã de aventuras marítimas e explorações. Verne é minha bússola literária."
+            "Aventureiro de poltrona. Das profundezas do mar ao centro da Terra — Verne e Stevenson me guiam."
           },
           new String[] {
-            "priscila_campos",
+            "priscila-cam",
             "priscila.campos@biblioo.dev",
             "Seed@2026!",
-            "Amante de literatura nacional e regionalismo. O Brasil tem histórias únicas."
-          },
-          new String[] {
-            "leonardo_freitas",
-            "leonardo.freitas@biblioo.dev",
-            "Seed@2026!",
-            "Entusiasta de space operas e universos expandidos. Duna é sagrado."
-          },
-          new String[] {
-            "vanessa_pinto",
-            "vanessa.pinto@biblioo.dev",
-            "Seed@2026!",
-            "Leitora de romances e literatura escandinava. Hygge e livros: combinação perfeita."
-          },
-          new String[] {
-            "rodrigo_melo",
-            "rodrigo.melo@biblioo.dev",
-            "Seed@2026!",
-            "Apreciador de clássicos russos e existencialismo literário."
-          },
-          new String[] {
-            "juliana_castro",
-            "juliana.castro@biblioo.dev",
-            "Seed@2026!",
-            "Fã de literatura feminista e narrativas de empoderamento."
-          },
-          new String[] {
-            "alexandre_moreira",
-            "alexandre.moreira@biblioo.dev",
-            "Seed@2026!",
-            "Leitor voraz de thrillers tecnológicos e cyberpunk."
-          },
-          new String[] {
-            "renata_sousa",
-            "renata.sousa@biblioo.dev",
-            "Seed@2026!",
-            "Apaixonada por contos e narrativas curtas. Cada palavra conta."
-          },
-          new String[] {
-            "marcelo_teixeira",
-            "marcelo.teixeira@biblioo.dev",
-            "Seed@2026!",
-            "Fã de aventura e épicos. Quanto maior o livro, melhor."
-          },
-          new String[] {
-            "debora_lopes",
-            "debora.lopes@biblioo.dev",
-            "Seed@2026!",
-            "Amante de literatura infantojuvenil e fabulosas histórias de fantasia."
-          },
-          new String[] {
-            "anderson_silva",
-            "anderson.silva@biblioo.dev",
-            "Seed@2026!",
-            "Entusiasta de não-ficção e ciência popular. O conhecimento é poder."
-          },
-          new String[] {
-            "caroline_barbosa",
-            "caroline.barbosa@biblioo.dev",
-            "Seed@2026!",
-            "Leitora de romances históricos e ficção de época. O passado fascina."
+            "Devota da literatura nacional. Do modernismo ao presente, o Brasil tem histórias únicas que o mundo precisa conhecer."
           });
 
   public List<User> ensureUsers() {

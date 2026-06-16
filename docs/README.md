@@ -68,6 +68,15 @@ _**Resumo**. O Biblioo é uma plataforma de comunidade literária web e mobile d
    - 7.2. Avaliação (ATAM — 5 cenários com dados de testes K6)
    - 7.3. Avaliação Geral da Arquitetura
 
+8. [ATAM](8.atam.md#atam "Architecture Tradeoff Analysis Method")
+   - 8.1. Objetivos de Negócio
+   - 8.2. Apresentação da Arquitetura
+   - 8.3. Abordagens Arquiteturais
+   - 8.4. Árvore de Utilidade
+   - 8.5. Análise por Cenário (Desempenho, Segurança, Modificabilidade, Disponibilidade, Usabilidade)
+   - 8.6. Cenários Adicionais
+   - 8.7. Resultados Consolidados
+
 ---
 
 <a name="ferramentas"></a>
