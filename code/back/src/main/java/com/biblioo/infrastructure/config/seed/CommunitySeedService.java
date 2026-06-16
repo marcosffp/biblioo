@@ -2,12 +2,15 @@ package com.biblioo.infrastructure.config.seed;
 
 import com.biblioo.community.domain.model.Community;
 import com.biblioo.community.domain.model.CommunityInvite;
+import com.biblioo.community.domain.model.CommunityMessage;
 import com.biblioo.community.domain.model.enumeration.CommunityType;
+import com.biblioo.community.domain.model.enumeration.ReactionType;
 import com.biblioo.community.domain.model.enumeration.TieBreakRule;
 import com.biblioo.community.domain.model.enumeration.VotingStatus;
 import com.biblioo.community.domain.port.in.BookVotingUseCase;
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.domain.port.in.CommunityUseCase;
+import com.biblioo.community.infrastructure.persistence.MessageReactionRepository;
 import com.biblioo.community.infrastructure.dto.voting.ApproveVotingRequest;
 import com.biblioo.community.infrastructure.dto.voting.CreateVotingRequest;
 import com.biblioo.community.infrastructure.dto.voting.VotingOptionRequest;
@@ -35,6 +38,11 @@ public class CommunitySeedService {
   private final CommunityUseCase communityUseCase;
   private final CommunityMessageUseCase messageUseCase;
   private final BookVotingUseCase votingUseCase;
+  private final MessageReactionRepository reactionRepository;
+
+  public static int communityCount() {
+    return COMMUNITIES.size();
+  }
 
   private record CommunityDef(
       String name,
@@ -48,12 +56,13 @@ public class CommunitySeedService {
 
   private static final List<CommunityDef> COMMUNITIES =
       List.of(
+          // ── 0 ── Fãs de Tolkien ─────────────────────────────────────────────────
           new CommunityDef(
               "Fãs de Tolkien",
               "Grupo para fãs da Terra-Média, da mitologia tolkieniana e de toda obra do Professor.",
               CommunityType.PUBLIC,
               3,
-              new int[] {0, 4, 6, 12, 26, 28},
+              new int[] {17, 0, 9, 12, 18, 5},
               new String[][] {
                 {
                   "0",
@@ -106,12 +115,14 @@ public class CommunitySeedService {
               },
               "Qual obra do Tolkien lemos juntos este mês?",
               true),
+
+          // ── 1 ── Clube de Ficção Científica ─────────────────────────────────────
           new CommunityDef(
               "Clube de Ficção Científica",
               "Espaço para fãs de FC: do espaço profundo ao cyberpunk, da FC clássica ao new weird.",
               CommunityType.PUBLIC,
               6,
-              new int[] {4, 12, 14, 16, 20, 24},
+              new int[] {0, 12, 14, 4, 16, 3},
               new String[][] {
                 {
                   "0",
@@ -164,12 +175,14 @@ public class CommunitySeedService {
               },
               "Próxima leitura do clube de FC?",
               false),
+
+          // ── 2 ── Leitores de Clássicos ──────────────────────────────────────────
           new CommunityDef(
               "Leitores de Clássicos",
               "Grupo dedicado às grandes obras da literatura mundial: dos gregos ao século XX.",
               CommunityType.PUBLIC,
               5,
-              new int[] {1, 22, 23, 21, 29},
+              new int[] {1, 16, 10, 13, 11},
               new String[][] {
                 {
                   "0",
@@ -213,12 +226,14 @@ public class CommunitySeedService {
               },
               "Qual clássico lemos juntos no próximo mês?",
               true),
+
+          // ── 3 ── Suspense e Terror (PRIVADA) ────────────────────────────────────
           new CommunityDef(
               "Suspense e Terror",
               "Comunidade privada para amantes de suspense psicológico, terror e thrillers literários.",
               CommunityType.PRIVATE,
               8,
-              new int[] {2, 15, 28, 18},
+              new int[] {2, 15, 14, 9},
               new String[][] {
                 {
                   "0",
@@ -264,12 +279,14 @@ public class CommunitySeedService {
               },
               "Qual thriller lemos juntos este mês?",
               false),
+
+          // ── 4 ── Literatura Brasileira ───────────────────────────────────────────
           new CommunityDef(
               "Literatura Brasileira",
               "Comunidade dedicada à rica e diversa tradição literária do Brasil.",
               CommunityType.PUBLIC,
               19,
-              new int[] {13, 10, 25, 28, 27},
+              new int[] {13, 1, 10, 16, 11},
               new String[][] {
                 {
                   "0",
@@ -319,12 +336,14 @@ public class CommunitySeedService {
               },
               "Qual obra brasileira lemos juntos?",
               true),
+
+          // ── 5 ── Leitores YA (PRIVADA) ──────────────────────────────────────────
           new CommunityDef(
               "Leitores YA",
               "Comunidade privada para fãs de Young Adult e histórias de crescimento e descoberta.",
               CommunityType.PRIVATE,
               9,
-              new int[] {7, 27, 11, 17},
+              new int[] {7, 17, 11, 3},
               new String[][] {
                 {
                   "0",
@@ -370,12 +389,14 @@ public class CommunitySeedService {
               },
               "Qual livro YA lemos este mês?",
               false),
+
+          // ── 6 ── Distopias e Futurismo ───────────────────────────────────────────
           new CommunityDef(
               "Distopias e Futurismo",
               "Para quem ama imaginar (ou temer) o futuro. Distopias, utopias e FC que questionam a sociedade.",
               CommunityType.PUBLIC,
               4,
-              new int[] {14, 18, 26, 24, 19},
+              new int[] {14, 16, 6, 0, 12},
               new String[][] {
                 {
                   "0",
@@ -428,12 +449,14 @@ public class CommunitySeedService {
               },
               "Qual distopia lemos juntos?",
               true),
+
+          // ── 7 ── Mistério e Policial (PRIVADA) ──────────────────────────────────
           new CommunityDef(
               "Mistério e Policial",
               "Comunidade privada dedicada ao gênero policial, do clássico britânico ao noir moderno.",
               CommunityType.PRIVATE,
               15,
-              new int[] {10, 21, 25, 0},
+              new int[] {2, 10, 8, 0},
               new String[][] {
                 {
                   "0",
@@ -481,7 +504,151 @@ public class CommunitySeedService {
                 }
               },
               "Qual policial lemos no clube este mês?",
-              false));
+              false),
+
+          // ── 8 ── Realismo Mágico ─────────────────────────────────────────────────
+          new CommunityDef(
+              "Realismo Mágico",
+              "Para quem acredita que o impossível e o cotidiano convivem na melhor literatura latino-americana e além.",
+              CommunityType.PUBLIC,
+              13,
+              new int[] {3, 5, 17, 19, 11},
+              new String[][] {
+                {"0", "Bem-vindos! O realismo mágico é onde o extraordinário e o banal dançam juntos. Vamos explorar!"},
+                {"1", "Cem Anos de Solidão é a bíblia do gênero. García Márquez criou algo completamente único na literatura."},
+                {"2", "O que mais me impressiona em Márquez é como o sobrenatural é tratado como algo óbvio. Sem nenhum drama."},
+                {"3", "Já li Cem Anos de Solidão três vezes. Cada releitura revela detalhes novos que mudam tudo que achei entender."},
+                {"0", "Borges é diferente: mais filosófico, mais labiríntico. Ficções é um dos maiores livros que já li na vida."},
+                {"4", "O Alquimista do Paulo Coelho é mais acessível, mas às vezes simplista demais perto de Márquez ou Borges."},
+                {"1", "Isabel Allende em A Casa dos Espíritos é deslumbrante. O feminismo e a magia se entrelaçam com perfeição."},
+                {"2", "Pedro Páramo do Juan Rulfo é mais estranho e perturbador que Márquez. Menos lido, mas absolutamente essencial."},
+                {"5", "Saramago com O Ensaio sobre a Cegueira usa o absurdo para crítica social de forma singular e brutal."},
+                {"3", "Saramago tecnicamente não é realismo mágico puro, mas o elemento do absurdo é um parente próximo do gênero."},
+                {"0", "Toni Morrison com Amada também usa elementos mágicos de forma poderosa. Amplia o gênero para além da América Latina."},
+                {"4", "Alguém leu Como Água Para Chocolate da Laura Esquivel? A culinária e a magia se fundem de maneira lindíssima."}
+              },
+              "Qual obra do realismo mágico lemos juntos?",
+              false),
+
+          // ── 9 ── Clube do Romance ────────────────────────────────────────────────
+          new CommunityDef(
+              "Clube do Romance",
+              "Espaço para quem ama histórias de amor, conexões humanas e emoção do começo ao fim. De Austen a Hoover.",
+              CommunityType.PUBLIC,
+              11,
+              new int[] {9, 7, 1, 18, 5},
+              new String[][] {
+                {"0", "Bem-vindos ao Clube do Romance! Porque a gente sempre precisa de histórias que aquecem o coração."},
+                {"1", "Onde Crescem os Afetos da Emily Henry é perfeito. A tensão emocional entre os protagonistas é sufocante no bom sentido."},
+                {"2", "Emily Henry é a rainha do romance contemporâneo. Cada livro parece uma conversa que você precisava ter."},
+                {"0", "Orgulho e Preconceito criou o template do romance moderno. Darcy e Elizabeth são absolutamente eternos."},
+                {"3", "A sensação de ler Austen é diferente de tudo. A ironia fina e o romance se equilibram de forma perfeita."},
+                {"4", "Colleen Hoover divide opiniões, mas É Assim que Acaba me deixou completamente destruída por dias."},
+                {"1", "Hoover tem um talento indiscutível para criar personagens que você sente que conhece de verdade."},
+                {"5", "Julho, Julho da Maeve Binchy é encantador. Romance de forma mais quieta, profunda e verdadeira."},
+                {"2", "Alguém leu Uma Cúmplice Perfeita da Jojo Moyes? Choro garantido — do começo ao fim, sem parar."},
+                {"3", "Jojo Moyes é boa em criar situações aparentemente impossíveis com saídas inesperadas e emocionantes."},
+                {"0", "Me Before You foi um fenômeno absoluto. Polarizador, mas inegavelmente poderoso emocionalmente."},
+                {"4", "Qual o romance que mais te fez chorar de todos? Preciso de uma indicação que destrua completamente minha vida."}
+              },
+              "Qual romance lemos juntos este mês?",
+              true),
+
+          // ── 10 ── Filosofia e Ensaios ────────────────────────────────────────────
+          new CommunityDef(
+              "Filosofia e Ensaios",
+              "Para quem lê filosofia, ensaios e não-ficção intelectual. Pensar melhor é uma forma de viver melhor.",
+              CommunityType.PUBLIC,
+              16,
+              new int[] {10, 4, 14, 0, 6},
+              new String[][] {
+                {"0", "Bem-vindos! Filosofia é o que nos ajuda a pensar melhor sobre tudo — inclusive sobre literatura."},
+                {"1", "O Mito de Sísifo do Camus mudou completamente minha relação com o absurdo e o sentido da vida."},
+                {"2", "Camus consegue ser profundo sem ser hermético. O Estrangeiro então... uma aula de escrita existencialista."},
+                {"3", "Nietzsche é mal interpretado quase sempre. Ler o original, sem filtros, é uma experiência transformadora."},
+                {"0", "Assim Falou Zaratustra é poesia filosófica. Uma das leituras mais densas e gratificantes que tive."},
+                {"4", "Hannah Arendt em A Condição Humana é assustadoramente atual. Ela previu o declínio do espaço político."},
+                {"1", "Origens do Totalitarismo dela é obrigatório. Nunca foi tão urgente entender como o fascismo surge e se consolida."},
+                {"5", "Sartre com O Ser e o Nada é difícil, mas A Náusea é a porta de entrada perfeita para o existencialismo."},
+                {"2", "Bertrand Russell escrevia filosofia de forma clara e acessível. A Conquista da Felicidade é muito subestimada."},
+                {"3", "Viktor Frankl com Em Busca de Sentido é filosofia vivida. Difícil não se emocionar com cada página do livro."},
+                {"0", "Filosofia e literatura se tocam tanto. Dostoiévski é mais filósofo do que muitos filósofos declarados."},
+                {"4", "Crime e Castigo como exploração da culpa e da consciência. Filosofia em forma de romance. Incomparável."}
+              },
+              "Qual ensaio ou obra filosófica lemos juntos?",
+              false),
+
+          // ── 11 ── Aventura e Exploração ──────────────────────────────────────────
+          new CommunityDef(
+              "Aventura e Exploração",
+              "Para aventureiros de poltrona. Das profundezas do mar às montanhas mais altas — tudo em papel e tinta.",
+              CommunityType.PUBLIC,
+              18,
+              new int[] {12, 6, 0, 4, 13},
+              new String[][] {
+                {"0", "Bem-vindos! Para os que exploram o mundo em poltrona, com um bom livro e a imaginação no limite."},
+                {"1", "Vinte Mil Léguas Submarinas ainda é emocionante hoje. Verne tinha uma imaginação científica extraordinária."},
+                {"2", "O que impressiona em Verne é que ele escrevia hard sci-fi antes do termo existir. Tudo muito bem embasado."},
+                {"0", "A Ilha do Tesouro do Stevenson formou gerações de leitores. Pirata, tesouro e traição desde a primeira página."},
+                {"3", "Jack London em O Chamado Selvagem é uma experiência visceral. A escrita é tão vívida que você sente o frio."},
+                {"4", "Caninos Brancos então! London escrevia sobre a natureza com um respeito que poucos tinham na época."},
+                {"1", "O Conde de Monte Cristo é aventura e vingança em estado puro. Dumas construiu um dos melhores enredos da literatura."},
+                {"5", "É impossível não torcer para Edmond Dantès. Dumas domina a arte de criar personagens que você abraça."},
+                {"2", "Alguém leu A Volta ao Mundo em 80 Dias? É mais reflexivo do que parece — Fogg é um personagem fascinante."},
+                {"3", "Rider Haggard com As Minas do Rei Salomão foi o primeiro romance de aventura africana. Seminal demais."},
+                {"0", "Hoje quero recomendar O Nome do Vento do Patrick Rothfuss. Fantasia épica com espírito de aventura puro."},
+                {"4", "Rothfuss constrói um protagonista ao mesmo tempo arrogante e irresistível. Kingkiller Chronicle é completamente viciante."}
+              },
+              "Qual aventura embarcamos juntos este mês?",
+              true),
+
+          // ── 12 ── Poesia e Contos (PRIVADA) ──────────────────────────────────────
+          new CommunityDef(
+              "Poesia e Contos",
+              "Comunidade privada para quem ama a palavra curta e intensa. Poesia, contos e a arte da narrativa breve.",
+              CommunityType.PRIVATE,
+              5,
+              new int[] {11, 17, 1, 19},
+              new String[][] {
+                {"0", "Bem-vindos ao espaço da palavra curta e intensa. Poesia e contos — onde cada palavra carrega um universo."},
+                {"1", "Carlos Drummond de Andrade é o maior poeta brasileiro. 'No meio do caminho tinha uma pedra' é um manifesto."},
+                {"2", "Drummond tem aquela melancolia carioca misturada com ironia mineira. Único. Absolutamente inimitável."},
+                {"0", "Fernando Pessoa e seus heterônimos são uma experiência literária completa. Caeiro, Reis, Campos — cada um um universo."},
+                {"3", "Clarice Lispector nos contos é devastadora. Felicidade Clandestina tem mais emoção em três páginas do que muitos romances."},
+                {"4", "A Hora da Estrela da Clarice tem a densidade poética dos melhores contos concentrada em uma novela curta."},
+                {"1", "Edgar Allan Poe inventou o conto moderno. O Corvo e O Gato Preto são obras de precisão e horror psicológico."},
+                {"2", "Poe é assombroso em como cria atmosfera com tão poucas palavras. Cada vírgula é calculada e intencional."},
+                {"0", "Rainer Maria Rilke nas Elegias de Duíno é difícil e transcendente. Precisa de atenção, mas vale absolutamente tudo."},
+                {"3", "As Cartas a um Jovem Poeta do Rilke são filosofia, poesia e conselho de vida. Reli sempre que preciso de ancoragem."},
+                {"4", "Manoel de Barros é subestimado fora do Brasil. Sua poesia do Pantanal é completamente única na língua portuguesa."},
+                {"1", "Adélia Prado é essencial. Poesia que fala de fé, cotidiano e mulher com uma voz completamente singular e brasileira."}
+              },
+              "Qual coletânea de poesia ou contos lemos este mês?",
+              false),
+
+          // ── 13 ── Mangá e Quadrinhos ─────────────────────────────────────────────
+          new CommunityDef(
+              "Mangá e Quadrinhos",
+              "Mangá e graphic novels também são literatura. Venha discutir os melhores do formato com a gente.",
+              CommunityType.PUBLIC,
+              7,
+              new int[] {9, 17, 3, 12, 2},
+              new String[][] {
+                {"0", "Bem-vindos! Mangá e quadrinhos também são literatura — e é hora de discutir as melhores obras do formato."},
+                {"1", "Sandman do Neil Gaiman é literalmente a melhor graphic novel de todos os tempos. Mitologia, sonho e humanidade."},
+                {"2", "Gaiman transforma o Senhor dos Sonhos em algo profundamente humano. A escrita é poesia em quadrinhos."},
+                {"0", "Maus do Art Spiegelman ganhou o Pulitzer por um motivo. Holocausto em forma de quadrinhos — devastador e necessário."},
+                {"3", "Maus é devastador. O meta-nível da história do pai contada pelo filho adiciona camadas impossíveis de ignorar."},
+                {"4", "Akira do Katsuhiro Otomo criou o cyberpunk visual. A arte é de outro nível — cada painel é uma pintura épica."},
+                {"1", "One Piece tem mais de 1000 capítulos e cada arco é melhor que o anterior. Oda é o narrador mais ambicioso dos quadrinhos."},
+                {"5", "A profundidade emocional de One Piece surpreende sempre. Oda constrói e paga setups de centenas de capítulos."},
+                {"2", "Fullmetal Alchemist da Hiromu Arakawa é perfeito em estrutura. Zero capítulo desnecessário em toda a obra."},
+                {"3", "FMA tem uma das melhores conclusões de mangá. Arakawa planejou tudo desde o início com maestria incrível."},
+                {"0", "Persépolis da Marjane Satrapi é autobiografia, história e arte em quadrinhos. Indispensável para entender o Irã moderno."},
+                {"4", "Satrapi usa o preto e branco de forma expressiva. Cada traço simples carrega peso histórico e emocional imenso."}
+              },
+              "Qual mangá ou graphic novel lemos juntos?",
+              true));
 
   public void seedCommunities(List<User> users, List<Long> bookIds) {
     if (bookIds.isEmpty() || users.isEmpty()) return;
@@ -489,13 +656,16 @@ public class CommunitySeedService {
     try {
       if (communityUseCase.listCommunities("", PageRequest.of(0, 1)).getTotalElements()
           >= COMMUNITIES.size()) {
+        log.info("[Seed-Community] {} comunidades já existem. Pulando etapa.", COMMUNITIES.size());
         return;
       }
     } catch (Exception ignored) {
     }
 
+    log.info("[Seed-Community] Criando {} comunidades...", COMMUNITIES.size());
     for (int ci = 0; ci < COMMUNITIES.size(); ci++) {
       CommunityDef def = COMMUNITIES.get(ci);
+      log.info("[Seed-Community] {}/{}: '{}'", ci + 1, COMMUNITIES.size(), def.name());
       try {
         Community community = ensureCommunity(def, users, bookIds, ci);
         if (community == null) continue;
@@ -505,12 +675,15 @@ public class CommunitySeedService {
 
         ensureMembers(community, def, ownerId, memberIds);
         ensureMessages(community, ownerId, memberIds, def.messages());
+        ensureReactions(community, ownerId, memberIds);
+        ensureJoinRequests(community, def, users);
         ensureVoting(community, ownerId, memberIds, def, bookIds, ci);
 
       } catch (Exception e) {
         log.warn("[Seed-Community] Falha na comunidade '{}': {}", def.name(), e.getMessage());
       }
     }
+    log.info("[Seed-Community] Concluído.");
   }
 
   private Community ensureCommunity(
@@ -528,10 +701,8 @@ public class CommunitySeedService {
     Long bookId = bookIds.get(bookIdx);
 
     try {
-      Community community =
-          communityUseCase.createCommunity(
-              ownerId, def.name(), def.description(), def.type(), bookId);
-      return community;
+      return communityUseCase.createCommunity(
+          ownerId, def.name(), def.description(), def.type(), bookId);
     } catch (Exception e) {
       log.warn("[Seed-Community] Falha ao criar '{}': {}", def.name(), e.getMessage());
       return null;
@@ -563,7 +734,11 @@ public class CommunitySeedService {
         }
 
       } catch (Exception e) {
-
+        log.warn(
+            "[Seed-Community] Membro {} ignorado em '{}': {}",
+            memberId,
+            community.getName(),
+            e.getMessage());
       }
     }
   }
@@ -589,7 +764,72 @@ public class CommunitySeedService {
         messageUseCase.sendMessage(
             community.getId(), authorId, content, null, Set.of(), List.of(), null, false, clientId);
       } catch (Exception e) {
+        log.warn(
+            "[Seed-Community] Mensagem ignorada em '{}': {}", community.getName(), e.getMessage());
+      }
+    }
+  }
 
+  private void ensureReactions(Community community, Long ownerId, List<Long> memberIds) {
+    if (memberIds.size() < 2) return;
+
+    List<CommunityMessage> messages;
+    try {
+      messages = messageUseCase.getRecentMessages(community.getId(), ownerId);
+    } catch (Exception e) {
+      log.warn(
+          "[Seed-Community] Falha ao carregar mensagens para reações em '{}': {}",
+          community.getName(),
+          e.getMessage());
+      return;
+    }
+
+    for (int mi = 0; mi < messages.size(); mi++) {
+      CommunityMessage message = messages.get(mi);
+      if (mi % 3 == 2) continue;
+      int reactors = 1 + (mi % Math.min(3, memberIds.size() - 1));
+
+      for (int r = 0; r < reactors; r++) {
+        Long reactorId = memberIds.get((mi + r + 1) % memberIds.size());
+        if (reactorId.equals(message.getAuthorId())) continue;
+        try {
+          if (!reactionRepository.existsByMessageIdAndUserIdAndReactionType(
+              message.getId(), reactorId, ReactionType.HEART)) {
+            messageUseCase.toggleReaction(message.getId(), reactorId, ReactionType.HEART);
+          }
+        } catch (Exception e) {
+          log.warn(
+              "[Seed-Community] Reação ignorada (messageId={}, userId={}): {}",
+              message.getId(),
+              reactorId,
+              e.getMessage());
+        }
+      }
+    }
+  }
+
+  private void ensureJoinRequests(Community community, CommunityDef def, List<User> users) {
+    if (def.type() != CommunityType.PRIVATE) return;
+
+    Set<Integer> insiders = new HashSet<>();
+    insiders.add(def.ownerIdx());
+    for (int idx : def.memberIdxs()) insiders.add(idx);
+
+    int requested = 0;
+    for (int i = 0; i < users.size() && requested < 2; i++) {
+      int idx = (i + def.ownerIdx() + 1) % users.size();
+      if (insiders.contains(idx)) continue;
+
+      Long requesterId = users.get(idx).getId();
+      try {
+        communityUseCase.requestToJoin(requesterId, community.getId());
+        requested++;
+      } catch (Exception e) {
+        log.warn(
+            "[Seed-Community] Solicitação de entrada ignorada (userId={}, '{}'): {}",
+            requesterId,
+            community.getName(),
+            e.getMessage());
       }
     }
   }
@@ -632,6 +872,11 @@ public class CommunitySeedService {
         try {
           votingUseCase.castVote(voterId, community.getId(), active.id(), optionId);
         } catch (Exception e) {
+          log.warn(
+              "[Seed-Community] Voto ignorado (votingId={}, userId={}): {}",
+              active.id(),
+              voterId,
+              e.getMessage());
         }
       }
 
@@ -644,7 +889,8 @@ public class CommunitySeedService {
       }
 
     } catch (Exception e) {
-
+      log.warn(
+          "[Seed-Community] Votação ignorada em '{}': {}", community.getName(), e.getMessage());
     }
   }
 

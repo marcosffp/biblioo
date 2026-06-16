@@ -22,12 +22,14 @@ public class FollowSeedService {
     if (users.size() >= 2) {
       try {
         if (userUseCase.isFollowing(users.get(0).getId(), users.get(1).getId())) {
+          log.info("[Seed-Follows] Follows já criados. Pulando etapa.");
           return;
         }
       } catch (Exception ignored) {
       }
     }
 
+    log.info("[Seed-Follows] Criando follows entre {} usuários...", users.size());
     Random rng = new Random(42L);
     for (int i = 0; i < users.size(); i++) {
       User follower = users.get(i);
@@ -59,5 +61,6 @@ public class FollowSeedService {
         }
       }
     }
+    log.info("[Seed-Follows] Concluído.");
   }
 }
