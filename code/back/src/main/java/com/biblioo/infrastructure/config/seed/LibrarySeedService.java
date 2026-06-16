@@ -6,7 +6,10 @@ import com.biblioo.books.domain.model.Shelf;
 import com.biblioo.books.domain.model.ShelfItem;
 import com.biblioo.books.domain.port.in.CollectionUseCase;
 import com.biblioo.books.domain.port.in.ShelfUseCase;
+import com.biblioo.books.infrasestructure.persistence.ReadingActiveDayRepository;
 import com.biblioo.user.domain.model.User;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +26,7 @@ public class LibrarySeedService {
 
   private final ShelfUseCase shelfUseCase;
   private final CollectionUseCase collectionUseCase;
+  private final ReadingActiveDayRepository readingActiveDayRepository;
 
   static final List<String> SHELF_NAMES =
       List.of(
@@ -109,6 +113,7 @@ public class LibrarySeedService {
         List<Shelf> shelves = ensureShelves(user.getId());
         populateShelfItems(user.getId(), shelves, bookIds, ui);
         ensureCollections(user.getId(), shelves, ui);
+        populateReadingActiveDays(user.getId(), shelves, ui);
       } catch (Exception e) {
         log.warn("[Seed-Library] Falha para '{}': {}", user.getUsername(), e.getMessage());
       }
@@ -173,6 +178,42 @@ public class LibrarySeedService {
               bookId,
               e.getMessage());
         }
+      }
+    }
+  }
+
+  /**
+   * Popula os dias ativos de leitura ({@code reading_active_days}) simulando um histórico/streak por
+   * usuário. O número de dias varia por usuário para gerar diversidade de streaks. Insere datas
+   * passadas diretamente no repositório (o use case {@code updateItemProgress} só registra o dia
+   * atual). {@code insertOrIgnore} é idempotente (unique por usuário+livro+data).
+   */
+  private void populateReadingActiveDays(Long userId, List<Shelf> shelves, int userIndex) {
+    List<Long> books = new ArrayList<>();
+    for (Shelf shelf : shelves) {
+      shelfUseCase.listShelfItems(userId, shelf.getId()).stream()
+          .filter(
+              item ->
+                  item.getStatus() == ReadingStatus.READING
+                      || item.getStatus() == ReadingStatus.COMPLETED)
+          .map(ShelfItem::getBookId)
+          .forEach(books::add);
+    }
+    if (books.isEmpty()) return;
+
+    // Streak atual de tamanho variável (5..24 dias consecutivos até hoje).
+    int activeDays = 5 + (userIndex % 20);
+    LocalDate today = LocalDate.now();
+    for (int d = 0; d < activeDays; d++) {
+      Long bookId = books.get(d % books.size());
+      try {
+        readingActiveDayRepository.insertOrIgnore(userId, bookId, today.minusDays(d));
+      } catch (Exception e) {
+        log.warn(
+            "[Seed-Library] Dia ativo ignorado (userId={}, bookId={}): {}",
+            userId,
+            bookId,
+            e.getMessage());
       }
     }
   }

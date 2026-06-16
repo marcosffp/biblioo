@@ -140,66 +140,6 @@ public class UserSeedService {
             "priscila.campos@biblioo.dev",
             "Seed@2026!",
             "Amante de literatura nacional e regionalismo. O Brasil tem histórias únicas."
-          },
-          new String[] {
-            "leonardo_freitas",
-            "leonardo.freitas@biblioo.dev",
-            "Seed@2026!",
-            "Entusiasta de space operas e universos expandidos. Duna é sagrado."
-          },
-          new String[] {
-            "vanessa_pinto",
-            "vanessa.pinto@biblioo.dev",
-            "Seed@2026!",
-            "Leitora de romances e literatura escandinava. Hygge e livros: combinação perfeita."
-          },
-          new String[] {
-            "rodrigo_melo",
-            "rodrigo.melo@biblioo.dev",
-            "Seed@2026!",
-            "Apreciador de clássicos russos e existencialismo literário."
-          },
-          new String[] {
-            "juliana_castro",
-            "juliana.castro@biblioo.dev",
-            "Seed@2026!",
-            "Fã de literatura feminista e narrativas de empoderamento."
-          },
-          new String[] {
-            "alexandre_moreira",
-            "alexandre.moreira@biblioo.dev",
-            "Seed@2026!",
-            "Leitor voraz de thrillers tecnológicos e cyberpunk."
-          },
-          new String[] {
-            "renata_sousa",
-            "renata.sousa@biblioo.dev",
-            "Seed@2026!",
-            "Apaixonada por contos e narrativas curtas. Cada palavra conta."
-          },
-          new String[] {
-            "marcelo_teixeira",
-            "marcelo.teixeira@biblioo.dev",
-            "Seed@2026!",
-            "Fã de aventura e épicos. Quanto maior o livro, melhor."
-          },
-          new String[] {
-            "debora_lopes",
-            "debora.lopes@biblioo.dev",
-            "Seed@2026!",
-            "Amante de literatura infantojuvenil e fabulosas histórias de fantasia."
-          },
-          new String[] {
-            "anderson_silva",
-            "anderson.silva@biblioo.dev",
-            "Seed@2026!",
-            "Entusiasta de não-ficção e ciência popular. O conhecimento é poder."
-          },
-          new String[] {
-            "caroline_barbosa",
-            "caroline.barbosa@biblioo.dev",
-            "Seed@2026!",
-            "Leitora de romances históricos e ficção de época. O passado fascina."
           });
 
   public List<User> ensureUsers() {

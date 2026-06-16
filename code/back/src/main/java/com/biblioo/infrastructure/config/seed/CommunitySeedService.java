@@ -2,12 +2,15 @@ package com.biblioo.infrastructure.config.seed;
 
 import com.biblioo.community.domain.model.Community;
 import com.biblioo.community.domain.model.CommunityInvite;
+import com.biblioo.community.domain.model.CommunityMessage;
 import com.biblioo.community.domain.model.enumeration.CommunityType;
+import com.biblioo.community.domain.model.enumeration.ReactionType;
 import com.biblioo.community.domain.model.enumeration.TieBreakRule;
 import com.biblioo.community.domain.model.enumeration.VotingStatus;
 import com.biblioo.community.domain.port.in.BookVotingUseCase;
 import com.biblioo.community.domain.port.in.CommunityMessageUseCase;
 import com.biblioo.community.domain.port.in.CommunityUseCase;
+import com.biblioo.community.infrastructure.persistence.MessageReactionRepository;
 import com.biblioo.community.infrastructure.dto.voting.ApproveVotingRequest;
 import com.biblioo.community.infrastructure.dto.voting.CreateVotingRequest;
 import com.biblioo.community.infrastructure.dto.voting.VotingOptionRequest;
@@ -35,6 +38,12 @@ public class CommunitySeedService {
   private final CommunityUseCase communityUseCase;
   private final CommunityMessageUseCase messageUseCase;
   private final BookVotingUseCase votingUseCase;
+  private final MessageReactionRepository reactionRepository;
+
+  /** Quantidade de comunidades definidas no seed. Usado apenas para logging no orchestrator. */
+  public static int communityCount() {
+    return COMMUNITIES.size();
+  }
 
   private record CommunityDef(
       String name,
@@ -53,7 +62,7 @@ public class CommunitySeedService {
               "Grupo para fãs da Terra-Média, da mitologia tolkieniana e de toda obra do Professor.",
               CommunityType.PUBLIC,
               3,
-              new int[] {0, 4, 6, 12, 26, 28},
+              new int[] {17, 0, 9, 12, 18, 5},
               new String[][] {
                 {
                   "0",
@@ -111,7 +120,7 @@ public class CommunitySeedService {
               "Espaço para fãs de FC: do espaço profundo ao cyberpunk, da FC clássica ao new weird.",
               CommunityType.PUBLIC,
               6,
-              new int[] {4, 12, 14, 16, 20, 24},
+              new int[] {0, 12, 14, 4, 16, 3},
               new String[][] {
                 {
                   "0",
@@ -169,7 +178,7 @@ public class CommunitySeedService {
               "Grupo dedicado às grandes obras da literatura mundial: dos gregos ao século XX.",
               CommunityType.PUBLIC,
               5,
-              new int[] {1, 22, 23, 21, 29},
+              new int[] {1, 16, 10, 13, 11},
               new String[][] {
                 {
                   "0",
@@ -218,7 +227,7 @@ public class CommunitySeedService {
               "Comunidade privada para amantes de suspense psicológico, terror e thrillers literários.",
               CommunityType.PRIVATE,
               8,
-              new int[] {2, 15, 28, 18},
+              new int[] {2, 15, 14, 9},
               new String[][] {
                 {
                   "0",
@@ -269,7 +278,7 @@ public class CommunitySeedService {
               "Comunidade dedicada à rica e diversa tradição literária do Brasil.",
               CommunityType.PUBLIC,
               19,
-              new int[] {13, 10, 25, 28, 27},
+              new int[] {13, 1, 10, 16, 11},
               new String[][] {
                 {
                   "0",
@@ -324,7 +333,7 @@ public class CommunitySeedService {
               "Comunidade privada para fãs de Young Adult e histórias de crescimento e descoberta.",
               CommunityType.PRIVATE,
               9,
-              new int[] {7, 27, 11, 17},
+              new int[] {7, 17, 11, 3},
               new String[][] {
                 {
                   "0",
@@ -375,7 +384,7 @@ public class CommunitySeedService {
               "Para quem ama imaginar (ou temer) o futuro. Distopias, utopias e FC que questionam a sociedade.",
               CommunityType.PUBLIC,
               4,
-              new int[] {14, 18, 26, 24, 19},
+              new int[] {14, 16, 6, 0, 12},
               new String[][] {
                 {
                   "0",
@@ -433,7 +442,7 @@ public class CommunitySeedService {
               "Comunidade privada dedicada ao gênero policial, do clássico britânico ao noir moderno.",
               CommunityType.PRIVATE,
               15,
-              new int[] {10, 21, 25, 0},
+              new int[] {2, 10, 8, 0},
               new String[][] {
                 {
                   "0",
@@ -505,6 +514,8 @@ public class CommunitySeedService {
 
         ensureMembers(community, def, ownerId, memberIds);
         ensureMessages(community, ownerId, memberIds, def.messages());
+        ensureReactions(community, ownerId, memberIds);
+        ensureJoinRequests(community, def, users);
         ensureVoting(community, ownerId, memberIds, def, bookIds, ci);
 
       } catch (Exception e) {
@@ -563,7 +574,11 @@ public class CommunitySeedService {
         }
 
       } catch (Exception e) {
-
+        log.warn(
+            "[Seed-Community] Membro {} ignorado em '{}': {}",
+            memberId,
+            community.getName(),
+            e.getMessage());
       }
     }
   }
@@ -589,7 +604,84 @@ public class CommunitySeedService {
         messageUseCase.sendMessage(
             community.getId(), authorId, content, null, Set.of(), List.of(), null, false, clientId);
       } catch (Exception e) {
+        log.warn(
+            "[Seed-Community] Mensagem ignorada em '{}': {}", community.getName(), e.getMessage());
+      }
+    }
+  }
 
+  /**
+   * Adiciona reações (HEART) às mensagens da comunidade, simulando engajamento. Cada mensagem recebe
+   * curtidas de alguns membros (exceto o próprio autor). Idempotente: só insere quando a reação
+   * ainda não existe, então o toggle nunca remove uma reação já criada.
+   */
+  private void ensureReactions(Community community, Long ownerId, List<Long> memberIds) {
+    if (memberIds.size() < 2) return;
+
+    List<CommunityMessage> messages;
+    try {
+      messages = messageUseCase.getRecentMessages(community.getId(), ownerId);
+    } catch (Exception e) {
+      log.warn(
+          "[Seed-Community] Falha ao carregar mensagens para reações em '{}': {}",
+          community.getName(),
+          e.getMessage());
+      return;
+    }
+
+    for (int mi = 0; mi < messages.size(); mi++) {
+      CommunityMessage message = messages.get(mi);
+      // ~2/3 das mensagens recebem reações, número variável de curtidas por mensagem.
+      if (mi % 3 == 2) continue;
+      int reactors = 1 + (mi % Math.min(3, memberIds.size() - 1));
+
+      for (int r = 0; r < reactors; r++) {
+        Long reactorId = memberIds.get((mi + r + 1) % memberIds.size());
+        if (reactorId.equals(message.getAuthorId())) continue;
+        try {
+          if (!reactionRepository.existsByMessageIdAndUserIdAndReactionType(
+              message.getId(), reactorId, ReactionType.HEART)) {
+            messageUseCase.toggleReaction(message.getId(), reactorId, ReactionType.HEART);
+          }
+        } catch (Exception e) {
+          log.warn(
+              "[Seed-Community] Reação ignorada (messageId={}, userId={}): {}",
+              message.getId(),
+              reactorId,
+              e.getMessage());
+        }
+      }
+    }
+  }
+
+  /**
+   * Cria solicitações de entrada pendentes em comunidades privadas, simulando usuários aguardando
+   * aprovação. Só se aplica a comunidades PRIVATE (públicas usam join direto). Escolhe usuários que
+   * não são o dono nem membros já convidados. Best-effort e tolerante a duplicatas.
+   */
+  private void ensureJoinRequests(Community community, CommunityDef def, List<User> users) {
+    if (def.type() != CommunityType.PRIVATE) return;
+
+    Set<Integer> insiders = new HashSet<>();
+    insiders.add(def.ownerIdx());
+    for (int idx : def.memberIdxs()) insiders.add(idx);
+
+    int requested = 0;
+    for (int i = 0; i < users.size() && requested < 2; i++) {
+      // Varre a partir de um offset determinístico para variar os solicitantes entre comunidades.
+      int idx = (i + def.ownerIdx() + 1) % users.size();
+      if (insiders.contains(idx)) continue;
+
+      Long requesterId = users.get(idx).getId();
+      try {
+        communityUseCase.requestToJoin(requesterId, community.getId());
+        requested++;
+      } catch (Exception e) {
+        log.warn(
+            "[Seed-Community] Solicitação de entrada ignorada (userId={}, '{}'): {}",
+            requesterId,
+            community.getName(),
+            e.getMessage());
       }
     }
   }
@@ -632,6 +724,11 @@ public class CommunitySeedService {
         try {
           votingUseCase.castVote(voterId, community.getId(), active.id(), optionId);
         } catch (Exception e) {
+          log.warn(
+              "[Seed-Community] Voto ignorado (votingId={}, userId={}): {}",
+              active.id(),
+              voterId,
+              e.getMessage());
         }
       }
 
@@ -644,7 +741,8 @@ public class CommunitySeedService {
       }
 
     } catch (Exception e) {
-
+      log.warn(
+          "[Seed-Community] Votação ignorada em '{}': {}", community.getName(), e.getMessage());
     }
   }
 
