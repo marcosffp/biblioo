@@ -1,7 +1,5 @@
 package com.biblioo.infrastructure.config.seed;
 
-import com.biblioo.user.domain.model.User;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
