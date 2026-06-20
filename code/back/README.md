@@ -63,23 +63,7 @@ O **Biblioo** é uma rede social focada em leitores. Os usuários organizam seus
 
 A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura de **monólito modular**, garantindo desacoplamento entre domínios e permitindo que módulos específicos possam ser extraídos futuramente para serviços independentes conforme a necessidade de escalabilidade da plataforma.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Web Layer                            │
-│          REST Controllers  ·  WebSocket Handlers            │
-└────────────────────────┬────────────────────────────────────┘
-                         │  UseCase (porta de entrada)
-┌────────────────────────▼────────────────────────────────────┐
-│                     Domain / Services                       │
-│   Regras de negócio puras — sem dependência de framework    │
-└──────┬──────────────┬──────────────┬───────────────┬────────┘
-       │              │              │               │
-  Persistence    Messaging      External APIs     Cache
-  (JPA/MySQL)  (RabbitMQ/       (Google Books,   (Redis)
-  (Neo4j raw)   Outbox)          Cloudinary,
-                                  Firebase,
-                                  Gemini)
-```
+![Arquitetura de domínio](../../docs/imagens/architecture-domain.png)
 
 **Padrões centrais:**
 
@@ -724,23 +708,24 @@ A aplicação roda em dois ambientes independentes no **Google Cloud Run** (us-c
 
 ### Pipeline CI/CD
 
-```
-Repo privado (organização)
-    │  push em main · dev · prod
-    ▼
-GitHub Actions                    .github/workflows/mirror-and-deploy.yml
-    │  espelha as branches no repo público preservando histórico de commits
-    ▼
-Repo público (marcosffp/biblioo)
-    │  push na branch prod
-    ▼
-Cloud Build trigger (deploy-prod)   ativado somente em ^prod$
-    │
-    ├─ Step 1  docker build ./code/back
-    ├─ Step 2  docker push → Artifact Registry  (backend:latest)
-    ├─ Step 3  gcloud run deploy biblioo-portfolio
-    └─ Step 4  gcloud run deploy biblioo-producao
-               ↑ troca de revisão sem downtime — ~12 min do push ao deploy
+```mermaid
+flowchart TD
+    A["Repo privado (organização)\npush em main · dev · prod"]
+    B["GitHub Actions\n.github/workflows/mirror-and-deploy.yml\nEspelha branches no repo público\npreservando histórico de commits"]
+    C["Repo público (marcosffp/biblioo)\npush na branch prod"]
+    D["Cloud Build trigger (deploy-prod)\nAtivado somente em ^prod$"]
+    S1["Step 1: docker build ./code/back"]
+    S2["Step 2: docker push → Artifact Registry\nbackend:latest"]
+    S3["Step 3: gcloud run deploy biblioo-portfolio"]
+    S4["Step 4: gcloud run deploy biblioo-producao\nTroca de revisão sem downtime — ~12 min"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
 ```
 
 | Componente | Função |
@@ -755,45 +740,37 @@ Cloud Build trigger (deploy-prod)   ativado somente em ^prod$
 
 **Portfolio — Bonsai.io Hobby (gratuito para sempre)**
 
-```
-Cloud Run (biblioo-portfolio)
-    │  HTTPS :443  ·  Basic Auth (header Authorization)
-    ▼
-Bonsai.io (imaginative-holly-*.bonsaisearch.net)
-    ├── 125 MB storage  ·  1 shard  ·  sem prazo de expiração
-    └── OpenSearchIndexCleanupService — limpeza semanal automática
-        reconcilia índice com MySQL, remove documentos órfãos
-        stats de tamanho logados a cada hora via Cloud Run Logging
+```mermaid
+flowchart TD
+    CR["Cloud Run\nbiblioo-portfolio"]
+    BON["Bonsai.io\nimaginative-holly-*.bonsaisearch.net\n125 MB storage · 1 shard · sem prazo de expiração"]
+    CLEAN["OpenSearchIndexCleanupService\nLimpeza semanal automática\nReconcilia índice com MySQL, remove documentos órfãos\nStats de tamanho logados a cada hora"]
+
+    CR -->|"HTTPS :443 · Basic Auth"| BON
+    BON --> CLEAN
 ```
 
 **Produção — GCE VM e2-small (rede interna VPC)**
 
-```
-Cloud Run (biblioo-producao)
-    │  HTTP :9200  ·  sem autenticação  ·  IP interno 10.128.0.2
-    ▼
-VM biblioo-infra  (e2-small · us-central1-a · 30 GB SSD)
-    └── opensearch:2.18.0 em Docker
-        discovery.type=single-node · DISABLE_SECURITY_PLUGIN=true
-        -Xms512m -Xmx512m · restart=always
+```mermaid
+flowchart TD
+    CR2["Cloud Run\nbiblioo-producao"]
+    VM["VM biblioo-infra\ne2-small · us-central1-a · 30 GB SSD\nopensearch:2.18.0 em Docker\ndiscovery.type=single-node · DISABLE_SECURITY_PLUGIN=true\n-Xms512m -Xmx512m · restart=always"]
+    FW["Firewall biblioo-infra-internal\ntcp:9200 · source 10.128.0.0/9\nPorta nunca exposta à internet\nSó o Cloud Run acessa via VPC interna"]
 
-Regra de firewall biblioo-infra-internal
-    └── tcp:9200 · source 10.128.0.0/9
-        porta nunca exposta à internet — só o Cloud Run acessa via VPC interna
+    CR2 -->|"HTTP :9200 · IP interno 10.128.0.2\nRede interna VPC"| VM
+    VM --> FW
 ```
 
 ### Escalonamento
 
 O Cloud Run monitora a concorrência de cada instância e sobe novas automaticamente conforme a demanda:
 
-```
-requisições ativas > concurrency × instâncias_atuais ?
-            │                          │
-           Não                        Sim
-            │                          │
-       mantém estado            sobe nova instância
-                                (até max-instances)
-                                Cloud Run decide em segundos
+```mermaid
+flowchart TD
+    Q{"requisições ativas > concurrency × instâncias_atuais?"}
+    Q -->|"Não"| A["mantém estado"]
+    Q -->|"Sim"| B["sobe nova instância\naté max-instances\nCloud Run decide em segundos"]
 ```
 
 **Guia de upgrade por sintoma:**

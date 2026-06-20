@@ -106,34 +106,9 @@ O sistema de recomendação é o **diferencial central do Biblioo**. São seis t
 
 A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura de **monólito modular**, com 11 domínios de negócio independentes que se comunicam exclusivamente via eventos RabbitMQ — sem chamadas diretas entre módulos.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Clientes                                │
-│         Next.js 16 (Web)            Flutter 3.11 (iOS/Android)  │
-└────────────────────────┬────────────────────────────────────────┘
-                         │  REST · WebSocket/STOMP · SSE
-┌────────────────────────▼────────────────────────────────────────┐
-│            Backend — Spring Boot 4 · Java 25                    │
-│            Monólito Modular · Hexagonal (Ports & Adapters)      │
-│                                                                 │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌──────────────────────┐  │
-│  │  user   │ │  books  │ │  feed   │ │    recommendation    │  │
-│  │  auth   │ │ shelves │ │  posts  │ │  (6 algoritmos)      │  │
-│  │ profile │ │  search │ │ reviews │ │  Neo4j · Redis       │  │
-│  └─────────┘ └─────────┘ └─────────┘ └──────────────────────┘  │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌──────────────────────┐  │
-│  │community│ │assistant│ │   dna   │ │  notification        │  │
-│  │ chat WS │ │  Bibo   │ │Literário│ │  SSE · FCM           │  │
-│  └─────────┘ └─────────┘ └─────────┘ └──────────────────────┘  │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐                           │
-│  │trending │ │  share  │ │ infra   │                           │
-│  │  Redis  │ │capsules │ │ Outbox  │                           │
-│  └─────────┘ └─────────┘ └─────────┘                           │
-└─────────────────────────────────────────────────────────────────┘
-      │          │           │           │           │
-   MySQL       Neo4j       Redis      RabbitMQ   OpenSearch
-  (TiDB)     (Aura)      (Upstash)  (CloudAMQP) (Bonsai/GCE)
-```
+![Arquitetura de domínio](docs/imagens/architecture-domain.png)
+
+![Arquitetura de infraestrutura](docs/imagens/architecture-infra.png)
 
 **Padrões de destaque:**
 
@@ -168,18 +143,22 @@ O backend está implantado em dois ambientes independentes no **Google Cloud Run
 | Swagger UI | [/swagger-ui.html](https://biblioo-portfolio-595140312227.us-central1.run.app/swagger-ui.html) | [/swagger-ui.html](https://biblioo-producao-595140312227.us-central1.run.app/swagger-ui.html) |
 
 **Pipeline CI/CD:**
-```
-Repo privado (PUC Minas org)
-    │  push em main · dev · prod
-    ▼
-GitHub Actions — espelha branches no repo público (marcosffp/biblioo)
-    ▼
-Cloud Build trigger — acionado exclusivamente por push na branch prod
-    │
-    ├─ docker build ./code/back
-    ├─ docker push → Artifact Registry (backend:latest)
-    ├─ gcloud run deploy biblioo-portfolio
-    └─ gcloud run deploy biblioo-producao   ← troca de revisão sem downtime
+```mermaid
+flowchart TD
+    A["Repo privado — PUC Minas org\npush em main · dev · prod"]
+    B["GitHub Actions\nEspelha branches no repo público\nmarcosffp/biblioo"]
+    C["Cloud Build trigger\nAtivado exclusivamente por push na branch prod"]
+    D1["docker build ./code/back"]
+    D2["docker push → Artifact Registry\nbackend:latest"]
+    D3["gcloud run deploy biblioo-portfolio"]
+    D4["gcloud run deploy biblioo-producao\nTroca de revisão sem downtime"]
+
+    A --> B
+    B --> C
+    C --> D1
+    D1 --> D2
+    D2 --> D3
+    D3 --> D4
 ```
 
 ### Frontend Web
