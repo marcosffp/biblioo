@@ -12,5 +12,5 @@ class PreferencesLocalDatasource {
   Future<void> markOnboardingDone(int userId) =>
       _prefs.setBool(_keyFor(userId), true);
 
-  Future<void> clearOnboarding() => _prefs.remove(_keyOnboarding);
+  Future<void> clearOnboarding(int userId) => _prefs.remove(_keyFor(userId));
 }
