@@ -59,20 +59,18 @@ O app cobre todo o ecossistema da plataforma: autenticação com e-mail/senha ou
 
 O projeto segue **Feature-first com Screen layer**, com conceitos pontuais de DDD (Value Objects e Aggregate Roots). Não é Clean Architecture completa: sem use cases formais e sem interfaces de repository.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                       Screens Layer                         │
-│          Composição de UI · BlocBuilder · Widgets           │
-└────────────────────────┬────────────────────────────────────┘
-                         │  Events / States
-┌────────────────────────▼────────────────────────────────────┐
-│                       BLoC Layer                            │
-│       Estado previsível e testável por feature              │
-└──────┬──────────────┬──────────────┬───────────────┬────────┘
-       │              │              │               │
-  LocalDatasource  RemoteDatasource  SecureDatasource
-  (Drift / Hive /  (Dio + Auth      (FlutterSecure-
-   SharedPrefs)     Interceptor)     Storage — JWT)
+```mermaid
+graph TD
+    SL["Screens Layer\nComposição de UI · BlocBuilder · Widgets"]
+    BL["BLoC Layer\nEstado previsível e testável por feature"]
+    LD["LocalDatasource\nDrift / Hive / SharedPrefs"]
+    RD["RemoteDatasource\nDio + Auth Interceptor"]
+    SD["SecureDatasource\nFlutterSecureStorage — JWT"]
+
+    SL -->|"Events / States"| BL
+    BL --> LD
+    BL --> RD
+    BL --> SD
 ```
 
 **Padrões centrais:**
@@ -524,15 +522,19 @@ Lê `API_URL` do arquivo `.env` via `flutter_dotenv`. Fallback: `http://localhos
 
 ## 🔁 Fluxo de dados
 
-```
-Screen
-  └── monta BLoC via context.read<>()
-        └── Widget dispara Event
-              └── BLoC chama Repository
-                    ├── LocalDatasource (Drift / Hive / SharedPrefs)  ← primeiro
-                    └── RemoteDatasource (Dio + interceptors)         ← quando online
-              └── BLoC emite State
-        └── Widget reage via BlocBuilder / BlocListener
+```mermaid
+flowchart TD
+    SC["Screen"]
+    BL["BLoC via context.read()"]
+    RP["Repository"]
+    LD["LocalDatasource\nDrift / Hive / SharedPrefs ← primeiro"]
+    RD["RemoteDatasource\nDio + interceptors ← quando online"]
+
+    SC -->|"Widget dispara Event"| BL
+    BL -->|"chama"| RP
+    RP --> LD
+    RP --> RD
+    BL -->|"emite State"| SC
 ```
 
 ---

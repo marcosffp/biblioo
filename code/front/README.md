@@ -407,14 +407,14 @@ Todas as tipagens ficam em `src/types/`, organizadas por contexto.
 
 O chat usa **WebSocket com protocolo STOMP** via `@stomp/stompjs` + `sockjs-client`, conectando ao broker RabbitMQ do backend.
 
-```
-Navegador
-    │  SockJS → WS  ·  protocolo STOMP
-    ▼
-Backend Spring (WebSocket + STOMP)
-    │  FanoutExchange (RabbitMQ)
-    ▼
-RabbitMQ (relay entre instâncias Cloud Run — session affinity garante a conexão)
+```mermaid
+flowchart TD
+    NAV["Navegador"]
+    BE["Backend Spring\nWebSocket + STOMP"]
+    RMQ["RabbitMQ\nRelay entre instâncias Cloud Run\nsession affinity garante a conexão"]
+
+    NAV -->|"SockJS → WS · protocolo STOMP"| BE
+    BE -->|"FanoutExchange"| RMQ
 ```
 
 **Fluxo no hook `useCommunityMessages`:**

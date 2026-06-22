@@ -1,16 +1,18 @@
+<img width="1600" style="height:auto; border-radius: 12px;" alt="banner" src="imagens/banner.png" />
+
 # Biblioo
 
-**Bernardo Souza Alvim, bernardo.alvim@sga.pucminas.br**
+**Bernardo Souza Alvim, [@alvimdev](https://github.com/alvimdev)**
 
-**Carlos José Gomes Batista Figueiredo, carlos.figueiredo.1507022@sga.pucminas.br**
+**Carlos José Gomes Batista Figueiredo, [@CarlosJFigueiredo](https://github.com/CarlosJFigueiredo)**
 
-**Gabriela Alvarenga Cardoso, gabriela.cardoso.1026227@sga.pucminas.br**
+**Gabriela Alvarenga Cardoso, [@gabialvarenga](https://github.com/gabialvarenga)**
 
-**Marcos Alberto Ferreira Pinto, mafpinto@sga.pucminas.br**
+**Marcos Alberto Ferreira Pinto, [@marcosffp](https://github.com/marcosffp)**
 
-**Mateus Araujo Santos, mateus.santos.1487920@sga.pucminas.br**
+**Mateus Araújo Santos, [@mateuaraujo01](https://github.com/mateuaraujo01)**
 
-**Rafael Ganascini de Moura, rafael.ganascini@sga.pucminas.br**
+**Rafael Ganascini de Moura, [@RafaelMouraG](https://github.com/RafaelMouraG)**
 
 ---
 
@@ -68,7 +70,7 @@ _**Resumo**. O Biblioo é uma plataforma de comunidade literária web e mobile d
    - 7.2. Avaliação (ATAM — 5 cenários com dados de testes K6)
    - 7.3. Avaliação Geral da Arquitetura
 
-8. [ATAM](8.atam.md#atam "Architecture Tradeoff Analysis Method")
+8. [ATAM](ATAM.pdf "Architecture Tradeoff Analysis Method")
    - 8.1. Objetivos de Negócio
    - 8.2. Apresentação da Arquitetura
    - 8.3. Abordagens Arquiteturais
@@ -93,3 +95,10 @@ _**Resumo**. O Biblioo é uma plataforma de comunidade literária web e mobile d
 | Schemas do banco de dados | Repositório (`docs/schema/`) | `biblioo.dbml` · `biblioo.components.puml` |
 | Wireframes estáticos | Repositório (`docs/wireframe/`) | `web/` · `mobile/` |
 | Atas de reunião | Repositório (`assets/atas/`) | ATA-2026-03-17 · ATA-2026-04-26 · ATA-2026-05-29 |
+
+---
+
+<div align="center">
+  <img width="70%" alt="pucminas" src="imagens/banner-institucional.svg"/>
+</div>
+<p align="center">Fonte do banner: <a href="https://github.com/joaopauloaramuni">João Paulo Carneiro Aramuni</a></p>

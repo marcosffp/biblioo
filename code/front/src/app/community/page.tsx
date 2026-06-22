@@ -57,6 +57,7 @@ function ComunidadesPageContent() {
     handleJoinPublicFromDetails,
     handleRequestPrivateJoinFromDetails,
     handleJoinPrivateWithCode,
+    handleUpdateCommunity,
     isInviteModalOpen,
     pendingInvite,
     modalActionError,
@@ -79,9 +80,7 @@ function ComunidadesPageContent() {
         <CommunityChatView
           community={selectedCommunity}
           onBack={handleCloseChatView}
-          onUpdateCommunity={() => {
-            // A atualizacao detalhada de comunidade sera sincronizada com backend nas proximas etapas.
-          }}
+          onUpdateCommunity={(community) => { void handleUpdateCommunity(community); }}
           onInviteUser={inviteUser}
         />
         <CommunityJoinRequestsModal
