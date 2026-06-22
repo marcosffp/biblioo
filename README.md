@@ -231,14 +231,14 @@ biblioo/
 
 ## 👥 Integrantes
 
-| Nome | E-mail institucional |
-|---|---|
-| Bernardo Souza Alvim | bernardo.alvim@sga.pucminas.br |
-| Carlos José Gomes Batista Figueiredo | carlos.figueiredo.1507022@sga.pucminas.br |
-| Gabriela Alvarenga Cardoso | gabriela.cardoso.1026227@sga.pucminas.br |
-| Marcos Alberto Ferreira Pinto | mafpinto@sga.pucminas.br |
-| Mateus Araújo Santos | mateus.santos.1487920@sga.pucminas.br |
-| Rafael Ganascini de Moura | rafael.ganascini@sga.pucminas.br |
+| Nome | GitHub | E-mail institucional |
+|---|---|---|
+| Bernardo Souza Alvim | [@alvimdev](https://github.com/alvimdev) | bernardo.alvim@sga.pucminas.br |
+| Carlos José Gomes Batista Figueiredo | [@CarlosJFigueiredo](https://github.com/CarlosJFigueiredo) | carlos.figueiredo.1507022@sga.pucminas.br |
+| Gabriela Alvarenga Cardoso | [@gabialvarenga](https://github.com/gabialvarenga) | gabriela.cardoso.1026227@sga.pucminas.br |
+| Marcos Alberto Ferreira Pinto | [@marcosffp](https://github.com/marcosffp) | mafpinto@sga.pucminas.br |
+| Mateus Araújo Santos | [@mateuaraujo01](https://github.com/mateuaraujo01) | mateus.santos.1487920@sga.pucminas.br |
+| Rafael Ganascini de Moura | [@RafaelMouraG](https://github.com/RafaelMouraG) | rafael.ganascini@sga.pucminas.br |
 
 ---
 
