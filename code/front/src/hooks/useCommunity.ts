@@ -11,6 +11,7 @@ import {
   joinCommunityByInviteLink,
   listCommunities,
   requestCommunityJoin,
+  updateCommunity as updateCommunityService,
 } from "@/services/community";
 import type { BackendCommunityResponse } from "@/types/api";
 import { formatMonthYear } from "@/utils/date";
@@ -359,6 +360,31 @@ export function useCommunity() {
     }
   }, []);
 
+  const updateExistingCommunity = useCallback(async (communityId: string, name: string, description: string) => {
+    const parsedId = Number(communityId);
+
+    if (!Number.isFinite(parsedId)) {
+      throw new TypeError("Comunidade inválida.");
+    }
+
+    try {
+      const updated = await updateCommunityService(parsedId, { name, description });
+
+      setCommunities((current) =>
+        current.map((community) => {
+          if (community.id !== communityId) return community;
+          return {
+            ...community,
+            name: updated.name,
+            description: updated.description ?? undefined,
+          };
+        }),
+      );
+    } catch (error) {
+      throw new Error(getErrorMessage(error, "Não foi possível atualizar a comunidade."));
+    }
+  }, []);
+
   const inviteUser = useCallback(async (communityId: string, inviteeId: number) => {
     const parsedCommunityId = Number(communityId);
 
@@ -388,6 +414,7 @@ export function useCommunity() {
     joinPublicCommunity,
     requestPrivateCommunityJoin,
     joinPrivateCommunityByInviteCode,
+    updateExistingCommunity,
     inviteUser,
     pendingJoinRequestIds,
     currentUserId,

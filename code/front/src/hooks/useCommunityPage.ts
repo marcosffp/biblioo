@@ -14,6 +14,7 @@ import type { PendingCommunityInviteResponse, PendingCommunityJoinRequestRespons
 import { markNotificationAsRead } from "@/services/notifications";
 import {
   useCommunity,
+  type Community,
   type CommunityBookOption,
   type CommunityVisibility,
 } from "@/hooks/useCommunity";
@@ -37,6 +38,7 @@ export function useCommunityPage() {
     joinPublicCommunity,
     requestPrivateCommunityJoin,
     joinPrivateCommunityByInviteCode,
+    updateExistingCommunity,
     inviteUser,
     pendingJoinRequestIds,
     currentUserId,
@@ -585,6 +587,13 @@ export function useCommunityPage() {
     [closeInviteModal, pendingInvite, refreshCommunities, selectedCommunity],
   );
 
+  const handleUpdateCommunity = React.useCallback(
+    async (community: Community) => {
+      await updateExistingCommunity(community.id, community.name, community.description ?? "");
+    },
+    [updateExistingCommunity],
+  );
+
   const closeJoinRequestsModal = React.useCallback(() => {
     setIsJoinRequestsModalOpen(false);
     setJoinRequests([]);
@@ -710,6 +719,7 @@ export function useCommunityPage() {
     handleJoinPublicFromDetails,
     handleRequestPrivateJoinFromDetails,
     handleJoinPrivateWithCode,
+    handleUpdateCommunity,
 
     // Invite modal
     isInviteModalOpen,

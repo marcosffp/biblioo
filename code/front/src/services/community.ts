@@ -494,6 +494,26 @@ export async function changeCommunityMemberRole(
   return { success: true };
 }
 
+export async function updateCommunity(
+  communityId: number,
+  payload: { name?: string; description?: string },
+  token?: string | null,
+): Promise<BackendCommunityResponse> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}/communities/${communityId}`, {
+      method: "PUT",
+      headers: jsonBearerHeaders(token),
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    throw new CommunityApiError("Não foi possível conectar ao servidor para atualizar a comunidade.");
+  }
+
+  return parseJsonResponse<BackendCommunityResponse>(response, "Falha ao atualizar comunidade.");
+}
+
 export async function deleteCommunity(
   communityId: number,
   token?: string | null,

@@ -68,7 +68,9 @@ export function AuthLayout({ children }: Readonly<AuthLayoutProps>) {
               alt=""
               width={220}
               height={220}
-              style={{ width: "220px", height: "auto" }}
+              loading="eager"
+              priority
+              style={{ width: "auto", height: "auto" }}
             />
           </div>
 

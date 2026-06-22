@@ -17,9 +17,6 @@ const bodyFont = Source_Sans_3({
 export const metadata: Metadata = {
   title: "Biblioo",
   description: "Organize, descubra e compartilhe histórias.",
-  icons: {
-    icon: "/biblioo-logo.png",
-  },
 };
 
 export default function RootLayout({

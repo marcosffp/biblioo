@@ -222,6 +222,7 @@ biblioo/
 
 | Subprojeto | README |
 |---|---|
+| Documentação | [`docs/README.md`](docs/README.md) — sumário da documentação arquitetural, requisitos, modelagem, ATAM |
 | Backend | [`code/back/README.md`](code/back/README.md) — arquitetura, endpoints, algoritmos, testes K6, deploy |
 | Frontend | [`code/front/README.md`](code/front/README.md) — páginas, componentes, hooks, serviços, WebSocket |
 | Mobile | [`code/mobile/README.md`](code/mobile/README.md) — features BLoC, rotas, offline-first, screens |
