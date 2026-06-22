@@ -1,14 +1,16 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferencesLocalDatasource {
-  static const _keyOnboarding = 'biblioo.onboarding.completed';
-
   final SharedPreferences _prefs;
   const PreferencesLocalDatasource(this._prefs);
 
-  bool isOnboardingDone() => _prefs.getBool(_keyOnboarding) ?? false;
+  String _keyFor(int userId) => 'biblioo.onboarding.completed.$userId';
 
-  Future<void> markOnboardingDone() => _prefs.setBool(_keyOnboarding, true);
+  bool isOnboardingDone(int userId) =>
+      _prefs.getBool(_keyFor(userId)) ?? false;
 
-  Future<void> clearOnboarding() => _prefs.remove(_keyOnboarding);
+  Future<void> markOnboardingDone(int userId) =>
+      _prefs.setBool(_keyFor(userId), true);
+
+  Future<void> clearOnboarding(int userId) => _prefs.remove(_keyFor(userId));
 }

@@ -353,17 +353,19 @@ class ShelfItemCard extends StatelessWidget {
 
 ## Fluxo de Dados
 
-```
-Screen
-  └── monta MultiBlocProvider com features necessárias
-        └── Widget
-              └── dispara Event via context.read<Bloc>()
-                    └── Bloc (features/)
-                          └── chama Repository
-                                ├── LocalDatasource (Drift) ← sempre primeiro
-                                └── RemoteDatasource (Dio)  ← quando online
-                          └── emite State
-                    └── Widget reage ao State via BlocBuilder
+```mermaid
+flowchart TD
+    W["Widget (Screen)"]
+    BL["BLoC (features/)"]
+    R["Repository"]
+    LD["LocalDatasource — Drift\n← sempre primeiro"]
+    RD["RemoteDatasource — Dio\n← quando online"]
+
+    W -->|"dispara Event"| BL
+    BL -->|"chama"| R
+    R --> LD
+    R --> RD
+    BL -->|"emite State"| W
 ```
 
 ---
