@@ -1,0 +1,689 @@
+@startuml biblioo-classes
+!theme plain
+title "Biblioo - Diagrama de Classes (modelo de domínio implementado)"
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+hide empty members
+
+' ===================================================================
+' Arquitetura: monolito modular hexagonal (Spring Boot).
+' Cada modulo isola seu dominio; referencias entre modulos sao feitas
+' por ID (campos Long), nunca por associacao JPA direta. Essas
+' referencias inter-modulo aparecem como dependencias tracejadas (..>).
+' As operacoes de negocio estao implementadas nos casos de uso
+' (input ports) do modulo; aqui sao exibidas na entidade que gerenciam.
+' ===================================================================
+
+' ###################################################################
+package "user" #F5F7FA {
+
+  class User {
+    -id : Long
+    -username : String
+    -email : String
+    -passwordHash : String
+    -googleId : String
+    -bio : String
+    -avatarUrl : String
+    -bannerUrl : String
+    -isPrivate : boolean
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    +register(username, email, password) : AuthResult
+    +login(email, password) : AuthResult
+    +loginWithGoogle(idToken) : AuthResult
+    +getById(id) : User
+    +getByUsername(username) : User
+    +getProfile(viewerId, username) : ProfileAccess
+    +updateProfile(username, bio, avatarUrl, bannerUrl) : User
+    +updateVisibility(isPrivate) : User
+    +uploadAvatar(bytes) : User
+    +uploadBanner(bytes) : User
+    +searchUsers(term, page, size) : List<User>
+    +follow(followedId) : FollowStatus
+    +unfollow(followedId) : void
+    +isFollowing(followedId) : boolean
+    +acceptFollowRequest(requesterId) : void
+    +rejectFollowRequest(requesterId) : void
+    +getPendingFollowRequests(page, size) : List<User>
+    +getFollowers(page, size) : List<User>
+    +getFollowing(page, size) : List<User>
+    +deleteAccount() : void
+  }
+
+  class UserFollow {
+    -followerId : Long
+    -followedId : Long
+    -status : FollowStatus
+    -createdAt : LocalDateTime
+  }
+
+  class UserFollowId <<IdClass>> {
+    -followerId : Long
+    -followedId : Long
+  }
+
+  class RefreshToken {
+    -id : Long
+    -token : String
+    -userId : Long
+    -expiresAt : LocalDateTime
+    -createdAt : LocalDateTime
+    -used : boolean
+    +refresh(token) : AuthResult
+    +logout(token) : void
+    +isExpired() : boolean
+    +isValid() : boolean
+  }
+
+  class PasswordResetToken {
+    -id : Long
+    -token : String
+    -userId : Long
+    -expiresAt : LocalDateTime
+    -createdAt : LocalDateTime
+    -used : boolean
+    +requestPasswordReset(email, clientType) : PasswordResetResponse
+    +resetPassword(token, newPassword) : void
+    +createPassword(userId, newPassword) : void
+    +isExpired() : boolean
+    +isValid() : boolean
+  }
+
+  enum FollowStatus {
+    PENDING
+    ACCEPTED
+  }
+
+  UserFollow ..> UserFollowId : @IdClass
+  UserFollow --> FollowStatus
+}
+
+' ###################################################################
+package "books" #F2FBF4 {
+
+  class Book {
+    -id : Long
+    -isbn : String
+    -title : String
+    -authors : List<String>
+    -publisher : String
+    -publishedAt : LocalDate
+    -description : String
+    -coverUrl : String
+    -pageCount : Integer
+    -averageRating : Float
+    -ratingCount : Integer
+    -readerCount : Integer
+    -searchText : String
+    -complexityScore : Integer
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    +search(query) : List<Book>
+    +getById(id) : Book
+    +getByIds(ids) : List<Book>
+    +findByIsbn(isbn) : Book
+  }
+
+  class Category {
+    -id : Long
+    -name : String
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+  }
+
+  class Shelf {
+    -id : Long
+    -userId : Long
+    -name : String
+    -description : String
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    -deletedAt : LocalDateTime
+    +listShelves(userId) : List<Shelf>
+    +getShelf(shelfId) : Shelf
+    +createShelf(name, description) : Shelf
+    +updateShelf(shelfId, name, description) : Shelf
+    +deleteShelf(shelfId) : void
+    +addShelfItem(shelfId, bookId, status) : ShelfItem
+    +removeShelfItem(shelfId, itemId) : void
+    +listShelfItems(shelfId) : List<ShelfItem>
+    +getShelfItem(shelfId, bookId) : ShelfItem
+    +countActiveDays(userId) : long
+  }
+
+  class ShelfItem {
+    -id : Long
+    -shelfId : Long
+    -bookId : Long
+    -status : ReadingStatus
+    -currentPage : Integer
+    -totalPages : Integer
+    -progressPercent : Integer
+    -startedAt : LocalDate
+    -finishedAt : LocalDate
+    -rereadCount : Integer
+    -deletedAt : LocalDateTime
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    +updateProgress(page) : ShelfItem
+    +changeStatus(status) : ShelfItem
+    +getReadingHistory(userId) : List<BookReadingRecord>
+    +getCurrentReadingPagesTotal(userId) : int
+  }
+
+  class Collection {
+    -id : Long
+    -userId : Long
+    -name : String
+    -description : String
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    +listCollections(userId) : List<Collection>
+    +getCollection(collectionId) : Collection
+    +createCollection(name, description, shelfIds) : Collection
+    +updateCollection(collectionId, name, description) : Collection
+    +addShelf(collectionId, shelfId) : void
+    +removeShelf(collectionId, shelfId) : void
+    +deleteCollection(collectionId) : void
+    +computeStatistics(collectionId) : CollectionStatisticsResponse
+  }
+
+  class ReadingActiveDay {
+    -id : Long
+    -userId : Long
+    -bookId : Long
+    -activeDate : LocalDate
+  }
+
+  enum ReadingStatus {
+    WANT_TO_READ
+    READING
+    REREADING
+    COMPLETED
+    ABANDONED
+  }
+
+  Book "0..*" -- "0..*" Category : book_categories
+  Collection "0..*" o-- "0..*" Shelf : collection_shelves
+  Shelf "1" o-- "0..*" ShelfItem
+  ShelfItem --> ReadingStatus
+}
+
+' ###################################################################
+package "community" #FBF7F2 {
+
+  class Community {
+    -id : Long
+    -name : String
+    -description : String
+    -type : CommunityType
+    -bookId : Long
+    -ownerId : Long
+    -memberCount : Integer
+    -inviteLink : String
+    -isDeleted : Boolean
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    +createCommunity(name, description, type, bookId) : Community
+    +updateCommunity(communityId, name, description) : Community
+    +deleteCommunity(communityId) : void
+    +getById(communityId) : Community
+    +listCommunities(query) : List<Community>
+    +getCommunitiesByBook(bookId) : List<Community>
+    +getUserCommunities(userId) : List<Community>
+    +joinCommunity(communityId) : void
+    +leaveCommunity(communityId) : void
+    +getMembers(communityId) : List<CommunityMember>
+    +changeRole(communityId, targetUserId, role) : void
+    +removeMember(communityId, targetUserId) : void
+    +transferOwnership(communityId, newOwnerId) : void
+    +generateInviteLink(communityId) : String
+    +revokeInviteLink(communityId) : void
+    +joinByInviteLink(token) : void
+  }
+
+  class CommunityMember {
+    -communityId : Long
+    -userId : Long
+    -role : CommunityRole
+    -joinedAt : LocalDateTime
+  }
+
+  class CommunityMemberId <<IdClass>> {
+    -communityId : Long
+    -userId : Long
+  }
+
+  class CommunityInvite {
+    -id : Long
+    -communityId : Long
+    -inviterId : Long
+    -inviteeId : Long
+    -status : InviteStatus
+    -createdAt : LocalDateTime
+    +inviteUser(communityId, inviteeId) : CommunityInvite
+    +acceptInvite(inviteId) : void
+    +declineInvite(inviteId) : void
+    +getPendingInvites(userId) : List<CommunityInvite>
+  }
+
+  class CommunityJoinRequest {
+    -id : Long
+    -communityId : Long
+    -userId : Long
+    -status : JoinRequestStatus
+    -reviewedBy : Long
+    -createdAt : LocalDateTime
+    -reviewedAt : LocalDateTime
+    +requestToJoin(communityId) : CommunityJoinRequest
+    +approve(requestId) : void
+    +reject(requestId) : void
+    +getPendingJoinRequests(communityId) : List<CommunityJoinRequest>
+  }
+
+  class CommunityMessage {
+    -id : Long
+    -communityId : Long
+    -authorId : Long
+    -content : String
+    -parentMessageId : Long
+    -tags : Set<String>
+    -images : List<String>
+    -gifUrl : String
+    -hasSpoiler : boolean
+    -type : MessageType
+    -clientMessageId : String
+    -heartCount : int
+    -deleted : boolean
+    -createdAt : LocalDateTime
+    -editedAt : LocalDateTime
+    -version : Long
+    +sendMessage(communityId, content, parentMessageId, ...) : CommunityMessage
+    +uploadMessageMedia(communityId, images, gif) : MessageMediaUploadResponse
+    +editMessage(messageId, newContent) : void
+    +deleteMessage(messageId) : void
+    +createSystemMessage(communityId, type) : void
+    +getRecentMessages(communityId) : List<CommunityMessage>
+    +getMessagesBefore(communityId, beforeId, limit) : List<CommunityMessage>
+    +getMessagesAfter(communityId, afterId) : List<CommunityMessage>
+    +notifyTyping(communityId) : void
+  }
+
+  class MessageReaction {
+    -id : Long
+    -messageId : Long
+    -userId : Long
+    -reactionType : ReactionType
+    -createdAt : LocalDateTime
+    +toggleReaction(messageId, type) : void
+  }
+
+  class BookVoting {
+    -id : Long
+    -communityId : Long
+    -title : String
+    -status : VotingStatus
+    -tieBreakRule : TieBreakRule
+    -startsAt : LocalDateTime
+    -endsAt : LocalDateTime
+    -closedAt : LocalDateTime
+    -winnerOptionId : Long
+    -rejectionReason : String
+    -createdBy : Long
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    +createVoting(communityId, request) : BookVoting
+    +publishVoting(votingId) : BookVoting
+    +castVote(votingId, optionId) : BookVoting
+    +closeVoting(votingId) : BookVoting
+    +approveResult(votingId, request) : BookVoting
+    +rejectResult(votingId, request) : BookVoting
+    +getVoting(votingId) : BookVoting
+    +listVotings(communityId) : List<BookVoting>
+    +closeExpiredVotings() : void
+  }
+
+  class BookVotingOption {
+    -id : Long
+    -votingId : Long
+    -bookId : Long
+    -bookTitle : String
+    -bookCoverUrl : String
+    -voteCount : Integer
+  }
+
+  class BookVote {
+    -id : Long
+    -votingId : Long
+    -optionId : Long
+    -userId : Long
+    -votedAt : LocalDateTime
+  }
+
+  enum CommunityType {
+    PUBLIC
+    PRIVATE
+  }
+  enum CommunityRole {
+    OWNER
+    MODERATOR
+    MEMBER
+  }
+  enum InviteStatus {
+    PENDING
+    ACCEPTED
+    DECLINED
+  }
+  enum JoinRequestStatus {
+    PENDING
+    APPROVED
+    REJECTED
+  }
+  enum MessageType {
+    USER
+    MEMBER_JOINED
+    MEMBER_LEFT
+  }
+  enum ReactionType {
+    HEART
+  }
+  enum VotingStatus {
+    DRAFT
+    ACTIVE
+    CLOSED
+    APPROVED
+    REJECTED
+  }
+  enum TieBreakRule {
+    ADMIN_CHOICE
+    RANDOM_DRAW
+  }
+
+  Community --> CommunityType
+  CommunityMember ..> CommunityMemberId : @IdClass
+  CommunityMember --> CommunityRole
+  CommunityInvite --> InviteStatus
+  CommunityJoinRequest --> JoinRequestStatus
+  CommunityMessage --> MessageType
+  CommunityMessage "0..1" o-- "0..*" CommunityMessage : respostas
+  MessageReaction --> ReactionType
+  MessageReaction "0..*" --> "1" CommunityMessage
+  BookVoting --> VotingStatus
+  BookVoting --> TieBreakRule
+  BookVoting "1" *-- "2..*" BookVotingOption
+  BookVoting "1" *-- "0..*" BookVote
+  BookVote "0..*" --> "1" BookVotingOption
+  Community "1" o-- "1..*" CommunityMember
+}
+
+' ###################################################################
+package "feed" #F4F2FB {
+
+  abstract class Content {
+    -id : Long
+    -userId : Long
+    -text : String
+    -images : List<String>
+    -gifUrl : String
+    -tags : List<String>
+    -hasSpoiler : Boolean
+    -isDeleted : Boolean
+    -likeCount : Integer
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+  }
+
+  abstract class Commentable {
+    -commentCount : Integer
+  }
+
+  abstract class FeedContent
+
+  class FeedPost {
+    -bookId : Long
+    +createPost(bookId, text, images, gif, tags, hasSpoiler) : FeedPost
+    +updatePost(postId, text, images, gif, tags, hasSpoiler) : FeedPost
+    +deletePost(postId) : void
+    +likePost(postId) : boolean
+    +getPostById(postId) : FeedPost
+    +getRecentPostsByUserId(userId) : List<FeedPost>
+  }
+
+  class Review {
+    -bookId : Long
+    -rating : Integer
+    -isPublished : Boolean
+    +createReview(bookId, rating, text) : Review
+    +updateReview(reviewId, rating, text) : Review
+    +deleteReview(reviewId) : void
+    +likeReview(reviewId) : boolean
+    +getReviewById(reviewId) : Review
+    +getRecentReviewsByUserId(userId) : List<Review>
+  }
+
+  class Comment {
+    -parentId : Long
+    +createComment(parentId, text, images, gif) : Comment
+    +updateComment(commentId, text, images, gif) : Comment
+    +deleteComment(commentId) : void
+    +getCommentById(commentId) : Comment
+    +getComments(parentId) : List<Comment>
+    +likeComment(commentId) : boolean
+    +createReply(commentId, text) : Comment
+  }
+
+  class Like {
+    -id : Long
+    -contentId : Long
+    -userId : Long
+    -type : LikeType
+    -createdAt : LocalDateTime
+  }
+
+  class FeedItem {
+    -id : Long
+    -userId : Long
+    -contentId : Long
+    -contentType : String
+    -authorId : Long
+    -score : Long
+    -createdAt : LocalDateTime
+    +getFeed(userId, cursor, size) : FeedSlice
+    +getNewItemsCount(userId, sinceScore) : long
+  }
+
+  class FeedFanoutProgress {
+    -id : Long
+    -eventId : String
+    -contentId : Long
+    -authorId : Long
+    -lastProcessedFollowerId : Long
+    -totalProcessed : Integer
+    -status : FanoutStatus
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+  }
+
+  enum LikeType {
+    LIKE
+    DISLIKE
+  }
+  enum FanoutStatus {
+    PENDING
+    IN_PROGRESS
+    COMPLETED
+    FAILED
+  }
+
+  Content <|-- Commentable
+  Commentable <|-- FeedContent
+  FeedContent <|-- FeedPost
+  FeedContent <|-- Review
+  Content <|-- Comment
+  Like --> LikeType
+  Like "0..*" --> "1" Content
+  Comment "0..*" --> "1" Commentable
+  FeedFanoutProgress --> FanoutStatus
+}
+
+' ###################################################################
+package "dna" #F2FAFB {
+
+  class LiteraryDna {
+    -id : Long
+    -userId : Long
+    -status : DnaStatus
+    -booksReadCount : Integer
+    -complexityScore : Double
+    -complexityLabel : String
+    -avgDaysPerBook : Double
+    -rereadRate : Double
+    -rereadCount : Integer
+    -abandonedCount : Integer
+    -centralThemesJson : String
+    -dominantArchetype : LiteraryArchetype
+    -secondaryArchetypesJson : String
+    -mostAbandonedGenre : String
+    -avgTimePerBookDays : Double
+    -pendingArchetype : LiteraryArchetype
+    -pendingArchetypeMonthsCount : Integer
+    -totalPagesRead : Integer
+    -pagesByYearJson : String
+    -calculatedAt : LocalDateTime
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    +getDna(userId) : LiteraryDna
+    +triggerRecalculation(userId) : void
+  }
+
+  enum DnaStatus {
+    IN_FORMATION
+    COMPUTING
+    COMPUTED
+  }
+  enum LiteraryArchetype {
+    DISCOVERY_READER
+    GENRE_DEVOTEE
+    CLASSICS_SCHOLAR
+    COMPULSIVE_READER
+    ECLECTIC_READER
+    RE_READER
+    EMOTIONAL_READER
+    EXPLORER
+    +getLabel() : String
+  }
+
+  LiteraryDna --> DnaStatus
+  LiteraryDna --> "dominant" LiteraryArchetype
+  LiteraryDna --> "pending" LiteraryArchetype
+}
+
+' ###################################################################
+package "recommendation" #FBFBF2 {
+
+  class UserPreference {
+    -id : Long
+    -userId : Long
+    -genres : List<String>
+    -bookIds : List<Long>
+    -createdAt : LocalDateTime
+    -updatedAt : LocalDateTime
+    +savePreferences(userId, genres, bookIds) : UserPreference
+    +getAllGenres() : List<GenreTranslation>
+  }
+
+  class RecommendationResult {
+    -id : Long
+    -userId : Long
+    -trailType : String
+    -books : String (JSON)
+    -computedAt : LocalDateTime
+    -metadata : String (JSON)
+    +getBecauseYouRead(userId) : BecauseYouReadResult
+    +getFavoriteGenreNow(userId) : FavoriteGenreNowResult
+    +getTrendingInCommunities(userId) : TrendingInCommunitiesResult
+    +getCatalogSurprise(userId) : CatalogSurpriseResult
+    +getRereadWorthIt(userId) : RereadWorthItResult
+    +getSimilarAuthors(userId) : SimilarAuthorsResult
+    +rollDice(userId) : DiceRollResult
+  }
+
+  class CommunityTrendingScore {
+    -bookId : Long
+    -currentScore : Double
+    -lastUpdated : LocalDateTime
+  }
+}
+
+' ###################################################################
+package "notification" #FBF2F7 {
+
+  class Notification {
+    -id : String
+    -recipientId : Long
+    -type : NotificationType
+    -actorId : Long
+    -actorUsername : String
+    -actorAvatarUrl : String
+    -entityId : Long
+    -communityId : Long
+    -readAt : LocalDateTime
+    -createdAt : LocalDateTime
+    +getNotifications(userId, page, size) : List<Notification>
+    +countUnread(userId) : long
+    +markAsRead(notificationId) : void
+    +markAllAsRead(userId) : void
+    +isRead() : boolean
+  }
+
+  class DeviceToken {
+    -id : Long
+    -userId : Long
+    -token : String
+    -createdAt : LocalDateTime
+  }
+
+  enum NotificationType {
+    USER_FOLLOW_REQUESTED
+    USER_FOLLOWED
+    COMMENT_REPLIED
+    REVIEW_LIKED
+    COMMUNITY_INVITE
+    COMMUNITY_JOIN_REQUEST
+    COMMUNITY_JOIN_APPROVED
+  }
+
+  Notification --> NotificationType
+}
+
+' ===================================================================
+' Referencias inter-modulo (por ID, modulo isolado) ----------------
+' ===================================================================
+Shelf ..> User
+Collection ..> User
+ShelfItem ..> Book
+ReadingActiveDay ..> User
+ReadingActiveDay ..> Book
+RefreshToken ..> User
+PasswordResetToken ..> User
+UserFollow ..> User
+
+Community ..> Book
+Community ..> User
+CommunityMember ..> User
+BookVotingOption ..> Book
+
+FeedPost ..> User
+FeedPost ..> Book
+Review ..> Book
+FeedItem ..> User
+
+LiteraryDna ..> User
+UserPreference ..> User
+CommunityTrendingScore ..> Book
+Notification ..> User
+DeviceToken ..> User
+@enduml
