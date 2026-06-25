@@ -10,7 +10,7 @@
 
 ---
 
-## 🛠️ Stack Principal
+## Stack Principal
 
 ![Java](https://img.shields.io/badge/Java-25-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.4-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
@@ -34,14 +34,14 @@
 
 ---
 
-## 📑 Sumário
+## Sumário
 
 - [Sobre o projeto](#-sobre-o-projeto)
 - [Arquitetura](#-arquitetura)
 - [Estrutura de módulos](#-estrutura-de-módulos)
 - [Estrutura de pastas](#-estrutura-de-pastas)
-- [APIs e endpoints](#-apis-e-endpoints)
 - [Infraestrutura Docker](#-infraestrutura-docker)
+- [Comprovações de mensageria](#-comprovações-de-mensageria)
 - [Testes de performance](#-testes-de-performance)
 - [Variáveis de ambiente](#-variáveis-de-ambiente)
 - [Instalação e execução](#-instalação-e-execução)
@@ -50,16 +50,17 @@
 - [Padrão de código](#-padrão-de-código)
 - [Regras de arquitetura](#-regras-de-arquitetura)
 - [Tecnologias e dependências](#-tecnologias-e-dependências)
+- [APIs e endpoints](#-apis-e-endpoints)
 
 ---
 
-## 📖 Sobre o projeto
+## Sobre o projeto
 
 O **Biblioo** é uma rede social focada em leitores. Os usuários organizam seus livros em estantes personalizadas, escrevem reviews, interagem em comunidades com chat em tempo real (WebSocket/STOMP via RabbitMQ), recebem notificações push (Firebase FCM) e têm acesso a recomendações geradas por seis algoritmos distintos que combinam grafo de relacionamentos (Neo4j), colaboração entre usuários e aprendizado bayesiano (Thompson Sampling). O assistente **Bibo**, alimentado pelo Google Gemini, transforma linguagem natural em ações dentro da plataforma. Além de responder perguntas e recomendar leituras, ele é capaz de criar comunidades, organizar estantes, montar coleções e auxiliar usuários na utilização do ecossistema social do Biblioo de forma contextual e automatizada.
 
 ---
 
-## 🏛️ Arquitetura
+## Arquitetura
 
 A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura de **monólito modular**, garantindo desacoplamento entre domínios e permitindo que módulos específicos possam ser extraídos futuramente para serviços independentes conforme a necessidade de escalabilidade da plataforma.
 
@@ -78,9 +79,51 @@ A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura
 | Sliding Window Cache | Feed Redis com warm-size de 200 itens |
 | Idempotência por `event_id` | Todos os consumers RabbitMQ com persistência |
 
+### Estratégia de Feed — Fanout, Threshold e Backfill
+
+O feed personalizado é a funcionalidade mais lida da plataforma: cada usuário abre o feed múltiplas vezes por sessão, mas publica posts de forma esporádica. Essa assimetria acentuada entre leituras e escritas orientou todas as decisões de design do módulo `feed`.
+
+#### Fanout-on-write com threshold de 10.000 seguidores
+
+Ao publicar um post, o evento `feed.fanout.publish` é salvo via Outbox e consumido pelo `FeedFanoutConsumer` (fila `biblioo.feed.fanout`). O consumer escreve uma entrada no feed Redis de cada seguidor individualmente — garantindo que `GET /feed` seja uma leitura direta do cache, sem joins ou consultas ao banco relacional.
+
+O problema emerge em perfis com grande audiência: um post de alguém com 50.000 seguidores geraria 50.000 escritas assíncronas simultâneas no Redis, criando picos de pressão no broker e no cache que impactam a performance global da plataforma. Para evitar esse efeito — conhecido como "celebrity problem" em sistemas de feed — o sistema aplica um **threshold de 10.000 seguidores**:
+
+| Perfil do autor | Estratégia | Mecanismo |
+|---|---|---|
+| < 10.000 seguidores | Fanout-on-write | `FeedFanoutConsumer` distribui o post no Redis de cada seguidor ao publicar |
+| ≥ 10.000 seguidores | Fanout diferido | Post não é distribuído imediatamente; seguidores recebem o conteúdo ao consultar o feed |
+
+O threshold de 10.000 reflete o perfil atual da plataforma: contas com audiência massiva são raras no estágio de crescimento do Biblioo, e impor a estratégia diferida para todos os perfis acima desse patamar mantém o custo de escrita sob controle sem afetar a experiência da base principal de usuários. Quando o perfil de crescimento justificar, a estratégia do tier acima do threshold pode ser aprimorada independentemente.
+
+#### Sliding Window Cache
+
+O feed de cada usuário no Redis é mantido como uma **sliding window de 200 itens** (warm-size configurável via `recommendation.*`). A paginação por cursor (`GET /feed?cursor=...`) consome esses itens diretamente do cache. À medida que o usuário avança no feed e a janela se aproxima do esgotamento, o sistema reabastece o cache com itens mais antigos vindos do banco — mantendo latência baixa mesmo para usuários com feed denso. O resultado: `trending-stress` registrou p95 de **303ms sob 600 VUs** sem nenhuma consulta ao banco relacional para leitura de feed.
+
+#### Backfill ao ganhar novo seguidor
+
+Quando o usuário B começa a seguir o usuário A, o evento `notification.user.followed` aciona o `FeedFollowBackfillConsumer` (fila `biblioo.feed.follow.backfill`). Esse consumer retroativamente insere os posts recentes de A no feed de B — evitando que o feed apareça vazio logo após um novo follow.
+
+```mermaid
+flowchart LR
+    POST["Usuário publica post"]
+    OUTBOX["OutboxEventService\nfeed.fanout.publish"]
+    RMQ["biblioo.feed.fanout\n(RabbitMQ)"]
+    CHECK{"≥ 10.000 seguidores?"}
+    FANOUT["FeedFanoutConsumer\nescreve no Redis\nde cada seguidor"]
+    DEFER["Fanout diferido\n(entrega on-read)"]
+    FOLLOW["Usuário B segue A"]
+    BACKFILL["FeedFollowBackfillConsumer\nbiblioo.feed.follow.backfill\ninsere posts recentes de A\nno feed de B"]
+
+    POST --> OUTBOX --> RMQ --> CHECK
+    CHECK -->|Não| FANOUT
+    CHECK -->|Sim| DEFER
+    FOLLOW --> BACKFILL
+```
+
 ---
 
-## 🧩 Estrutura de módulos
+## Estrutura de módulos
 
 | Módulo | Responsabilidade | Arquivos Java |
 |---|---|---|
@@ -96,13 +139,13 @@ A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura
 | `user` | Autenticação (e-mail/senha + Google OAuth + criação de senha), perfil, seguidores, busca por username | ~67 |
 | `assistant` | Assistente Bibo com Google Gemini, histórico de conversas no Redis, rate limit 20 req/min | ~21 |
 
-### 🤖 Algoritmos de Recomendação
+### Algoritmos de Recomendação
 
 O sistema de recomendação é o **diferencial central do Biblioo**. São seis trilhas independentes, cada uma com uma estratégia distinta para cobrir ângulos diferentes de descoberta de leitura — de comportamento social a aprendizado adaptativo. Nenhuma usa IA generativa: os resultados são gerados por algoritmos determinísticos e estatísticos, acionados por eventos de domínio via RabbitMQ e cacheados no Redis por usuário.
 
 ---
 
-#### 🔗 T1 — BecauseYouRead `rec-byr`
+#### T1 — BecauseYouRead `rec-byr`
 
 > *"Quem leu o mesmo livro que você também leu estes..."*
 
@@ -112,7 +155,7 @@ A trilha de co-leitura conecta leitores pelo título em comum. Quando o usuário
 
 ---
 
-#### 🎯 T2 — FavoriteGenreNow `rec-fgn`
+#### T2 — FavoriteGenreNow `rec-fgn`
 
 > *"Você está numa fase de ficção científica — aqui estão os melhores títulos que ainda não leu."*
 
@@ -122,7 +165,7 @@ Detecta os **3 gêneros dominantes no momento atual** do usuário (não o histó
 
 ---
 
-#### 📈 T3 — TrendingInCommunities `rec-tic`
+#### T3 — TrendingInCommunities `rec-tic`
 
 > *"Este livro está em alta nas comunidades agora — as pessoas estão comentando muito sobre ele."*
 
@@ -132,7 +175,7 @@ Capta o que está gerando engajamento real nas comunidades em tempo real. Cada m
 
 ---
 
-#### 🎲 T4 — CatalogSurprise `rec-cs`
+#### T4 — CatalogSurprise `rec-cs`
 
 > *"Saia da zona de conforto — aqui está algo diferente do que você costuma ler, mas que faz sentido para o seu perfil."*
 
@@ -142,7 +185,7 @@ A trilha que combate o efeito de bolha. Propõe livros de **categorias distantes
 
 ---
 
-#### 👥 T5 — SimilarAuthors `rec-sa`
+#### T5 — SimilarAuthors `rec-sa`
 
 > *"Leitores com gosto parecido com o seu adoraram estes livros — e são de autores que você ainda não explorou."*
 
@@ -152,7 +195,7 @@ Combina duas fontes: o próprio histórico do usuário e o comportamento de leit
 
 ---
 
-#### 🔄 T6 — RereadWorthIt `rec-rwi`
+#### T6 — RereadWorthIt `rec-rwi`
 
 > *"Faz um tempo que você leu este livro — pode ser o momento certo para revisitá-lo."*
 
@@ -162,7 +205,7 @@ A única trilha focada em releitura. Usa repetição espaçada para calcular, li
 
 ---
 
-## 📁 Estrutura de pastas
+## Estrutura de pastas
 
 ```
 back/
@@ -205,7 +248,775 @@ back/
 
 ---
 
-## 🌐 APIs e endpoints
+## Infraestrutura Docker (desenvolvimento local)
+
+O `docker-compose.yml` sobe todos os serviços de infraestrutura localmente. A aplicação Spring Boot roda fora do Compose (via `./mvnw spring-boot:run`). Em produção, cada serviço é substituído por um provedor gerenciado — veja [Deploy em nuvem](#-deploy-em-nuvem).
+
+| Serviço | Imagem | Porta padrão | Função |
+|---|---|---|---|
+| `biblioo-mysql` | `mysql:8.4` | `3306` | Banco relacional principal |
+| `biblioo-redis` | `redis:7.4-alpine` | `6379` | Cache, sessões, bandit params |
+| `biblioo-rabbitmq` | `rabbitmq:4.0-management-alpine` | `5672` / `15672` / `61613` | Mensageria + STOMP WebSocket relay |
+| `biblioo-opensearch` | `opensearchproject/opensearch:2.18.0` | `9200` | Busca full-text (livros e usuários) |
+| `biblioo-neo4j` | `neo4j:5.18` | `7474` / `7687` | Grafo de recomendações |
+| `biblioo-prometheus` | `prom/prometheus:v2.53.0` | `9090` | Coleta de métricas |
+| `biblioo-grafana` | `grafana/grafana:10.4.5` | `3001` | Dashboards de observabilidade |
+| `biblioo-opensearch-dashboards` | `opensearchproject/opensearch-dashboards:2.18.0` | `5601` | UI do OpenSearch (perfil `tools`) |
+
+> Os serviços `mysql`, `redis`, `rabbitmq` e `opensearch` possuem healthcheck configurado.
+> O `opensearch-dashboards` só sobe com `docker-compose --profile tools up`.
+
+```bash
+# Subir infraestrutura completa
+docker-compose up -d
+
+# Subir com OpenSearch Dashboards
+docker-compose --profile tools up -d
+```
+
+---
+
+## Comprovações de mensageria
+
+> **Esclarecimento sobre Firebase:** o Firebase FCM é usado **exclusivamente** para entregar notificações push ao dispositivo móvel quando o app está em background ou fechado — é um canal de entrega de notificação, não um message broker. Todo o backbone de mensageria assíncrona da plataforma (chat em tempo real, algoritmos de recomendação, feed fanout, notificações in-app, e-mail, DNA Literário) roda sobre **RabbitMQ via Spring AMQP**.
+
+---
+
+### Exchanges e topologia
+
+A configuração completa está em [`src/main/java/com/biblioo/infrastructure/messaging/config/RabbitMQConfig.java`](src/main/java/com/biblioo/infrastructure/messaging/config/RabbitMQConfig.java).
+
+```mermaid
+flowchart TD
+    APP["Aplicação Spring Boot"]
+    ME["biblioo.events\nTopicExchange · durable"]
+    DLX["biblioo.events.dlx\nDirectExchange · DLX global"]
+    FE["biblioo.community.broadcast\nFanoutExchange · chat cross-instância"]
+
+    APP -->|"routingKey dinâmica"| ME
+    APP -->|"FanoutExchange · chat WebSocket"| FE
+
+    ME -->|"book.stats.#"| Q1["biblioo.book.stats"]
+    ME -->|"notification.#"| Q2["biblioo.notification"]
+    ME -->|"shelf.reading.completed"| Q3["rec.shelf.completed (BYR)"]
+    ME -->|"shelf.reading.completed"| Q4["rec.favorite-genre-now.triggered (FGN)"]
+    ME -->|"shelf.reading.completed\nshelf.reading.abandoned"| Q5["trail.catalog-surprise.recompute.queue (CS)"]
+    ME -->|"shelf.reading.completed"| Q6["rec.similar-authors.triggered (SA)"]
+    ME -->|"shelf.reading.completed"| Q7["rec.reread-worth-it.triggered (RWI)"]
+    ME -->|"community.trending.message"| Q8["rec.trending-in-communities.message (TIC)"]
+    ME -->|"community.trending.join"| Q9["rec.trending-in-communities.join (TIC)"]
+    ME -->|"feed.fanout.#"| Q10["biblioo.feed.fanout"]
+    ME -->|"notification.user.followed"| Q11["biblioo.feed.follow.backfill"]
+    ME -->|"email.#"| Q12["biblioo.email"]
+    ME -->|"feed.review.rating.updated\nshelf.reading.completed\nshelf.reading.abandoned"| Q13["biblioo.dna.recalculation"]
+    ME -->|"community.message.#"| Q14["biblioo.community.message (TIC score)"]
+
+    Q1 -->|"x-dead-letter"| DLX
+    Q2 -->|"x-dead-letter"| DLX
+    Q3 -->|"x-dead-letter"| DLX
+    Q10 -->|"x-dead-letter"| DLX
+
+    FE -->|"fila anônima por instância"| CB["CommunityBroadcastConsumer\n(por instância Cloud Run)"]
+```
+
+---
+
+### Queues declaradas no código
+
+| Queue | Routing key | Consumer | Domínio |
+|---|---|---|---|
+| `biblioo.book.stats` | `book.stats.#` | `BookStatsConsumer` | Atualiza `reader_count`, `review_count`, `avg_rating` |
+| `biblioo.notification` | `notification.#` | `NotificationConsumer` | Notificações in-app (follow, convite, aprovação) |
+| `rec.shelf.completed` | `shelf.reading.completed` | `BecauseYouReadConsumer` | Recomendação T1 — co-leitura Neo4j |
+| `rec.favorite-genre-now.triggered` | `shelf.reading.completed` | `FavoriteGenreNowConsumer` | Recomendação T2 — gêneros dominantes |
+| `trail.catalog-surprise.recompute.queue` | `shelf.reading.completed` / `shelf.reading.abandoned` | `CatalogSurpriseConsumer` | Recomendação T4 — Thompson Sampling (atualiza α/β no Redis) |
+| `rec.similar-authors.triggered` | `shelf.reading.completed` | `SimilarAuthorsConsumer` | Recomendação T5 — filtragem colaborativa Neo4j |
+| `rec.reread-worth-it.triggered` | `shelf.reading.completed` | `RereadWorthItConsumer` | Recomendação T6 — repetição espaçada |
+| `rec.trending-in-communities.message` | `community.trending.message` | `TrendingInCommunitiesConsumer` | Recomendação T3 — score por mensagem (peso 2.0) |
+| `rec.trending-in-communities.join` | `community.trending.join` | `TrendingInCommunitiesConsumer` | Recomendação T3 — score por entrada (peso 0.5) |
+| `biblioo.feed.fanout` | `feed.fanout.#` | `FeedFanoutConsumer` | Fanout de posts/reviews para feeds dos seguidores |
+| `biblioo.feed.follow.backfill` | `notification.user.followed` | `FeedFollowBackfillConsumer` | Backfill do feed ao ganhar novo seguidor |
+| `biblioo.email` | `email.#` | `EmailConsumer` | Envio de e-mails transacionais (reset de senha, confirmações) |
+| `biblioo.dna.recalculation` | `shelf.reading.completed` / `shelf.reading.abandoned` / `feed.review.rating.updated` | `DnaRecalculationConsumer` | Recálculo do DNA Literário |
+| `biblioo.community.message` | `community.message.#` | `CommunityBroadcastConsumer` (indireto) | Propagação de mensagens entre instâncias |
+
+Todas as queues têm **Dead Letter Queue (DLQ)** correspondente ligada ao exchange `biblioo.events.dlx`.
+
+---
+
+### Padrão Outbox — publicação transacional
+
+O maior risco de mensageria é publicar uma mensagem no broker antes de a transação de banco confirmar. O Biblioo resolve isso com o **Outbox Pattern**:
+
+**Entidade persistida em MySQL** — [`OutboxEvent.java`](src/main/java/com/biblioo/infrastructure/messaging/model/OutboxEvent.java):
+
+```java
+// Campos: id (UUID), eventType, aggregateType, aggregateId,
+//         routingKey, payload (JSON), status (PENDING/PROCESSED/FAILED),
+//         attempts, errorMessage, createdAt, processedAt
+@Entity
+@Table(name = "outbox_events")
+public class OutboxEvent { ... }
+```
+
+**Publicação só após commit** — [`OutboxEventService.java`](src/main/java/com/biblioo/infrastructure/messaging/service/OutboxEventService.java), linha 62:
+
+```java
+@Transactional(propagation = Propagation.MANDATORY)
+public OutboxEvent saveAndSchedulePublish(...) {
+    OutboxEvent saved = outboxEventRepository.save(event); // grava no MySQL
+
+    TransactionSynchronizationManager.registerSynchronization(
+        new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+            eventPublisherPort.publish(saved); // só executa após commit
+          }
+        });
+
+    return saved;
+}
+```
+
+**Publisher para o broker** — [`RabbitMQEventPublisher.java`](src/main/java/com/biblioo/infrastructure/messaging/adapter/RabbitMQEventPublisher.java), linha 38:
+
+```java
+rabbitTemplate.convertAndSend(RabbitMQConfig.MAIN_EXCHANGE, event.getRoutingKey(), message);
+```
+
+---
+
+### Idempotência dos consumers
+
+Cada consumer verifica o `event_id` antes de processar, prevenindo reprocessamento em caso de reentrega pelo broker. Referência principal: [`BecauseYouReadConsumer.java`](src/main/java/com/biblioo/recommendation/infrastructure/consumer/BecauseYouReadConsumer.java), linha 40:
+
+```java
+@RabbitListener(queues = RabbitMQConfig.BYR_QUEUE, containerFactory = "becauseYouReadListenerFactory")
+public void handle(EventMessage message) {
+    String eventId = message.getEventId();
+
+    if (eventLogRepository.existsByEventId(eventId)) {
+        return; // descarta silenciosamente evento já processado
+    }
+
+    // processamento ...
+
+    try {
+        eventLogRepository.registerEvent(eventId, ...);
+    } catch (DuplicateEventException ex) {
+        log.warn("Race condition em event_id={}, descartando", eventId);
+        return;
+    }
+
+    becauseYouReadService.compute(userId, bookId, shelfItemId, finishedAt, seedBookTitle);
+}
+```
+
+O mesmo padrão é aplicado em todos os consumers de recomendação (`FavoriteGenreNowConsumer`, `CatalogSurpriseConsumer`, `SimilarAuthorsConsumer`, `RereadWorthItConsumer`, `TrendingInCommunitiesConsumer`).
+
+---
+
+### Chat em tempo real — WebSocket + RabbitMQ cross-instância
+
+O chat usa WebSocket/STOMP para entrega local. Com múltiplas instâncias no Cloud Run, uma mensagem publicada na instância A precisa chegar aos clientes conectados na instância B. Isso é feito via **FanoutExchange** (`biblioo.community.broadcast`) — cada instância tem uma fila anônima vinculada a esse exchange.
+
+**Publicação cross-instância** — [`WebSocketMessageBroadcastAdapter.java`](src/main/java/com/biblioo/community/infrastructure/messaging/WebSocketMessageBroadcastAdapter.java), linha 127:
+
+```java
+// Após entregar localmente via SimpMessagingTemplate,
+// publica no FanoutExchange para as demais instâncias
+private void publishToOtherInstances(String destination, MessageEventPayload event) {
+    CommunityBroadcastEnvelope envelope = new CommunityBroadcastEnvelope(destination, event);
+    rabbitTemplate.convertAndSend(
+        RabbitMQConfig.COMMUNITY_BROADCAST_EXCHANGE, "", envelope,
+        msg -> {
+            msg.getMessageProperties()
+               .setHeader(HEADER_INSTANCE_ID, applicationInstanceId.getValue());
+            return msg;
+        });
+}
+```
+
+**Consumo nas demais instâncias** — [`CommunityBroadcastConsumer.java`](src/main/java/com/biblioo/community/infrastructure/messaging/CommunityBroadcastConsumer.java), linha 23:
+
+```java
+@RabbitListener(queues = "#{communityBroadcastQueue.name}",
+                containerFactory = "communityBroadcastListenerFactory")
+public void handle(Message amqpMessage) {
+    String senderInstanceId = (String) amqpMessage.getMessageProperties()
+                                                   .getHeader(HEADER_INSTANCE_ID);
+
+    if (applicationInstanceId.getValue().equals(senderInstanceId)) {
+        return; // ignora mensagens da própria instância (já entregues localmente)
+    }
+
+    // deserializa envelope e entrega via SimpMessagingTemplate para os
+    // clientes WebSocket conectados nesta instância
+}
+```
+
+---
+
+### Notificações — RabbitMQ para entrega in-app, FCM para push mobile
+
+O fluxo de notificação usa dois canais distintos conforme o contexto do usuário:
+
+```mermaid
+flowchart TD
+    EVENT["Evento de domínio\n(follow, convite, aprovação...)"]
+    OUTBOX["OutboxEventService\n@Transactional → afterCommit()"]
+    RMQ["RabbitMQ\nbiblioo.notification\nrouting: notification.#"]
+    CONSUMER["NotificationConsumer\n@RabbitListener"]
+    DB["MySQL\ntabela notifications"]
+    SSE["SSE\n/notifications/stream\nweb — app aberto"]
+    FCM["Firebase FCM\nPush notification\nmobile — app fechado/background"]
+
+    EVENT --> OUTBOX --> RMQ --> CONSUMER --> DB
+    DB --> SSE
+    DB --> FCM
+```
+
+**Consumer RabbitMQ** — [`NotificationConsumer.java`](src/main/java/com/biblioo/notification/infrastructure/consumer/NotificationConsumer.java), linha 25:
+
+```java
+@RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE,
+                containerFactory = "notificationListenerFactory")
+public void handle(EventMessage message) {
+    switch (message.getEventType()) {
+        case EVENT_USER_FOLLOW_REQUESTED -> handleFollowRequested(payload);
+        case EVENT_USER_FOLLOWED         -> handleFollowed(payload);
+        case EVENT_COMMUNITY_INVITE      -> handleCommunityInvite(payload);
+        case EVENT_COMMUNITY_JOIN_REQUEST -> handleCommunityJoinRequest(payload);
+        case EVENT_COMMUNITY_JOIN_APPROVED -> handleCommunityJoinApproved(payload);
+    }
+}
+```
+
+O `NotificationService.createAndDeliver()` persiste a notificação no MySQL e em seguida: (1) envia via SSE para clientes web conectados e (2) aciona o Firebase FCM apenas se o usuário tiver um device token registrado — ou seja, FCM é o fallback para entrega no dispositivo quando o usuário não está com o app aberto, não o mecanismo central de mensageria.
+
+---
+
+### Retry e DLQ — resiliência por domínio
+
+Consumers críticos têm retry configurado via `RetryInterceptorBuilder` com backoff exponencial. Mensagens que esgotam as tentativas são roteadas para a DLQ correspondente, onde ficam disponíveis para inspeção e reprocessamento manual:
+
+```java
+// RabbitMQConfig.java — linha 232
+@Bean
+Advice bookStatsRetryInterceptor() {
+    return RetryInterceptorBuilder.stateless()
+        .maxRetries(3)
+        .backOffOptions(2_000, 2.0, 10_000) // 2s, 4s, 8s
+        .build();
+}
+```
+
+| Queue principal | DLQ | Routing key DLQ |
+|---|---|---|
+| `biblioo.book.stats` | `biblioo.book.stats.dlq` | `book.stats.dead` |
+| `biblioo.notification` | `biblioo.notification.dlq` | `notification.dead` |
+| `rec.shelf.completed` | `rec.shelf.completed.dlq` | `rec.shelf.dead` |
+| `biblioo.feed.fanout` | `biblioo.feed.fanout.dlq` | `feed.fanout.dead` |
+| `biblioo.email` | `biblioo.email.dlq` | `email.dead` |
+| `biblioo.dna.recalculation` | `biblioo.dna.recalculation.dlq` | `dna.recalculation.dead` |
+
+---
+
+## Testes de performance
+
+O Biblioo executa operações computacionalmente pesadas: consultas a seis bancos de dados distintos, algoritmos de grafo (Neo4j), fanout de feed e mensageria assíncrona. Por isso, **requisitos não funcionais de desempenho** são tratados como cidadãos de primeira classe — latência máxima aceitável, taxa de erro tolerada e comportamento sob carga inesperada são definidos como SLAs explícitos e verificados automaticamente pelos testes.
+
+**72 testes executados — 100% aprovados.** A suíte cobre **8 domínios** e **24 subdomínios**, com três perfis por subdomínio:
+
+| Perfil | Dinâmica de carga | Objetivo |
+|---|---|---|
+| `*-load.js` | VUs constantes por 2 min (até 600 VUs dependendo do domínio) | Valida latência p95 dentro do SLA em carga normal sustentada |
+| `*-spike.js` | Salto abrupto para até 500–600 VUs | Valida resiliência a bursts repentinos de tráfego |
+| `*-stress.js` | Rampa crescente até 400–800 VUs | Valida comportamento sob pressão máxima e degradação controlada |
+
+Os thresholds são declarados diretamente nos scripts e fazem o teste **falhar** automaticamente se violados — funcionam como assertions de desempenho na pipeline.
+
+### Resultados da bateria de stress (evidência principal de escalabilidade)
+
+| Subdomínio | VUs máx | Throughput | p(95) | Resultado |
+|-----------|---------|-----------|-------|-----------|
+| book | 400 | 545,6/s | 100,89 ms | PASSOU |
+| shelfItem | 600 | 377,6/s | 717,87 ms | PASSOU |
+| user | 600 | 833,75/s | 349,76 ms | PASSOU |
+| social (grafo) | 200 | 287,85/s | 666,23 ms | PASSOU |
+| feed | 600 | 413,77/s | 303,43 ms | PASSOU |
+| post | 600 | 406,66/s | 505,61 ms | PASSOU |
+| comment | 600 | 482,65/s | 304,66 ms | PASSOU |
+| review | 600 | ~334/s | 928,98 ms | PASSOU |
+| admin (comunidade) | 600 | ~568/s | 605,7 ms | PASSOU |
+| message (WebSocket) | 250 | entrega 100% | 32 ms | PASSOU |
+| recommendation (6 trilhas) | 400 | ~718/s | 1 210 ms | PASSOU |
+| roll-dice | 800 | ~512/s | 420,03 ms | PASSOU |
+| trending | 600 | ~300/s | ~22,8 ms | PASSOU |
+| shareCard | 600 | ~299,6/s | 57,42 ms | PASSOU |
+| dna | 500 | 150,27/s | 29,88 ms | PASSOU |
+
+**0 falhas sistêmicas (5xx)** em todos os 72 testes. Relatório técnico completo em [`performance-tests/docs/RELATORIO-GERAL.md`](performance-tests/docs/RELATORIO-GERAL.md).
+
+### Padrão dos testes autenticados
+
+Domínios que exigem autenticação seguem um padrão com `setup()`: o script provisiona um **pool de N usuários** via `/auth/register`, faz login e armazena tokens JWT antes da execução. Cada VU consome um token por round-robin, eliminando o custo de autenticação do caminho crítico medido.
+
+Os testes de recomendação disparam as **6 trilhas em batch paralelo** (`http.batch`) para simular o padrão real do app, revelando gargalos de concorrência entre trilhas que compartilham Neo4j e Redis.
+
+### Estrutura de arquivos
+
+```
+performance-tests/
+├── docs/
+│   ├── RELATORIO-GERAL.md                  # Resultados consolidados dos 72 testes
+│   └── DOCUMENTO-AVALIACAO-PERFORMANCE.md  # Avaliação com evidências de load
+├── evidencias/
+│   ├── load/                               # 24 prints de carga normal
+│   ├── spike/                              # 24 prints de pico
+│   └── stress/                             # 24 prints de stress
+├── DomainBook/
+│   ├── book/               books-load.js · books-spike.js · books-stress.js
+│   ├── collection/         collection-load.js · collection-spike.js · collection-stress.js
+│   ├── shelf/              shelf-load.js · shelf-spike.js · shelf-stress.js
+│   └── shelfItem/          shelfItem-load.js · shelfItem-spike.js · shelfItem-stress.js
+├── DomainCommunity/
+│   ├── admin/              admin-load.js · admin-spike.js · admin-stress.js
+│   ├── community/          community-load.js (+ invites e join-requests)
+│   ├── message/            message-load.js · message-spike.js · message-stress.js
+│   ├── messageRest/        messageRest-load.js · messageRest-spike.js · messageRest-stress.js
+│   └── voting/             voting-load.js · voting-spike.js · voting-stress.js
+├── DomainDna/              dna-load.js · dna-spike.js · dna-stress.js
+├── DomainFeed/
+│   ├── comment/            comment-load.js · comment-spike.js · comment-stress.js
+│   ├── commentInteraction/ commentInteraction-load.js · commentInteraction-spike.js · commentInteraction-stress.js
+│   ├── feed/               feed-load.js · feed-spike.js · feed-stress.js
+│   ├── post/               post-load.js · post-spike.js · post-stress.js
+│   └── review/             review-load.js · review-spike.js · review-stress.js
+├── DomainRecommendation/
+│   ├── recommendation/     recommendation-load.js · recommendation-spike.js · recommendation-stress.js
+│   └── roll-dice/          roll-dice-load.js · roll-dice-spike.js · roll-dice-stress.js
+├── DomainShare/            shareCard-load.js · shareCard-spike.js · shareCard-stress.js
+├── DomainTrending/         trending-load.js · trending-spike.js · trending-stress.js
+└── DomainUser/
+    ├── social/             social-load.js · social-spike.js · social-stress.js
+    │                       social-requests-load.js · social-requests-spike.js · social-requests-stress.js
+    └── user/               user-load.js · user-spike.js · user-stress.js
+```
+
+```bash
+# Load — feed social
+k6 run performance-tests/DomainFeed/feed/feed-load.js
+
+# Spike — 6 trilhas de recomendação em batch paralelo
+k6 run performance-tests/DomainRecommendation/recommendation/recommendation-spike.js
+
+# Stress — busca de livros (OpenSearch)
+k6 run performance-tests/DomainBook/book/books-stress.js
+```
+
+---
+
+## Variáveis de ambiente
+
+Crie um arquivo `.env` na raiz de `back/` com as variáveis abaixo. **Nunca versionar em produção.**
+
+```dotenv
+# ── MySQL ──────────────────────────────────────
+MYSQL_PORT=3306
+MYSQL_USER=biblioo
+MYSQL_PASSWORD=senha_mysql
+MYSQL_DATABASE=biblioo
+MYSQL_ROOT_PASSWORD=root_senha
+MYSQL_BIND_HOST=127.0.0.1
+MYSQL_SLOW_QUERY_TIME=2
+MYSQL_INNODB_BUFFER_POOL_SIZE=256M
+MYSQL_INNODB_LOG_BUFFER_SIZE=64M
+MYSQL_MAX_CONNECTIONS=100
+MYSQL_THREAD_CACHE_SIZE=10
+MYSQL_TABLE_OPEN_CACHE=2000
+MYSQL_MEM_LIMIT=512m
+
+# ── Redis ──────────────────────────────────────
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=senha_redis
+REDIS_BIND_HOST=127.0.0.1
+REDIS_MAXMEMORY=256mb
+REDIS_MEM_LIMIT=320m
+
+# ── RabbitMQ ───────────────────────────────────
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+RABBITMQ_USER=biblioo
+RABBITMQ_PASSWORD=senha_rabbit
+RABBITMQ_VHOST=/
+RABBITMQ_STOMP_PORT=61613
+RABBITMQ_MANAGEMENT_PORT=15672
+RABBITMQ_BIND_HOST=127.0.0.1
+RABBITMQ_VM_MEMORY_HIGH_WATERMARK=0.4
+RABBITMQ_DISK_FREE_LIMIT=50MB
+RABBITMQ_MEM_LIMIT=512m
+
+# ── OpenSearch ─────────────────────────────────
+OPENSEARCH_HOST=localhost
+OPENSEARCH_PORT=9200
+OPENSEARCH_BIND_HOST=127.0.0.1
+OPENSEARCH_CLUSTER_NAME=biblioo-cluster
+OPENSEARCH_NODE_NAME=biblioo-node
+OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m
+OPENSEARCH_MEM_LIMIT=512m
+OPENSEARCH_DASHBOARDS_BIND_HOST=127.0.0.1
+OPENSEARCH_DASHBOARDS_PORT=5601
+OPENSEARCH_DASHBOARDS_MEM_LIMIT=512m
+
+# ── Neo4j ──────────────────────────────────────
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=senha_neo4j
+NEO4J_BIND_HOST=127.0.0.1
+NEO4J_HTTP_PORT=7474
+NEO4J_BOLT_PORT=7687
+NEO4J_HEAP_INITIAL=256m
+NEO4J_HEAP_MAX=512m
+NEO4J_PAGECACHE=256m
+NEO4J_MEM_LIMIT=1g
+
+# ── Segurança ──────────────────────────────────
+JWT_SECRET=chave_jwt_minimo_256_bits
+
+# ── APIs externas ──────────────────────────────
+GOOGLE_BOOKS_API_KEY=sua_chave_google_books
+GOOGLE_CLIENT_ID=seu_client_id_google
+CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
+FIREBASE_SERVICE_ACCOUNT_BASE64=base64_do_service_account_json
+SENDGRID_API_KEY=sua_chave_sendgrid
+SENDGRID_FROM_EMAIL=noreply@seudominio.com
+GEMINI_API_KEY=sua_chave_gemini
+
+# ── E-mail SMTP (backup) ───────────────────────
+GMAIL_EMAIL=seu_email@gmail.com
+GMAIL_PASSWORD=app_password_gmail
+
+# ── URLs da aplicação ──────────────────────────
+FRONTEND_URL=http://localhost:3000
+APP_WEBSOCKET_ALLOWED_ORIGINS=http://localhost:3000
+PASSWORD_RESET_PATH=/reset-password
+MOBILE_DEEP_LINK_URL=biblioo://
+MOBILE_RESET_PATH=/reset-password
+
+# ── Observabilidade ────────────────────────────
+GRAFANA_USER=admin
+GRAFANA_PASSWORD=senha_grafana
+```
+
+---
+
+## Instalação e execução
+
+### Pré-requisitos
+
+- Java 25+
+- Maven 3.9+
+- Docker + Docker Compose
+- K6 (opcional, para testes de performance)
+
+### Passo a passo
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo.git
+cd plf-es-2026-1-ti5-0492100-biblioo/code/back
+
+# 2. Crie e preencha o arquivo .env (ver seção acima)
+cp .env.example .env
+
+# 3. Suba a infraestrutura
+docker-compose up -d
+
+# 4. Aguarde todos os healthchecks passarem (MySQL ~30s, OpenSearch ~60s, Neo4j ~60s)
+docker-compose ps
+
+# 5. Formate o código (obrigatório antes de qualquer commit)
+./mvnw spotless:apply
+
+# 6. Suba a aplicação
+./mvnw spring-boot:run
+```
+
+### Acessos após subir
+
+| Serviço | URL | Credenciais |
+|---|---|---|
+| API REST | `http://localhost:8080` | JWT Bearer token |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` | — |
+| Grafana | `http://localhost:3001` | `GRAFANA_USER` / `GRAFANA_PASSWORD` |
+| Prometheus | `http://localhost:9090` | — |
+| RabbitMQ | `http://localhost:15672` | `RABBITMQ_USER` / `RABBITMQ_PASSWORD` |
+| Neo4j Browser | `http://localhost:7474` | `NEO4J_USER` / `NEO4J_PASSWORD` |
+
+### Build e testes
+
+```bash
+# Build completo
+./mvnw clean package
+
+# Testes unitários
+./mvnw test
+
+# Verificar formatação sem alterar arquivos
+./mvnw spotless:check
+```
+
+---
+
+## Deploy em Nuvem
+
+A aplicação roda em dois ambientes independentes no **Google Cloud Run** (us-central1), cada um com OpenSearch dedicado e políticas de escalonamento distintas. Os serviços de banco de dados, cache, mensageria e grafo são compartilhados entre os ambientes via provedores gerenciados externos ao Google Cloud.
+
+### Ambientes
+
+| | **Portfolio** | **Produção** |
+|---|---|---|
+| Serviço Cloud Run | `biblioo-portfolio` | `biblioo-producao` |
+| URL pública | `https://biblioo-portfolio-595140312227.us-central1.run.app` | `https://biblioo-producao-595140312227.us-central1.run.app` |
+| Memória / CPU | 1 Gi / 1 vCPU | 2 Gi / 2 vCPU |
+| Instâncias mín./máx. | 0 / 2 — hiberna sem tráfego | 1 / 10 — sempre ativa |
+| Concorrência | 80 req/instância | 200 req/instância |
+| CPU Boost no cold start | — |  |
+| Session affinity (WebSocket) |  |  |
+| Timeout | 3600 s | 3600 s |
+| **OpenSearch** | **Bonsai.io Hobby** — HTTPS, free tier permanente | **GCE VM e2-small** — HTTP, rede interna VPC |
+| MySQL | TiDB Cloud Serverless | TiDB Cloud Serverless |
+| Redis | Upstash | Upstash |
+| RabbitMQ | CloudAMQP Little Lemur | CloudAMQP Little Lemur |
+| Neo4j | Aura Free | Aura Free |
+| Custo | $0/mês (free tiers permanentes) | ~$13/mês (VM GCE) — coberto pelos $300 de crédito GCP |
+
+### Pipeline CI/CD
+
+```mermaid
+flowchart TD
+    A["Repo privado (organização)\npush em main · dev · prod"]
+    B["GitHub Actions\n.github/workflows/mirror-and-deploy.yml\nEspelha branches no repo público\npreservando histórico de commits"]
+    C["Repo público (marcosffp/biblioo)\npush na branch prod"]
+    D["Cloud Build trigger (deploy-prod)\nAtivado somente em ^prod$"]
+    S1["Step 1: docker build ./code/back"]
+    S2["Step 2: docker push → Artifact Registry\nbackend:latest"]
+    S3["Step 3: gcloud run deploy biblioo-portfolio"]
+    S4["Step 4: gcloud run deploy biblioo-producao\nTroca de revisão sem downtime — ~12 min"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+```
+
+| Componente | Função |
+|---|---|
+| **GitHub Actions** | Espelha main, dev e prod do repo privado pro público em tempo real |
+| **`cloudbuild.yaml`** (raiz do repo) | Define os 4 steps do pipeline automatizado |
+| **Artifact Registry** | Armazena `backend:latest` — cada build substitui a versão anterior |
+| **Secret Manager** | 40+ secrets injetados via `--set-secrets` — nunca expostos no código ou no repositório |
+| **Cloud Build trigger** | `^prod$` — deploy ativado exclusivamente por push na branch prod |
+
+### Estratégia OpenSearch por ambiente
+
+**Portfolio — Bonsai.io Hobby (gratuito para sempre)**
+
+```mermaid
+flowchart TD
+    CR["Cloud Run\nbiblioo-portfolio"]
+    BON["Bonsai.io\nimaginative-holly-*.bonsaisearch.net\n125 MB storage · 1 shard · sem prazo de expiração"]
+    CLEAN["OpenSearchIndexCleanupService\nLimpeza semanal automática\nReconcilia índice com MySQL, remove documentos órfãos\nStats de tamanho logados a cada hora"]
+
+    CR -->|"HTTPS :443 · Basic Auth"| BON
+    BON --> CLEAN
+```
+
+**Produção — GCE VM e2-small (rede interna VPC)**
+
+```mermaid
+flowchart TD
+    CR2["Cloud Run\nbiblioo-producao"]
+    VM["VM biblioo-infra\ne2-small · us-central1-a · 30 GB SSD\nopensearch:2.18.0 em Docker\ndiscovery.type=single-node · DISABLE_SECURITY_PLUGIN=true\n-Xms512m -Xmx512m · restart=always"]
+    FW["Firewall biblioo-infra-internal\ntcp:9200 · source 10.128.0.0/9\nPorta nunca exposta à internet\nSó o Cloud Run acessa via VPC interna"]
+
+    CR2 -->|"HTTP :9200 · IP interno 10.128.0.2\nRede interna VPC"| VM
+    VM --> FW
+```
+
+### Escalonamento
+
+O Cloud Run monitora a concorrência de cada instância e sobe novas automaticamente conforme a demanda:
+
+```mermaid
+flowchart TD
+    Q{"requisições ativas > concurrency × instâncias_atuais?"}
+    Q -->|"Não"| A["mantém estado"]
+    Q -->|"Sim"| B["sobe nova instância\naté max-instances\nCloud Run decide em segundos"]
+```
+
+**Guia de upgrade por sintoma:**
+
+| Sintoma | Ação recomendada |
+|---|---|
+| Cold start lento no portfolio | `--min-instances=1` — elimina a hibernação |
+| Alta latência em busca de livros (produção) | Migrar VM para e2-medium ou aumentar `-Xmx` do OpenSearch |
+| Alta latência em busca de livros (portfolio) | Upgrade Bonsai.io Standard (~$20/mês) |
+| Alta latência no feed ou recomendações | Upgrade Upstash (mais comandos/s) |
+| Erros 429 ou lentidão no banco | Upgrade TiDB Cloud Serverless |
+| Muitos usuários simultâneos (> 200) | Aumentar `--max-instances` no Cloud Run |
+| RabbitMQ com mensagens acumuladas | Upgrade CloudAMQP Lemur |
+
+**WebSocket com múltiplas instâncias:**
+
+`--session-affinity` garante que o mesmo cliente permaneça na mesma instância durante toda a conexão STOMP. Para mensagens que precisam cruzar instâncias, o fanout é feito via RabbitMQ FanoutExchange — `WebSocketMessageBroadcastAdapter` publica e `CommunityBroadcastConsumer` entrega em cada instância ativa. O SimpleBroker em memória gerencia apenas as sessões locais de cada instância.
+
+### Gestão de secrets
+
+```bash
+# Criar e registrar novo secret
+echo -n "VALOR" | gcloud secrets create "NOME" --data-file=-
+gcloud run services update biblioo-portfolio \
+  --region=us-central1 --update-secrets="NOME=NOME:latest"
+
+# Atualizar valor (serviço pega :latest automaticamente no próximo start)
+echo -n "NOVO_VALOR" | gcloud secrets versions add "NOME" --data-file=-
+
+# Remover de um serviço e deletar o secret
+gcloud run services update biblioo-portfolio \
+  --region=us-central1 --remove-env-vars="NOME"
+gcloud secrets delete "NOME"
+```
+
+> Aplicar os mesmos comandos em `biblioo-producao` quando a alteração precisar refletir nos dois ambientes.
+
+### Operações comuns
+
+```bash
+# Ver logs em tempo real
+gcloud run services logs read biblioo-producao --region=us-central1 --limit=100
+gcloud run services logs read biblioo-portfolio --region=us-central1 --limit=100
+
+# Health check dos serviços
+curl https://biblioo-producao-595140312227.us-central1.run.app/actuator/health | jq
+curl https://biblioo-portfolio-595140312227.us-central1.run.app/actuator/health | jq
+
+# Build + deploy manual sem pipeline (ex: hotfix urgente)
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
+  --timeout=20m ./code/back
+
+gcloud run deploy biblioo-portfolio \
+  --image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
+  --region=us-central1
+
+gcloud run deploy biblioo-producao \
+  --image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
+  --region=us-central1
+
+# Acessar VM do OpenSearch (produção)
+gcloud compute ssh biblioo-infra --zone=us-central1-a
+curl http://localhost:9200/_cluster/health
+sudo docker logs opensearch --tail=50
+```
+
+---
+
+## Observabilidade
+
+**Métricas expostas** via `/actuator/prometheus`:
+- Histograma de latência HTTP com percentis (p50, p95, p99)
+- Métricas de pool de conexões HikariCP
+- Consumer lag do RabbitMQ
+- Contadores customizados nos algoritmos de recomendação (Micrometer)
+
+O arquivo `config/grafana.json` pode ser importado diretamente no Grafana para um dashboard pré-configurado com os principais indicadores da aplicação.
+
+O `config/prometheus/prometheus.yml` configura o scrape do endpoint `/actuator/prometheus` da aplicação.
+
+---
+
+## Padrão de código
+
+O projeto usa **Google Java Format 1.35.0** via **Spotless**, aplicado obrigatoriamente antes de qualquer commit:
+
+```bash
+./mvnw spotless:apply   # formata
+./mvnw spotless:check   # valida sem alterar
+```
+
+**Regras gerais:**
+- Código em inglês
+- Comentários, logs e mensagens de exceção em pt-BR
+- Sem comentários que expliquem *o quê* o código faz — apenas *por quê* (invariantes não óbvios, workarounds)
+
+---
+
+## Regras de arquitetura
+
+| Regra | Motivação |
+|---|---|
+| Neo4j via `neo4j-java-driver` com Cypher raw — nunca `spring-data-neo4j` | Controle total sobre queries de recomendação |
+| `schema.sql` roda a cada startup (`spring.sql.init.mode=always`) | Garante índices e colunas complementares sempre presentes |
+| Consumers RabbitMQ verificam `event_id` antes de processar | Idempotência — referência: `BecauseYouReadConsumer` |
+| Publicação no RabbitMQ dentro de `@Transactional` apenas via `OutboxEvent` | Evita mensagens publicadas sem commit da entidade |
+| `open-in-view=false` — não reverter | Previne N+1 em requests assíncronos |
+| `JwtAuthenticationFilter` nunca bypassed | Endpoints públicos declarados explicitamente em `SecurityConfig` |
+| Parâmetros `recommendation.*` sempre via `@Value` — nunca hardcoded | Permite tuning sem recompilação |
+| Cache nunca armazena `null` (`cache-null-values=false`) | Evita cache poisoning |
+
+---
+
+## Tecnologias e dependências
+
+| Categoria | Tecnologia | Versão |
+|---|---|---|
+| Linguagem | Java | 25 |
+| Framework | Spring Boot | 4.0.4 |
+| Banco relacional | MySQL + HikariCP | 8.4 |
+| Grafo | Neo4j Java Driver | 5.18.0 |
+| Cache | Redis (Spring Data) | 7.4 |
+| Busca | OpenSearch REST Client | 2.11.1 |
+| Mensageria | RabbitMQ + Spring AMQP | 4.0 |
+| WebSocket | Spring WebSocket + STOMP + Reactor Netty | — |
+| IA | Spring AI + Google Gemini GenAI API | 2.0.0-M5 |
+| Push notifications | Firebase Admin SDK | 9.4.1 |
+| OAuth | Google API Client | 2.2.0 |
+| Imagens | Cloudinary HTTP5 | 2.0.0 |
+| E-mail | SendGrid + Spring Mail (SMTP) | — |
+| Segurança JWT | JJWT | 0.12.6 |
+| Rate limiting | Bucket4j | 8.10.1 |
+| Anti-XSS | JSoup | 1.17.2 |
+| File detection | Apache Tika | 3.2.3 |
+| Mapeamento DTO | MapStruct | 1.5.5.Final |
+| Retry | Spring Retry + AspectJ | 2.0.11 |
+| Documentação | Springdoc OpenAPI (Swagger UI) | 2.8.8 |
+| Métricas | Micrometer + Prometheus | — |
+| Formatação | Spotless + Google Java Format | 2.44.4 / 1.35.0 |
+| Build | Maven | 3.9+ |
+| Containers | Docker Compose | — |
+| Testes de carga | K6 | — |
+| Deploy | Google Cloud Run | — |
+| CI/CD | Cloud Build + GitHub Actions | — |
+| Registry de imagens | Google Artifact Registry | — |
+| Secrets em produção | Google Secret Manager | — |
+| VM OpenSearch (produção) | Google Compute Engine e2-small | — |
+| MySQL gerenciado | TiDB Cloud Serverless | — |
+| Redis gerenciado | Upstash | — |
+| RabbitMQ gerenciado | CloudAMQP Little Lemur | — |
+| OpenSearch gerenciado (portfolio) | Bonsai.io Hobby | — |
+| Grafo gerenciado | Neo4j Aura Free | — |
+
+---
+
+---
+
+## APIs e endpoints
 
 Documentação interativa disponível em `http://localhost:8080/swagger-ui.html` após subir a aplicação.
 
@@ -423,507 +1234,6 @@ Documentação interativa disponível em `http://localhost:8080/swagger-ui.html`
 | Assistente Bibo | `/assistant` | Chat com Gemini, histórico de conversas (Redis), rate limit 20 req/min |
 | Importação | `/import` | Importação de biblioteca Goodreads via CSV (máx. 10 MB / 10 k linhas) |
 | Share | `/share` | Geração de cards de compartilhamento social |
-
----
-
-## 🐳 Infraestrutura Docker (desenvolvimento local)
-
-O `docker-compose.yml` sobe todos os serviços de infraestrutura localmente. A aplicação Spring Boot roda fora do Compose (via `./mvnw spring-boot:run`). Em produção, cada serviço é substituído por um provedor gerenciado — veja [Deploy em nuvem](#-deploy-em-nuvem).
-
-| Serviço | Imagem | Porta padrão | Função |
-|---|---|---|---|
-| `biblioo-mysql` | `mysql:8.4` | `3306` | Banco relacional principal |
-| `biblioo-redis` | `redis:7.4-alpine` | `6379` | Cache, sessões, bandit params |
-| `biblioo-rabbitmq` | `rabbitmq:4.0-management-alpine` | `5672` / `15672` / `61613` | Mensageria + STOMP WebSocket relay |
-| `biblioo-opensearch` | `opensearchproject/opensearch:2.18.0` | `9200` | Busca full-text (livros e usuários) |
-| `biblioo-neo4j` | `neo4j:5.18` | `7474` / `7687` | Grafo de recomendações |
-| `biblioo-prometheus` | `prom/prometheus:v2.53.0` | `9090` | Coleta de métricas |
-| `biblioo-grafana` | `grafana/grafana:10.4.5` | `3001` | Dashboards de observabilidade |
-| `biblioo-opensearch-dashboards` | `opensearchproject/opensearch-dashboards:2.18.0` | `5601` | UI do OpenSearch (perfil `tools`) |
-
-> Os serviços `mysql`, `redis`, `rabbitmq` e `opensearch` possuem healthcheck configurado.
-> O `opensearch-dashboards` só sobe com `docker-compose --profile tools up`.
-
-```bash
-# Subir infraestrutura completa
-docker-compose up -d
-
-# Subir com OpenSearch Dashboards
-docker-compose --profile tools up -d
-```
-
----
-
-## 📊 Testes de performance
-
-O Biblioo executa operações computacionalmente pesadas: consultas a seis bancos de dados distintos, algoritmos de grafo (Neo4j), fanout de feed para milhares de seguidores e mensageria assíncrona. Por isso, **requisitos não funcionais de desempenho** são tratados como cidadãos de primeira classe — latência máxima aceitável, taxa de erro tolerada e comportamento sob carga inesperada são definidos como SLAs explícitos e verificados automaticamente pelos testes.
-
-Os testes são escritos em **K6** e organizados por domínio. Cada domínio possui **três perfis obrigatórios**, cada um validando um aspecto diferente de resiliência:
-
-| Perfil | Dinâmica de carga | Objetivo |
-|---|---|---|
-| `*-load.js` | VUs constantes por 2 min (ex: 80 VUs em busca + 20 VUs em detalhes simultaneamente) | Valida que a latência p95 permanece dentro do SLA em uso normal sustentado |
-| `*-spike.js` | Base (50 VUs) → pico brusco (300 VUs em 5 s) → queda → recuperação | Valida que o sistema absorve bursts repentinos sem degradar além do limiar e se recupera |
-| `*-stress.js` | Estágios crescentes: 20 → 50 → 100 → 200 → 300 → 400 VUs (30 s cada) | Encontra o ponto de ruptura e mede a degradação progressiva |
-
-### SLAs definidos por endpoint (thresholds K6)
-
-Os thresholds são declarados diretamente nos scripts e fazem o teste **falhar** automaticamente se forem violados — funcionam como assertions de desempenho na pipeline:
-
-| Domínio / endpoint | p95 máximo | Taxa de erro máxima |
-|---|---|---|
-| Busca de livros (`/books/search`) | 2 000 ms | 1% |
-| Detalhes de livro (`/books/{id}`) | 800 ms | 1% |
-| Feed do usuário (`/feed`) | 1 500 ms | 1% |
-| BecauseYouRead | 800 ms | 1% |
-| FavoriteGenreNow | 800 ms | 1% |
-| TrendingInCommunities | 900 ms | 1% |
-| CatalogSurprise (Thompson Sampling) | 1 200 ms | 1% |
-| SimilarAuthors (Neo4j 2 níveis) | 1 100 ms | 1% |
-| RereadWorthIt | 800 ms | 1% |
-| Geral (fallback todos os endpoints) | 1 000–1 500 ms | 1–5% |
-
-> CatalogSurprise e SimilarAuthors têm SLAs mais altos: o primeiro envolve leitura/escrita stateful de parâmetros bayesianos no Redis; o segundo percorre dois níveis de relacionamento no grafo Neo4j.
-
-### Padrão dos testes autenticados
-
-Domínios que exigem autenticação (feed, recommendations, community, user) seguem um padrão com `setup()`: antes do teste começar, o script provisiona um **pool de N usuários** — registra cada um via `/auth/register`, faz login e armazena o token. Durante a execução, cada VU consome um token do pool por round-robin, eliminando o custo de autenticação do caminho crítico medido.
-
-Os testes de recomendação disparam as **6 trilhas em batch paralelo** (`http.batch`) para simular o padrão real da aplicação, onde todas são carregadas juntas na tela inicial. Isso também revela gargalos de concorrência entre trilhas que compartilham Neo4j ou Redis.
-
-### Estrutura de arquivos
-
-```
-performance-tests/
-├── DomainBook/
-│   ├── book/           books-load.js · books-spike.js · books-stress.js
-│   ├── collection/     collection-load.js · collection-spike.js · collection-stress.js
-│   ├── shelf/          shelf-load.js · shelf-spike.js · shelf-stress.js
-│   └── shelfItem/      shelfItem-load.js · shelfItem-spike.js · shelfItem-stress.js
-├── DomainCommunity/
-│   ├── community/      community-load.js · community-spike.js · community-stress.js
-│   ├── message/        message-load.js · message-spike.js · message-stress.js
-│   └── voting/         voting-load.js · voting-spike.js · voting-stress.js
-├── DomainDna/          dna-load.js · dna-spike.js · dna-stress.js
-├── DomainFeed/
-│   ├── feed/           feed-load.js · feed-spike.js · feed-stress.js
-│   ├── post/           post-load.js · post-spike.js · post-stress.js
-│   ├── review/         review-load.js · review-spike.js · review-stress.js
-│   └── comment/        comment-load.js · comment-spike.js · comment-stress.js
-├── DomainRecommendation/
-│   ├── recommendation/ recommendation-load.js · recommendation-spike.js · recommendation-stress.js
-│   └── roll-dice/      roll-dice-load.js · roll-dice-spike.js · roll-dice-stress.js
-├── DomainTrending/     trending-load.js · trending-spike.js · trending-stress.js
-└── DomainUser/         user-load.js · user-spike.js · user-stress.js
-```
-
-```bash
-# Carga normal — busca de livros (80 VUs busca + 20 VUs detalhes por 2 min)
-k6 run performance-tests/DomainBook/book/books-load.js
-
-# Spike — todas as 6 trilhas de recomendação em batch paralelo
-k6 run performance-tests/DomainRecommendation/recommendation/recommendation-spike.js
-
-# Stress progressivo — feed (fanout + Redis sliding window)
-k6 run performance-tests/DomainFeed/feed/feed-stress.js
-```
-
----
-
-## 🔑 Variáveis de ambiente
-
-Crie um arquivo `.env` na raiz de `back/` com as variáveis abaixo. **Nunca versionar em produção.**
-
-```dotenv
-# ── MySQL ──────────────────────────────────────
-MYSQL_PORT=3306
-MYSQL_USER=biblioo
-MYSQL_PASSWORD=senha_mysql
-MYSQL_DATABASE=biblioo
-MYSQL_ROOT_PASSWORD=root_senha
-MYSQL_BIND_HOST=127.0.0.1
-MYSQL_SLOW_QUERY_TIME=2
-MYSQL_INNODB_BUFFER_POOL_SIZE=256M
-MYSQL_INNODB_LOG_BUFFER_SIZE=64M
-MYSQL_MAX_CONNECTIONS=100
-MYSQL_THREAD_CACHE_SIZE=10
-MYSQL_TABLE_OPEN_CACHE=2000
-MYSQL_MEM_LIMIT=512m
-
-# ── Redis ──────────────────────────────────────
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=senha_redis
-REDIS_BIND_HOST=127.0.0.1
-REDIS_MAXMEMORY=256mb
-REDIS_MEM_LIMIT=320m
-
-# ── RabbitMQ ───────────────────────────────────
-RABBITMQ_HOST=localhost
-RABBITMQ_PORT=5672
-RABBITMQ_USER=biblioo
-RABBITMQ_PASSWORD=senha_rabbit
-RABBITMQ_VHOST=/
-RABBITMQ_STOMP_PORT=61613
-RABBITMQ_MANAGEMENT_PORT=15672
-RABBITMQ_BIND_HOST=127.0.0.1
-RABBITMQ_VM_MEMORY_HIGH_WATERMARK=0.4
-RABBITMQ_DISK_FREE_LIMIT=50MB
-RABBITMQ_MEM_LIMIT=512m
-
-# ── OpenSearch ─────────────────────────────────
-OPENSEARCH_HOST=localhost
-OPENSEARCH_PORT=9200
-OPENSEARCH_BIND_HOST=127.0.0.1
-OPENSEARCH_CLUSTER_NAME=biblioo-cluster
-OPENSEARCH_NODE_NAME=biblioo-node
-OPENSEARCH_JAVA_OPTS=-Xms256m -Xmx256m
-OPENSEARCH_MEM_LIMIT=512m
-OPENSEARCH_DASHBOARDS_BIND_HOST=127.0.0.1
-OPENSEARCH_DASHBOARDS_PORT=5601
-OPENSEARCH_DASHBOARDS_MEM_LIMIT=512m
-
-# ── Neo4j ──────────────────────────────────────
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=senha_neo4j
-NEO4J_BIND_HOST=127.0.0.1
-NEO4J_HTTP_PORT=7474
-NEO4J_BOLT_PORT=7687
-NEO4J_HEAP_INITIAL=256m
-NEO4J_HEAP_MAX=512m
-NEO4J_PAGECACHE=256m
-NEO4J_MEM_LIMIT=1g
-
-# ── Segurança ──────────────────────────────────
-JWT_SECRET=chave_jwt_minimo_256_bits
-
-# ── APIs externas ──────────────────────────────
-GOOGLE_BOOKS_API_KEY=sua_chave_google_books
-GOOGLE_CLIENT_ID=seu_client_id_google
-CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
-FIREBASE_SERVICE_ACCOUNT_BASE64=base64_do_service_account_json
-SENDGRID_API_KEY=sua_chave_sendgrid
-SENDGRID_FROM_EMAIL=noreply@seudominio.com
-GEMINI_API_KEY=sua_chave_gemini
-
-# ── E-mail SMTP (backup) ───────────────────────
-GMAIL_EMAIL=seu_email@gmail.com
-GMAIL_PASSWORD=app_password_gmail
-
-# ── URLs da aplicação ──────────────────────────
-FRONTEND_URL=http://localhost:3000
-APP_WEBSOCKET_ALLOWED_ORIGINS=http://localhost:3000
-PASSWORD_RESET_PATH=/reset-password
-MOBILE_DEEP_LINK_URL=biblioo://
-MOBILE_RESET_PATH=/reset-password
-
-# ── Observabilidade ────────────────────────────
-GRAFANA_USER=admin
-GRAFANA_PASSWORD=senha_grafana
-```
-
----
-
-## 🚀 Instalação e execução
-
-### Pré-requisitos
-
-- Java 25+
-- Maven 3.9+
-- Docker + Docker Compose
-- K6 (opcional, para testes de performance)
-
-### Passo a passo
-
-```bash
-# 1. Clone o repositório
-git clone https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo.git
-cd plf-es-2026-1-ti5-0492100-biblioo/code/back
-
-# 2. Crie e preencha o arquivo .env (ver seção acima)
-cp .env.example .env
-
-# 3. Suba a infraestrutura
-docker-compose up -d
-
-# 4. Aguarde todos os healthchecks passarem (MySQL ~30s, OpenSearch ~60s, Neo4j ~60s)
-docker-compose ps
-
-# 5. Formate o código (obrigatório antes de qualquer commit)
-./mvnw spotless:apply
-
-# 6. Suba a aplicação
-./mvnw spring-boot:run
-```
-
-### Acessos após subir
-
-| Serviço | URL | Credenciais |
-|---|---|---|
-| API REST | `http://localhost:8080` | JWT Bearer token |
-| Swagger UI | `http://localhost:8080/swagger-ui.html` | — |
-| Grafana | `http://localhost:3001` | `GRAFANA_USER` / `GRAFANA_PASSWORD` |
-| Prometheus | `http://localhost:9090` | — |
-| RabbitMQ | `http://localhost:15672` | `RABBITMQ_USER` / `RABBITMQ_PASSWORD` |
-| Neo4j Browser | `http://localhost:7474` | `NEO4J_USER` / `NEO4J_PASSWORD` |
-
-### Build e testes
-
-```bash
-# Build completo
-./mvnw clean package
-
-# Testes unitários
-./mvnw test
-
-# Verificar formatação sem alterar arquivos
-./mvnw spotless:check
-```
-
----
-
-## 🌐 Deploy em Nuvem
-
-A aplicação roda em dois ambientes independentes no **Google Cloud Run** (us-central1), cada um com OpenSearch dedicado e políticas de escalonamento distintas. Os serviços de banco de dados, cache, mensageria e grafo são compartilhados entre os ambientes via provedores gerenciados externos ao Google Cloud.
-
-### Ambientes
-
-| | **Portfolio** | **Produção** |
-|---|---|---|
-| Serviço Cloud Run | `biblioo-portfolio` | `biblioo-producao` |
-| URL pública | `https://biblioo-portfolio-595140312227.us-central1.run.app` | `https://biblioo-producao-595140312227.us-central1.run.app` |
-| Memória / CPU | 1 Gi / 1 vCPU | 2 Gi / 2 vCPU |
-| Instâncias mín./máx. | 0 / 2 — hiberna sem tráfego | 1 / 10 — sempre ativa |
-| Concorrência | 80 req/instância | 200 req/instância |
-| CPU Boost no cold start | — | ✅ |
-| Session affinity (WebSocket) | ✅ | ✅ |
-| Timeout | 3600 s | 3600 s |
-| **OpenSearch** | **Bonsai.io Hobby** — HTTPS, free tier permanente | **GCE VM e2-small** — HTTP, rede interna VPC |
-| MySQL | TiDB Cloud Serverless | TiDB Cloud Serverless |
-| Redis | Upstash | Upstash |
-| RabbitMQ | CloudAMQP Little Lemur | CloudAMQP Little Lemur |
-| Neo4j | Aura Free | Aura Free |
-| Custo | $0/mês (free tiers permanentes) | ~$13/mês (VM GCE) — coberto pelos $300 de crédito GCP |
-
-### Pipeline CI/CD
-
-```mermaid
-flowchart TD
-    A["Repo privado (organização)\npush em main · dev · prod"]
-    B["GitHub Actions\n.github/workflows/mirror-and-deploy.yml\nEspelha branches no repo público\npreservando histórico de commits"]
-    C["Repo público (marcosffp/biblioo)\npush na branch prod"]
-    D["Cloud Build trigger (deploy-prod)\nAtivado somente em ^prod$"]
-    S1["Step 1: docker build ./code/back"]
-    S2["Step 2: docker push → Artifact Registry\nbackend:latest"]
-    S3["Step 3: gcloud run deploy biblioo-portfolio"]
-    S4["Step 4: gcloud run deploy biblioo-producao\nTroca de revisão sem downtime — ~12 min"]
-
-    A --> B
-    B --> C
-    C --> D
-    D --> S1
-    S1 --> S2
-    S2 --> S3
-    S3 --> S4
-```
-
-| Componente | Função |
-|---|---|
-| **GitHub Actions** | Espelha main, dev e prod do repo privado pro público em tempo real |
-| **`cloudbuild.yaml`** (raiz do repo) | Define os 4 steps do pipeline automatizado |
-| **Artifact Registry** | Armazena `backend:latest` — cada build substitui a versão anterior |
-| **Secret Manager** | 40+ secrets injetados via `--set-secrets` — nunca expostos no código ou no repositório |
-| **Cloud Build trigger** | `^prod$` — deploy ativado exclusivamente por push na branch prod |
-
-### Estratégia OpenSearch por ambiente
-
-**Portfolio — Bonsai.io Hobby (gratuito para sempre)**
-
-```mermaid
-flowchart TD
-    CR["Cloud Run\nbiblioo-portfolio"]
-    BON["Bonsai.io\nimaginative-holly-*.bonsaisearch.net\n125 MB storage · 1 shard · sem prazo de expiração"]
-    CLEAN["OpenSearchIndexCleanupService\nLimpeza semanal automática\nReconcilia índice com MySQL, remove documentos órfãos\nStats de tamanho logados a cada hora"]
-
-    CR -->|"HTTPS :443 · Basic Auth"| BON
-    BON --> CLEAN
-```
-
-**Produção — GCE VM e2-small (rede interna VPC)**
-
-```mermaid
-flowchart TD
-    CR2["Cloud Run\nbiblioo-producao"]
-    VM["VM biblioo-infra\ne2-small · us-central1-a · 30 GB SSD\nopensearch:2.18.0 em Docker\ndiscovery.type=single-node · DISABLE_SECURITY_PLUGIN=true\n-Xms512m -Xmx512m · restart=always"]
-    FW["Firewall biblioo-infra-internal\ntcp:9200 · source 10.128.0.0/9\nPorta nunca exposta à internet\nSó o Cloud Run acessa via VPC interna"]
-
-    CR2 -->|"HTTP :9200 · IP interno 10.128.0.2\nRede interna VPC"| VM
-    VM --> FW
-```
-
-### Escalonamento
-
-O Cloud Run monitora a concorrência de cada instância e sobe novas automaticamente conforme a demanda:
-
-```mermaid
-flowchart TD
-    Q{"requisições ativas > concurrency × instâncias_atuais?"}
-    Q -->|"Não"| A["mantém estado"]
-    Q -->|"Sim"| B["sobe nova instância\naté max-instances\nCloud Run decide em segundos"]
-```
-
-**Guia de upgrade por sintoma:**
-
-| Sintoma | Ação recomendada |
-|---|---|
-| Cold start lento no portfolio | `--min-instances=1` — elimina a hibernação |
-| Alta latência em busca de livros (produção) | Migrar VM para e2-medium ou aumentar `-Xmx` do OpenSearch |
-| Alta latência em busca de livros (portfolio) | Upgrade Bonsai.io Standard (~$20/mês) |
-| Alta latência no feed ou recomendações | Upgrade Upstash (mais comandos/s) |
-| Erros 429 ou lentidão no banco | Upgrade TiDB Cloud Serverless |
-| Muitos usuários simultâneos (> 200) | Aumentar `--max-instances` no Cloud Run |
-| RabbitMQ com mensagens acumuladas | Upgrade CloudAMQP Lemur |
-
-**WebSocket com múltiplas instâncias:**
-
-`--session-affinity` garante que o mesmo cliente permaneça na mesma instância durante toda a conexão STOMP. Para mensagens que precisam cruzar instâncias, o fanout é feito via RabbitMQ FanoutExchange — `WebSocketMessageBroadcastAdapter` publica e `CommunityBroadcastConsumer` entrega em cada instância ativa. O SimpleBroker em memória gerencia apenas as sessões locais de cada instância.
-
-### Gestão de secrets
-
-```bash
-# Criar e registrar novo secret
-echo -n "VALOR" | gcloud secrets create "NOME" --data-file=-
-gcloud run services update biblioo-portfolio \
-  --region=us-central1 --update-secrets="NOME=NOME:latest"
-
-# Atualizar valor (serviço pega :latest automaticamente no próximo start)
-echo -n "NOVO_VALOR" | gcloud secrets versions add "NOME" --data-file=-
-
-# Remover de um serviço e deletar o secret
-gcloud run services update biblioo-portfolio \
-  --region=us-central1 --remove-env-vars="NOME"
-gcloud secrets delete "NOME"
-```
-
-> Aplicar os mesmos comandos em `biblioo-producao` quando a alteração precisar refletir nos dois ambientes.
-
-### Operações comuns
-
-```bash
-# Ver logs em tempo real
-gcloud run services logs read biblioo-producao --region=us-central1 --limit=100
-gcloud run services logs read biblioo-portfolio --region=us-central1 --limit=100
-
-# Health check dos serviços
-curl https://biblioo-producao-595140312227.us-central1.run.app/actuator/health | jq
-curl https://biblioo-portfolio-595140312227.us-central1.run.app/actuator/health | jq
-
-# Build + deploy manual sem pipeline (ex: hotfix urgente)
-gcloud builds submit \
-  --tag us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
-  --timeout=20m ./code/back
-
-gcloud run deploy biblioo-portfolio \
-  --image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
-  --region=us-central1
-
-gcloud run deploy biblioo-producao \
-  --image=us-central1-docker.pkg.dev/helical-decoder-451221-i0/biblioo-repo/backend:latest \
-  --region=us-central1
-
-# Acessar VM do OpenSearch (produção)
-gcloud compute ssh biblioo-infra --zone=us-central1-a
-curl http://localhost:9200/_cluster/health
-sudo docker logs opensearch --tail=50
-```
-
----
-
-## 📡 Observabilidade
-
-**Métricas expostas** via `/actuator/prometheus`:
-- Histograma de latência HTTP com percentis (p50, p95, p99)
-- Métricas de pool de conexões HikariCP
-- Consumer lag do RabbitMQ
-- Contadores customizados nos algoritmos de recomendação (Micrometer)
-
-O arquivo `config/grafana.json` pode ser importado diretamente no Grafana para um dashboard pré-configurado com os principais indicadores da aplicação.
-
-O `config/prometheus/prometheus.yml` configura o scrape do endpoint `/actuator/prometheus` da aplicação.
-
----
-
-## 🎨 Padrão de código
-
-O projeto usa **Google Java Format 1.35.0** via **Spotless**, aplicado obrigatoriamente antes de qualquer commit:
-
-```bash
-./mvnw spotless:apply   # formata
-./mvnw spotless:check   # valida sem alterar
-```
-
-**Regras gerais:**
-- Código em inglês
-- Comentários, logs e mensagens de exceção em pt-BR
-- Sem comentários que expliquem *o quê* o código faz — apenas *por quê* (invariantes não óbvios, workarounds)
-
----
-
-## 🔒 Regras de arquitetura
-
-| Regra | Motivação |
-|---|---|
-| Neo4j via `neo4j-java-driver` com Cypher raw — nunca `spring-data-neo4j` | Controle total sobre queries de recomendação |
-| `schema.sql` roda a cada startup (`spring.sql.init.mode=always`) | Garante índices e colunas complementares sempre presentes |
-| Consumers RabbitMQ verificam `event_id` antes de processar | Idempotência — referência: `BecauseYouReadConsumer` |
-| Publicação no RabbitMQ dentro de `@Transactional` apenas via `OutboxEvent` | Evita mensagens publicadas sem commit da entidade |
-| `open-in-view=false` — não reverter | Previne N+1 em requests assíncronos |
-| `JwtAuthenticationFilter` nunca bypassed | Endpoints públicos declarados explicitamente em `SecurityConfig` |
-| Parâmetros `recommendation.*` sempre via `@Value` — nunca hardcoded | Permite tuning sem recompilação |
-| Cache nunca armazena `null` (`cache-null-values=false`) | Evita cache poisoning |
-
----
-
-## 📦 Tecnologias e dependências
-
-| Categoria | Tecnologia | Versão |
-|---|---|---|
-| Linguagem | Java | 25 |
-| Framework | Spring Boot | 4.0.4 |
-| Banco relacional | MySQL + HikariCP | 8.4 |
-| Grafo | Neo4j Java Driver | 5.18.0 |
-| Cache | Redis (Spring Data) | 7.4 |
-| Busca | OpenSearch REST Client | 2.11.1 |
-| Mensageria | RabbitMQ + Spring AMQP | 4.0 |
-| WebSocket | Spring WebSocket + STOMP + Reactor Netty | — |
-| IA | Spring AI + Google Gemini GenAI API | 2.0.0-M5 |
-| Push notifications | Firebase Admin SDK | 9.4.1 |
-| OAuth | Google API Client | 2.2.0 |
-| Imagens | Cloudinary HTTP5 | 2.0.0 |
-| E-mail | SendGrid + Spring Mail (SMTP) | — |
-| Segurança JWT | JJWT | 0.12.6 |
-| Rate limiting | Bucket4j | 8.10.1 |
-| Anti-XSS | JSoup | 1.17.2 |
-| File detection | Apache Tika | 3.2.3 |
-| Mapeamento DTO | MapStruct | 1.5.5.Final |
-| Retry | Spring Retry + AspectJ | 2.0.11 |
-| Documentação | Springdoc OpenAPI (Swagger UI) | 2.8.8 |
-| Métricas | Micrometer + Prometheus | — |
-| Formatação | Spotless + Google Java Format | 2.44.4 / 1.35.0 |
-| Build | Maven | 3.9+ |
-| Containers | Docker Compose | — |
-| Testes de carga | K6 | — |
-| Deploy | Google Cloud Run | — |
-| CI/CD | Cloud Build + GitHub Actions | — |
-| Registry de imagens | Google Artifact Registry | — |
-| Secrets em produção | Google Secret Manager | — |
-| VM OpenSearch (produção) | Google Compute Engine e2-small | — |
-| MySQL gerenciado | TiDB Cloud Serverless | — |
-| Redis gerenciado | Upstash | — |
-| RabbitMQ gerenciado | CloudAMQP Little Lemur | — |
-| OpenSearch gerenciado (portfolio) | Bonsai.io Hobby | — |
-| Grafo gerenciado | Neo4j Aura Free | — |
 
 ---
 

@@ -1,6 +1,3 @@
-// Stress sobre CommunityMessageRestController — apenas GETs (sem /media, ver
-// nota no messageRest-load.js).
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
@@ -88,7 +85,7 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '1200s',  // ~800 users × 10 comunidades de join no setup
+  setupTimeout: '1200s',
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
     { duration: CONFIG.stress.stageDuration, target: 0 },

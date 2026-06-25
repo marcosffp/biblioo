@@ -6,7 +6,7 @@ const CONFIG = {
   password:          'Senha@12345',
   prefix:            'sreqcomm',
   requesterPoolSize: 800,
-  communityPoolSize: 50,  // mais comunidades = menos VUs por comunidade = menos conflitos
+  communityPoolSize: 50,
   bookId:            1,
 
   stress: {
@@ -16,7 +16,7 @@ const CONFIG = {
 
   thresholds: {
     p95General: 5000,
-    failRate:   0.40,  // conflitos de estado são esperados — múltiplos VUs por comunidade
+    failRate:   0.40,
   },
 
   sleep: {
@@ -42,7 +42,6 @@ export const options = {
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // Cria N pares owner+comunidade
   const communities = [];
   for (let i = 0; i < CONFIG.communityPoolSize; i++) {
     const ts    = Date.now() + i;
@@ -87,7 +86,6 @@ export function setup() {
     return { communities: [], requesters: [] };
   }
 
-  // Cria pool de requesters
   const requesters = [];
   for (let i = 0; i < CONFIG.requesterPoolSize; i++) {
     const ts    = Date.now() + i;
@@ -114,8 +112,6 @@ export function setup() {
   return { communities, requesters };
 }
 
-// Fluxo completo: requester solicita → owner lista → owner rejeita
-// Cada VU opera na sua própria comunidade via __VU % communities.length
 export default function (data) {
   if (!data.communities || data.communities.length === 0) return;
 
@@ -124,7 +120,6 @@ export default function (data) {
   const requesterHeaders = { Authorization: `Bearer ${requester.accessToken}` };
   const ownerHeaders     = { Authorization: `Bearer ${comm.ownerToken}` };
 
-  // 1. Requester solicita entrada
   const reqRes = http.post(
     `${CONFIG.base}/communities/${comm.communityId}/join-requests`,
     null,
@@ -136,14 +131,12 @@ export default function (data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // 2. Owner lista pendentes da sua comunidade
   const pendingRes = http.get(
     `${CONFIG.base}/communities/${comm.communityId}/join-requests?page=0&size=10`,
     { headers: ownerHeaders }
   );
   check(pendingRes, { 'GET /join-requests 200': (r) => r.status === 200 });
 
-  // 3. Owner rejeita o primeiro
   if (pendingRes.status === 200) {
     try {
       const page = JSON.parse(pendingRes.body);

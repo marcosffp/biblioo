@@ -3,31 +3,50 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 800,  // deve ser >= ao número máximo de VUs para evitar que VUs compartilhem usuário/estante
+  userPoolSize: 800,
   password:     'Senha@12345',
   prefix:       'stressshelfitem',
 
-  bookId: 1,  // ID de um livro existente no banco para usar nos testes
-
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300, 400, 600],  // VUs por estágio (rampa crescente)
+    stages:        [20, 50, 100, 200, 300, 400, 600],
   },
 
   thresholds: {
-    p95General: 3000,  // ms
-    failRate:   0.05,  // 5% — stress tolera mais erros
+    p95General: 3000,
+    failRate:   0.05, 
   },
 
   sleep: {
-    betweenSteps:   0.2,  // s
-    afterIteration: 0.5,  // s
+    betweenSteps:   0.2,
+    afterIteration: 0.5,
   },
 };
 
 export function setup() {
-  const users = [];
   const headers = { 'Content-Type': 'application/json' };
+
+  let bookId = null;
+  for (const q of ['Dom Casmurro', '1984', 'Harry Potter', 'Senhor dos Aneis']) {
+    const res = http.get(`${CONFIG.base}/books/search?q=${encodeURIComponent(q)}`);
+    if (res.status === 200) {
+      try {
+        const books = JSON.parse(res.body);
+        if (Array.isArray(books) && books.length > 0) {
+          bookId = books[0].id;
+          break;
+        }
+      } catch {}
+    }
+  }
+
+  if (bookId === null) {
+    throw new Error(
+      'Nenhum livro encontrado no catálogo. Execute uma busca manual antes de rodar este teste para popular o banco.'
+    );
+  }
+
+  const users = [];
 
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
     const ts = Date.now() + i;
@@ -48,7 +67,6 @@ export function setup() {
     const { accessToken } = JSON.parse(login.body);
     const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-    // Cria uma estante própria para usar nos testes de shelf items
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `Estante setup ${ts}`, description: 'Criada pelo setup do stress test' }),
@@ -59,14 +77,14 @@ export function setup() {
     users.push({ accessToken, shelfId });
   }
 
-  return { users };
+  return { users, bookId };
 }
 
 export const options = {
-  setupTimeout: '300s',  // setup cria 300 usuários; timeout aumentado para suportar a carga local
+  setupTimeout: '300s',
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
-    { duration: CONFIG.stress.stageDuration, target: 0 },  // rampa de descida
+    { duration: CONFIG.stress.stageDuration, target: 0 },
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],
@@ -75,13 +93,13 @@ export const options = {
 };
 
 export default function (data) {
-  const user = data.users[__VU % data.users.length];
+  const user   = data.users[__VU % data.users.length];
+  const bookId = data.bookId;
   const headers = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${user.accessToken}`,
+    Authorization:  `Bearer ${user.accessToken}`,
   };
 
-  // LIST ITEMS
   const listRes = http.get(`${CONFIG.base}/shelves/${user.shelfId}/items`, { headers });
   check(listRes, {
     'list items 200': (r) => r.status === 200,
@@ -93,12 +111,29 @@ export default function (data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ADD ITEM
-  const addRes = http.post(
+  let addRes = http.post(
     `${CONFIG.base}/shelves/${user.shelfId}/items`,
-    JSON.stringify({ bookId: CONFIG.bookId, initialStatus: 'READING' }),
+    JSON.stringify({ bookId, initialStatus: 'READING' }),
     { headers }
   );
+
+  if (addRes.status === 409) {
+    const recoveryList = http.get(`${CONFIG.base}/shelves/${user.shelfId}/items`, { headers });
+    if (recoveryList.status === 200) {
+      try {
+        const items = JSON.parse(recoveryList.body);
+        if (Array.isArray(items) && items.length > 0) {
+          http.del(`${CONFIG.base}/shelves/${user.shelfId}/items/${items[0].id}`, null, { headers });
+        }
+      } catch {}
+    }
+    addRes = http.post(
+      `${CONFIG.base}/shelves/${user.shelfId}/items`,
+      JSON.stringify({ bookId, initialStatus: 'READING' }),
+      { headers }
+    );
+  }
+
   check(addRes, { 'add item 201': (r) => r.status === 201 });
 
   if (addRes.status === 201) {
@@ -106,13 +141,11 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // GET ITEM
     const getRes = http.get(`${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}`, { headers });
     check(getRes, { 'get item 200': (r) => r.status === 200 });
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // UPDATE PROGRESS
     const progressRes = http.patch(
       `${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}/progress`,
       JSON.stringify({ currentPage: 42 }),
@@ -122,7 +155,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // CHANGE STATUS
     const statusRes = http.patch(
       `${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}/status`,
       JSON.stringify({ newStatus: 'COMPLETED' }),
@@ -132,7 +164,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // REMOVE ITEM
     const removeRes = http.del(
       `${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}`,
       null,

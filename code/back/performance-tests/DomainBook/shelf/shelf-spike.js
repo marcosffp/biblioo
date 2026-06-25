@@ -18,13 +18,13 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 2500,  // ms
-    failRate:   0.05,  // 5% — spike tolera mais erros
+    p95General: 2500,
+    failRate:   0.05,
   },
 
   sleep: {
-    betweenOps:     0.2,  // s
-    afterIteration: 0.5,  // s
+    betweenOps:     0.2,
+    afterIteration: 0.5,
   },
 };
 
@@ -56,13 +56,12 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '300s', // aumentado para suportar criação de muitos usuários
   stages: [
-    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },  // base normal
-    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },  // spike brusco
-    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },  // mantém carga alta
-    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },  // queda brusca
-    { duration: CONFIG.spike.cooldown,   target: 0                     },  // recuperação
+    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.cooldown,   target: 0                     },
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],

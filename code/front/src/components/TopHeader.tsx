@@ -71,6 +71,7 @@ export const TopHeader = memo(function TopHeader({
               alt="Biblioo"
               width={120}
               height={32}
+              style={{ width: "auto" }}
             />
           </Link>
         </div>

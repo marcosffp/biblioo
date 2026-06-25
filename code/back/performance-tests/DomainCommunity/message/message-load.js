@@ -3,20 +3,18 @@ import ws   from 'k6/ws';
 import { sleep, check } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
-// ── Métricas customizadas ────────────────────────────────────────────────────
 const stompConnectErrors  = new Counter('stomp_connect_errors');
 const stompMessagesSent   = new Counter('stomp_messages_sent');
 const stompMessagesRecv   = new Counter('stomp_messages_received');
-const stompSendFailRate   = new Rate('stomp_send_fail_rate');      // 1=falha, 0=entregue
+const stompSendFailRate   = new Rate('stomp_send_fail_rate');
 const wsConnectDuration   = new Trend('ws_connect_duration_ms', true);
-const msgDeliveryLatency  = new Trend('msg_delivery_latency_ms', true);  // SEND → broadcast recebido
-const msgDeliverySuccess  = new Rate('msg_delivery_success_rate');       // 1=entregue, 0=timeout
+const msgDeliveryLatency  = new Trend('msg_delivery_latency_ms', true);
+const msgDeliverySuccess  = new Rate('msg_delivery_success_rate');
 
-// ── Configuração central ─────────────────────────────────────────────────────
 const CONFIG = {
   baseHttp: 'http://localhost:8080',
   baseWs:   'ws://localhost:8080',
-  wsPath:   '/ws',           // endpoint WebSocket nativo (sem SockJS)
+  wsPath:   '/ws',
   password: 'Senha@12345',
   prefix:   'msgload',
 
@@ -31,16 +29,16 @@ const CONFIG = {
   },
 
   stomp: {
-    sendIntervalSec:   2,     // intervalo entre envios por VU (s)
-    connectTimeoutMs:  5000,  // timeout do handshake STOMP
-    deliveryTimeoutMs: 5000,  // tempo máximo para confirmar entrega do broadcast
+    sendIntervalSec:   2,
+    connectTimeoutMs:  5000,
+    deliveryTimeoutMs: 5000,
   },
 
   thresholds: {
-    p95General:    1500,  // ms
-    p95List:        1500,  // ms
-    p95DeliveryMs: 2000,  // ms — latência end-to-end SEND → broadcast
-    failRate:      0.01,  // 1 %
+    p95General:    1500,
+    p95List:       1500,
+    p95DeliveryMs: 2000,
+    failRate:      0.01,
   },
 
   sleep: {
@@ -49,7 +47,6 @@ const CONFIG = {
   },
 };
 
-// ── Opções k6 ────────────────────────────────────────────────────────────────
 export const options = {
   setupTimeout: '5m',
 
@@ -78,7 +75,6 @@ export const options = {
   },
 };
 
-// ── Setup: cria usuários e comunidades ──────────────────────────────────────
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
@@ -166,20 +162,6 @@ export function setup() {
   return { users, commIds };
 }
 
-// ── Cenário principal: WebSocket + STOMP → envio e validação de entrega ──────
-//
-// Fluxo por VU (conexão persistente — sem reconexão a cada iteração):
-//   1. Abre conexão WebSocket e faz handshake STOMP
-//   2. Subscreve /topic/community.{id}  — recebe broadcasts de novas mensagens
-//   3. Subscreve /user/queue/errors     — detecta erros de domínio
-//   4. Envia mensagens periodicamente com clientMessageId único
-//   5. Ao receber broadcast, correlaciona com clientMessageId enviado
-//   6. Registra latência end-to-end (SEND → MESSAGE recebido)
-//   7. Mensagens sem confirmação dentro de deliveryTimeoutMs são marcadas falha
-//
-// Sucesso real = mensagem foi processada, persistida e devolvida via broadcast.
-// O envio do frame STOMP sozinho NÃO conta como sucesso.
-
 export function sendMessages(data) {
   if (!data.users.length || !data.commIds.length) return;
 
@@ -189,13 +171,12 @@ export function sendMessages(data) {
   const wsUrl  = `${CONFIG.baseWs}${CONFIG.wsPath}`;
 
   let seq = 0;
-  const pending = {};   // clientMessageId -> sentAt (timestamp ms)
+  const pending = {};
   let stompConnected = false;
   const connectedAt  = Date.now();
 
   const response = ws.connect(wsUrl, { headers: { Authorization: `Bearer ${token}` } }, (socket) => {
 
-    // Timeout de segurança: fecha se o handshake STOMP não completar
     socket.setTimeout(() => {
       if (!stompConnected) {
         stompConnectErrors.add(1);
@@ -204,7 +185,6 @@ export function sendMessages(data) {
       }
     }, CONFIG.stomp.connectTimeoutMs);
 
-    // Expiração periódica: mensagens sem broadcast dentro do timeout → falha
     socket.setInterval(() => {
       const now = Date.now();
       for (const id of Object.keys(pending)) {
@@ -232,20 +212,16 @@ export function sendMessages(data) {
           stompConnected = true;
           wsConnectDuration.add(Date.now() - connectedAt);
 
-          // Subscreve ao topic de broadcast para receber mensagens entregues
           socket.send(stompFrame('SUBSCRIBE', {
             id:          'sub-community',
             destination: `/topic/community.${commId}`,
           }));
 
-          // Subscreve à fila pessoal de erros de domínio
           socket.send(stompFrame('SUBSCRIBE', {
             id:          'sub-errors',
             destination: '/user/queue/errors',
           }));
 
-          // Envia mensagens indefinidamente — VU permanece conectado
-          // pelo tempo completo do cenário (sem reconexão)
           socket.setInterval(() => {
             const clientMsgId = `vu${__VU}-${seq}-${Date.now()}`;
             const payload = JSON.stringify({
@@ -263,7 +239,6 @@ export function sendMessages(data) {
               'content-type': 'application/json',
             }, payload));
 
-            // Registra o instante de envio — sucesso só quando broadcast chegar
             pending[clientMsgId] = Date.now();
             stompMessagesSent.add(1);
             seq++;
@@ -275,7 +250,6 @@ export function sendMessages(data) {
         case 'MESSAGE': {
           stompMessagesRecv.add(1);
 
-          // Erro de domínio retornado pelo backend (ex: não é membro)
           if (frame.headers.destination === '/user/queue/errors') {
             try {
               const event = JSON.parse(frame.body);
@@ -287,9 +261,6 @@ export function sendMessages(data) {
             break;
           }
 
-          // Broadcast de comunidade — correlaciona com mensagem enviada por este VU
-          // Mensagens de outros VUs na mesma comunidade chegam aqui mas não estão
-          // em pending[], sendo ignoradas silenciosamente.
           try {
             const event       = JSON.parse(frame.body);
             const clientMsgId = event?.data?.clientMessageId;
@@ -321,9 +292,6 @@ export function sendMessages(data) {
       stompSendFailRate.add(1);
       console.error(`VU ${__VU}: WebSocket error — ${e}`);
     });
-
-    // Sem socket.close() aqui: VU permanece conectado até o cenário terminar.
-    // Isso elimina o overhead de handshake de reconexão e representa uso real.
   });
 
   check(response, { 'WS connect status 101': (r) => r && r.status === 101 });
@@ -331,7 +299,6 @@ export function sendMessages(data) {
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// ── Cenário secundário: leitura HTTP ────────────────────────────────────────
 export function listMessages(data) {
   if (!data.commIds || data.commIds.length === 0) return;
 
@@ -354,8 +321,6 @@ export function listMessages(data) {
 
   sleep(CONFIG.sleep.list);
 }
-
-// ── Helpers STOMP ────────────────────────────────────────────────────────────
 
 function stompFrame(command, headers = {}, body = '') {
   let frame = command + '\n';

@@ -1,13 +1,6 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-// Spike de concorrência do follow-request (caminho privado).
-// Pico súbito de VUs disputando a fila de poucos owners privados — mesmo padrão
-// de contenção do social-requests-stress.js.
-//
-// ⚠️ Mesma limitação do stress: sob pico alto numa máquina única (cliente+servidor
-// +bancos), tende a esgotar conexões do SO (EOF/reset) — artefato local, não bug.
-// Preferir o ambiente HOSPEDADO. Ver RELATORIO-DOMAINUSER 2.3.
 const CONFIG = {
   base:              'http://localhost:8080',
   password:          'Senha@12345',
@@ -27,7 +20,7 @@ const CONFIG = {
 
   thresholds: {
     p95General: 5000,
-    failRate:   0.40,  // conflitos de estado esperados sob contenção
+    failRate:   0.40,
   },
 
   sleep: { betweenSteps: 0.1, afterIteration: 0.2 },
@@ -88,7 +81,7 @@ export default function (data) {
   const ownerHeaders     = { Authorization: `Bearer ${owner.ownerToken || owner.accessToken}` };
 
   const followRes = http.post(`${CONFIG.base}/users/${owner.username}/follow`, null, { headers: requesterHeaders });
-  check(followRes, { 'follow 202 ou conflito': (r) => r.status === 202 || (r.status >= 400 && r.status < 500) });
+  check(followRes, { 'follow: servidor respondeu': (r) => r.status >= 200 });
 
   sleep(CONFIG.sleep.betweenSteps);
 

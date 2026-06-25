@@ -8,23 +8,21 @@ const CONFIG = {
   userPoolSize:      100,
   communityPoolSize: 15,
 
-  // ID de um livro que existe no banco — necessário para criar comunidade
-  // Ajuste para um bookId válido no seu ambiente
   bookId: 1,
 
   stress: {
     stageDuration: '30s',
-    stages: [20, 50, 100, 200, 300, 500],  // VUs por estágio (rampa crescente)
+    stages: [20, 50, 100, 200, 300, 500],
   },
 
   thresholds: {
-    p95General: 5000,  // ms — limite relaxado para encontrar o ponto de quebra
-    failRate:   0.10,  // 10%
+    p95General: 5000,
+    failRate:   0.10,
   },
 
   sleep: {
-    betweenSteps:   0.1,  // s
-    afterIteration: 0.2,  // s
+    betweenSteps:   0.1,
+    afterIteration: 0.2,
   },
 };
 
@@ -33,7 +31,7 @@ export const options = {
 
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
-    { duration: CONFIG.stress.stageDuration, target: 0 },  // rampa de descida
+    { duration: CONFIG.stress.stageDuration, target: 0 },
   ],
 
   thresholds: {
@@ -45,7 +43,6 @@ export const options = {
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // ── 1. Owner cria o pool de comunidades ─────────────────────────────────────
   const ownerTs    = Date.now();
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
 
@@ -97,7 +94,6 @@ export function setup() {
     return { users: [], commIds: [] };
   }
 
-  // ── 2. Cria pool de usuários ─────────────────────────────────────────────────
   const users = [];
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
     const ts    = Date.now() + i;
@@ -130,21 +126,17 @@ export default function (data) {
   const user    = data.users[__VU % data.users.length];
   const headers = { Authorization: `Bearer ${user.accessToken}` };
 
-  // Listagem geral — exercita cache e banco sob alta concorrência
   const listRes = http.get(`${CONFIG.base}/communities`, { headers });
   check(listRes, { 'GET /communities 200': (r) => r.status === 200 });
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // Detalhe de comunidade específica
   const commId = randomItem(data.commIds);
   const getRes = http.get(`${CONFIG.base}/communities/${commId}`, { headers });
   check(getRes, { 'GET /communities/{id} 200': (r) => r.status === 200 });
 
   sleep(CONFIG.sleep.afterIteration);
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];

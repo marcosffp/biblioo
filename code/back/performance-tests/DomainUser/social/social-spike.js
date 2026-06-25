@@ -1,16 +1,13 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-// Spike do grafo social PÚBLICO: pico súbito de follow/unfollow + leituras.
-// Race-free: cada VU usa um follower exclusivo (followerPoolSize > pico de VUs),
-// alvos são celebs públicas compartilhadas (cada aresta follower→celeb é única).
 const CONFIG = {
   base:     'http://localhost:8080',
   password: 'Senha@12345',
-  prefix:   'sspk',   // curto de propósito: username (<prefix>_celeb_<13díg>) deve caber em <=30 chars
+  prefix:   'sspk',
 
   celebPoolSize:    20,
-  followerPoolSize: 550,   // > peakVus para garantir follower exclusivo por VU
+  followerPoolSize: 550,
 
   spike: {
     baseVus: 70,
@@ -23,8 +20,8 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 2500,  // ms — pico
-    failRate:   0.05,  // 5%
+    p95General: 2500,
+    failRate:   0.05,
   },
 
   sleep: { afterIteration: 0.5 },

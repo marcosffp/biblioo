@@ -1,6 +1,3 @@
-// Spike sobre CommunityMessageRestController — apenas GETs (sem /media, ver
-// nota no messageRest-load.js).
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
@@ -93,7 +90,7 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '900s',  // ~500 users × 10 comunidades de join no setup
+  setupTimeout: '900s',
   stages: [
     { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus },
     { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus },

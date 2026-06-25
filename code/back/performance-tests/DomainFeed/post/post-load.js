@@ -28,7 +28,6 @@ const CONFIG = {
   },
 };
 
-// b64decode já está importado no topo do arquivo — não precisa de require aqui
 function parseUserId(token) {
   try {
     const parts = token.split('.');
@@ -50,8 +49,6 @@ function parseUserId(token) {
   }
 }
 
-// FIX 2: multipart monta campos simples corretamente para o Spring
-// O Spring com consumes=MULTIPART_FORM_DATA_VALUE lê @RequestParam do body multipart, não da query string
 function multipart(fields) {
   const boundary = 'K6FormBoundary';
   let body = '';
@@ -67,8 +64,6 @@ export function setup() {
   const headers = { 'Content-Type': 'application/json' };
 
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
-    // FIX 3: usa índice puro em vez de Date.now()+i para evitar colisões de timestamp
-    // em execuções paralelas rápidas
     const uid   = `${__VU || 0}_${i}_${Math.floor(Math.random() * 1e9)}`;
     const email = `${CONFIG.prefix}_${uid}@test.com`;
 
@@ -97,7 +92,6 @@ export function setup() {
       console.error(`Falha ao parsear resposta de login para usuário ${i}: ${e}`);
     }
 
-    // FIX 4: só adiciona usuário se ambos os valores foram obtidos com sucesso
     if (accessToken && userId) {
       users.push({ accessToken, userId });
     } else {
@@ -137,15 +131,12 @@ export const options = {
 };
 
 export function crudPost(data) {
-  // garante que temos pelo menos 2 usuários
   if (data.users.length < 2) {
     throw new Error('Precisa de pelo menos 2 usuários para testar like.');
   }
 
-  // 👇 usuário dono do post
   const owner = data.users[__VU % data.users.length];
 
-  // 👇 usuário diferente para curtir
   const liker = data.users[(__VU + 1) % data.users.length];
 
   if (!owner || !liker) return;
@@ -153,8 +144,6 @@ export function crudPost(data) {
   const ownerToken = owner.accessToken;
   const likerToken = liker.accessToken;
 
-  // ── CREATE ────────────────────────────────────────────────────────────────
-  // bookId é opcional; inclui apenas em metade das iterações para testar ambos os casos
   const mp = multipart({
     text:       `Post de load test VU${__VU} iter${__ITER}`,
     hasSpoiler: 'false',
@@ -192,7 +181,6 @@ export function crudPost(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ── GET ──────────────────────────────────────────────────────────────────
   const getRes = http.get(
     `${CONFIG.base}/feed/posts/${postId}`,
     { headers: { Authorization: `Bearer ${ownerToken}` } }
@@ -202,7 +190,6 @@ export function crudPost(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ── LIKE (AGORA COM OUTRO USUÁRIO) ────────────────────────────────────────
   const likeRes = http.post(
     `${CONFIG.base}/feed/posts/${postId}/like`,
     null,
@@ -219,7 +206,6 @@ export function crudPost(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ── UPDATE ───────────────────────────────────────────────────────────────
   const updMp = multipart({
     text:       `Post atualizado VU${__VU} iter${__ITER}`,
     hasSpoiler: 'false',
@@ -242,7 +228,6 @@ export function crudPost(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ── DELETE ───────────────────────────────────────────────────────────────
   const deleteRes = http.del(
     `${CONFIG.base}/feed/posts/${postId}`,
     null,
@@ -259,7 +244,6 @@ export function listPosts(data) {
   if (!user) return;
   const { accessToken, userId } = user;
 
-  // FIX 7: garante que userId não é null antes de montar a URL
   if (!userId) {
     console.warn(`VU${__VU}: userId nulo, pulando listagem`);
     sleep(CONFIG.sleep.listing);

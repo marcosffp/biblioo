@@ -24,8 +24,6 @@ const CONFIG = {
 
   sleep: {
     maxThinkTime: 0.5,
-    // Intervalo entre usuários durante o warm-up para não sobrecarregar
-    // o banco antes do teste começar. 50ms = ~20 req/s de warm-up.
     warmupBetweenUsers: 0.05,
   },
 };
@@ -76,7 +74,6 @@ export function setup() {
   const users   = [];
   const headers = { 'Content-Type': 'application/json' };
 
-  // ── 1. Registro e login ──────────────────────────────────────────────────
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
     const uid   = `${i}_${Math.floor(Math.random() * 1e6)}`;
     const email = `${CONFIG.prefix}_${uid}@test.com`;
@@ -126,18 +123,6 @@ export function setup() {
 
   console.log(`Setup concluído: ${users.length} usuários prontos de ${CONFIG.userPoolSize} tentativas.`);
 
-  // ── 2. Cache warm-up ─────────────────────────────────────────────────────
-  // Propósito: popular o cache de cada usuário antes do ramp-up.
-  // Sem isso, a primeira iteração de cada VU sempre bate no banco a frio,
-  // criando pico artificial de latência logo no início do spike.
-  //
-  // Estratégia:
-  //   - Chamada em batch (6 endpoints por vez) para cada usuário.
-  //   - Sleep curto entre usuários para não saturar o banco durante o setup.
-  //   - Falhas de warm-up são logadas mas não interrompem o teste —
-  //     o endpoint simplesmente continuará a frio para esse usuário.
-  //
-  // Tempo estimado: 400 usuários × 50 ms = ~20 s adicionais no setup.
   console.log(`Iniciando warm-up de cache para ${users.length} usuários...`);
   let warmupOk = 0;
   let warmupFail = 0;
@@ -151,8 +136,6 @@ export function setup() {
       logWarn({ step: 'warmup', userIndex: i, msg: 'warm-up sem resposta 200' });
     }
 
-    // Pequena pausa para não criar uma rajada de 400 req simultâneas
-    // no banco durante o setup — o semáforo de concorrência continua ativo.
     sleep(CONFIG.sleep.warmupBetweenUsers);
   }
 
@@ -162,7 +145,7 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '600s', // aumentado de 300s → 600s para cobrir o warm-up (~20s extra)
+  setupTimeout: '600s',
   scenarios: {
     spike: {
       executor:         'ramping-vus',

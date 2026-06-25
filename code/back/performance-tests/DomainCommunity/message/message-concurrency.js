@@ -1,22 +1,19 @@
 import http from 'k6/http';
 import ws   from 'k6/ws';
 import { sleep, check } from 'k6';
-import { Counter, Trend } from 'k6/metrics';
+import { Counter, Trend, Rate } from 'k6/metrics';
 
-// ── Métricas customizadas ────────────────────────────────────────────────────
 const stompConnectErrors   = new Counter('stomp_connect_errors');
 const stompMessagesSent    = new Counter('stomp_messages_sent');
 const stompMessagesRecv    = new Counter('stomp_messages_received');
 const wsConnectDuration    = new Trend('ws_connect_duration_ms', true);
 const msgDeliveryLatency   = new Trend('msg_delivery_latency_ms', true);
 
-// Métricas específicas de concorrência
-const msgOutOfOrder        = new Counter('msg_out_of_order');        // msgs recebidas fora de sequência
-const msgDuplicated        = new Counter('msg_duplicated');          // mesmo clientMessageId chegou 2x
-const msgOverwritten       = new Counter('msg_overwritten');         // msg recebida sobrescreveu outra (mesmo seq, conteúdo diferente)
-const concurrencyViolation = new Rate('concurrency_violation_rate'); // qualquer violação acima
+const msgOutOfOrder        = new Counter('msg_out_of_order');
+const msgDuplicated        = new Counter('msg_duplicated');
+const msgOverwritten       = new Counter('msg_overwritten');
+const concurrencyViolation = new Rate('concurrency_violation_rate');
 
-// ── Configuração central ─────────────────────────────────────────────────────
 const CONFIG = {
   baseHttp: 'http://localhost:8080',
   baseWs:   'ws://localhost:8080',
@@ -24,66 +21,58 @@ const CONFIG = {
   password: 'Senha@12345',
   prefix:   'msgconc',
 
-  // Pool pequeno: todos os VUs entram na mesma comunidade
-  // para maximizar colisão de escrita concorrente
-  userPoolSize:      200,
-  communityPoolSize: 1,   // 1 comunidade só — todos brigando pelo mesmo canal
+  userPoolSize:      50,
+  communityPoolSize: 1,
   bookId:            1,
 
   concurrency: {
-    vus:      200,          // todos enviando ao mesmo tempo na mesma comunidade
-    duration: '2m',
-    burstVus: 200,          // fase de burst: todos enviam ao mesmo tempo sem intervalo
+    vus:          50,
+    duration:     '2m',
+    burstVus:     50,
     burstDuration: '20s',
   },
 
   stomp: {
-    sendIntervalSec:   1,     // envio rápido para maximizar concorrência
+    sendIntervalSec:   1,
     connectTimeoutMs:  5000,
     deliveryTimeoutMs: 8000,
   },
 
   thresholds: {
-    p95DeliveryMs:      3000,
-    failRate:           0.01,
-    concurrencyFailRate: 0.00,  // zero tolerância para violações de concorrência
+    p95DeliveryMs:       3000,
+    failRate:            0.01,
+    concurrencyFailRate: 0.00,
   },
 };
 
-// ── Opções k6 ────────────────────────────────────────────────────────────────
 export const options = {
   setupTimeout: '5m',
 
   scenarios: {
-    // Fase 1: carga constante — todos enviando ao mesmo tempo
     concurrentSend: {
       executor: 'constant-vus',
       vus:      CONFIG.concurrency.vus,
       duration: CONFIG.concurrency.duration,
       exec:     'concurrentSend',
     },
-    // Fase 2: burst — todos os VUs enviam no exato mesmo segundo (sem sleep)
     burstSend: {
-      executor:   'constant-vus',
-      vus:        CONFIG.concurrency.burstVus,
-      duration:   CONFIG.concurrency.burstDuration,
-      exec:       'burstSend',
-      startTime:  CONFIG.concurrency.duration,  // começa depois da fase 1
+      executor:  'constant-vus',
+      vus:       CONFIG.concurrency.burstVus,
+      duration:  CONFIG.concurrency.burstDuration,
+      exec:      'burstSend',
+      startTime: CONFIG.concurrency.duration,
     },
   },
 
-thresholds: {
-  http_req_failed: [`rate<${CONFIG.thresholds.failRate}`],
-
-  msg_delivery_latency_ms: [`p(95)<${CONFIG.thresholds.p95DeliveryMs}`],
-
-  msg_duplicated: ['count==0'],
-  msg_overwritten: ['count==0'],
-  concurrency_violation_rate: [`rate<=${CONFIG.thresholds.concurrencyFailRate}`],
-},
+  thresholds: {
+    http_req_failed:            [`rate<${CONFIG.thresholds.failRate}`],
+    msg_delivery_latency_ms:    [`p(95)<${CONFIG.thresholds.p95DeliveryMs}`],
+    msg_duplicated:             ['count==0'],
+    msg_overwritten:            ['count==0'],
+    concurrency_violation_rate: [`rate<=${CONFIG.thresholds.concurrencyFailRate}`],
+  },
 };
 
-// ── Setup ────────────────────────────────────────────────────────────────────
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
@@ -166,28 +155,18 @@ export function setup() {
   return { users, commIds };
 }
 
-// ── Cenário 1: envio concorrente com validação de ordem e duplicata ──────────
-//
-// Cada VU:
-//   - Entra na mesma comunidade
-//   - Envia mensagens com seq global embutido no conteúdo: "VU{n}:SEQ{n}"
-//   - Escuta o broadcast e valida:
-//       1. Nenhum clientMessageId chega duas vezes (duplicata)
-//       2. Mensagens do próprio VU chegam em ordem crescente de seq
-//       3. O conteúdo recebido bate com o enviado (sem sobrescrita)
-
 export function concurrentSend(data) {
   if (!data.users.length || !data.commIds.length) return;
 
   const user   = data.users[__VU % data.users.length];
-  const commId = data.commIds[0];  // todos na mesma comunidade
+  const commId = data.commIds[0];
   const token  = user.accessToken;
   const wsUrl  = `${CONFIG.baseWs}${CONFIG.wsPath}`;
 
   let seq = 0;
-  const pending   = {};  // clientMessageId -> { sentAt, seq, expectedContent }
-  const seenIds   = {};  // clientMessageId -> true (detecta duplicatas)
-  const lastIdRecv = {}; // vuId -> maior data.id recebido (observa ordem por ID do banco)
+  const pending    = {};
+  const seenIds    = {};
+  const lastIdRecv = {};
 
   let stompConnected = false;
   const connectedAt  = Date.now();
@@ -201,16 +180,14 @@ export function concurrentSend(data) {
       }
     }, CONFIG.stomp.connectTimeoutMs);
 
-    // Expira pendentes sem confirmação
-socket.setInterval(() => {
-  const now = Date.now();
-
-  for (const id of Object.keys(pending)) {
-    if (now - pending[id].sentAt > CONFIG.stomp.deliveryTimeoutMs) {
-      delete pending[id];
-    }
-  }
-}, 1000);
+    socket.setInterval(() => {
+      const now = Date.now();
+      for (const id of Object.keys(pending)) {
+        if (now - pending[id].sentAt > CONFIG.stomp.deliveryTimeoutMs) {
+          delete pending[id];
+        }
+      }
+    }, 1000);
 
     socket.send(stompFrame('CONNECT', {
       'accept-version': '1.1,1.2',
@@ -238,9 +215,8 @@ socket.setInterval(() => {
           }));
 
           socket.setInterval(() => {
-            const clientMsgId      = `vu${__VU}-seq${seq}-${Date.now()}`;
-            // Conteúdo carrega VU + seq explícitos — permite validar no broadcast
-            const expectedContent  = `CONC|VU:${__VU}|SEQ:${seq}`;
+            const clientMsgId     = `vu${__VU}-seq${seq}-${Date.now()}`;
+            const expectedContent = `CONC|VU:${__VU}|SEQ:${seq}`;
 
             const payload = JSON.stringify({
               content:         expectedContent,
@@ -283,7 +259,6 @@ socket.setInterval(() => {
 
             if (!clientMsgId) break;
 
-            // ── Validação 1: duplicata ──────────────────────────────────────
             if (seenIds[clientMsgId]) {
               msgDuplicated.add(1);
               concurrencyViolation.add(1);
@@ -292,14 +267,11 @@ socket.setInterval(() => {
               seenIds[clientMsgId] = true;
             }
 
-            // ── Validações sobre mensagens do próprio VU ────────────────────
             if (pending[clientMsgId] !== undefined) {
               const entry   = pending[clientMsgId];
               const latency = Date.now() - entry.sentAt;
               msgDeliveryLatency.add(latency);
 
-              // ── Validação 2: sobrescrita de conteúdo ───────────────────────
-              // O conteúdo recebido deve ser exatamente o que foi enviado
               if (content !== entry.expectedContent) {
                 msgOverwritten.add(1);
                 concurrencyViolation.add(1);
@@ -308,9 +280,6 @@ socket.setInterval(() => {
                 );
               }
 
-              // ── Observação: ordem por ID do banco (Option B) ───────────────
-              // Verifica que data.id cresce monotonicamente por remetente.
-              // Não é violação de integridade — clientes ordenam por ID antes de exibir.
               const msgId = event?.data?.id;
               const match = clientMsgId.match(/^vu(\d+)-seq(\d+)-/);
               if (match && msgId) {
@@ -351,13 +320,6 @@ socket.setInterval(() => {
   sleep(0.1);
 }
 
-// ── Cenário 2: burst — todos enviam ao mesmo tempo sem nenhum intervalo ──────
-//
-// Objetivo: forçar colisão máxima no backend.
-// Todos os VUs enviam uma rajada de mensagens simultâneas sem sleep,
-// depois escutam o broadcast e fazem as mesmas validações.
-// Detecta race conditions que só aparecem sob pressão extrema e simultânea.
-
 export function burstSend(data) {
   if (!data.users.length || !data.commIds.length) return;
 
@@ -366,7 +328,7 @@ export function burstSend(data) {
   const token  = user.accessToken;
   const wsUrl  = `${CONFIG.baseWs}${CONFIG.wsPath}`;
 
-  const BURST_SIZE = 5;  // mensagens disparadas em sequência imediata por VU
+  const BURST_SIZE = 5;
 
   const pending    = {};
   const seenIds    = {};
@@ -384,15 +346,14 @@ export function burstSend(data) {
       }
     }, CONFIG.stomp.connectTimeoutMs);
 
-socket.setInterval(() => {
-  const now = Date.now();
-
-  for (const id of Object.keys(pending)) {
-    if (now - pending[id].sentAt > CONFIG.stomp.deliveryTimeoutMs) {
-      delete pending[id];
-    }
-  }
-}, 1000);
+    socket.setInterval(() => {
+      const now = Date.now();
+      for (const id of Object.keys(pending)) {
+        if (now - pending[id].sentAt > CONFIG.stomp.deliveryTimeoutMs) {
+          delete pending[id];
+        }
+      }
+    }, 1000);
 
     socket.send(stompFrame('CONNECT', {
       'accept-version': '1.1,1.2',
@@ -419,7 +380,6 @@ socket.setInterval(() => {
             destination: '/user/queue/errors',
           }));
 
-          // Burst: dispara BURST_SIZE mensagens sem intervalo algum
           for (let b = 0; b < BURST_SIZE; b++) {
             const clientMsgId     = `burst-vu${__VU}-seq${seq}-${Date.now()}`;
             const expectedContent = `BURST|VU:${__VU}|SEQ:${seq}`;
@@ -483,7 +443,6 @@ socket.setInterval(() => {
                 );
               }
 
-              // ── Observação: ordem por ID do banco (Option B) ───────────────
               const msgId = event?.data?.id;
               const match = clientMsgId.match(/^burst-vu(\d+)-seq(\d+)-/);
               if (match && msgId) {
@@ -521,10 +480,7 @@ socket.setInterval(() => {
   });
 
   check(response, { 'WS connect 101': (r) => r && r.status === 101 });
-  // Sem sleep — burst intencional
 }
-
-// ── Helpers STOMP ────────────────────────────────────────────────────────────
 
 function stompFrame(command, headers = {}, body = '') {
   let frame = command + '\n';

@@ -1,23 +1,11 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-// Load das operações ADMINISTRATIVAS de comunidade. Segue o padrão do DomainBook
-// (shelfItem-load): ciclo reversível por iteração + cenário de leitura separado,
-// constant-vus, 2m. Cada VU é dona EXCLUSIVA de uma comunidade (communityPoolSize >=
-// crudVus + listingVus) com dois "buddies" pré-registrados; o ciclo readmite e expulsa
-// os buddies a cada iteração, mantendo o estado estável (sem disputa entre VUs).
-//
-// Endpoints exercitados no ciclo (todos os admin antes não cobertos):
-//   POST /{id}/invite-link · POST /{id}/join-requests · GET /{id}/join-requests
-//   POST /join-requests/{requestId}/approve · PUT /{id}/members/{userId}/role
-//   GET /{id}/members · POST /join/{token} · POST /{id}/transfer-ownership
-//   DELETE /{id}/members/{userId} · DELETE /{id}/invite-link
 const CONFIG = {
   base:         'http://localhost:8080',
   password:     'Senha@12345',
   prefix:       'ladm',
   bookId:       1,
-  // >= crudVus + listingVus (210) para que cada VU tenha sua comunidade exclusiva
   communityPoolSize: 230,
 
   load: {
@@ -27,10 +15,10 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 1000,  // ms
-    p95Crud:    1500,  // ms
-    p95Listing: 1500,  // ms
-    failRate:   0.01,  // 1%
+    p95General: 1000,
+    p95Crud:    1500,
+    p95Listing: 1500,
+    failRate:   0.01,
   },
 
   sleep: {
@@ -86,7 +74,6 @@ export function setup() {
     if (!owner) continue;
     const ownerHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${owner.token}` };
 
-    // PRIVATE: permite cobrir o fluxo de solicitação + aprovação no ciclo.
     const commRes = http.post(`${CONFIG.base}/communities`,
       JSON.stringify({
         name:        `Admin ${i} ${Date.now()}`,
@@ -96,7 +83,6 @@ export function setup() {
       }), { headers: ownerHeaders });
     if (commRes.status !== 201) continue;
 
-    // bR: entra por solicitação+aprovação · bL: entra por link de convite.
     const bR = registerAndLogin('r', i, jsonHeaders);
     const bL = registerAndLogin('l', i, jsonHeaders);
     if (!bR || !bL) continue;
@@ -117,7 +103,6 @@ export function setup() {
   return { communities };
 }
 
-// ── Cenário CRUD: ciclo administrativo reversível (uma comunidade exclusiva por VU) ──
 export function adminOps(data) {
   const c         = data.communities[(__VU - 1) % data.communities.length];
   const owner     = { Authorization: `Bearer ${c.ownerToken}` };
@@ -125,23 +110,19 @@ export function adminOps(data) {
   const cid       = c.communityId;
   const b         = CONFIG.sleep.betweenSteps;
 
-  // 1. Owner gera/regenera o link de convite.
   const link = http.post(`${CONFIG.base}/communities/${cid}/invite-link`, null, { headers: owner });
   check(link, { 'invite-link 200': (r) => r.status === 200 });
   const token = link.status === 200 ? JSON.parse(link.body).inviteLink : null;
   sleep(b);
 
-  // 2. bR solicita entrada.
   const req = http.post(`${CONFIG.base}/communities/${cid}/join-requests`, null,
     { headers: { Authorization: `Bearer ${c.bRToken}` } });
   check(req, { 'join-request 201 ou conflito': (r) => r.status === 201 || (r.status >= 400 && r.status < 500) });
   sleep(b);
 
-  // 3. Owner lista solicitações pendentes.
   const pend = http.get(`${CONFIG.base}/communities/${cid}/join-requests?page=0&size=10`, { headers: owner });
   check(pend, { 'GET /join-requests 200': (r) => r.status === 200 });
 
-  // 4. Owner aprova a primeira pendente (sem disputa: só este VU gere esta comunidade).
   if (pend.status === 200) {
     try {
       const page = JSON.parse(pend.body);
@@ -149,44 +130,37 @@ export function adminOps(data) {
         const approve = http.post(`${CONFIG.base}/communities/join-requests/${page.content[0].id}/approve`, null, { headers: owner });
         check(approve, { 'approve 204': (r) => r.status === 204 });
       }
-    } catch (_) { /* corpo inesperado */ }
+    } catch (_) { }
   }
   sleep(b);
 
-  // 5. Owner promove bR a MODERATOR e rebaixa de volta a MEMBER (reversível).
   const rolePath = `${CONFIG.base}/communities/${cid}/members/${c.bRId}/role`;
   check(http.put(rolePath, JSON.stringify({ role: 'MODERATOR' }), { headers: jsonOwner }), { 'role->MODERATOR 204': (r) => r.status === 204 });
   check(http.put(rolePath, JSON.stringify({ role: 'MEMBER' }),    { headers: jsonOwner }), { 'role->MEMBER 204':    (r) => r.status === 204 });
   sleep(b);
 
-  // 6. Owner lista membros.
   check(http.get(`${CONFIG.base}/communities/${cid}/members?page=0&size=20`, { headers: owner }), { 'GET /members 200': (r) => r.status === 200 });
 
-  // 7. bL entra pelo link de convite.
   if (token) {
     check(http.post(`${CONFIG.base}/communities/join/${token}`, null, { headers: { Authorization: `Bearer ${c.bLToken}` } }),
       { 'join/{token} 204 ou conflito': (r) => r.status === 204 || (r.status >= 400 && r.status < 500) });
   }
   sleep(b);
 
-  // 8. Owner transfere a propriedade para bR e bR devolve (owner volta a OWNER ao fim).
   check(http.post(`${CONFIG.base}/communities/${cid}/transfer-ownership`, JSON.stringify({ newOwnerId: c.bRId }), { headers: jsonOwner }), { 'transfer->bR 204': (r) => r.status === 204 });
   check(http.post(`${CONFIG.base}/communities/${cid}/transfer-ownership`, JSON.stringify({ newOwnerId: c.ownerId }),
     { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${c.bRToken}` } }), { 'transfer-back 204': (r) => r.status === 204 });
   sleep(b);
 
-  // 9. Owner expulsa bL e bR (reabilita o ciclo na próxima iteração).
   check(http.del(`${CONFIG.base}/communities/${cid}/members/${c.bLId}`, null, { headers: owner }), { 'removeMember bL 204 ou conflito': (r) => r.status === 204 || (r.status >= 400 && r.status < 500) });
   check(http.del(`${CONFIG.base}/communities/${cid}/members/${c.bRId}`, null, { headers: owner }), { 'removeMember bR 204 ou conflito': (r) => r.status === 204 || (r.status >= 400 && r.status < 500) });
   sleep(b);
 
-  // 10. Owner revoga o link (a próxima iteração regenera no passo 1).
   check(http.del(`${CONFIG.base}/communities/${cid}/invite-link`, null, { headers: owner }), { 'revoke invite-link 204': (r) => r.status === 204 });
 
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// ── Cenário LISTING: leitura pura de membros ──
 export function listMembers(data) {
   const c = data.communities[(__VU - 1) % data.communities.length];
   const res = http.get(`${CONFIG.base}/communities/${c.communityId}/members?page=0&size=20`,

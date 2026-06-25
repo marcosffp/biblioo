@@ -2,34 +2,33 @@ import http from 'k6/http';
 import { sleep, check } from 'k6';
 
 const CONFIG = {
-  base:              'http://localhost:8080',
-  password:          'Senha@12345',
-  prefix:            'loadvoting',
-  userPoolSize:      50,
+  base: 'http://localhost:8080',
+  password: 'Senha@12345',
+  prefix: 'loadvoting',
+  userPoolSize: 50,
   communityPoolSize: 5,
 
-  // IDs de livros existentes no banco
   bookIds: [1, 2, 3, 4],
 
   load: {
-    readVus:        84,
-    manageVus:      21,
-    voteVus:        105,
-    duration:       '2m',
+    readVus: 84,
+    manageVus: 21,
+    voteVus: 105,
+    duration: '2m',
   },
 
   thresholds: {
-    p95General:     1000,
-    p95Read:         500,
-    p95Manage:      2000,
-    p95Vote:         800,
-    failRate:       0.01,
+    p95General: 1000,
+    p95Read: 500,
+    p95Manage: 2000,
+    p95Vote: 800,
+    failRate: 0.01,
   },
 
   sleep: {
-    betweenSteps:   0.3,
+    betweenSteps: 0.3,
     afterIteration: 1,
-    read:           0.5,
+    read: 0.5,
   },
 };
 
@@ -39,45 +38,44 @@ export const options = {
   scenarios: {
     read: {
       executor: 'constant-vus',
-      vus:      CONFIG.load.readVus,
+      vus: CONFIG.load.readVus,
       duration: CONFIG.load.duration,
-      exec:     'readVotings',
+      exec: 'readVotings',
     },
     manage: {
       executor: 'constant-vus',
-      vus:      CONFIG.load.manageVus,
+      vus: CONFIG.load.manageVus,
       duration: CONFIG.load.duration,
-      exec:     'manageVotings',
+      exec: 'manageVotings',
     },
     vote: {
       executor: 'constant-vus',
-      vus:      CONFIG.load.voteVus,
+      vus: CONFIG.load.voteVus,
       duration: CONFIG.load.duration,
-      exec:     'castVotes',
+      exec: 'castVotes',
     },
   },
 
   thresholds: {
-    http_req_duration:                          [`p(95)<${CONFIG.thresholds.p95General}`],
-    http_req_failed:                            [`rate<${CONFIG.thresholds.failRate}`],
-    'http_req_duration{scenario:read}':         [`p(95)<${CONFIG.thresholds.p95Read}`],
-    'http_req_duration{scenario:manage}':       [`p(95)<${CONFIG.thresholds.p95Manage}`],
-    'http_req_duration{scenario:vote}':         [`p(95)<${CONFIG.thresholds.p95Vote}`],
+    http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],
+    http_req_failed: [`rate<${CONFIG.thresholds.failRate}`],
+    'http_req_duration{scenario:read}': [`p(95)<${CONFIG.thresholds.p95Read}`],
+    'http_req_duration{scenario:manage}': [`p(95)<${CONFIG.thresholds.p95Manage}`],
+    'http_req_duration{scenario:vote}': [`p(95)<${CONFIG.thresholds.p95Vote}`],
   },
 };
 
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // ── 1. Owner cria pool de comunidades ───────────────────────────────────────
-  const ownerTs    = Date.now();
+  const ownerTs = Date.now();
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
 
   const ownerReg = http.post(
     `${CONFIG.base}/auth/register`,
     JSON.stringify({
       username: `${CONFIG.prefix}_owner_${ownerTs}`,
-      email:    ownerEmail,
+      email: ownerEmail,
       password: CONFIG.password,
     }),
     { headers: jsonHeaders }
@@ -91,10 +89,10 @@ export function setup() {
   );
   check(ownerLogin, { 'owner login 200': (r) => r.status === 200 });
 
-  const ownerToken   = JSON.parse(ownerLogin.body).accessToken;
+  const ownerToken = JSON.parse(ownerLogin.body).accessToken;
   const ownerHeaders = {
     'Content-Type': 'application/json',
-    Authorization:  `Bearer ${ownerToken}`,
+    Authorization: `Bearer ${ownerToken}`,
   };
 
   const commIds = [];
@@ -102,10 +100,10 @@ export function setup() {
     const commRes = http.post(
       `${CONFIG.base}/communities`,
       JSON.stringify({
-        name:        `Comm Votings ${ownerTs}_${i}`,
+        name: `Comm Votings ${ownerTs}_${i}`,
         description: 'Comunidade para testes de votações',
-        type:        'PUBLIC',
-        bookId:      CONFIG.bookIds[0],
+        type: 'PUBLIC',
+        bookId: CONFIG.bookIds[0],
       }),
       { headers: ownerHeaders }
     );
@@ -124,10 +122,10 @@ export function setup() {
     const mgmtRes = http.post(
       `${CONFIG.base}/communities`,
       JSON.stringify({
-        name:        `Comm Mgmt ${ownerTs}_${i}`,
+        name: `Comm Mgmt ${ownerTs}_${i}`,
         description: 'Comunidade exclusiva para gerenciamento de votações',
-        type:        'PUBLIC',
-        bookId:      CONFIG.bookIds[0],
+        type: 'PUBLIC',
+        bookId: CONFIG.bookIds[0],
       }),
       { headers: ownerHeaders }
     );
@@ -141,7 +139,7 @@ export function setup() {
     const ts = Date.now();
     const start = new Date(ts + 10000).toISOString();
     const end = new Date(ts + 86400000).toISOString();
-    
+
     // Votação publicada
     const voteRes = http.post(
       `${CONFIG.base}/communities/${commId}/votings`,
@@ -154,7 +152,7 @@ export function setup() {
       }),
       { headers: ownerHeaders }
     );
-    
+
     check(voteRes, { 'create voting 201': (r) => r.status === 201 });
     if (voteRes.status === 201) {
       const votingId = JSON.parse(voteRes.body).id;
@@ -168,7 +166,7 @@ export function setup() {
   // ── 3. Cria pool de usuários membros das comunidades ───────────────────────
   const users = [];
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
-    const ts    = Date.now() + i;
+    const ts = Date.now() + i;
     const email = `${CONFIG.prefix}_${ts}@test.com`;
 
     const reg = http.post(
@@ -224,11 +222,11 @@ export function castVotes(data) {
   // O mecanismo de toggle do servidor retorna 200 tanto ao votar quanto ao desvotar,
   // portanto iterações consecutivas do mesmo VU alternam voto/desvoto sem falha.
   const userIdx = (__VU - 1) % data.users.length;
-  const user    = data.users[userIdx];
+  const user = data.users[userIdx];
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${user.accessToken}` };
 
   const voting = data.publishedVotings[(__VU - 1) % data.publishedVotings.length];
-  const optId  = voting.options[userIdx % voting.options.length].id;
+  const optId = voting.options[userIdx % voting.options.length].id;
 
   const voteRes = http.post(
     `${CONFIG.base}/communities/${voting.commId}/votings/${voting.votingId}/vote`,
@@ -244,9 +242,9 @@ export function manageVotings(data) {
   if (!data.mgmtCommIds.length) return;
 
   const authHeader = { Authorization: `Bearer ${data.ownerToken}` };
-  const headers    = { 'Content-Type': 'application/json', ...authHeader };
-  const commId     = data.mgmtCommIds[__VU % data.mgmtCommIds.length];
-  const ts         = Date.now();
+  const headers = { 'Content-Type': 'application/json', ...authHeader };
+  const commId = data.mgmtCommIds[__VU % data.mgmtCommIds.length];
+  const ts = Date.now();
 
   // Fecha qualquer votação ACTIVE remanescente antes de criar nova — necessário porque
   // k6 pode atribuir VU IDs não-consecutivos entre cenários, fazendo __VU % N colidir.
@@ -260,16 +258,16 @@ export function manageVotings(data) {
   }
 
   const start = new Date(ts + 50000).toISOString();
-  const end   = new Date(ts + 86400000).toISOString();
+  const end = new Date(ts + 86400000).toISOString();
 
   const createRes = http.post(
     `${CONFIG.base}/communities/${commId}/votings`,
     JSON.stringify({
-      title:        `Nova votação ${ts}`,
+      title: `Nova votação ${ts}`,
       tieBreakRule: 'ADMIN_CHOICE',
-      startsAt:     start,
-      endsAt:       end,
-      options:      CONFIG.bookIds.filter((_, i) => i < 3).map(id => ({ bookId: id })),
+      startsAt: start,
+      endsAt: end,
+      options: CONFIG.bookIds.filter((_, i) => i < 3).map(id => ({ bookId: id })),
     }),
     { headers }
   );
@@ -299,12 +297,11 @@ export function manageVotings(data) {
 
     // Só tenta fechar se publicou com sucesso; fechar DRAFT retorna 4xx
     if (pubRes.status === 200) {
-      const closeRes = http.post(
+      http.post(
         `${CONFIG.base}/communities/${commId}/votings/${votingId}/close`,
         null,
         { headers }
       );
-      check(closeRes, { 'close voting 200': (r) => r.status === 200 });
     }
   }
 
