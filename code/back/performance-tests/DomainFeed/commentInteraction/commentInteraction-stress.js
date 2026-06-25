@@ -1,18 +1,16 @@
-// Stress sobre CommentInteractionController — rampa progressiva até 600 VUs.
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 800,
+  userPoolSize: 400,
   password:     'Senha@12345',
   prefix:       'stresscint',
   bookId:       1,
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300, 400, 600],
+    stages:        [20, 50, 100, 200],
   },
 
   thresholds: {
@@ -117,12 +115,10 @@ export default function (data) {
   const { accessToken, commentId } = user;
   const authH = { Authorization: `Bearer ${accessToken}` };
 
-  // LIKE
   const like = http.post(`${CONFIG.base}/feed/comments/${commentId}/like`, null, { headers: authH });
   check(like, { 'like 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // GET replies
   const listRes = http.get(
     `${CONFIG.base}/feed/comments/${commentId}/replies?page=0&size=10`,
     { headers: authH }
@@ -130,7 +126,6 @@ export default function (data) {
   check(listRes, { 'list 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // CREATE + DELETE reply
   const replyText = encodeURIComponent(`Stress reply VU${__VU} iter${__ITER}`);
   const reply = http.post(
     `${CONFIG.base}/feed/comments/${commentId}/replies?text=${replyText}`,

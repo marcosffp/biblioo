@@ -8,37 +8,32 @@ const CONFIG = {
   userPoolSize:      50,
   communityPoolSize: 10,
 
-  // ID de um livro que existe no banco — necessário para criar comunidade
-  // Ajuste para um bookId válido no seu ambiente
   bookId: 1,
 
   load: {
     readVus:        40,
     manageVus:      15,
-    membersVus:     20,  // GET /communities/{id}/members + /mine + /book/{bookId}
-    leaveJoinVus:   15,  // POST /join + DELETE /leave em loop
+    membersVus:     20,
+    leaveJoinVus:   15,
     duration:       '2m',
   },
 
   thresholds: {
-    p95General:     1000,  // ms
-    p95Read:         500,  // ms — listagem cacheada
-    p95Manage:      2000,  // ms — CRUD é mais lento
-    p95Members:      800,  // ms — listagem com paginação
-    p95LeaveJoin:   1500,  // ms — escrita de relacionamento
-    failRate:       0.01,  // 1%
+    p95General:     1000,
+    p95Read:         500,
+    p95Manage:      2000,
+    p95Members:      800,
+    p95LeaveJoin:   1500,
+    failRate:       0.01,
   },
 
   sleep: {
-    betweenSteps:   0.3,  // s
-    afterIteration: 1,    // s
-    read:           0.5,  // s
+    betweenSteps:   0.3,
+    afterIteration: 1,
+    read:           0.5,
   },
 };
 
-// ── Setup ─────────────────────────────────────────────────────────────────────
-// 1. Cria um owner que cria o pool de comunidades para o cenário de leitura.
-// 2. Cria o pool de usuários que participam dessas comunidades.
 
 export const options = {
   setupTimeout: '5m',
@@ -83,7 +78,6 @@ export const options = {
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // ── 1. Cria o owner e obtém seu token ───────────────────────────────────────
   const ownerTs    = Date.now();
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
 
@@ -111,7 +105,6 @@ export function setup() {
     Authorization:  `Bearer ${ownerToken}`,
   };
 
-  // ── 2. Cria o pool de comunidades (PUBLIC para join livre) ──────────────────
   const commIds = [];
   for (let i = 0; i < CONFIG.communityPoolSize; i++) {
     const commRes = http.post(
@@ -136,7 +129,6 @@ export function setup() {
     return { users: [], commIds: [] };
   }
 
-  // ── 3. Cria usuários e os faz entrar nas comunidades ────────────────────────
   const users = [];
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
     const ts    = Date.now() + i;
@@ -174,7 +166,6 @@ export function setup() {
   return { users, commIds };
 }
 
-// ── Cenário 1: leitura de comunidades (list + detalhe) ───────────────────────
 
 export function readCommunities(data) {
   if (!data.commIds || data.commIds.length === 0) return;
@@ -194,7 +185,6 @@ export function readCommunities(data) {
   sleep(CONFIG.sleep.read);
 }
 
-// ── Cenário 2: CRUD de comunidades (create → get → update → delete) ──────────
 
 export function manageCommunities(data) {
   if (!data.users || data.users.length === 0) return;
@@ -256,16 +246,12 @@ export function manageCommunities(data) {
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// ── Cenário 3: listagem de membros + descoberta ──────────────────────────────
-// Pressiona endpoints com paginação e queries por relacionamento.
-
 export function membersAndDiscovery(data) {
   if (!data.commIds || data.commIds.length === 0) return;
 
   const user    = data.users[__VU % data.users.length];
   const headers = { Authorization: `Bearer ${user.accessToken}` };
 
-  // GET /communities/{id}/members — paginado, faz join com tabela de usuários
   const commId   = randomItem(data.commIds);
   const membersRes = http.get(
     `${CONFIG.base}/communities/${commId}/members?page=0&size=20`,
@@ -275,13 +261,11 @@ export function membersAndDiscovery(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // GET /communities/mine — comunidades do usuário autenticado
   const mineRes = http.get(`${CONFIG.base}/communities/mine`, { headers });
   check(mineRes, { 'GET /mine 200': (r) => r.status === 200 });
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // GET /communities/book/{bookId} — descoberta por livro
   const byBookRes = http.get(
     `${CONFIG.base}/communities/book/${CONFIG.bookId}`,
     { headers }
@@ -291,9 +275,6 @@ export function membersAndDiscovery(data) {
   sleep(CONFIG.sleep.read);
 }
 
-// ── Cenário 4: leave + join em loop ──────────────────────────────────────────
-// Pressiona escrita de relacionamento (community_member).
-
 export function leaveAndJoin(data) {
   if (!data.commIds || data.commIds.length === 0) return;
 
@@ -301,20 +282,17 @@ export function leaveAndJoin(data) {
   const headers = { Authorization: `Bearer ${user.accessToken}` };
   const commId  = randomItem(data.commIds);
 
-  // DELETE /communities/{id}/leave — sai da comunidade
   const leaveRes = http.del(
     `${CONFIG.base}/communities/${commId}/leave`,
     null,
     { headers }
   );
-  // 204 quando sai com sucesso, 4xx se já não é membro (aceita ambos)
   check(leaveRes, {
     'leave 204 ou 4xx': (r) => r.status === 204 || (r.status >= 400 && r.status < 500),
   });
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // POST /communities/{id}/join — entra de volta (PUBLIC)
   const joinRes = http.post(
     `${CONFIG.base}/communities/${commId}/join`,
     null,
@@ -326,8 +304,6 @@ export function leaveAndJoin(data) {
 
   sleep(CONFIG.sleep.afterIteration);
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];

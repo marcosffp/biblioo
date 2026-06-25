@@ -158,7 +158,6 @@ export const options = {
   },
 };
 
-// Rotaciona entre os três endpoints de leitura para estressar o módulo uniformemente
 export default function (data) {
   const user = data.users[(__VU - 1) % data.users.length];
   if (!user) return;
@@ -166,7 +165,6 @@ export default function (data) {
 
   const authH = { Authorization: `Bearer ${accessToken}` };
 
-  // GET /dna
   const dnaRes = http.get(`${CONFIG.base}/dna`, { headers: authH });
   check(dnaRes, {
     'get dna 200': (r) => r.status === 200,

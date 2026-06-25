@@ -14,8 +14,6 @@ const CONFIG = {
 
   sleep: {
     maxThinkTime: 0.5,
-    // Intervalo entre usuários durante o warm-up para não saturar o banco
-    // antes do teste começar. 50ms = ~20 req/s de warm-up.
     warmupBetweenUsers: 0.05,
   },
 };
@@ -42,12 +40,6 @@ function safeJson(r) {
   catch { return null; }
 }
 
-/**
- * Aquece o cache de todos os endpoints para um único usuário.
- * Faz as 6 chamadas em batch — mesma lógica do cenário principal —
- * mas sem checks nem logs de aviso para não poluir o setup.
- * Retorna true se ao menos uma resposta foi 200.
- */
 function warmupUser(accessToken) {
   const headers = { Authorization: `Bearer ${accessToken}` };
 
@@ -66,7 +58,6 @@ export function setup() {
   const users   = [];
   const headers = { 'Content-Type': 'application/json' };
 
-  // ── 1. Registro e login ──────────────────────────────────────────────────
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
     const uid   = `${i}_${Math.floor(Math.random() * 1e6)}`;
     const email = `${CONFIG.prefix}_${uid}@test.com`;
@@ -115,15 +106,6 @@ export function setup() {
   }
 
   console.log(`Setup concluído: ${users.length} usuários prontos de ${CONFIG.userPoolSize} tentativas.`);
-
-  // ── 2. Cache warm-up ─────────────────────────────────────────────────────
-  // O stress test escala de 50 → 400 VUs em degraus de 30s.
-  // Sem warm-up, cada novo degrau traz um lote de usuários com cache frio,
-  // criando picos artificiais de latência que distorcem onde o sistema
-  // realmente quebra. Com o cache quente, os picos refletem apenas
-  // a pressão real do semáforo/banco no novo nível de carga.
-  //
-  // Tempo estimado: 400 usuários × 50 ms = ~20 s adicionais no setup.
   console.log(`Iniciando warm-up de cache para ${users.length} usuários...`);
   let warmupOk = 0;
   let warmupFail = 0;
@@ -136,9 +118,6 @@ export function setup() {
       warmupFail++;
       logWarn({ step: 'warmup', userIndex: i, msg: 'warm-up sem resposta 200' });
     }
-
-    // Pequena pausa para não criar rajada de 400 req simultâneas no banco
-    // durante o setup — o semáforo de concorrência continua ativo.
     sleep(CONFIG.sleep.warmupBetweenUsers);
   }
 
@@ -148,7 +127,7 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '600s', // aumentado de 300s → 600s para cobrir o warm-up (~20s extra)
+  setupTimeout: '600s',
   scenarios: {
     stress: {
       executor:         'ramping-vus',

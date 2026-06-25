@@ -1,10 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// IMPORTANTE: ShareCardService cacheia o PNG no Redis por 1h (chave por userId).
-// Os primeiros estágios geram render real para cada VU novo, mas conforme a
-// rampa cresce e usuários do pool se repetem, predominam Redis HIT. p95 reflete
-// mix render + cache; para isolar puro render, é preciso desabilitar o cache.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
@@ -20,12 +13,12 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 3000,  // ms
-    failRate:   0.05,  // 5%
+    p95General: 3000,
+    failRate:   0.05,
   },
 
   sleep: {
-    afterIteration: 0.5,  // s
+    afterIteration: 0.5,
   },
 };
 

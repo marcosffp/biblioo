@@ -1,16 +1,12 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-// Spike das operações ADMINISTRATIVAS de comunidade. Segue o padrão do DomainBook
-// (shelfItem-spike): pico súbito 70→500 VUs, cenário único com o ciclo administrativo
-// reversível. Cada VU é dona exclusiva de uma comunidade (communityPoolSize > peakVus)
-// com dois buddies pré-registrados — readmitidos e expulsos a cada iteração.
 const CONFIG = {
   base:         'http://localhost:8080',
   password:     'Senha@12345',
   prefix:       'sadm',
   bookId:       1,
-  communityPoolSize: 550,   // > peakVus para garantir comunidade exclusiva por VU
+  communityPoolSize: 550, 
 
   spike: {
     baseVus:    70,
@@ -23,8 +19,8 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 2500,  // ms — pico
-    failRate:   0.05,  // 5%
+    p95General: 2500,
+    failRate:   0.05,
   },
 
   sleep: { betweenSteps: 0.2, afterIteration: 0.5 },
@@ -103,18 +99,15 @@ export default function (data) {
   const cid       = c.communityId;
   const b         = CONFIG.sleep.betweenSteps;
 
-  // 1. Gera link de convite.
   const link = http.post(`${CONFIG.base}/communities/${cid}/invite-link`, null, { headers: owner });
   check(link, { 'invite-link 200': (r) => r.status === 200 });
   const token = link.status === 200 ? JSON.parse(link.body).inviteLink : null;
   sleep(b);
 
-  // 2. bR solicita entrada.
   const req = http.post(`${CONFIG.base}/communities/${cid}/join-requests`, null, { headers: { Authorization: `Bearer ${c.bRToken}` } });
   check(req, { 'join-request 201 ou conflito': (r) => r.status === 201 || (r.status >= 400 && r.status < 500) });
   sleep(b);
 
-  // 3-4. Lista pendentes e aprova a primeira.
   const pend = http.get(`${CONFIG.base}/communities/${cid}/join-requests?page=0&size=10`, { headers: owner });
   check(pend, { 'GET /join-requests 200': (r) => r.status === 200 });
   if (pend.status === 200) {
@@ -123,38 +116,32 @@ export default function (data) {
       if (page.content && page.content.length > 0) {
         check(http.post(`${CONFIG.base}/communities/join-requests/${page.content[0].id}/approve`, null, { headers: owner }), { 'approve 204': (r) => r.status === 204 });
       }
-    } catch (_) { /* corpo inesperado */ }
+    } catch (_) { }
   }
   sleep(b);
 
-  // 5. Promove/rebaixa bR.
   const rolePath = `${CONFIG.base}/communities/${cid}/members/${c.bRId}/role`;
   check(http.put(rolePath, JSON.stringify({ role: 'MODERATOR' }), { headers: jsonOwner }), { 'role->MODERATOR 204': (r) => r.status === 204 });
   check(http.put(rolePath, JSON.stringify({ role: 'MEMBER' }),    { headers: jsonOwner }), { 'role->MEMBER 204':    (r) => r.status === 204 });
   sleep(b);
 
-  // 6. Lista membros.
   check(http.get(`${CONFIG.base}/communities/${cid}/members?page=0&size=20`, { headers: owner }), { 'GET /members 200': (r) => r.status === 200 });
 
-  // 7. bL entra pelo link.
   if (token) {
     check(http.post(`${CONFIG.base}/communities/join/${token}`, null, { headers: { Authorization: `Bearer ${c.bLToken}` } }),
       { 'join/{token} 204 ou conflito': (r) => r.status === 204 || (r.status >= 400 && r.status < 500) });
   }
   sleep(b);
 
-  // 8. Transfere e devolve.
   check(http.post(`${CONFIG.base}/communities/${cid}/transfer-ownership`, JSON.stringify({ newOwnerId: c.bRId }), { headers: jsonOwner }), { 'transfer->bR 204': (r) => r.status === 204 });
   check(http.post(`${CONFIG.base}/communities/${cid}/transfer-ownership`, JSON.stringify({ newOwnerId: c.ownerId }),
     { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${c.bRToken}` } }), { 'transfer-back 204': (r) => r.status === 204 });
   sleep(b);
 
-  // 9. Expulsa bL e bR.
   check(http.del(`${CONFIG.base}/communities/${cid}/members/${c.bLId}`, null, { headers: owner }), { 'removeMember bL 204 ou conflito': (r) => r.status === 204 || (r.status >= 400 && r.status < 500) });
   check(http.del(`${CONFIG.base}/communities/${cid}/members/${c.bRId}`, null, { headers: owner }), { 'removeMember bR 204 ou conflito': (r) => r.status === 204 || (r.status >= 400 && r.status < 500) });
   sleep(b);
 
-  // 10. Revoga link.
   check(http.del(`${CONFIG.base}/communities/${cid}/invite-link`, null, { headers: owner }), { 'revoke invite-link 204': (r) => r.status === 204 });
 
   sleep(CONFIG.sleep.afterIteration);

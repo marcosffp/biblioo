@@ -7,7 +7,6 @@ const CONFIG = {
   userPoolSize: 100,
   password:     'Senha@12345',
   prefix:       'loaddna',
-  // DNA requer mínimo 5 livros concluídos; usando os mesmos IDs do ambiente local
   bookIds:      [1, 2, 3, 4, 5],
 
   load: {
@@ -120,7 +119,6 @@ export function setup() {
       continue;
     }
 
-    // Adicionar 5 livros como COMPLETED dispara shelf.reading.completed → recálculo async do DNA via RabbitMQ
     let allBooksAdded = true;
     for (const bookId of CONFIG.bookIds) {
       const itemRes = http.post(
@@ -172,7 +170,6 @@ export const options = {
   },
 };
 
-// DnaController: GET /dna — 200 sempre (DnaProgressResponse ou DnaResponse dependendo do status)
 export function getDna(data) {
   const user = data.users[(__VU - 1) % data.users.length];
   if (!user) return;
@@ -200,7 +197,6 @@ export function getDna(data) {
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// DnaController: GET /dna com diferentes usuários simultâneos
 export function listDna(data) {
   const user = data.users[(__VU - 1) % data.users.length];
   if (!user) return;

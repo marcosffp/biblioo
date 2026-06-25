@@ -10,7 +10,7 @@
 
 ---
 
-## 🛠️ Stack Principal
+## Stack Principal
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.11%2B-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.11-0175C2?style=for-the-badge&logo=dart&logoColor=white)
@@ -26,7 +26,7 @@
 
 ---
 
-## 📑 Sumário
+## Sumário
 
 - [Sobre o app](#-sobre-o-app)
 - [Arquitetura](#-arquitetura)
@@ -47,7 +47,7 @@
 
 ---
 
-## 📖 Sobre o app
+## Sobre o app
 
 O app mobile do **Biblioo** é o ponto principal de uso do produto em dispositivos Android e iOS. Funciona **offline-first** — exibe dados em cache enquanto sem conexão e sincroniza com a API quando a rede retorna. A arquitetura separa **features** (domínio, dados e estado) de **screens** (composição de UI) para manter o código escalável, previsível e independente por domínio.
 
@@ -55,7 +55,7 @@ O app cobre todo o ecossistema da plataforma: autenticação com e-mail/senha ou
 
 ---
 
-## 🏛️ Arquitetura
+## Arquitetura
 
 O projeto segue **Feature-first com Screen layer**, com conceitos pontuais de DDD (Value Objects e Aggregate Roots). Não é Clean Architecture completa: sem use cases formais e sem interfaces de repository.
 
@@ -87,7 +87,7 @@ graph TD
 
 ---
 
-## 🧩 Estrutura de módulos
+## Estrutura de módulos
 
 | Módulo | Responsabilidade |
 |---|---|
@@ -107,7 +107,7 @@ graph TD
 
 ---
 
-## 📁 Estrutura de pastas
+## Estrutura de pastas
 
 ```
 mobile/
@@ -206,7 +206,7 @@ screens/{screen}/
 
 ---
 
-## 🗺️ Navegação e rotas
+## Navegação e rotas
 
 O roteamento usa **GoRouter** com guard de autenticação em três níveis:
 
@@ -244,7 +244,7 @@ O roteamento usa **GoRouter** com guard de autenticação em três níveis:
 
 ---
 
-## ⚙️ Features
+## Features
 
 ### Assistant
 
@@ -399,7 +399,7 @@ Perfil próprio e público, gestão de seguidores e edição de conta.
 
 ---
 
-## 📱 Screens
+## Screens
 
 | Screen | Arquivo | Descrição |
 |---|---|---|
@@ -428,7 +428,7 @@ Perfil próprio e público, gestão de seguidores e edição de conta.
 
 ---
 
-## 🔧 Core
+## Core
 
 ### Injeção de dependência (`core/di/injector.dart`)
 
@@ -484,7 +484,7 @@ Lê `API_URL` do arquivo `.env` via `flutter_dotenv`. Fallback: `http://localhos
 
 ---
 
-## 🔗 Shared
+## Shared
 
 ### Widgets (`shared/widgets/`)
 
@@ -499,12 +499,12 @@ Lê `API_URL` do arquivo `.env` via `flutter_dotenv`. Fallback: `http://localhos
 
 | Arquivo | Descrição |
 |---|---|
-| `genre_emoji.dart` | Mapeamento de 30+ gêneros literários para emoji (ex.: "Science Fiction" → 🚀) com fallback `📖` |
+| `genre_emoji.dart` | Mapeamento de 30+ gêneros literários para emoji (ex.: "Science Fiction" → ) com fallback `` |
 | `cooldown_refresh.dart` | Rate limiting local — previne múltiplas chamadas de refresh num curto intervalo, com backoff exponencial e contador de tentativas persistido em SharedPreferences |
 
 ---
 
-## 🔒 Regras de arquitetura
+## Regras de arquitetura
 
 | Regra | Motivação |
 |---|---|
@@ -520,7 +520,7 @@ Lê `API_URL` do arquivo `.env` via `flutter_dotenv`. Fallback: `http://localhos
 
 ---
 
-## 🔁 Fluxo de dados
+## Fluxo de dados
 
 ```mermaid
 flowchart TD
@@ -539,7 +539,7 @@ flowchart TD
 
 ---
 
-## 🔑 Variáveis de ambiente
+## Variáveis de ambiente
 
 Crie um `.env` em `code/mobile/` com base no `.env.example`. **Nunca versionar em produção.**
 
@@ -558,7 +558,7 @@ API_URL=http://localhost:8080
 
 ---
 
-## 🚀 Instalação e execução
+## Instalação e execução
 
 ### Pré-requisitos
 
@@ -611,7 +611,7 @@ flutter test
 
 ---
 
-## 📦 Build e distribuição
+## Build e distribuição
 
 ```bash
 # ── Android ────────────────────────────────
@@ -626,17 +626,17 @@ flutter build appbundle --release
 flutter build ipa --release
 ```
 
-**Saídas principais:**
+**Saídas principais** (caminhos relativos à raiz do repositório):
 
 | Plataforma | Arquivo | Localização |
 |---|---|---|
-| Android APK | `app-release.apk` | `build/app/outputs/flutter-apk/` |
-| Android AAB | `app-release.aab` | `build/app/outputs/bundle/release/` |
-| iOS IPA | `*.ipa` | `build/ios/ipa/` |
+| Android APK | `app-release.apk` | `code/mobile/build/app/outputs/flutter-apk/app-release.apk` |
+| Android AAB | `app-release.aab` | `code/mobile/build/app/outputs/bundle/release/app-release.aab` |
+| iOS IPA | `Runner.ipa` | `code/mobile/build/ios/ipa/Runner.ipa` |
 
 ---
 
-## 🧪 Testes
+## Testes
 
 ```bash
 flutter test
@@ -646,7 +646,7 @@ Atualmente há um smoke test em `test/widget_test.dart` que valida a inicializa�
 
 ---
 
-## 📦 Tecnologias e dependências
+## Tecnologias e dependências
 
 | Categoria | Tecnologia | Versão |
 |---|---|---|

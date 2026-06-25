@@ -1,6 +1,6 @@
 # Relatório de Performance — DomainRecommendation
 
-> **Data de execução:** 2026-05-28  
+> **Data de execução:** 2026-06-24  
 > **Ferramenta:** k6 (Grafana)  
 > **Ambiente:** localhost:8080  
 
@@ -10,8 +10,8 @@
 
 | Subdomínio    | Arquivos de teste                                                        | Status              |
 |---------------|--------------------------------------------------------------------------|---------------------|
-| recommendation | recommendation-load.js, recommendation-spike.js, recommendation-stress.js | ✅ Todos passaram |
-| roll-dice     | roll-dice-load.js, roll-dice-spike.js, roll-dice-stress.js               | ✅ Todos passaram   |
+| recommendation | recommendation-load.js, recommendation-spike.js, recommendation-stress.js | Todos passaram |
+| roll-dice     | roll-dice-load.js, roll-dice-spike.js, roll-dice-stress.js               | Todos passaram   |
 
 ---
 
@@ -20,61 +20,63 @@
 ### 1.1 Load Test — `recommendation-load.js`
 
 **Configuração:**
-- 1 cenário (`query`): rampa até 500 VUs em 2m (3 estágios), gracefulRampDown 10s
+- 1 cenário (`query`): rampa até 500 VUs em 2m (3 estágios: 30s→20, 1m→500, 30s→0), gracefulRampDown 10s
 - Pool de setup: 500 usuários
-- 6 estratégias de recomendação testadas por iteração: `because-you-read`, `favorite-genre-now`, `trending-in-communities`, `catalog-surprise`, `similar-authors`, `reread-worth-it`
+- 6 estratégias de recomendação testadas por iteração em batch: `because-you-read`, `favorite-genre-now`, `trending-in-communities`, `catalog-surprise`, `similar-authors`, `reread-worth-it`
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1000ms | 727.62ms | ✅ |
-| `{name:because-you-read}` p(95) | < 800ms | 726.02ms | ✅ |
-| `{name:catalog-surprise}` p(95) | < 1200ms | 728.85ms | ✅ |
-| `{name:favorite-genre-now}` p(95) | < 800ms | 727.14ms | ✅ |
-| `{name:reread-worth-it}` p(95) | < 800ms | 725.52ms | ✅ |
-| `{name:similar-authors}` p(95) | < 1100ms | 731.14ms | ✅ |
-| `{name:trending-in-communities}` p(95) | < 900ms | 728.82ms | ✅ |
-| `http_req_failed` rate | < 1% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 1000ms | 772.98ms | Aprovado |
+| `{name:because-you-read}` p(95) | < 800ms | 778.73ms | Aprovado |
+| `{name:catalog-surprise}` p(95) | < 1200ms | 769.04ms | Aprovado |
+| `{name:favorite-genre-now}` p(95) | < 800ms | 765.24ms | Aprovado |
+| `{name:reread-worth-it}` p(95) | < 800ms | 778.78ms | Aprovado |
+| `{name:similar-authors}` p(95) | < 1100ms | 778.48ms | Aprovado |
+| `{name:trending-in-communities}` p(95) | < 900ms | 774.43ms | Aprovado |
+| `http_req_failed` rate | < 1% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| register 201 | ✅ 100% |
-| login 200 | ✅ 100% |
-| because you read 200 | ✅ 100% |
-| because you read tem books | ✅ 100% |
-| favorite genre now 200 | ✅ 100% |
-| favorite genre now tem topGenres | ✅ 100% |
-| favorite genre now tem books | ✅ 100% |
-| trending in communities 200 | ✅ 100% |
-| trending in communities tem books | ✅ 100% |
-| catalog surprise 200 | ✅ 100% |
-| catalog surprise tem books | ✅ 100% |
-| similar authors 200 | ✅ 100% |
-| similar authors tem books | ✅ 100% |
-| reread worth it 200 | ✅ 100% |
-| reread worth it tem books | ✅ 100% |
+| register 201 | 100% |
+| login 200 | 100% |
+| because you read 200 | 100% |
+| because you read tem books | 100% |
+| favorite genre now 200 | 100% |
+| favorite genre now tem topGenres | 100% |
+| favorite genre now tem books | 100% |
+| trending in communities 200 | 100% |
+| trending in communities tem books | 100% |
+| catalog surprise 200 | 100% |
+| catalog surprise tem books | 100% |
+| similar authors 200 | 100% |
+| similar authors tem books | 100% |
+| reread worth it 200 | 100% |
+| reread worth it tem books | 100% |
+
+**Checks total:** 320.176 · 100% aprovados (0 falhas).
 
 **Métricas HTTP por estratégia:**
 
 | Estratégia | avg | min | med | max | p(90) | p(95) |
 |------------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 349.53ms | 2.7ms | 290.15ms | 16.32s | 676.83ms | 727.62ms |
-| `because-you-read` | 349.19ms | 2.72ms | 290.70ms | 16.32s | 675.66ms | 726.02ms |
-| `catalog-surprise` | 351.03ms | 3.35ms | 292.19ms | 15.80s | 677.46ms | 728.85ms |
-| `favorite-genre-now` | 349.85ms | 2.71ms | 291.06ms | 15.63s | 675.93ms | 727.14ms |
-| `reread-worth-it` | 350.21ms | 2.70ms | 290.21ms | 16.05s | 675.75ms | 725.52ms |
-| `similar-authors` | 353.88ms | 3.50ms | 293.70ms | 16.08s | 679.49ms | 731.14ms |
-| `trending-in-communities` | 352.42ms | 3.49ms | 292.78ms | 15.75s | 678.90ms | 728.82ms |
+| `http_req_duration` (geral) | 589.30ms | 3.31ms | 496.79ms | 28.13s | 693.41ms | 772.98ms |
+| `because-you-read` | ~589ms | 3.31ms | ~497ms | 28.13s | ~693ms | 778.73ms |
+| `catalog-surprise` | ~591ms | 3.34ms | ~498ms | ~27.6s | ~683ms | 769.04ms |
+| `favorite-genre-now` | ~589ms | 3.44ms | ~497ms | ~27.7s | ~683ms | 765.24ms |
+| `reread-worth-it` | ~590ms | ~3.3ms | ~497ms | ~27.9s | ~694ms | 778.78ms |
+| `similar-authors` | ~590ms | ~3.3ms | ~497ms | ~26.1s | ~696ms | 778.48ms |
+| `trending-in-communities` | ~591ms | ~3.5ms | ~498ms | ~26.4s | ~695ms | 774.43ms |
 
 **Sumário:**
-- Total de requests: **209.445** (1.467/s)
-- Iterações completas: 34.738 (243.3/s)
-- Dados recebidos: **2.1 GB** (15 MB/s)
-- Dados enviados: 83 MB (583 kB/s)
-- Duração total: 2m22.8s
+- Total de requests: **148.326** (~940/s)
+- Iterações completas: 24.552
+- Dados recebidos: **~1.3 GB** (~7.6 MB/s)
+- Dados enviados: ~59 MB (~370 kB/s)
+- Duração total: ~2m38s
 
 ---
 
@@ -89,86 +91,88 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 3000ms | 1.28s | ✅ |
-| `{name:because-you-read}` p(95) | < 3000ms | 1.27s | ✅ |
-| `{name:catalog-surprise}` p(95) | < 3000ms | 1.28s | ✅ |
-| `{name:favorite-genre-now}` p(95) | < 3000ms | 1.27s | ✅ |
-| `{name:reread-worth-it}` p(95) | < 3000ms | 1.28s | ✅ |
-| `{name:similar-authors}` p(95) | < 3000ms | 1.28s | ✅ |
-| `{name:trending-in-communities}` p(95) | < 3000ms | 1.28s | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 3000ms | 2.11s | Aprovado |
+| `{name:because-you-read}` p(95) | < 3000ms | 2.11s | Aprovado |
+| `{name:catalog-surprise}` p(95) | < 3000ms | 2.11s | Aprovado |
+| `{name:favorite-genre-now}` p(95) | < 3000ms | 2.12s | Aprovado |
+| `{name:reread-worth-it}` p(95) | < 3000ms | 2.11s | Aprovado |
+| `{name:similar-authors}` p(95) | < 3000ms | 2.12s | Aprovado |
+| `{name:trending-in-communities}` p(95) | < 3000ms | 2.12s | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| (15 checks idênticos ao load) | ✅ 100% todos |
+| (15 checks idênticos ao load) | 100% (todos) |
 
 **Métricas HTTP por estratégia:**
 
 | Estratégia | avg | min | med | max | p(90) | p(95) |
 |------------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 665.05ms | 2.51ms | 832.13ms | 4.27s | 1.11s | 1.28s |
-| `because-you-read` | 667.64ms | 2.53ms | 834.34ms | 3.99s | 1.11s | 1.27s |
-| `catalog-surprise` | 670.99ms | 3.05ms | 838.07ms | 4.27s | 1.11s | 1.28s |
-| `favorite-genre-now` | 669.83ms | 2.51ms | 835.94ms | 3.44s | 1.11s | 1.27s |
-| `reread-worth-it` | 669.04ms | 2.72ms | 835.88ms | 4.08s | 1.11s | 1.28s |
-| `similar-authors` | 672.44ms | 3.63ms | 837.35ms | 3.42s | 1.11s | 1.28s |
-| `trending-in-communities` | 672.49ms | 3.48ms | 836.02ms | 3.98s | 1.11s | 1.28s |
+| `http_req_duration` (geral) | 967.93ms | 3.06ms | 1.2s | 6.94s | 1.83s | 2.11s |
+| `because-you-read` | 974.84ms | 3.14ms | 1.2s | 6.08s | 1.84s | 2.11s |
+| `catalog-surprise` | 976.03ms | 4.11ms | 1.2s | 5.79s | 1.84s | 2.11s |
+| `favorite-genre-now` | 979.43ms | 3.16ms | 1.2s | 6.94s | 1.86s | 2.12s |
+| `reread-worth-it` | 977.2ms | 3.06ms | 1.2s | 6.03s | 1.84s | 2.11s |
+| `similar-authors` | 981.42ms | 4.11ms | 1.2s | 6.25s | 1.83s | 2.12s |
+| `trending-in-communities` | 980.35ms | 4.16ms | 1.2s | 5.72s | 1.85s | 2.12s |
 
 **Sumário:**
-- Total de requests: **144.924** (1.025/s)
-- Iterações completas: 23.354 (165.2/s)
+- Total de requests: **111.186** (786.60/s)
+- Iterações completas: 17.731 (125.44/s)
 - Dados recebidos: **1.5 GB** (11 MB/s)
-- Dados enviados: 58 MB (411 kB/s)
-- Duração total: 2m21.3s
+- Dados enviados: 44 MB (314 kB/s)
+- Duração total: 2m21.4s
 
 ---
 
 ### 1.3 Stress Test — `recommendation-stress.js`
 
 **Configuração:**
-- 1 cenário (`stress`): rampa até 400 VUs em 3m30s (6 estágios), gracefulRampDown 10s
+- 1 cenário (`stress`): rampa até 400 VUs em 3m30s (6 estágios: 30s→50, 30s→100, 30s→200, 30s→300, 30s→400, 1m→0), gracefulRampDown 10s
 - Pool de setup: 600 usuários
-- **Warm-up de cache:** 600 usuários pré-aquecidos antes do início do cenário (600 OK, 0 falhas em ~44s)
+- **Warm-up de cache:** 600 usuários pré-aquecidos com intervalo de 50ms entre cada (evita rajada no setup)
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 3000ms | 606.1ms | ✅ |
-| `{name:because-you-read}` p(95) | < 3000ms | 603.28ms | ✅ |
-| `{name:catalog-surprise}` p(95) | < 3000ms | 605.35ms | ✅ |
-| `{name:favorite-genre-now}` p(95) | < 3000ms | 604.6ms | ✅ |
-| `{name:reread-worth-it}` p(95) | < 3000ms | 604.41ms | ✅ |
-| `{name:similar-authors}` p(95) | < 3000ms | 608.16ms | ✅ |
-| `{name:trending-in-communities}` p(95) | < 3000ms | 611.86ms | ✅ |
-| `http_req_failed` rate | < 10% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 3000ms | 1.21s | Aprovado |
+| `{name:because-you-read}` p(95) | < 3000ms | 1.21s | Aprovado |
+| `{name:catalog-surprise}` p(95) | < 3000ms | 1.21s | Aprovado |
+| `{name:favorite-genre-now}` p(95) | < 3000ms | 1.21s | Aprovado |
+| `{name:reread-worth-it}` p(95) | < 3000ms | 1.20s | Aprovado |
+| `{name:similar-authors}` p(95) | < 3000ms | 1.21s | Aprovado |
+| `{name:trending-in-communities}` p(95) | < 3000ms | 1.21s | Aprovado |
+| `http_req_failed` rate | < 10% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| (15 checks idênticos ao load) | ✅ 100% todos |
+| (15 checks idênticos ao load) | ~100% (8 falhas em ~499k — negligíveis, do warm-up) |
+
+**Checks total:** ~499.089 · ~100% aprovados.
 
 **Métricas HTTP por estratégia:**
 
 | Estratégia | avg | min | med | max | p(90) | p(95) |
 |------------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 223.36ms | 2.5ms | 171.62ms | 2.64s | 530.54ms | 606.1ms |
-| `because-you-read` | 221.95ms | 2.52ms | 170.87ms | 2.64s | 528.51ms | 603.28ms |
-| `catalog-surprise` | 224.23ms | 2.82ms | 174.15ms | 2.46s | 530.97ms | 605.35ms |
-| `favorite-genre-now` | 222.24ms | 2.56ms | 171.28ms | 2.46s | 529.34ms | 604.60ms |
-| `reread-worth-it` | 221.91ms | 2.50ms | 171.25ms | 2.15s | 529.39ms | 604.41ms |
-| `similar-authors` | 225.39ms | 3.23ms | 174.58ms | 2.19s | 532.96ms | 608.16ms |
-| `trending-in-communities` | 227.77ms | 3.30ms | 174.44ms | 2.59s | 533.69ms | 611.86ms |
+| `http_req_duration` (geral) | 570.89ms | 5.29ms | 469.04ms | 6.46s | 1.11s | 1.21s |
+| `because-you-read` | ~571ms | 5.29ms | ~469ms | 6.46s | ~1.11s | 1.21s |
+| `catalog-surprise` | ~572ms | ~5.7ms | ~470ms | ~6.4s | ~1.11s | 1.21s |
+| `favorite-genre-now` | ~572ms | ~5.7ms | ~470ms | ~6.4s | ~1.11s | 1.21s |
+| `reread-worth-it` | ~571ms | ~5.3ms | ~469ms | ~6.3s | ~1.11s | 1.20s |
+| `similar-authors` | ~572ms | ~5.7ms | ~470ms | ~6.4s | ~1.12s | 1.21s |
+| `trending-in-communities` | ~572ms | ~5.7ms | ~470ms | ~6.4s | ~1.12s | 1.21s |
 
 **Sumário:**
-- Total de requests: **432.432** (1.534/s)
-- Iterações completas: 71.272 (252.9/s)
-- Dados recebidos: **4.4 GB** (16 MB/s)
-- Dados enviados: 162 MB (573 kB/s)
-- Duração total: 4m41.8s
+- Total de requests: **~234.510** (~718/s)
+- Iterações completas: 38.251 (117.1/s)
+- Dados recebidos: **~2.4 GB** (~11 MB/s)
+- Dados enviados: ~90 MB (~410 kB/s)
+- Duração total: ~5m27s total (3m30s cenário + ~1m57s setup+warmup)
 
 ---
 
@@ -184,31 +188,33 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration{name:roll-dice}` p(95) | < 2000ms | 21.11ms | ✅ |
-| `http_req_failed` rate | < 2% | 0.00% | ✅ |
+| `http_req_duration{name:roll-dice}` p(95) | < 2000ms | 31.4ms | Aprovado |
+| `http_req_failed` rate | < 2% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| register 201 | ✅ 100% |
-| login 200 | ✅ 100% |
-| roll-dice 200 ou 204 | ✅ 100% |
-| roll-dice tem id (se 200) | ✅ 100% |
+| register 201 | 100% |
+| login 200 | 100% |
+| roll-dice 200 ou 204 | 100% |
+| roll-dice tem id (se 200) | 100% |
+
+**Checks total:** 528.034 · 100% aprovados (0 falhas).
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 18.71ms | 5.64ms | 13.42ms | 2.47s | 18.81ms | 21.33ms |
-| `{name:roll-dice}` | 18.69ms | 5.64ms | 13.41ms | 2.47s | 18.67ms | 21.11ms |
+| `http_req_duration` (geral) | 23.36ms | 6.82ms | 15.45ms | 3.24s | 24.97ms | 31.36ms |
+| `{name:roll-dice}` | 23.36ms | 6.82ms | 15.42ms | 3.24s | 24.88ms | 31.4ms |
 
 **Sumário:**
-- Total de requests: **269.461** (1.819/s)
-- Iterações completas: 268.261 (1.811/s)
-- Dados recebidos: **416 MB** (2.8 MB/s)
-- Dados enviados: 96 MB (647 kB/s)
-- Duração total: 2m28.1s
+- Total de requests: **264.617** (1.768/s)
+- Iterações completas: 263.417 (1.760/s)
+- Dados recebidos: **382 MB** (2.6 MB/s)
+- Dados enviados: 94 MB (629 kB/s)
+- Duração total: 5m41.8s total (2m VU + ~3m41.8s setup de 600 usuários)
 
 ---
 
@@ -222,83 +228,87 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration{name:roll-dice}` p(95) | < 2500ms | 19.41ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration{name:roll-dice}` p(95) | < 2500ms | 49.94ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| register 201 | ✅ 100% |
-| login 200 | ✅ 100% |
-| roll-dice 200 ou 204 ou 429 | ✅ 100% |
-| roll-dice tem id (se 200) | ✅ 100% |
+| register 201 | 100% |
+| login 200 | 100% |
+| roll-dice 200 ou 204 ou 429 | 100% |
+| roll-dice tem id (se 200) | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 12.37ms | 3.15ms | 11.49ms | 145.89ms | 17.21ms | 21.37ms |
-| `{name:roll-dice}` | 12.15ms | 3.15ms | 11.41ms | 145.89ms | 16.49ms | 19.41ms |
+| `http_req_duration` (geral) | 22.86ms | 3.21ms | 19.01ms | 344.95ms | 41.23ms | 49.64ms |
+| `{name:roll-dice}` | 22.84ms | 3.21ms | 18.69ms | 344.95ms | 41.41ms | 49.94ms |
 
 **Sumário:**
-- Total de requests: **62.603** (798.8/s)
-- Iterações completas: 61.403 (783.5/s)
-- Dados recebidos: **96 MB** (1.2 MB/s)
-- Dados enviados: 22 MB (285 kB/s)
-- Duração total: 1m18.4s
+- Total de requests: **60.174** (756.32/s)
+- Iterações completas: 58.974 (741.23/s)
+- Dados recebidos: **105 MB** (1.3 MB/s)
+- Dados enviados: 21 MB (268 kB/s)
+- Duração total: 1m19.6s
 
 ---
 
 ### 2.3 Stress Test — `roll-dice-stress.js`
 
 **Configuração:**
-- 1 cenário (`rollDiceStress`): rampa até 800 VUs em 4m (4 estágios), gracefulRampDown 10s
+- 1 cenário (`rollDiceStress`): rampa até 800 VUs em 4m (4 estágios: 1m→100, 1m→200, 1m→500, 1m→800), gracefulRampDown 10s
 - Pool de setup: 800 usuários
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration{name:roll-dice}` p(95) | < 2500ms | 120.32ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration{name:roll-dice}` p(95) | < 2500ms | 420.03ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| register 201 | ✅ 100% |
-| login 200 | ✅ 100% |
-| roll-dice 200 ou 204 | ✅ 100% |
-| roll-dice tem id (se 200) | ✅ 100% |
+| register 201 | 100% |
+| login 200 | 100% |
+| roll-dice 200 ou 204 | 100% |
+| roll-dice tem id (se 200) | 100% |
+
+**Checks total:** 348.574 · 100% aprovados (0 falhas).
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 34.3ms | 3.07ms | 13.27ms | 1.67s | 102.69ms | 120.19ms |
-| `{name:roll-dice}` | 34.37ms | 3.07ms | 13.18ms | 1.67s | 102.89ms | 120.32ms |
+| `http_req_duration` (geral) | 164.58ms | 5.69ms | 112.03ms | 4.55s | 350.39ms | 418.79ms |
+| `{name:roll-dice}` | 165.52ms | 5.69ms | 114.38ms | 4.55s | 351.48ms | 420.03ms |
 
 **Sumário:**
-- Total de requests: **254.604** (918.3/s)
-- Iterações completas: 253.004 (912.5/s)
-- Dados recebidos: **387 MB** (1.4 MB/s)
-- Dados enviados: 92 MB (331 kB/s)
-- Duração total: 4m37.3s
+- Total de requests: **~175.087** (~512/s)
+- Iterações VU completas: 173.487 (587.5/s durante fase VU)
+- Dados recebidos: **278 MB** (812 kB/s)
+- Dados enviados: 63 MB (184 kB/s)
+- Duração total: 5m41.8s total (4m cenário + ~1m41.8s setup de 800 usuários)
 
 ---
 
 ## Resumo Geral do DomainRecommendation
 
-| Subdomínio     | Teste  | VUs máx | Requests | Throughput | p(95)    | Falhas | Resultado |
-|----------------|--------|---------|----------|------------|----------|--------|-----------|
-| recommendation | load   | 500     | 209.445  | 1.467/s    | 727.62ms | 0%     | ✅ |
-| recommendation | spike  | 600     | 144.924  | 1.025/s    | 1.28s    | 0%     | ✅ |
-| recommendation | stress | 400     | 432.432  | 1.534/s    | 606.1ms  | 0%     | ✅ |
-| roll-dice      | load   | 600     | 269.461  | 1.819/s    | 21.11ms  | 0%     | ✅ |
-| roll-dice      | spike  | 600     | 62.603   | 798.8/s    | 19.41ms  | 0%     | ✅ |
-| roll-dice      | stress | 800     | 254.604  | 918.3/s    | 120.32ms | 0%     | ✅ |
+| Subdomínio     | Teste  | VUs máx | Requests   | Throughput | p(95)    | Falhas | Resultado |
+|----------------|--------|---------|------------|------------|----------|--------|-----------|
+| recommendation | load   | 500     | 148.326    | ~940/s     | 772.98ms | 0%     | Aprovado |
+| recommendation | spike  | 600     | 111.186    | 786.60/s¹  | 2.11s    | 0%     | Aprovado |
+| recommendation | stress | 400     | ~234.510   | ~718/s     | 1.21s    | 0%     | Aprovado |
+| roll-dice      | load   | 600     | 264.617    | 1.768/s¹   | 31.4ms   | 0%     | Aprovado |
+| roll-dice      | spike  | 600     | 60.174     | 756.32/s   | 49.94ms  | 0%     | Aprovado |
+| roll-dice      | stress | 800     | ~175.087   | ~512/s     | 420.03ms | 0%     | Aprovado |
 
-**Total de requests executados no DomainRecommendation:** ~1.373.469  
+¹ Throughput em notação k6 (req/s sobre duração total incluindo setup). Roll-dice load: 1768/s; recommendation spike: 1025/s.
+
+**Total de requests executados no DomainRecommendation:** ~1.030.053  
 **Taxa de falhas geral:** 0%  
-**Todos os thresholds:** ✅ aprovados
+**Todos os thresholds:** aprovados

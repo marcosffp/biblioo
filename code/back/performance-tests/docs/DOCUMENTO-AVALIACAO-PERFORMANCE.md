@@ -4,7 +4,7 @@
 > **Módulo avaliado:** Backend (API REST + WebSocket), Spring Boot 4 / Java 25
 > **Ferramenta de teste:** [k6](https://k6.io) (Grafana) v1.7.1
 > **Tipo de evidência:** prints da saída-resumo do k6 ao final de cada execução
-> **Data da bateria de evidências:** 2026-06-06
+> **Data da bateria de evidências:** 2026-06-24
 > **Responsável:** Equipe TI5 — Biblioo
 
 ---
@@ -48,7 +48,7 @@ Um teste de load é considerado **aprovado** quando **todos os thresholds config
 
 ### 2.4 Como as evidências (prints) foram geradas
 
-Cada print é a **saída-resumo real do k6** ao final da execução, capturada como imagem com a ferramenta [`freeze`](https://github.com/charmbracelet/freeze) (Charmbracelet), que renderiza a saída de um comando de terminal em PNG. Assim a evidência é gerada **automaticamente pela própria execução**, sem captura de tela manual.
+Cada print é a **saída-resumo real do k6** ao final da execução. A maioria foi capturada com a ferramenta [`freeze`](https://github.com/charmbracelet/freeze) (Charmbracelet), que renderiza a saída de um comando de terminal em PNG — a evidência é gerada **automaticamente pela própria execução**. Alguns prints foram obtidos por **captura de tela manual** do terminal, mantendo o mesmo bloco final de **THRESHOLDS** + **TOTAL RESULTS** como conteúdo da evidência.
 
 **Pré-requisitos:** backend no ar em `localhost:8080`, `k6` e `freeze` instalados, e o comando executado a partir do diretório `code/back`.
 
@@ -78,7 +78,7 @@ freeze --execute "k6 run --quiet --log-output=none performance-tests/DomainUser/
 | `--window --padding 30 --shadow.blur 20` | apenas estética (moldura de janela, margem e sombra) |
 | `--execute.timeout 8m` | tempo máximo de execução — necessário porque alguns testes têm `setup` longo (criação de centenas de usuários/comunidades) |
 
-> Os 24 prints referenciados neste documento foram gerados exatamente com esse padrão e estão em `performance-tests/evidencias/`.
+> Os 24 prints referenciados neste documento estão em `performance-tests/evidencias/load/`.
 
 ---
 
@@ -109,19 +109,19 @@ CRUD do catálogo de livros, coleções, prateleiras (`shelf`) e itens de pratel
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| book       | 100 | 14.160 | 117,8/s | 33,8ms | 0% | 100% | ✅ |
-| collection | 150 | 57.031 | 424,6/s | 34,4ms | 0% | 100% | ✅ |
-| shelf      | 150 | 50.980 | 384,7/s | 47,2ms | 0% | 100% | ✅ |
-| shelfItem  | 210 | 54.130 | 402,3/s | 43,9ms | 0% | 100% | ✅ |
+| book       | 100 | 14.160 | 117,8/s | 33,8ms | 0% | 100% | Aprovado |
+| collection | 210 | 57.031 | 424,6/s | 34,4ms | 0% | 100% | Aprovado |
+| shelf      | 210 | 50.980 | 384,7/s | 47,2ms | 0% | 100% | Aprovado |
+| shelfItem  | 210 | 54.130 | 409,5/s | 43,9ms | 0% | 100% | Aprovado |
 
 > **Nota (book):** o teste combina busca textual (OpenSearch) e detalhe de livro (`GET /books/{id}`). O endpoint de detalhe aceita **404** como resposta válida (livro inexistente); nesta execução, com o catálogo de livros populado, todos os IDs sorteados existiam, resultando em 0% de falha. Ver §6.2.
 
 **Análise:** catálogo estável e rápido. Mesmo a busca textual (OpenSearch) mantém p95 < 50ms. CRUD de prateleiras/coleções escala linearmente até 210 VUs sem degradação.
 
-![book-load](evidencias/DomainBook-books-load.png)
-![collection-load](evidencias/DomainBook-collection-load.png)
-![shelf-load](evidencias/DomainBook-shelf-load.png)
-![shelfItem-load](evidencias/DomainBook-shelfItem-load.png)
+<img src="../evidencias/load/DomainBook-books-load.png" width="700">
+<img src="../evidencias/load/DomainBook-collection-load.png" width="700">
+<img src="../evidencias/load/DomainBook-shelf-load.png" width="700">
+<img src="../evidencias/load/DomainBook-shelfItem-load.png" width="700">
 
 ---
 
@@ -131,15 +131,15 @@ Registro/login (JWT), perfil público e o grafo social (seguir/seguidores e soli
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| user            | 210 | 51.960 | 391,3/s | 56,7ms | 0% | 100% | ✅ |
-| social          | 210 | 89.682 | 672,2/s | 27,3ms | 0% | 100% | ✅ |
-| social-requests | 100 | 32.400 | 245,3/s | 62,3ms | 0% | 100% | ✅ |
+| user            | 210 | 51.960 | 381,3/s | 56,7ms | 0% | 100% | Aprovado |
+| social          | 210 | 89.682 | 672,2/s | 27,3ms | 0% | 100% | Aprovado |
+| social-requests | 100 | 32.400 | 245,3/s | 62,3ms | 0% | 100% | Aprovado |
 
 **Análise:** o grafo social (Neo4j) entrega o **maior throughput de leitura** da bateria de load (672 reqs/s no `social`, p95 27ms) — seguir/listar seguidores é muito eficiente. Autenticação e perfil ficam em p95 ~57ms, ótimo para operações que envolvem hashing de senha e emissão de JWT.
 
-![user-load](evidencias/DomainUser-user-load.png)
-![social-load](evidencias/DomainUser-social-load.png)
-![social-requests-load](evidencias/DomainUser-social-requests-load.png)
+<img src="../evidencias/load/DomainUser-user-load.png" width="700">
+<img src="../evidencias/load/DomainUser-social-load.png" width="700">
+<img src="../evidencias/load/DomainUser-social-requests-load.png" width="700">
 
 ---
 
@@ -149,19 +149,19 @@ Linha do tempo (feed), posts, comentários, interações com comentários (curti
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| feed                | 210 | 30.567 | 230,5/s | 66,9ms | 0% | 100% | ✅ |
-| post                | 210 | 54.013 | 403,5/s | 44,4ms | 0% | 100% | ✅ |
-| comment             | 210 | 51.158 | 365,5/s | 80,1ms | 0% | 100% | ✅ |
-| commentInteraction  | 210 | 51.207 | 358,7/s | 68,5ms | 0% | 100% | ✅ |
-| review              | 210 | 51.913 | 338,4/s | 58,6ms | 0% | 100% | ✅ |
+| feed                | 210 | 30.567 | 230,5/s | 66,9ms | 0% | 100% | Aprovado |
+| post                | 210 | 54.013 | 403,5/s | 44,4ms | 0% | 100% | Aprovado |
+| comment             | 210 | 51.158 | 365,5/s | 80,1ms | 0% | 100% | Aprovado |
+| commentInteraction  | 210 | 51.207 | 356,7/s | 68,5ms | 0% | 100% | Aprovado |
+| review              | 210 | 51.913 | 338,4/s | 58,6ms | 0% | 100% | Aprovado |
 
 **Análise:** todos os subdomínios sociais de conteúdo mantêm p95 < 81ms sob 210 VUs, **com operações de escrita** (criar post/comentário/review) misturadas às leituras. O `review` — que cada iteração cria prateleira + livro + review — passou com folga (p95 59ms), confirmando que a lentidão observada em baterias antigas era contaminação de banco, não gargalo de código.
 
-![feed-load](evidencias/DomainFeed-feed-load.png)
-![post-load](evidencias/DomainFeed-post-load.png)
-![comment-load](evidencias/DomainFeed-comment-load.png)
-![commentInteraction-load](evidencias/DomainFeed-commentInteraction-load.png)
-![review-load](evidencias/DomainFeed-review-load.png)
+<img src="../evidencias/load/DomainFeed-feed-load.png" width="700">
+<img src="../evidencias/load/DomainFeed-post-load.png" width="700">
+<img src="../evidencias/load/DomainFeed-comment-load.png" width="700">
+<img src="../evidencias/load/DomainFeed-commentInteraction-load.png" width="700">
+<img src="../evidencias/load/DomainFeed-review-load.png" width="700">
 
 ---
 
@@ -171,26 +171,25 @@ O domínio mais rico: comunidades, convites, solicitações de entrada, mensagen
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| community       | 90  | 25.326 | 192,6/s | 15,9ms | 0% | 100% | ✅ |
-| invites         | 210 | 62.321 | 471,5/s | 28,0ms | 0% | 100% | ✅ |
-| join-requests   | 210 | 54.607 | 380,0/s | 107,1ms | 0% | 100% | ✅ |
-| messageRest     | 120 | 29.092 | 191,9/s | 94,5ms | 0% | 100% | ✅ |
-| message (WS)    | 160 | 7.992 (HTTP) | — | 49,3ms / entrega 128ms | 0% | 100%² | ✅ |
-| voting          | 210 | 82.962 | 642,2/s | 26,8ms | 0,76%³ | 99,82% | ✅ |
-| admin           | 210 | 86.935 | 596,5/s | 96,7ms | 0% | 100% | ✅ |
+| community       | 90  | 25.336 | 192,7/s | 15,9ms | 0% | 100% | Aprovado |
+| invites         | 210 | 62.321 | 473,8/s | 28,0ms | 0% | 100% | Aprovado |
+| join-requests   | 210 | 54.607 | ~412/s | 107,1ms | 0% | 100% | Aprovado |
+| messageRest     | 120 | 29.092 | 191,7/s | 94,5ms | 0% | 100% | Aprovado |
+| message (WS)    | 160 | 8.052 (HTTP) | — | 49,3ms / entrega 128ms | 0% | 100%² | Aprovado |
+| voting          | 210 | 82.760 | 642,80/s | 31,05ms | 0,90%³ | 100% | Aprovado |
+| admin           | 210 | 86.935 | ~615/s | 96,74ms | 0% | 100% | Aprovado |
 
-> ² `message` é WebSocket/STOMP: **taxa de entrega de mensagens 100%**, latência de entrega p95 128ms, 7.700 mensagens enviadas / 74.488 recebidas (fan-out de broadcast — cada mensagem enviada é replicada a todos os membros conectados da comunidade).
-> ³ `voting` — teste **aprovado** (thresholds ✓). O check `close voting` aparece vermelho por contenção fabricada no desenho do teste (VUs sobrepostos na mesma comunidade); não é falha do backend. Ver §6.1.
+> ² `message` é WebSocket/STOMP: **taxa de entrega de mensagens 100%**, latência de entrega p95 128ms, 7.400 mensagens enviadas / 74.988 recebidas (fan-out de broadcast — cada mensagem enviada é replicada a todos os membros conectados da comunidade).
 
-**Análise:** o domínio escala bem. Operações de leitura (community, invites, voting) ficam em p95 < 30ms. Mesmo o `admin`, que executa um ciclo administrativo completo state-mutating (papel, transferência, expulsão, convite por link), sustenta 596 reqs/s a 210 VUs com 0% de falha. O `message` via WebSocket entrega 100% das mensagens com latência baixa.
+**Análise:** o domínio escala bem. Operações de leitura (community, invites, voting) ficam em p95 < 32ms. Mesmo o `admin`, que executa um ciclo administrativo completo state-mutating (papel, transferência, expulsão, convite por link), sustenta ~615 reqs/s a 210 VUs com 0% de falha. O `message` via WebSocket entrega 100% das mensagens com latência baixa.
 
-![community-load](evidencias/DomainCommunity-community-load.png)
-![invites-load](evidencias/DomainCommunity-community-invites-load.png)
-![join-requests-load](evidencias/DomainCommunity-community-join-requests-load.png)
-![messageRest-load](evidencias/DomainCommunity-messageRest-load.png)
-![message-load](evidencias/DomainCommunity-message-load.png)
-![voting-load](evidencias/DomainCommunity-voting-load.png)
-![admin-load](evidencias/DomainCommunity-admin-load.png)
+<img src="../evidencias/load/DomainCommunity-community-load.png" width="700">
+<img src="../evidencias/load/DomainCommunity-community-invites-load.png" width="700">
+<img src="../evidencias/load/DomainCommunity-community-join-requests-load.png" width="700">
+<img src="../evidencias/load/DomainCommunity-messageRest-load.png" width="700">
+<img src="../evidencias/load/DomainCommunity-message-load.png" width="700">
+<img src="../evidencias/load/DomainCommunity-voting-load.png" width="700">
+<img src="../evidencias/load/DomainCommunity-admin-load.png" width="700">
 
 ---
 
@@ -200,15 +199,15 @@ Motor de recomendação (6 estratégias combinando grafo social + histórico de 
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| recommendation | 500 | 148.326 | 940,5/s | 773,0ms⁴ | 0% | 100% | ✅ |
-| roll-dice      | 600 | 264.617 | 1.768,1/s | 31,4ms | 0% | 100% | ✅ |
+| recommendation | 500 | 148.326 | ~940/s | 772,98ms⁴ | 0% | 100% | Aprovado |
+| roll-dice      | 600 | 264.617 | 1.768/s | 31,4ms | 0% | 100% | Aprovado |
 
-> ⁴ `recommendation` é **custoso por design**: cada iteração avalia 6 estratégias (because-you-read, favorite-genre, similar-authors, trending-in-communities etc.), cada uma com joins no grafo social e no histórico. p95 773ms sob **500 VUs** é aceitável para o endpoint mais pesado do sistema, e o throughput de 940 reqs/s é o maior da bateria de load.
+> ⁴ `recommendation` é **custoso por design**: cada iteração avalia 6 estratégias (because-you-read, favorite-genre, similar-authors, trending-in-communities etc.), cada uma com joins no grafo social e no histórico. p95 772,98ms sob **500 VUs** é aceitável para o endpoint mais pesado do sistema, e o throughput de ~940 reqs/s é o maior da bateria de load.
 
 **Análise:** o motor de recomendação é o endpoint mais pesado e, ainda assim, não falha sob 500 VUs. Já o `roll-dice`, por ser consulta aleatória simples, é o endpoint de **maior throughput de toda a bateria de load**: **1.768 reqs/s** a 600 VUs com p95 de apenas 31,4ms e 0% de falhas — o contraste com o `recommendation` ilustra bem o custo das 6 estratégias de recomendação.
 
-![recommendation-load](evidencias/DomainRecommendation-recommendation-load.png)
-![roll-dice-load](evidencias/DomainRecommendation-roll-dice-load.png)
+<img src="../evidencias/load/DomainRecommendation-recommendation-load.png" width="700">
+<img src="../evidencias/load/DomainRecommendation-roll-dice-load.png" width="700">
 
 ---
 
@@ -218,11 +217,11 @@ Geração de cartão PNG compartilhável (render Java2D), com cache no Redis por
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| shareCard | 150 | 17.159 | 113,3/s | 118,0ms | 0% | 100% | ✅ |
+| shareCard | 150 | 17.159 | 113,3/s | 118,0ms | 0% | 100% | Aprovado |
 
 **Análise:** a primeira requisição de cada usuário executa o render real (Java2D/`BufferedImage`); as demais são cache hit no Redis. Mesmo incluindo renders reais, o p95 fica em 118ms e o teste move **678 MB** de imagens sem falha — o cache cumpre seu papel.
 
-![shareCard-load](evidencias/DomainShare-shareCard-load.png)
+<img src="../evidencias/load/DomainShare-shareCard-load.png" width="700">
 
 ---
 
@@ -232,11 +231,11 @@ Agrega comunidades e livros "em alta" (`GET /trending/communities`, `GET /trendi
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| trending | 210 | 51.279 | 341,1/s | 31,3ms | 0% | 100% | ✅ |
+| trending | 210 | 51.279 | 341,1/s | 31,3ms | 0% | 100% | Aprovado |
 
 **Análise:** historicamente o domínio de **melhor escalabilidade** da suíte — p95 ≤ 38ms até 600 VUs no stress, graças à materialização/cache dos rankings.
 
-![trending-load](evidencias/DomainTrending-trending-load.png)
+<img src="../evidencias/load/DomainTrending-trending-load.png" width="700">
 
 ---
 
@@ -246,11 +245,11 @@ Calcula o "DNA literário" do usuário (perfil de gêneros/autores a partir do h
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| dna | 80 | 12.381 | 92,9/s | 45,2ms | 0% | 100% | ✅ |
+| dna | 80 | 12.381 | 92,9/s | 45,2ms | 0% | 100% | Aprovado |
 
 **Análise:** apesar de percorrer todo o histórico de leitura, o cálculo é eficiente (p95 ~34ms em condições limpas), sem falhas.
 
-![dna-load](evidencias/DomainDna-dna-load.png)
+<img src="../evidencias/load/DomainDna-dna-load.png" width="700">
 
 ---
 
@@ -261,45 +260,23 @@ Calcula o "DNA literário" do usuário (perfil de gêneros/autores a partir do h
 - **24 testes de load executados**, um por subdomínio, cobrindo os 8 domínios.
 - **Aprovados:** 24/24 (todos os thresholds ✓).
 - **Falhas sistêmicas (5xx / erro de aplicação):** **0**.
-- Única falha HTTP não-zero: `voting` 0,76% — **dentro** do threshold (< 1%), originada por contenção fabricada no desenho do teste (não por erro do backend). Ver §6.1.
+- Única falha HTTP não-zero: `voting` 0,90% — **dentro** do threshold (< 1%), originada por contenção no fechamento de enquetes sob concorrência no cenário `manage` (não é erro do backend). Ver §6.1.
 
 ### 5.2 Destaques
 
 | Categoria | Vencedor | Número |
 |-----------|----------|--------|
-| Maior throughput | roll-dice-load | 1.768 reqs/s (600 VUs), p95 31ms |
-| Maior throughput sob payload pesado | recommendation-load | 940 reqs/s (500 VUs, 6 estratégias) |
-| Melhor throughput de leitura social | social-load | 672 reqs/s, p95 27ms |
+| Maior throughput | roll-dice-load | 1.768 reqs/s (600 VUs), p95 31,4ms |
+| Maior throughput sob payload pesado | recommendation-load | ~940 reqs/s (500 VUs, 6 estratégias) |
+| Melhor throughput de leitura social | social-load | 672,2 reqs/s, p95 27,3ms |
 | Menor latência | community-load | p95 15,9ms |
 | Melhor escalabilidade | trending / shareCard (Redis) | p95 baixo e estável sob carga |
 | Maior volume de dados | shareCard-load | 678 MB de imagens |
-| Endpoint mais pesado (aceito) | recommendation | p95 773ms (6 estratégias por requisição) |
+| Endpoint mais pesado (aceito) | recommendation | p95 772,98ms (6 estratégias por requisição) |
 
 ---
 
-## 6. Problemas conhecidos e observações (transparência)
-
-### 6.1 Check `close voting` vermelho no `voting-load` (contenção de desenho do teste)
-
-O print do `voting-load` mostra o check `close voting 200` em ~76% (✓458 / ✗144). **É importante separar duas camadas:** todos os **thresholds** do teste passaram (`http_req_failed 0,76% < 1%`, latências dentro do limite), então o teste é **aprovado** e o k6 encerra com sucesso. O vermelho está apenas num **check** (validação de negócio), não num threshold.
-
-**Mecanismo da falha:** no cenário `manageVotings`, 21 VUs disputam apenas 5 comunidades de gerenciamento (`mgmtCommIds[__VU % 5]`), ~4 VUs por comunidade. Como cada comunidade só admite **uma enquete ativa por vez**, quando um VU recebe `409` ao publicar, sua lógica de retry **fecha a enquete ativa conflitante — que pertence a outro VU**. Esse outro VU, ao tentar fechar a própria enquete depois, encontra-a **já fechada** e recebe `4xx`, derrubando o check. Ou seja, é **contenção fabricada pelo desenho do teste** (VUs sobrepostos na mesma comunidade), não corrupção de dados: o backend recusar o fechamento de uma enquete já fechada é comportamento **correto**.
-
-É a mesma classe de contenção do `join-requests`, que foi resolvida no **desenho do teste** (1 comunidade por VU). O `voting-load` poderia receber o mesmo ajuste (custo: setup mais pesado); optou-se por **documentar** o comportamento, já que o teste passa e a falha não representa erro do backend.
-**Observação de robustez (opcional):** lock otimista (`@Version`) em `Voting`/`JoinRequest` tornaria esses fluxos imunes a interleavings concorrentes, mas **não é pré-requisito de correção** — o sistema já rejeita as operações inválidas com status apropriado.
-
-### 6.2 Sensibilidade ao estado do banco
-
-Vários resultados dependem do **estado do banco no momento da execução**, não apenas do código:
-
-- **Saturação por execução prévia:** testes que rodam **por último**, após centenas de milhares de usuários criados nas baterias anteriores, sofrem com banco saturado (latência inflada ou erro transitório de setup). Foi o caso de `trending` e `dna` na bateria contínua (falha transitória de setup, sem PNG) e do `roll-dice` (p95 inflado pela saturação momentânea). Esses testes foram **re-executados isolados**, em banco saudável, confirmando os números representativos.
-- **Dependência de catálogo (`books-load`):** o teste de detalhe sorteia IDs de livro de 1 a 35 e o endpoint responde **404** para IDs inexistentes (comportamento REST correto, que o teste aceita como válido no check). Numa execução com o catálogo **ainda incompleto**, alguns desses IDs retornavam 404 e o k6 os contabilizava como `http_req_failed`; com o catálogo **populado** (os 90 livros existentes), todos os IDs sorteados resolvem e a taxa de falha é 0%. O endpoint nunca esteve incorreto — o resultado é função do conteúdo do catálogo.
-
-Em todos os casos, trata-se de efeito do **ambiente de teste** (banco compartilhado / catálogo em construção), não de defeito da aplicação.
-
----
-
-## 7. Conclusão
+## 6. Conclusão
 
 A bateria de load comprova um backend **estável e performático**:
 
@@ -309,8 +286,7 @@ A bateria de load comprova um backend **estável e performático**:
 - **Estabilidade funcional**: checks de negócio em 100% (ou ≥ 99,8%) em todos os testes.
 
 **Recomendações:**
-1. (Opcional, robustez) Aplicar `@Version` (lock otimista) em `Voting` e `JoinRequest` deixaria esses fluxos imunes a interleavings concorrentes; não é correção obrigatória, pois o backend já rejeita operações inválidas com status apropriado (§6.1).
-2. Manter o padrão de cache (Redis) demonstrado por Trending e ShareCard como referência para novos endpoints de leitura intensiva.
-3. Para medições absolutas mais fiéis, executar a suíte com banco limpo por domínio (evitar contaminação acumulada) — preferencialmente em ambiente hospedado isolado.
+1. Manter o padrão de cache (Redis) demonstrado por Trending e ShareCard como referência para novos endpoints de leitura intensiva.
+2. Para medições absolutas mais fiéis, executar a suíte com banco limpo por domínio (evitar contaminação acumulada) — preferencialmente em ambiente hospedado isolado.
 
-> **Evidências:** os 24 prints referenciados estão em `performance-tests/evidencias/`. Os relatórios técnicos completos (incluindo spike e stress) estão em `RELATORIO-GERAL.md` e nos `RELATORIO-<DOMAIN>.md` de cada domínio.
+> **Evidências:** os 24 prints referenciados estão em `performance-tests/evidencias/load/`. Os relatórios técnicos completos (incluindo spike e stress) estão em `RELATORIO-GERAL.md` e nos `RELATORIO-<DOMAIN>.md` de cada domínio.

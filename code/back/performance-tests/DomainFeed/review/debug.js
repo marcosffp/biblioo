@@ -1,7 +1,6 @@
 import http from 'k6/http';
 import { check } from 'k6';
 
-// Roda uma única vez (1 VU, 1 iteração) só para diagnosticar o setup
 export const options = {
   vus:        1,
   iterations: 1,
@@ -12,7 +11,7 @@ const PASSWORD = 'Senha@12345';
 const PREFIX   = 'debugshelf';
 const MIN_BOOK = 1;
 const MAX_BOOK = 20;
-const N_USERS  = 5; // pequeno só pra ver o padrão
+const N_USERS  = 5;
 
 function parseUserId(token) {
   try {
@@ -28,7 +27,6 @@ export default function () {
     const ts    = Date.now() + i;
     const email = `${PREFIX}_${ts}@test.com`;
 
-    // 1. Register
     const regRes = http.post(
       `${BASE}/auth/register`,
       JSON.stringify({ username: `${PREFIX}_${ts}`, email, password: PASSWORD }),
@@ -40,7 +38,6 @@ export default function () {
       continue;
     }
 
-    // 2. Login
     const loginRes = http.post(
       `${BASE}/auth/login`,
       JSON.stringify({ email, password: PASSWORD }),
@@ -56,7 +53,6 @@ export default function () {
     const userId = parseUserId(accessToken);
     const authH  = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-    // 3. Criar estante
     const shelfRes = http.post(
       `${BASE}/shelves`,
       JSON.stringify({ name: `Debug Estante ${ts}`, description: 'debug' }),
@@ -70,12 +66,10 @@ export default function () {
 
     const shelfId = JSON.parse(shelfRes.body).id;
 
-    // 4. Calcular bookId — mesma lógica do teste de review
     const bookId = MIN_BOOK + (i % (MAX_BOOK - MIN_BOOK + 1));
 
     console.log(`[i=${i}] userId=${userId} shelfId=${shelfId} bookId calculado=${bookId}`);
 
-    // 5. Adicionar item na estante
     const itemRes = http.post(
       `${BASE}/shelves/${shelfId}/items`,
       JSON.stringify({ bookId: bookId, initialStatus: 'COMPLETED' }),
@@ -98,7 +92,6 @@ export default function () {
       console.log(`[i=${i}] item criado: itemId=${itemId} bookId retornado pelo backend=${itemBook}`);
     }
 
-    // 6. Listar itens da estante para confirmar o que foi salvo
     const listRes = http.get(
       `${BASE}/shelves/${shelfId}/items`,
       { headers: authH }
@@ -116,7 +109,6 @@ export default function () {
     report.push({ i, userId, shelfId, bookIdEsperado: bookId, bookIdRetornado: itemBook, savedBooks });
   }
 
-  // Resumo final
   console.log('\n========== RESUMO ==========');
   for (const r of report) {
     const bate = r.bookIdEsperado === r.bookIdRetornado ? '✓' : '✗ DIVERGE';

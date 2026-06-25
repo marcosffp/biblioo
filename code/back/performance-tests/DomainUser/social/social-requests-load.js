@@ -1,25 +1,17 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-// Grafo social do User — caminho PRIVADO (solicitações de seguir).
-// Cobre: PUT /me/visibility, follow em conta privada (→202 PENDING),
-// GET /me/follow-requests, accept e reject de solicitação.
-//
-// Cenário único de propósito: assim __VU é contíguo (1..N) e cada VU recebe um
-// par EXCLUSIVO { owner privado, requester } indexado por __VU. Como nenhum par
-// é compartilhado, não há corrida na lista de solicitações de um mesmo owner
-// (o padrão que derruba join-requests/voting sob concorrência).
 const CONFIG = {
   base:     'http://localhost:8080',
   password: 'Senha@12345',
   prefix:   'socialreq',
 
-  requestVus: 100,   // = nº de pares owner/requester criados no setup
+  requestVus: 100,
   duration:  '2m',
 
   thresholds: {
-    p95General: 1500,  // ms — fluxo de escrita (follow/accept/reject)
-    failRate:   0.01,  // 1%
+    p95General: 1500,
+    failRate:   0.01,
   },
 
   sleep: {
@@ -46,9 +38,6 @@ export const options = {
   },
 };
 
-// ── Setup ─────────────────────────────────────────────────────────────────────
-// Cria CONFIG.requestVus pares. O owner de cada par é tornado PRIVADO
-// (PUT /me/visibility) para que o follow vire uma solicitação (202).
 function registerAndLogin(username, headers) {
   const reg = http.post(
     `${CONFIG.base}/auth/register`,
@@ -83,7 +72,6 @@ export function setup() {
     const requester = registerAndLogin(`${CONFIG.prefix}_req_${ts}`, headers);
     if (!owner || !requester) continue;
 
-    // Torna o owner privado para que follows virem solicitações.
     const visRes = http.put(
       `${CONFIG.base}/users/me/visibility`,
       JSON.stringify({ isPrivate: true }),
@@ -103,10 +91,7 @@ export function setup() {
   return { pairs };
 }
 
-// ── Cenário: solicitação de seguir → accept/reject ───────────────────────────
-// Par exclusivo por VU. Alterna entre aceitar (iteração par) e rejeitar (ímpar)
-// para exercitar os dois caminhos. Sempre reverte o estado ao fim da iteração,
-// deixando o par pronto para uma nova solicitação na próxima iteração.
+
 export function requestFlow(data) {
   const pair = data.pairs[(__VU - 1) % data.pairs.length];
   if (!pair) return;
@@ -115,13 +100,11 @@ export function requestFlow(data) {
   const ownerH = { Authorization: `Bearer ${owner.accessToken}` };
   const reqH   = { Authorization: `Bearer ${requester.accessToken}` };
 
-  // 1. Requester solicita seguir o owner privado → 202 (PENDING)
   const followRes = http.post(`${CONFIG.base}/users/${owner.username}/follow`, null, { headers: reqH });
   check(followRes, { 'follow privado 202': (r) => r.status === 202 });
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // 2. Owner lista as solicitações pendentes
   const listRes = http.get(
     `${CONFIG.base}/users/me/follow-requests?page=0&size=20`,
     { headers: ownerH }
@@ -130,9 +113,7 @@ export function requestFlow(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // 3. Alterna accept/reject pela paridade da iteração
   if (__ITER % 2 === 0) {
-    // Aceita e depois o requester desfaz o follow para resetar o estado.
     const acceptRes = http.post(
       `${CONFIG.base}/users/me/follow-requests/${requester.username}/accept`,
       null,
@@ -145,7 +126,6 @@ export function requestFlow(data) {
     const unfollowRes = http.del(`${CONFIG.base}/users/${owner.username}/follow`, null, { headers: reqH });
     check(unfollowRes, { 'unfollow reset 204': (r) => r.status === 204 });
   } else {
-    // Rejeita — a solicitação some e o par fica pronto para nova rodada.
     const rejectRes = http.del(
       `${CONFIG.base}/users/me/follow-requests/${requester.username}`,
       null,

@@ -6,15 +6,13 @@ const CONFIG = {
   password:          'Senha@12345',
   prefix:            'reqcomm',
   requesterPoolSize: 300,
-  // 1 comunidade por VU do cenário request — elimina completamente a disputa pelo mesmo requestId
   communityPoolSize: 150,
 
-  // ID de um livro que existe no banco
   bookId: 1,
 
   load: {
-    requestVus: 150,  // cada VU gerencia sua própria comunidade
-    listVus:    60,   // leitura de join-requests pendentes
+    requestVus: 150,
+    listVus:    60,
     duration:   '2m',
   },
 
@@ -30,11 +28,6 @@ const CONFIG = {
     afterIteration: 0.5,
   },
 };
-
-// ── Setup ─────────────────────────────────────────────────────────────────────
-// Cria N pares owner+comunidade (um por VU) e um pool de requesters compartilhado.
-// Cada VU do cenário request gerencia exclusivamente sua comunidade,
-// eliminando a disputa pelo mesmo requestId.
 
 export const options = {
   setupTimeout: '15m',
@@ -65,7 +58,6 @@ export const options = {
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // ── 1. Cria N pares owner+comunidade ────────────────────────────────────────
   const communities = [];
   for (let i = 0; i < CONFIG.communityPoolSize; i++) {
     const ts    = Date.now() + i;
@@ -113,7 +105,6 @@ export function setup() {
     return { communities: [], requesters: [] };
   }
 
-  // ── 2. Cria pool de requesters ───────────────────────────────────────────────
   const requesters = [];
   for (let i = 0; i < CONFIG.requesterPoolSize; i++) {
     const ts    = Date.now() + i;
@@ -140,21 +131,14 @@ export function setup() {
   return { communities, requesters };
 }
 
-// ── Cenário 1: request + owner rejeita (sem disputa) ─────────────────────────
-// Cada VU gerencia exclusivamente sua própria comunidade via __VU % communities.length,
-// eliminando a race condition de múltiplos VUs rejeitando o mesmo requestId.
-
 export function requestFlow(data) {
   if (!data.communities || data.communities.length === 0) return;
 
-  // VU fixo → comunidade fixa → sem disputa entre VUs
   const comm             = data.communities[__VU % data.communities.length];
   const requester        = randomItem(data.requesters);
   const requesterHeaders = { Authorization: `Bearer ${requester.accessToken}` };
   const ownerHeaders     = { Authorization: `Bearer ${comm.ownerToken}` };
 
-  // 1. Requester solicita entrada na comunidade deste VU
-  // 409 é esperado quando o requester já tem solicitação pendente — não conta como http_req_failed
   const reqRes = http.post(
     `${CONFIG.base}/communities/${comm.communityId}/join-requests`,
     null,
@@ -169,7 +153,6 @@ export function requestFlow(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // 2. Owner lista pendentes da sua comunidade
   const pendingRes = http.get(
     `${CONFIG.base}/communities/${comm.communityId}/join-requests?page=0&size=10`,
     { headers: ownerHeaders }
@@ -178,8 +161,6 @@ export function requestFlow(data) {
 
   sleep(CONFIG.sleep.afterIteration);
 }
-
-// ── Cenário 2: leitura pura de solicitações pendentes ────────────────────────
 
 export function listPending(data) {
   if (!data.communities || data.communities.length === 0) return;
@@ -195,8 +176,6 @@ export function listPending(data) {
 
   sleep(CONFIG.sleep.afterIteration);
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];

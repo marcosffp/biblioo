@@ -7,7 +7,6 @@ const CONFIG = {
   prefix:       'loaduser',
   userPoolSize: 230,
 
-  // Ajuste para um bookId válido no seu ambiente (usado indiretamente via setup)
   load: {
     authVus:    84,
     profileVus: 126,
@@ -15,22 +14,18 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 1000,  // ms
-    p95Auth:    2000,  // ms — register + login é mais lento
-    p95Profile:  500,  // ms — leitura cacheada pelo Redis
-    failRate:   0.01,  // 1%
+    p95General: 1000,
+    p95Auth:    2000,
+    p95Profile:  500,
+    failRate:   0.01,
   },
 
   sleep: {
-    betweenSteps:   0.3,  // s
-    afterIteration: 1,    // s
-    profile:        0.5,  // s
+    betweenSteps:   0.3,
+    afterIteration: 1,
+    profile:        0.5,
   },
 };
-
-// ── Setup ─────────────────────────────────────────────────────────────────────
-// Cria um pool de usuários reais para o cenário de leitura de perfil.
-// O cenário authFlow cria novos usuários durante o teste (sem depender do pool).
 
 export const options = {
   setupTimeout: '3m',
@@ -88,7 +83,6 @@ export function setup() {
   return { users };
 }
 
-// ── Cenário 1: fluxo de autenticação (register → login) ──────────────────────
 
 export function authFlow() {
   const headers = { 'Content-Type': 'application/json' };
@@ -126,7 +120,6 @@ export function authFlow() {
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// ── Cenário 2: leitura de perfil (GET /me + GET /{username}) ──────────────────
 
 export function profileRead(data) {
   if (!data.users || data.users.length === 0) return;
@@ -146,7 +139,6 @@ export function profileRead(data) {
   sleep(CONFIG.sleep.profile);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];

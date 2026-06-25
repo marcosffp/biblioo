@@ -18,13 +18,13 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 2500,  // ms
-    failRate:   0.05,  // 5% — spike tolera mais erros
+    p95General: 2500,
+    failRate:   0.05,
   },
 
   sleep: {
-    betweenOps:     0.2,  // s
-    afterIteration: 0.5,  // s
+    betweenOps:     0.2,
+    afterIteration: 0.5,
   },
 };
 
@@ -51,7 +51,6 @@ export function setup() {
     const { accessToken } = JSON.parse(login.body);
     const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-    // Cria uma estante própria para usar nos testes de add shelf
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `Estante setup ${ts}`, description: 'Criada pelo setup do spike test' }),
@@ -67,11 +66,11 @@ export function setup() {
 
 export const options = {
   stages: [
-    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },  // base normal
-    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },  // spike brusco
-    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },  // mantém carga alta
-    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },  // queda brusca
-    { duration: CONFIG.spike.cooldown,   target: 0                     },  // recuperação
+    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.cooldown,   target: 0                     },
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],
@@ -86,7 +85,6 @@ export default function (data) {
     Authorization: `Bearer ${user.accessToken}`,
   };
 
-  // LIST
   const listRes = http.get(`${CONFIG.base}/collections`, { headers });
   check(listRes, {
     'list 200': (r) => r.status === 200,
@@ -98,7 +96,6 @@ export default function (data) {
 
   sleep(CONFIG.sleep.betweenOps);
 
-  // CREATE
   const createRes = http.post(
     `${CONFIG.base}/collections`,
     JSON.stringify({
@@ -114,7 +111,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenOps);
 
-    // ADD SHELF (estante criada no setup, pertence ao mesmo usuário)
     const addShelfRes = http.patch(
       `${CONFIG.base}/collections/${collectionId}/shelves`,
       JSON.stringify({ shelfId: user.shelfId }),
@@ -124,7 +120,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenOps);
 
-    // DELETE
     http.del(`${CONFIG.base}/collections/${collectionId}`, null, { headers });
   }
 

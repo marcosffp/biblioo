@@ -1,10 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// IMPORTANTE: ShareCardService cacheia o PNG no Redis por 1h (chave por userId).
-// O início do spike (rampa) exercita render real para cada VU novo; depois que
-// todos passaram a primeira iteração, o restante vira Redis HIT. p95 mistura
-// render + cache hit — leia o resultado considerando essa heterogeneidade.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
@@ -25,12 +18,12 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 3000,  // ms — pico tolera mais latência por causa do render concorrente
-    failRate:   0.05,  // 5%
+    p95General: 3000,
+    failRate:   0.05,
   },
 
   sleep: {
-    afterIteration: 0.5,  // s
+    afterIteration: 0.5,
   },
 };
 

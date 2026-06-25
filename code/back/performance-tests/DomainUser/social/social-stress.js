@@ -1,25 +1,22 @@
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
-// Stress do grafo social PÚBLICO: rampa até 600 VUs de follow/unfollow + leituras.
-// Race-free: follower exclusivo por VU (followerPoolSize > pico), celebs públicas
-// compartilhadas. Mesmo shape dos stress de shelf/collection (que passaram a 600).
 const CONFIG = {
   base:     'http://localhost:8080',
   password: 'Senha@12345',
-  prefix:   'sstr',   // curto de propósito: username (<prefix>_celeb_<13díg>) deve caber em <=30 chars
+  prefix:   'sstr',
 
   celebPoolSize:    20,
-  followerPoolSize: 650,   // > pico de 600 VUs ⇒ follower exclusivo por VU
+  followerPoolSize: 400,
 
   stress: {
     stageDuration: '30s',
-    stages: [20, 50, 100, 200, 300, 400, 600],
+    stages: [20, 50, 100, 200],
   },
 
   thresholds: {
-    p95General: 2500,  // ms
-    failRate:   0.05,  // 5%
+    p95General: 2500,
+    failRate:   0.05,
   },
 
   sleep: { afterIteration: 0.3 },

@@ -1,6 +1,6 @@
 # Relatório de Performance — DomainBook
 
-> **Data de execução:** 2026-05-28  
+> **Data de execução:** 2026-06-24  
 > **Ferramenta:** k6 (Grafana)  
 > **Ambiente:** localhost:8080  
 
@@ -10,10 +10,10 @@
 
 | Subdomínio  | Arquivos de teste                                    | Status  |
 |-------------|------------------------------------------------------|---------|
-| book        | books-load.js, books-spike.js, books-stress.js       | ✅ Todos passaram |
-| collection  | collection-load.js, collection-spike.js, collection-stress.js | ✅ Todos passaram |
-| shelf       | shelf-load.js, shelf-spike.js, shelf-stress.js       | ✅ Todos passaram |
-| shelfItem   | shelfItem-load.js, shelfItem-spike.js, shelfItem-stress.js | ✅ Todos passaram |
+| book        | books-load.js, books-spike.js, books-stress.js       | Todos passaram |
+| collection  | collection-load.js, collection-spike.js, collection-stress.js | Todos passaram |
+| shelf       | shelf-load.js, shelf-spike.js, shelf-stress.js       | Todos passaram |
+| shelfItem   | shelfItem-load.js, shelfItem-spike.js, shelfItem-stress.js | Todos passaram |
 
 ---
 
@@ -29,34 +29,34 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1500ms | 32.51ms | ✅ |
-| `http_req_duration{scenario:details}` p(95) | < 800ms | 12.34ms | ✅ |
-| `http_req_duration{scenario:search}` p(95) | < 2000ms | 35.02ms | ✅ |
-| `http_req_failed` rate | < 1% | 0.00% | ✅ |
-| `http_req_waiting` p(95) | < 1200ms | 32.4ms | ✅ |
+| `http_req_duration` p(95) | < 1500ms | 33.83ms | Aprovado |
+| `http_req_duration{scenario:details}` p(95) | < 800ms | 14.1ms | Aprovado |
+| `http_req_duration{scenario:search}` p(95) | < 2000ms | 36.17ms | Aprovado |
+| `http_req_failed` rate | < 1% | 0.00% | Aprovado |
+| `http_req_waiting` p(95) | < 1200ms | 33.57ms | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| status 200 ou 404 | ✅ 100% |
-| status 200 | ✅ 100% |
-| body é array JSON | ✅ 100% |
+| status 200 ou 404 | 100% |
+| status 200 | 100% |
+| body é array JSON | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 20.13ms | 836µs | 12.13ms | 3.68s | 28.23ms | 32.51ms |
-| `{scenario:details}` | 6.66ms | 836µs | 6.2ms | 65.83ms | 9.32ms | 12.34ms |
-| `{scenario:search}` | 26.94ms | 863µs | 17.64ms | 3.68s | 30.57ms | 35.02ms |
+| `http_req_duration` (geral) | 14.05ms | 743µs | 11.34ms | 60.7ms | 28.75ms | 33.83ms |
+| `{scenario:details}` | 7.59ms | 743µs | 6.67ms | 23.09ms | 12.98ms | 14.1ms |
+| `{scenario:search}` | 17.23ms | 93µs | 15.03ms | 60.7ms | 31.96ms | 36.17ms |
 
 **Sumário:**
-- Total de requests: **14.127** (116.9/s)
-- Iterações completas: 14.127
-- Dados recebidos: **168 MB** (1.4 MB/s)
+- Total de requests: **14.160** (117.82/s)
+- Iterações completas: 14.160
+- Dados recebidos: **176 MB** (1.5 MB/s)
 - Dados enviados: 1.3 MB (11 kB/s)
-- Duração total: 2m00.8s
+- Duração total: 2m0.2s
 
 ---
 
@@ -69,64 +69,64 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1000ms | 8.42ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 1000ms | 18.91ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| search status 200 | ✅ 100% |
-| search body array | ✅ 100% |
-| detail status 200 ou 404 | ✅ 100% |
+| search status 200 | 100% |
+| search body array | 100% |
+| detail status 200 ou 404 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 3.1ms | 454µs | 2.19ms | 56.84ms | 6.34ms | 8.42ms |
+| `http_req_duration` | 6.4ms | 595µs | 4.2ms | 381.95ms | 13.24ms | 18.91ms |
 
 **Sumário:**
-- Total de requests: **32.884** (651.6/s)
-- Iterações completas: 16.442
-- Dados recebidos: **306 MB** (6.1 MB/s)
-- Dados enviados: 3.0 MB (59 kB/s)
-- Duração total: 50.5s
+- Total de requests: **32.462** (646.66/s)
+- Iterações completas: 16.231
+- Dados recebidos: **291 MB** (5.8 MB/s)
+- Dados enviados: 2.9 MB (58 kB/s)
+- Duração total: 50.2s
 
 ---
 
 ### 1.3 Stress Test — `books-stress.js`
 
 **Configuração:**
-- 1 cenário: rampa até 400 VUs em 3m30s (7 estágios), gracefulRampDown 30s
+- 1 cenário: rampa até 400 VUs em 3m (6 estágios: 20→50→100→200→300→400), gracefulRampDown 30s
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1000ms | 18.6ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 1000ms | 100.89ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| search status 200 | ✅ 100% |
-| search body array | ✅ 100% |
-| detail status 200 ou 404 | ✅ 100% |
+| search status 200 | 100% |
+| search body array | 100% |
+| detail status 200 ou 404 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 5.83ms | 464µs | 3.71ms | 79.94ms | 13.02ms | 18.6ms |
+| `http_req_duration` | 29.58ms | 941µs | 14.49ms | 663.55ms | 62.75ms | 100.89ms |
 
 **Sumário:**
-- Total de requests: **125.400** (596.4/s)
-- Iterações completas: 62.700
-- Dados recebidos: **1.2 GB** (5.6 MB/s)
-- Dados enviados: 11 MB (54 kB/s)
-- Duração total: 3m30.3s
+- Total de requests: **114.684** (545.6/s)
+- Iterações completas: 57.342
+- Dados recebidos: **1.1 GB** (5.4 MB/s)
+- Dados enviados: 10 MB (48 kB/s)
+- Duração total: 3m30.2s
 
 ---
 
@@ -137,48 +137,47 @@
 **Configuração:**
 - 2 cenários: `crud` (150 VUs, 2m) + `listing` (60 VUs, 2m)
 - 210 VUs total
-- ⚠️ WARN: geradas 200.256 séries temporais únicas (limite sugerido: 100.000)
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1000ms | 22.29ms | ✅ |
-| `http_req_duration{scenario:crud}` p(95) | < 1500ms | 22.92ms | ✅ |
-| `http_req_duration{scenario:listing}` p(95) | < 1500ms | 19.2ms | ✅ |
-| `http_req_failed` rate | < 1% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 1000ms | 34.44ms | Aprovado |
+| `http_req_duration{scenario:crud}` p(95) | < 1500ms | 36.51ms | Aprovado |
+| `http_req_duration{scenario:listing}` p(95) | < 1500ms | 30.03ms | Aprovado |
+| `http_req_failed` rate | < 1% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| register 201 | ✅ 100% |
-| login 200 | ✅ 100% |
-| setup shelf 201 | ✅ 100% |
-| create 201 | ✅ 100% |
-| create retorna id | ✅ 100% |
-| list 200 | ✅ 100% |
-| list é array JSON | ✅ 100% |
-| get collection 200 | ✅ 100% |
-| add shelf 200 | ✅ 100% |
-| remove shelf 200 | ✅ 100% |
-| update 200 | ✅ 100% |
-| delete 204 | ✅ 100% |
+| register 201 | 100% |
+| login 200 | 100% |
+| setup shelf 201 | 100% |
+| create 201 | 100% |
+| create retorna id | 100% |
+| list 200 | 100% |
+| list é array JSON | 100% |
+| get collection 200 | 100% |
+| add shelf 200 | 100% |
+| remove shelf 200 | 100% |
+| update 200 | 100% |
+| delete 204 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 12.13ms | 2.71ms | 10.28ms | 215.45ms | 17.96ms | 22.29ms |
-| `{scenario:crud}` | 12.41ms | 2.76ms | 10.7ms | 215.45ms | 18.15ms | 22.92ms |
-| `{scenario:listing}` | 11.07ms | 2.71ms | 9.53ms | 203.22ms | 15.58ms | 19.2ms |
+| `http_req_duration` (geral) | 16.57ms | 3.09ms | 12.07ms | 258.16ms | 25.16ms | 34.44ms |
+| `{scenario:crud}` | 15.93ms | 3.26ms | 12.3ms | 258.16ms | 25.93ms | 36.51ms |
+| `{scenario:listing}` | 14.4ms | 3.09ms | 11.53ms | 258.16ms | 22.86ms | 30.03ms |
 
 **Sumário:**
-- Total de requests: **57.092** (430.8/s)
-- Iterações completas: 21.152
-- Dados recebidos: **28 MB** (214 kB/s)
-- Dados enviados: 25 MB (186 kB/s)
-- Duração total: 2m12.5s
+- Total de requests: **57.031** (424.57/s)
+- Iterações completas: 21.091
+- Dados recebidos: **28 MB** (211 kB/s)
+- Dados enviados: 25 MB (184 kB/s)
+- Duração total: 2m14.3s
 
 ---
 
@@ -186,77 +185,77 @@
 
 **Configuração:**
 - 1 cenário: rampa até 500 VUs em 50s (5 estágios)
-- ⚠️ WARN: 100.659 séries temporais únicas
+- AVISO: 100.254 séries temporais únicas
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 2500ms | 241.76ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 2500ms | 574.91ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| list 200 | ✅ 100% |
-| list array | ✅ 100% |
-| create 201 ou 429 | ✅ 100% |
-| add shelf 200 ou 429 | ✅ 100% |
+| list 200 | 100% |
+| list array | 100% |
+| create 201 ou 429 | 100% |
+| add shelf 200 ou 429 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 60.28ms | 2.73ms | 34.27ms | 614.53ms | 146.74ms | 241.76ms |
+| `http_req_duration` | 170.13ms | 3.05ms | 130.35ms | 1.97s | 299.8ms | 574.91ms |
 
 **Sumário:**
-- Total de requests: **42.620** (568.3/s)
-- Iterações completas: 10.280
-- Dados recebidos: **20 MB** (267 kB/s)
-- Dados enviados: 19 MB (249 kB/s)
-- Duração total: 1m15.0s
+- Total de requests: **32.148** (397.02/s)
+- Iterações completas: 7.662
+- Dados recebidos: **15 MB** (188 kB/s)
+- Dados enviados: 14 MB (174 kB/s)
+- Duração total: 1m21.0s
 
 ---
 
 ### 2.3 Stress Test — `collection-stress.js`
 
 **Configuração:**
-- 1 cenário: rampa até 600 VUs em 4m (8 estágios)
-- ⚠️ WARN: 800.053 séries temporais únicas (8× o limite sugerido)
+- 1 cenário: rampa até 600 VUs em 3m30s (7 estágios: 20→50→100→200→300→400→600), gracefulRampDown 30s
+- Pool de 800 usuários pré-criados no setup
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 2500ms | 309.26ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 2500ms | 250.07ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| list 200 | ✅ 100% |
-| list array | ✅ 100% |
-| create 201 | ✅ 100% |
-| get 200 | ✅ 100% |
-| add shelf 200 | ✅ 100% |
-| remove shelf 200 | ✅ 100% |
-| update 200 | ✅ 100% |
-| delete 204 | ✅ 100% |
+| list 200 | 100% |
+| list array | 100% |
+| create 201 | 100% |
+| get 200 | 100% |
+| add shelf 200 | 100% |
+| remove shelf 200 | 100% |
+| update 200 | 100% |
+| delete 204 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 89.63ms | 2.72ms | 30.16ms | 1.81s | 225.17ms | 309.26ms |
+| `http_req_duration` | 67.5ms | 2.62ms | 22.1ms | 1.7s | 170.84ms | 250.07ms |
 
 **Sumário:**
-- Total de requests: **154.440** (551.9/s)
-- Iterações completas: 21.720
-- Dados recebidos: **79 MB** (281 kB/s)
-- Dados enviados: 70 MB (249 kB/s)
-- Duração total: 4m39.8s
+- Total de requests: **162.883** (~585/s)
+- Iterações completas: 23.269
+- Dados recebidos: **84 MB** (≈302 kB/s)
+- Dados enviados: 75 MB (≈270 kB/s)
+- Duração total: 4m38.3s
 
 ---
 
@@ -267,45 +266,44 @@
 **Configuração:**
 - 2 cenários: `crud` (150 VUs, 2m) + `listing` (60 VUs, 2m)
 - 210 VUs total
-- ⚠️ WARN: 200.334 séries temporais únicas
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1000ms | 44.66ms | ✅ |
-| `http_req_duration{scenario:crud}` p(95) | < 1500ms | 48.37ms | ✅ |
-| `http_req_duration{scenario:listing}` p(95) | < 1500ms | 33.71ms | ✅ |
-| `http_req_failed` rate | < 1% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 1000ms | 47.24ms | Aprovado |
+| `http_req_duration{scenario:crud}` p(95) | < 1500ms | 50.33ms | Aprovado |
+| `http_req_duration{scenario:listing}` p(95) | < 1500ms | 40.58ms | Aprovado |
+| `http_req_failed` rate | < 1% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| register 201 | ✅ 100% |
-| login 200 | ✅ 100% |
-| create 201 | ✅ 100% |
-| create retorna id | ✅ 100% |
-| list 200 | ✅ 100% |
-| list é array JSON | ✅ 100% |
-| get shelf 200 | ✅ 100% |
-| update 200 | ✅ 100% |
-| delete 204 | ✅ 100% |
+| register 201 | 100% |
+| login 200 | 100% |
+| create 201 | 100% |
+| create retorna id | 100% |
+| list 200 | 100% |
+| list é array JSON | 100% |
+| get shelf 200 | 100% |
+| update 200 | 100% |
+| delete 204 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 17.38ms | 2.48ms | 12.7ms | 139.29ms | 32.11ms | 44.66ms |
-| `{scenario:crud}` | 18.7ms | 2.62ms | 13.73ms | 139.29ms | 34.79ms | 48.37ms |
-| `{scenario:listing}` | 13.79ms | 2.48ms | 10.35ms | 114.18ms | 24.68ms | 33.71ms |
+| `http_req_duration` (geral) | 19.02ms | 3.08ms | 13.66ms | 322.68ms | 34.95ms | 47.24ms |
+| `{scenario:crud}` | 19.02ms | 3.08ms | 13.91ms | 322.68ms | 38.1ms | 50.33ms |
+| `{scenario:listing}` | 17.55ms | 3.14ms | 12.51ms | 230.88ms | 32.76ms | 40.58ms |
 
 **Sumário:**
-- Total de requests: **51.105** (390.4/s)
-- Iterações completas: 23.195
-- Dados recebidos: **23 MB** (175 kB/s)
-- Dados enviados: 21 MB (163 kB/s)
-- Duração total: 2m10.9s
+- Total de requests: **50.980** (384.72/s)
+- Iterações completas: 23.070
+- Dados recebidos: **23 MB** (173 kB/s)
+- Dados enviados: 21 MB (161 kB/s)
+- Duração total: 2m12.5s
 
 ---
 
@@ -313,73 +311,73 @@
 
 **Configuração:**
 - 1 cenário: rampa até 500 VUs em 50s (5 estágios)
-- ⚠️ WARN: 100.307 séries temporais únicas
+- AVISO: 100.307 séries temporais únicas
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 2500ms | 76.67ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 2500ms | 396.55ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| list 200 | ✅ 100% |
-| list array | ✅ 100% |
-| create 201 ou 429 | ✅ 100% |
+| list 200 | 100% |
+| list array | 100% |
+| create 201 ou 429 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 34.74ms | 2.4ms | 30.32ms | 202.12ms | 65.92ms | 76.67ms |
+| `http_req_duration` | 139.77ms | 2.75ms | 96.45ms | 1.12s | 327.16ms | 396.55ms |
 
 **Sumário:**
-- Total de requests: **52.186** (716.6/s)
-- Iterações completas: 17.062
-- Dados recebidos: **22 MB** (301 kB/s)
-- Dados enviados: 22 MB (299 kB/s)
-- Duração total: 1m12.8s
+- Total de requests: **37.507** (500.90/s)
+- Iterações completas: 12.169
+- Dados recebidos: **16 MB** (212 kB/s)
+- Dados enviados: 16 MB (208 kB/s)
+- Duração total: 1m14.9s
 
 ---
 
 ### 3.3 Stress Test — `shelf-stress.js`
 
 **Configuração:**
-- 1 cenário: rampa até 600 VUs em 4m (8 estágios)
-- ⚠️ WARN: 400.369 séries temporais únicas
+- 1 cenário: rampa até 600 VUs em 3m30s (7 estágios: 20→50→100→200→300→400→600), gracefulRampDown 30s
+- Pool de 800 usuários pré-criados no setup
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 2500ms | 138.75ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 2500ms | 120.61ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| list 200 | ✅ 100% |
-| list array | ✅ 100% |
-| create 201 | ✅ 100% |
-| get 200 | ✅ 100% |
-| delete 204 | ✅ 100% |
+| list 200 | 100% |
+| list array | 100% |
+| create 201 | 100% |
+| get 200 | 100% |
+| delete 204 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 37.92ms | 2.44ms | 14.46ms | 516.23ms | 107.69ms | 138.75ms |
+| `http_req_duration` | 33.91ms | 2.51ms | 13.95ms | 480.75ms | 98.03ms | 120.61ms |
 
 **Sumário:**
-- Total de requests: **162.520** (586.1/s)
-- Iterações completas: 40.230
-- Dados recebidos: **71 MB** (256 kB/s)
-- Dados enviados: 68 MB (245 kB/s)
-- Duração total: 4m37.3s
+- Total de requests: **164.588** (594.4/s)
+- Iterações completas: 40.747
+- Dados recebidos: **72 MB** (268 kB/s)
+- Dados enviados: 69 MB (248 kB/s)
+- Duração total: 4m36.9s
 
 ---
 
@@ -395,40 +393,40 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1000ms | 27.75ms | ✅ |
-| `http_req_duration{scenario:crud}` p(95) | < 1500ms | 30.14ms | ✅ |
-| `http_req_duration{scenario:listing}` p(95) | < 1500ms | 13.79ms | ✅ |
-| `http_req_failed` rate | < 1% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 1000ms | 43.89ms | Aprovado |
+| `http_req_duration{scenario:crud}` p(95) | < 1500ms | 49.4ms | Aprovado |
+| `http_req_duration{scenario:listing}` p(95) | < 1500ms | 19.1ms | Aprovado |
+| `http_req_failed` rate | < 1% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| register 201 | ✅ 100% |
-| login 200 | ✅ 100% |
-| setup shelf 201 | ✅ 100% |
-| list items 200 | ✅ 100% |
-| list é array JSON | ✅ 100% |
-| add item 201 | ✅ 100% |
-| add item retorna id | ✅ 100% |
-| get item 200 | ✅ 100% |
-| update progress 200 | ✅ 100% |
-| change status 200 | ✅ 100% |
-| remove item 204 | ✅ 100% |
+| register 201 | 100% |
+| login 200 | 100% |
+| setup shelf 201 | 100% |
+| list items 200 | 100% |
+| list é array JSON | 100% |
+| add item 201 | 100% |
+| add item retorna id | 100% |
+| get item 200 | 100% |
+| update progress 200 | 100% |
+| change status 200 | 100% |
+| remove item 204 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` (geral) | 14.22ms | 1.69ms | 13.21ms | 237.42ms | 22.68ms | 27.75ms |
-| `{scenario:crud}` | 16.57ms | 3.29ms | 15.24ms | 237.42ms | 24.38ms | 30.14ms |
-| `{scenario:listing}` | 7.6ms | 1.69ms | 6.19ms | 225.08ms | 10.33ms | 13.79ms |
+| `http_req_duration` (geral) | 17.99ms | 2.45ms | 14.91ms | 343.71ms | 30.66ms | 43.89ms |
+| `{scenario:crud}` | 21.17ms | 3.66ms | 17.01ms | 343.71ms | 35.23ms | 49.4ms |
+| `{scenario:listing}` | 9.2ms | 2.45ms | 6.6ms | 330.84ms | 12.47ms | 19.1ms |
 
 **Sumário:**
-- Total de requests: **54.660** (413.3/s)
-- Iterações completas: 22.170
-- Dados recebidos: **27 MB** (206 kB/s)
-- Dados enviados: 24 MB (178 kB/s)
+- Total de requests: **54.130** (409.5/s)
+- Iterações completas: 22.012
+- Dados recebidos: **29 MB** (217 kB/s)
+- Dados enviados: 23 MB (172 kB/s)
 - Duração total: 2m12.2s
 
 ---
@@ -442,69 +440,71 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 2500ms | 238.08ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 2500ms | 475.65ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| list items 200 | ✅ 100% |
-| list array | ✅ 100% |
-| add item 201 ou 429 | ✅ 100% |
-| update progress 200 ou 429 | ✅ 100% |
+| list items 200 | 100% |
+| list array | 100% |
+| add item 201 ou 429 | 100% |
+| update progress 200 ou 429 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 123.48ms | 3.23ms | 145.51ms | 530.21ms | 203.87ms | 238.08ms |
+| `http_req_duration` | 247.07ms | 3.89ms | 299.29ms | 922.93ms | 415.2ms | 475.65ms |
 
 **Sumário:**
-- Total de requests: **35.920** (428.9/s)
-- Iterações completas: 8.605
-- Dados recebidos: **18 MB** (210 kB/s)
-- Dados enviados: 16 MB (189 kB/s)
-- Duração total: 1m23.8s
+- Total de requests: **27.632** (344.98/s)
+- Iterações completas: 6.533
+- Dados recebidos: **15 MB** (191 kB/s)
+- Dados enviados: 12 MB (151 kB/s)
+- Duração total: 1m20.1s
 
 ---
 
 ### 4.3 Stress Test — `shelfItem-stress.js`
 
 **Configuração:**
-- 1 cenário: rampa até 600 VUs em 4m (8 estágios)
+- 1 cenário: rampa até 600 VUs em 3m30s (7 estágios: 20→50→100→200→300→400→600), gracefulRampDown 30s
+- Pool de 800 usuários pré-criados no setup (setupTimeout: 300s)
+- Lógica de recuperação de 409 em `add item`: lista itens, remove remanescente e refaz o POST
 
 **Thresholds:**
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 3000ms | 337.32ms | ✅ |
-| `http_req_failed` rate | < 5% | 0.00% | ✅ |
+| `http_req_duration` p(95) | < 3000ms | 717.87ms | Aprovado |
+| `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
 
 | Check | Resultado |
 |-------|-----------|
-| list items 200 | ✅ 100% |
-| list array | ✅ 100% |
-| add item 201 | ✅ 100% |
-| get item 200 | ✅ 100% |
-| update progress 200 | ✅ 100% |
-| change status 200 | ✅ 100% |
-| remove item 204 | ✅ 100% |
+| list items 200 | 100% |
+| list array | 100% |
+| add item 201 | 100% |
+| get item 200 | 100% |
+| update progress 200 | 100% |
+| change status 200 | 100% |
+| remove item 204 | 100% |
 
 **Métricas HTTP:**
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 118.65ms | 1.94ms | 76.09ms | 1.24s | 287.64ms | 337.32ms |
+| `http_req_duration` | 249.05ms | 4.25ms | 177.89ms | 1.92s | 599.87ms | 717.87ms |
 
 **Sumário:**
-- Total de requests: **139.098** (494.8/s)
-- Iterações completas: 22.783
-- Dados recebidos: **72 MB** (255 kB/s)
-- Dados enviados: 62 MB (221 kB/s)
-- Duração total: 4m41.1s
+- Total de requests: **117.768** (377.6/s)
+- Iterações completas: 16.824
+- Dados recebidos: **59 MB** (189 kB/s)
+- Dados enviados: 46 MB (148 kB/s)
+- Duração total: 5m11.9s (inclui ~1m10s de setup para criação de 800 usuários)
 
 ---
 
@@ -512,19 +512,19 @@
 
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas | Resultado |
 |------------|-------|---------|----------|-----------|-------|--------|-----------|
-| book | load | 100 | 14.127 | 116.9/s | 32.51ms | 0% | ✅ |
-| book | spike | 300 | 32.884 | 651.6/s | 8.42ms | 0% | ✅ |
-| book | stress | 400 | 125.400 | 596.4/s | 18.6ms | 0% | ✅ |
-| collection | load | 210 | 57.092 | 430.8/s | 22.29ms | 0% | ✅ |
-| collection | spike | 500 | 42.620 | 568.3/s | 241.76ms | 0% | ✅ |
-| collection | stress | 600 | 154.440 | 551.9/s | 309.26ms | 0% | ✅ |
-| shelf | load | 210 | 51.105 | 390.4/s | 44.66ms | 0% | ✅ |
-| shelf | spike | 500 | 52.186 | 716.6/s | 76.67ms | 0% | ✅ |
-| shelf | stress | 600 | 162.520 | 586.1/s | 138.75ms | 0% | ✅ |
-| shelfItem | load | 210 | 54.660 | 413.3/s | 27.75ms | 0% | ✅ |
-| shelfItem | spike | 500 | 35.920 | 428.9/s | 238.08ms | 0% | ✅ |
-| shelfItem | stress | 600 | 139.098 | 494.8/s | 337.32ms | 0% | ✅ |
+| book | load | 100 | 14.160 | 117.82/s | 33.83ms | 0% | Aprovado |
+| book | spike | 300 | 32.462 | 646.66/s | 18.91ms | 0% | Aprovado |
+| book | stress | 400 | 114.684 | 545.6/s | 100.89ms | 0% | Aprovado |
+| collection | load | 210 | 57.031 | 424.57/s | 34.44ms | 0% | Aprovado |
+| collection | spike | 500 | 32.148 | 397.02/s | 574.91ms | 0% | Aprovado |
+| collection | stress | 600 | 162.883 | 585.3/s | 250.07ms | 0% | Aprovado |
+| shelf | load | 210 | 50.980 | 384.72/s | 47.24ms | 0% | Aprovado |
+| shelf | spike | 500 | 37.507 | 500.90/s | 396.55ms | 0% | Aprovado |
+| shelf | stress | 600 | 164.588 | 594.4/s | 120.61ms | 0% | Aprovado |
+| shelfItem | load | 210 | 54.130 | 409.5/s | 43.89ms | 0% | Aprovado |
+| shelfItem | spike | 500 | 27.632 | 344.98/s | 475.65ms | 0% | Aprovado |
+| shelfItem | stress | 600 | 117.768 | 377.6/s | 717.87ms | 0% | Aprovado |
 
-**Total de requests executados no DomainBook:** ~971.052  
+**Total de requests executados no DomainBook:** ~923.103  
 **Taxa de falhas geral:** 0%  
-**Todos os thresholds:** ✅ aprovados
+**Todos os thresholds:** aprovados

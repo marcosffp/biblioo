@@ -1,11 +1,3 @@
-// Cobre CommunityMessageRestController (endpoints REST de mensagens).
-//
-// ESCOPO: GET /communities/{id}/messages e GET /communities/{id}/messages/sync.
-// O endpoint POST /media (upload Cloudinary) foi deixado FORA dos testes de
-// carga propositalmente — disparar Cloudinary com muitos VUs gera custo real
-// ou estoura limites de free tier. Para testar /media, use cenário dedicado
-// com VU baixo e Cloudinary mockado em profile separado.
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
@@ -40,7 +32,6 @@ const CONFIG = {
 export function setup() {
   const jsonH = { 'Content-Type': 'application/json' };
 
-  // owner
   const ownerTs    = Date.now();
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
   http.post(
@@ -56,7 +47,6 @@ export function setup() {
   const ownerToken = JSON.parse(ownerLogin.body).accessToken;
   const ownerH    = { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` };
 
-  // pool de comunidades PUBLIC
   const commIds = [];
   for (let i = 0; i < CONFIG.communityPoolSize; i++) {
     const res = http.post(
@@ -73,7 +63,6 @@ export function setup() {
   }
   if (commIds.length === 0) throw new Error('Nenhuma comunidade criada — verifique bookId.');
 
-  // usuários entram em todas as comunidades
   const users = [];
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
     const ts    = Date.now() + i;
@@ -104,7 +93,7 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '600s',  // ~230 users × 10 comunidades de join no setup
+  setupTimeout: '600s',
   scenarios: {
     listing: {
       executor: 'constant-vus',
@@ -136,7 +125,6 @@ export function listMessages(data) {
   const headers = { Authorization: `Bearer ${user.accessToken}` };
   const commId = randomItem(data.commIds);
 
-  // GET histórico sem cursor (mensagens recentes)
   const recentRes = http.get(
     `${CONFIG.base}/communities/${commId}/messages?limit=50`,
     { headers }
@@ -151,7 +139,6 @@ export function listMessages(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // GET com cursor `before` (mesmo que vazio, exercita o branch do método)
   const beforeRes = http.get(
     `${CONFIG.base}/communities/${commId}/messages?before=${Date.now()}&limit=20`,
     { headers }
@@ -166,7 +153,6 @@ export function syncMessages(data) {
   const headers = { Authorization: `Bearer ${user.accessToken}` };
   const commId = randomItem(data.commIds);
 
-  // sync com cursor de ~1 minuto atrás
   const after = Date.now() - 60_000;
   const res = http.get(
     `${CONFIG.base}/communities/${commId}/messages/sync?after=${after}`,

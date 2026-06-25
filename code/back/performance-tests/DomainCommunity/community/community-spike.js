@@ -8,8 +8,6 @@ const CONFIG = {
   userPoolSize:      50,
   communityPoolSize: 10,
 
-  // ID de um livro que existe no banco — necessário para criar comunidade
-  // Ajuste para um bookId válido no seu ambiente
   bookId: 1,
 
   spike: {
@@ -23,13 +21,13 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 2000,  // ms
-    failRate:   0.05,  // 5%
+    p95General: 2000,
+    failRate:   0.05,
   },
 
   sleep: {
-    betweenSteps:   0.3,  // s
-    afterIteration: 0.5,  // s
+    betweenSteps:   0.3,
+    afterIteration: 0.5,
   },
 };
 
@@ -37,11 +35,11 @@ export const options = {
   setupTimeout: '5m',
 
   stages: [
-    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },  // aquece na base
-    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },  // spike brusco
-    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },  // mantém pico
-    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },  // queda brusca
-    { duration: CONFIG.spike.cooldown,   target: 0                     },  // recuperação
+    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.cooldown,   target: 0                     },
   ],
 
   thresholds: {
@@ -53,7 +51,6 @@ export const options = {
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // ── 1. Owner cria o pool de comunidades ─────────────────────────────────────
   const ownerTs    = Date.now();
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
 
@@ -105,7 +102,6 @@ export function setup() {
     return { users: [], commIds: [] };
   }
 
-  // ── 2. Cria pool de usuários ─────────────────────────────────────────────────
   const users = [];
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
     const ts    = Date.now() + i;
@@ -138,21 +134,17 @@ export default function (data) {
   const user    = data.users[__VU % data.users.length];
   const headers = { Authorization: `Bearer ${user.accessToken}` };
 
-  // Listagem — operação de alta frequência no pico
   const listRes = http.get(`${CONFIG.base}/communities`, { headers });
   check(listRes, { 'GET /communities 200': (r) => r.status === 200 });
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // Detalhe de comunidade — varia o ID para evitar cache perfeito
   const commId = randomItem(data.commIds);
   const getRes = http.get(`${CONFIG.base}/communities/${commId}`, { headers });
   check(getRes, { 'GET /communities/{id} 200': (r) => r.status === 200 });
 
   sleep(CONFIG.sleep.afterIteration);
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
