@@ -6,7 +6,7 @@
 
 ---
 
-## 🛠️ Stack
+## Stack
 
 ### Backend
 ![Java](https://img.shields.io/badge/Java-25-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
@@ -39,7 +39,7 @@
 
 ---
 
-## 📑 Sumário
+## Sumário
 
 - [Sobre o projeto](#-sobre-o-projeto)
 - [Funcionalidades](#-funcionalidades)
@@ -47,6 +47,8 @@
 - [Arquitetura geral](#-arquitetura-geral)
 - [Ambientes em produção](#-ambientes-em-produção)
 - [Performance](#-performance)
+- [Índice de documentação](#-índice-de-documentação)
+- [Artefatos de projeto](#artefatos-de-projeto-assets)
 - [Estrutura do repositório](#-estrutura-do-repositório)
 - [Integrantes](#-integrantes)
 - [Orientadores](#-orientadores)
@@ -54,7 +56,7 @@
 
 ---
 
-## 📖 Sobre o projeto
+## Sobre o projeto
 
 O **Biblioo** é uma plataforma digital de comunidade literária desenvolvida para leitores ativos brasileiros. O projeto parte de um problema real — 53% dos brasileiros não leram um livro nos últimos três meses (Retratos da Leitura, 2024) — e propõe uma solução que reúne em um único ambiente tudo que um leitor precisa: organização de leitura, descoberta inteligente de novos títulos, interação social e identidade literária.
 
@@ -68,7 +70,7 @@ O assistente **Bibo**, alimentado pelo Google Gemini via Spring AI, vai além de
 
 ---
 
-## ✨ Funcionalidades
+## Funcionalidades
 
 | Área | O que o leitor pode fazer |
 |---|---|
@@ -86,23 +88,23 @@ O assistente **Bibo**, alimentado pelo Google Gemini via Spring AI, vai além de
 
 ---
 
-## 🤖 Sistema de Recomendação
+## Sistema de Recomendação
 
 O sistema de recomendação é o **diferencial central do Biblioo**. São seis trilhas algorítmicas totalmente independentes, cada uma cobrindo um ângulo diferente de descoberta de leitura. Nenhuma usa IA generativa: os resultados são gerados por algoritmos determinísticos e estatísticos, acionados por eventos de domínio via RabbitMQ e cacheados no Redis por usuário.
 
 | Trilha | Estratégia | Algoritmo |
 |---|---|---|
-| 🔗 **T1 — BecauseYouRead** | *"Quem leu o mesmo livro também leu estes..."* | Grafo Neo4j — co-leitura com mínimo de 2 leitores em comum; jitter ±3% para diversificação |
-| 🎯 **T2 — FavoriteGenreNow** | *"Você está numa fase de ficção científica..."* | Detecção dos 3 gêneros dominantes atuais do leitor; prioriza títulos com avaliações suficientes |
-| 📈 **T3 — TrendingInCommunities** | *"Este livro está em alta nas comunidades agora..."* | Score de engajamento com decay exponencial de 10%/hora; deduplica por janela de 24h |
-| 🎲 **T4 — CatalogSurprise** | *"Saia da zona de conforto..."* | Thompson Sampling — parâmetros Beta(α, β) por (usuário, livro) persistidos no Redis; aprende com cada interação |
-| 👥 **T5 — SimilarAuthors** | *"Leitores com gosto parecido adoraram estes..."* | Filtragem colaborativa em 2 níveis via Neo4j; leitores similares até 2 saltos no grafo |
-| 🔄 **T6 — RereadWorthIt** | *"Faz um tempo — pode ser o momento certo para reler..."* | Repetição espaçada: `intervalo = nota × 30 dias × 1,5^n_releituras`; mínimo 90 dias desde a última leitura |
-| 🎰 **Roll Dice** | *"Surpreenda-me"* | Seleção aleatória entre os resultados das 6 trilhas combinadas |
+|  **T1 — BecauseYouRead** | *"Quem leu o mesmo livro também leu estes..."* | Grafo Neo4j — co-leitura com mínimo de 2 leitores em comum; jitter ±3% para diversificação |
+|  **T2 — FavoriteGenreNow** | *"Você está numa fase de ficção científica..."* | Detecção dos 3 gêneros dominantes atuais do leitor; prioriza títulos com avaliações suficientes |
+|  **T3 — TrendingInCommunities** | *"Este livro está em alta nas comunidades agora..."* | Score de engajamento com decay exponencial de 10%/hora; deduplica por janela de 24h |
+|  **T4 — CatalogSurprise** | *"Saia da zona de conforto..."* | Thompson Sampling — parâmetros Beta(α, β) por (usuário, livro) persistidos no Redis; aprende com cada interação |
+|  **T5 — SimilarAuthors** | *"Leitores com gosto parecido adoraram estes..."* | Filtragem colaborativa em 2 níveis via Neo4j; leitores similares até 2 saltos no grafo |
+|  **T6 — RereadWorthIt** | *"Faz um tempo — pode ser o momento certo para reler..."* | Repetição espaçada: `intervalo = nota × 30 dias × 1,5^n_releituras`; mínimo 90 dias desde a última leitura |
+|  **Roll Dice** | *"Surpreenda-me"* | Seleção aleatória entre os resultados das 6 trilhas combinadas |
 
 ---
 
-## 🏛️ Arquitetura geral
+## Arquitetura geral
 
 A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura de **monólito modular**, com 11 domínios de negócio independentes que se comunicam exclusivamente via eventos RabbitMQ — sem chamadas diretas entre módulos.
 
@@ -126,7 +128,7 @@ A aplicação segue o estilo **Hexagonal (Ports & Adapters)** em uma arquitetura
 
 ---
 
-## 🌐 Ambientes em produção
+## Ambientes em produção
 
 O backend está implantado em dois ambientes independentes no **Google Cloud Run** (us-central1), com pipeline de CI/CD automatizado (~12 min do commit ao deploy).
 
@@ -173,7 +175,7 @@ O frontend web está implantado na **Vercel**, com integração direta ao reposi
 
 ---
 
-## 📊 Performance
+## Performance
 
 A suíte de testes de performance foi desenvolvida em **K6** com 72 testes cobrindo 8 domínios funcionais, cada um com três perfis obrigatórios: `load` (carga normal sustentada), `spike` (pico abrupto) e `stress` (degradação progressiva).
 
@@ -193,44 +195,83 @@ A suíte de testes de performance foi desenvolvida em **K6** com 72 testes cobri
 
 ---
 
-## 📁 Estrutura do repositório
+## Índice de documentação
+
+### Documentação arquitetural (`docs/`)
+
+| # | Documento | Conteúdo |
+|---|---|---|
+| 1 | [Apresentação](docs/1.apresentacao.md) | Problema, objetivos do trabalho, definições e abreviaturas |
+| 2 | [Nosso Produto](docs/2.nosso_produto.md) | Visão do produto, É/Não É · Faz/Não Faz, personas |
+| 3 | [Requisitos](docs/3.requisitos.md) | RF-01 a RF-40, RNF-01 a RNF-22, restrições e mecanismos arquiteturais |
+| 4 | [Modelagem](docs/4.modelagem.md) | Histórias de usuário, visão lógica, modelo de dados |
+| 5 | [Wireframes](docs/5.wireframe.md) | Wireframes web (Login, Feed, Estante, Coleção, Comunidades, Perfil, Recomendação) e mobile |
+| 6 | [Projeto da Solução](docs/6.solucao.md) | Decisões arquiteturais e projeto técnico da solução |
+| 7 | [Avaliação da Arquitetura](docs/7.avaliacao.md) | ATAM simplificado com 5 cenários e dados reais de testes K6 |
+| 8 | [ATAM Completo](docs/8.atam.md) | Avaliação ATAM detalhada: 6 cenários, 2 riscos, 5 não-riscos, 4 tradeoffs, 3 sensibilidades, 7 evidências de teste, plano de ação |
+
+### READMEs por subprojeto (`code/`)
+
+| Subprojeto | README | Conteúdo |
+|---|---|---|
+| Código (visão geral) | [code/README.md](code/README.md) | Índice rápido dos três subprojetos e instruções gerais |
+| Backend | [code/back/README.md](code/back/README.md) | Arquitetura hexagonal, estratégia de feed (fanout + threshold + backfill), regras de arquitetura, infraestrutura Docker, testes K6, endpoints completos |
+| Frontend Web | [code/front/README.md](code/front/README.md) | Páginas, componentes, hooks, serviços, WebSocket/STOMP, SSE |
+| App Mobile | [code/mobile/README.md](code/mobile/README.md) | Arquitetura BLoC, rotas, offline-first, screens |
+
+### Testes de performance (`code/back/performance-tests/`)
+
+| Documento | Conteúdo |
+|---|---|
+| [Relatório Geral](code/back/performance-tests/docs/RELATORIO-GERAL.md) | Visão consolidada dos 72 testes — todos os domínios, resultados e análise |
+| [Documento de Avaliação](code/back/performance-tests/docs/DOCUMENTO-AVALIACAO-PERFORMANCE.md) | Critérios de aprovação, thresholds e metodologia |
+| [DomainFeed — Relatório](code/back/performance-tests/DomainFeed/RELATORIO-DOMAINFEED.md) | Resultados detalhados: feed, post, comment, review |
+| [DomainFeed — Observações](code/back/performance-tests/DomainFeed/OBSERVACOES.md) | Análise técnica dos testes de feed |
+| [DomainUser — Relatório](code/back/performance-tests/DomainUser/RELATORIO-DOMAINUSER.md) | Resultados detalhados: user, social, social-requests |
+| [DomainUser — Observações](code/back/performance-tests/DomainUser/OBSERVACOES.md) | Análise técnica dos testes de usuário e grafo social |
+
+### Schemas e artefatos (`docs/schema/`)
+
+| Arquivo | Conteúdo |
+|---|---|
+| [`docs/schema/biblioo.dbml`](docs/schema/biblioo.dbml) | Modelo de banco de dados completo em DBML |
+| [`docs/schema/biblioo.components.puml`](docs/schema/biblioo.components.puml) | Diagrama de componentes PlantUML |
+
+### Artefatos de projeto (`assets/`)
+
+| Subpasta | README | Conteúdo |
+|---|---|---|
+| Raiz | [assets/README.md](assets/README.md) | Índice geral de todos os artefatos institucionais |
+| Gerência | [assets/gerencia/README.md](assets/gerencia/README.md) | TAP, EAP (visão hierárquica e em árvore), ata de kickoff |
+| Atas | [assets/atas/README.md](assets/atas/README.md) | Atas das sprints 2→3, 4→5 e 5→6 com resumo de decisões e responsáveis |
+| Propriedade intelectual | [assets/inpi/README.md](assets/inpi/README.md) | Documentos NIT/INPI: atas de acordo, procuração e termo de sigilo |
+| Avaliação heurística | [assets/Avaliacao_Heuristica.pdf](assets/Avaliacao_Heuristica.pdf) | Relatório de avaliação heurística da interface (Nielsen) |
+
+---
+
+## Estrutura do repositório
 
 ```
 biblioo/
 ├── code/
-│   ├── back/          # Backend — Spring Boot 4 · Java 25
-│   ├── front/         # Frontend — Next.js 16 · React 19
-│   └── mobile/        # App mobile — Flutter 3.11
-├── docs/              # Documentação arquitetural do projeto
-│   ├── 1.apresentacao.md
-│   ├── 2.nosso_produto.md
-│   ├── 3.requisitos.md      # RF-01 a RF-40 · RNF-01 a RNF-22
-│   ├── 4.modelagem.md
-│   ├── 5.wireframe.md
-│   ├── 6.solucao.md
-│   ├── 7.avaliacao.md       # ATAM com dados reais de performance
+│   ├── back/                    # Backend — Spring Boot 4 · Java 25
+│   │   └── performance-tests/   # Suíte K6: 72 testes · 8 domínios
+│   ├── front/                   # Frontend — Next.js 16 · React 19
+│   └── mobile/                  # App mobile — Flutter 3.11
+├── docs/                        # Documentação arquitetural
+│   ├── 1.apresentacao.md  –  8.atam.md
 │   ├── imagens/
-│   ├── schema/              # biblioo.dbml · biblioo.components.puml
-│   ├── wireframe/           # web/ · mobile/
+│   ├── schema/                  # biblioo.dbml · biblioo.components.puml
+│   ├── wireframe/               # web/ · mobile/
 │   └── weekly-report/
 ├── assets/
-│   └── atas/                # Atas de reunião (Sprint 2 → Sprint 5)
-└── divulge/                 # Materiais de divulgação e apresentações
+│   └── atas/                    # Atas de reunião (Sprint 2 → Sprint 5)
+└── divulge/                     # Materiais de divulgação e apresentações
 ```
-
-**READMEs detalhados por subprojeto:**
-
-| Subprojeto | README |
-|---|---|
-| Documentação | [`docs/README.md`](docs/README.md) — sumário da documentação arquitetural, requisitos, modelagem, ATAM |
-| Backend | [`code/back/README.md`](code/back/README.md) — arquitetura, endpoints, algoritmos, testes K6, deploy |
-| Frontend | [`code/front/README.md`](code/front/README.md) — páginas, componentes, hooks, serviços, WebSocket |
-| Mobile | [`code/mobile/README.md`](code/mobile/README.md) — features BLoC, rotas, offline-first, screens |
-| Código (visão geral) | [`code/README.md`](code/README.md) — índice rápido dos três subprojetos |
 
 ---
 
-## 👥 Integrantes
+## Integrantes
 
 | Nome | GitHub | E-mail institucional |
 |---|---|---|
@@ -243,7 +284,7 @@ biblioo/
 
 ---
 
-## 🎓 Orientadores
+## Orientadores
 
 | Nome |
 |---|
@@ -256,7 +297,7 @@ _Instituto de Informática e Ciências Exatas — Pontifícia Universidade Cató
 
 ---
 
-## 🚀 Como executar
+## Como executar
 
 ### Pré-requisitos
 

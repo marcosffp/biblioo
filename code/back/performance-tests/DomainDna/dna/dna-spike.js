@@ -164,7 +164,6 @@ export const options = {
   },
 };
 
-// Alterna entre os endpoints de leitura do DNA durante o pico de carga
 export default function (data) {
   const user = data.users[(__VU - 1) % data.users.length];
   if (!user) return;
@@ -172,7 +171,6 @@ export default function (data) {
 
   const authH = { Authorization: `Bearer ${accessToken}` };
 
-  // GET /dna — tolera IN_FORMATION/COMPUTING; 429 aceitável em pico com rate-limit ativo
   const dnaRes = http.get(`${CONFIG.base}/dna`, { headers: authH });
   check(dnaRes, {
     'get dna 200 ou 429': (r) => r.status === 200 || r.status === 429,

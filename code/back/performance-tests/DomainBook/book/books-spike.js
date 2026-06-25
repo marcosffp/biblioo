@@ -4,7 +4,7 @@ import { sleep, check } from 'k6';
 const CONFIG = {
   base: 'http://localhost:8080',
 
-  bookIds: Array.from({ length: 35 }, (_, i) => i + 1),  // IDs 1–35
+  bookIds: Array.from({ length: 35 }, (_, i) => i + 1),
 
   queries: [
     'Dom Casmurro',
@@ -26,22 +26,22 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 1000,  // ms
-    failRate:   0.05,  // 5%
+    p95General: 1000,
+    failRate:   0.05,
   },
 
   sleep: {
-    afterIteration: 0.5,  // s
+    afterIteration: 0.5,
   },
 };
 
 export const options = {
   stages: [
-    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },  // base normal
-    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },  // spike brusco
-    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },  // mantém carga alta
-    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },  // queda brusca
-    { duration: CONFIG.spike.cooldown,   target: 0                     },  // recuperação
+    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.cooldown,   target: 0                     },
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],

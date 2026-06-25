@@ -29,12 +29,6 @@ const CONFIG = {
   },
 };
 
-// Mesmo padrão do post-load.js:
-// - usa b64decode do k6 (atob não existe no runtime do k6)
-// - trata padding do base64url manualmente
-// - tenta extrair sub, userId, id ou user_id do payload
-// - loga warning se nenhum claim for encontrado
-// - envolve tudo em try/catch para não quebrar o setup
 function parseUserId(token) {
   try {
     const parts = token.split('.');
@@ -71,8 +65,6 @@ export function setup() {
   const headers = { 'Content-Type': 'application/json' };
 
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
-    // Mesmo padrão do post-load.js: uid aleatório evita colisão em execuções paralelas rápidas
-    // (Date.now() + i colide quando o loop é mais rápido que a resolução do clock)
     const uid   = `${__VU || 0}_${i}_${Math.floor(Math.random() * 1e9)}`;
     const email = `${CONFIG.prefix}_${uid}@test.com`;
 
@@ -90,7 +82,6 @@ export function setup() {
     );
     check(login, { 'login 200': (r) => r.status === 200 });
 
-    // Mesmo padrão do post-load.js: try/catch no parse + validação antes de adicionar
     let accessToken = null;
     let userId      = null;
 
@@ -135,7 +126,6 @@ export const options = {
 export default function (data) {
   const user = data.users[__VU % data.users.length];
 
-  // Mesmo padrão do post-load.js: guarda defensivo antes de usar os valores
   if (!user) {
     sleep(CONFIG.sleep.afterIteration);
     return;

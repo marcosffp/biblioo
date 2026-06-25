@@ -6,7 +6,7 @@
 
 ---
 
-## 📂 Estrutura
+## Estrutura
 
 ```
 code/
@@ -17,7 +17,7 @@ code/
 
 ---
 
-## 🗂️ Subprojetos
+## Subprojetos
 
 ### [back/](./back/README.md) — Backend
 
@@ -31,7 +31,7 @@ API REST em **Spring Boot 4 (Java 25)** seguindo arquitetura **Hexagonal (Ports 
 - **Importação Goodreads** via CSV (máx. 10 MB / 10 k linhas)
 - **Busca full-text** via OpenSearch + Google Books API
 - **Observabilidade** com Prometheus, Grafana e Micrometer
-- **Testes de carga** K6 com SLAs definidos por endpoint (load · spike · stress)
+- **Testes de performance** K6: 72 testes (load · spike · stress) em 8 domínios — 100% aprovados, 0 falhas sistêmicas
 - **Deploy** em Google Cloud Run com pipeline Cloud Build + GitHub Actions
 
 **Stack:** Java 25 · Spring Boot 4 · MySQL · Neo4j · Redis · OpenSearch · RabbitMQ · Docker Compose
@@ -53,7 +53,7 @@ SPA em **Next.js 16 (App Router)** com **React 19** e TypeScript. Inclui:
 
 **Stack:** Next.js 16 · React 19 · TypeScript · Tailwind CSS · Radix UI · Framer Motion · Vitest
 
-🔗 **URL de produção:** [biblioo-rust.vercel.app](https://biblioo-rust.vercel.app)
+ **URL de produção:** [biblioo-rust.vercel.app](https://biblioo-rust.vercel.app)
 
 ---
 
@@ -73,7 +73,7 @@ App **Flutter 3.11+** offline-first para Android e iOS. Inclui:
 
 ---
 
-## ⚡ Quick start
+## Quick start
 
 ### Backend
 
@@ -105,7 +105,7 @@ flutter run
 
 ---
 
-## 🔗 Documentação detalhada
+## Documentação detalhada
 
 | Produto | README |
 |---|---|

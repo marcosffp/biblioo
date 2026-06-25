@@ -1,6 +1,3 @@
-// Spike sobre CommentInteractionController — like + create/delete reply.
-// Setup idêntico ao load: cada usuário tem 1 comentário pai pré-criado.
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
@@ -126,13 +123,11 @@ export default function (data) {
   const { accessToken, commentId } = user;
   const authH = { Authorization: `Bearer ${accessToken}` };
 
-  // LIKE toggle
   const like = http.post(`${CONFIG.base}/feed/comments/${commentId}/like`, null, { headers: authH });
   check(like, { 'like 200 ou 429': (r) => r.status === 200 || r.status === 429 });
 
   sleep(CONFIG.sleep.betweenOps);
 
-  // CREATE + DELETE reply
   const replyText = encodeURIComponent(`Spike reply VU${__VU} iter${__ITER}`);
   const reply = http.post(
     `${CONFIG.base}/feed/comments/${commentId}/replies?text=${replyText}`,

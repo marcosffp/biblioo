@@ -10,12 +10,12 @@ const CONFIG = {
 
   stress: {
     stageDuration: '30s',
-    stages: [10, 20, 50, 100, 150, 200, 500],  // VUs por estágio (rampa crescente)
+    stages: [10, 20, 50, 100, 150, 200, 500],
   },
 
   thresholds: {
     p95General: 5000,
-    failRate:   0.30,  // conflitos de estado são esperados em stress de invites
+    failRate:   0.30,
   },
 
   sleep: {
@@ -106,7 +106,6 @@ export function setup() {
   return { ownerToken, communityId, invitees };
 }
 
-// Fluxo completo: owner convida → invitee lista pendentes → invitee declina
 export default function (data) {
   if (!data.invitees || data.invitees.length === 0) return;
 
@@ -118,7 +117,6 @@ export default function (data) {
   const invitee        = randomItem(data.invitees);
   const inviteeHeaders = { Authorization: `Bearer ${invitee.accessToken}` };
 
-  // 1. Owner convida
   const inviteRes = http.post(
     `${CONFIG.base}/communities/${data.communityId}/invites`,
     JSON.stringify({ inviteeId: invitee.userId }),
@@ -130,7 +128,6 @@ export default function (data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // 2. Invitee lista pendentes e declina o primeiro
   const pendingRes = http.get(
     `${CONFIG.base}/communities/invites/pending?page=0&size=10`,
     { headers: inviteeHeaders }

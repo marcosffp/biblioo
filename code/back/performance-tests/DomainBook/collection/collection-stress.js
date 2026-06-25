@@ -9,17 +9,17 @@ const CONFIG = {
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300, 400, 600],  // VUs por estágio (rampa crescente)
+    stages:        [20, 50, 100, 200, 300, 400, 600],
   },
 
   thresholds: {
-    p95General: 2500,  // ms
-    failRate:   0.05,  // 5% — stress tolera mais erros
+    p95General: 2500,
+    failRate:   0.05,
   },
 
   sleep: {
-    betweenSteps:   0.2,  // s
-    afterIteration: 0.5,  // s
+    betweenSteps:   0.2,
+    afterIteration: 0.5,
   },
 };
 
@@ -46,7 +46,6 @@ export function setup() {
     const { accessToken } = JSON.parse(login.body);
     const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-    // Cria uma estante própria para usar nos testes de add/remove shelf
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `Estante setup ${ts}`, description: 'Criada pelo setup do stress test' }),
@@ -63,7 +62,7 @@ export function setup() {
 export const options = {
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
-    { duration: CONFIG.stress.stageDuration, target: 0 },  // rampa de descida
+    { duration: CONFIG.stress.stageDuration, target: 0 },
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],
@@ -78,7 +77,6 @@ export default function (data) {
     Authorization: `Bearer ${user.accessToken}`,
   };
 
-  // LIST
   const listRes = http.get(`${CONFIG.base}/collections`, { headers });
   check(listRes, {
     'list 200': (r) => r.status === 200,
@@ -90,7 +88,6 @@ export default function (data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // CREATE
   const createRes = http.post(
     `${CONFIG.base}/collections`,
     JSON.stringify({
@@ -106,13 +103,11 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // GET (detalhe)
     const getRes = http.get(`${CONFIG.base}/collections/${collectionId}`, { headers });
     check(getRes, { 'get 200': (r) => r.status === 200 });
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // ADD SHELF (estante criada no setup, pertence ao mesmo usuário)
     const addShelfRes = http.patch(
       `${CONFIG.base}/collections/${collectionId}/shelves`,
       JSON.stringify({ shelfId: user.shelfId }),
@@ -122,7 +117,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // REMOVE SHELF
     const removeShelfRes = http.del(
       `${CONFIG.base}/collections/${collectionId}/shelves/${user.shelfId}`,
       null,
@@ -132,7 +126,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // UPDATE
     const updateRes = http.put(
       `${CONFIG.base}/collections/${collectionId}`,
       JSON.stringify({
@@ -145,7 +138,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenSteps);
 
-    // DELETE
     const delRes = http.del(`${CONFIG.base}/collections/${collectionId}`, null, { headers });
     check(delRes, { 'delete 204': (r) => r.status === 204 });
   }

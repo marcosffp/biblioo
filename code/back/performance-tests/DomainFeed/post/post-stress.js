@@ -24,8 +24,6 @@ const CONFIG = {
   },
 };
 
-// b64decode do k6 em vez de atob (não existe no runtime do k6)
-// padding manual do base64url + fallback para múltiplos claims
 function parseUserId(token) {
   try {
     const parts = token.split('.');
@@ -62,7 +60,6 @@ export function setup() {
   const headers = { 'Content-Type': 'application/json' };
 
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
-    // uid aleatório evita colisão em loops rápidos (Date.now()+i não é suficiente)
     const uid   = `${__VU || 0}_${i}_${Math.floor(Math.random() * 1e9)}`;
     const email = `${CONFIG.prefix}_${uid}@test.com`;
 

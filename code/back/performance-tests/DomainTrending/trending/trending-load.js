@@ -12,7 +12,6 @@ const CONFIG = {
   password:   'Senha@12345',
   prefix:     'trendload',
   poolSize:   230,
-  // IDs de livros existentes no banco para criar estantes e reviews
   bookIds:    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   communityBookIds: [1, 2, 3, 4, 5],
 
@@ -27,7 +26,6 @@ const CONFIG = {
   },
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function parseUserId(token) {
   const p = token.split('.')[1];
@@ -50,12 +48,10 @@ function logWarn(msg, x = {}) {
   console.warn(JSON.stringify({ level: 'WARN', msg, vu, iter, ...x }));
 }
 
-// ── Setup ─────────────────────────────────────────────────────────────────────
 
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // 1. Owner cria comunidades para gerar sinal de tendência
   const ownerTs = Date.now();
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
 
@@ -92,7 +88,6 @@ export function setup() {
     if (comm.status === 201) communityIds.push(comm.json('id'));
   }
 
-  // 2. Pool de usuários — cada um entra nas comunidades e cria estante + review
   const users = [];
   for (let i = 0; i < CONFIG.poolSize; i++) {
     const email = `${CONFIG.prefix}_${i}_${Math.floor(Math.random() * 1e9)}@test.com`;
@@ -118,12 +113,10 @@ export function setup() {
     const authJson = { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` } };
     const authBearer = { headers: { Authorization: `Bearer ${accessToken}` } };
 
-    // Entra em todas as comunidades (gera sinal de new_members)
     for (const commId of communityIds) {
       http.post(`${CONFIG.baseUrl}/communities/${commId}/join`, null, authBearer);
     }
 
-    // Cria estante + adiciona livros (gera sinal de shelf_additions)
     const shelf = http.post(`${CONFIG.baseUrl}/shelves`, JSON.stringify({ name: `Lidos ${i}` }), authJson);
     if (shelf.status !== 201) continue;
     const shelfId = shelf.json('id');
@@ -136,7 +129,6 @@ export function setup() {
     );
     if (item.status !== 201) continue;
 
-    // Cria review (gera sinal de new_reviews)
     const rvBody = multipart({ bookId, rating: (i % 5) + 1, text: `Avaliação de teste trending ${i}` });
     http.post(
       `${CONFIG.baseUrl}/feed/reviews`,
@@ -150,7 +142,6 @@ export function setup() {
   if (users.length < CONFIG.poolSize * 0.5)
     throw new Error(`Setup insuficiente: apenas ${users.length}/${CONFIG.poolSize} usuários criados`);
 
-  // 3. Pre-warm: aciona cálculo de trending para que VUs usem cache
   if (users.length > 0) {
     const warmHeaders = { headers: { Authorization: `Bearer ${users[0].accessToken}` } };
     http.get(`${CONFIG.baseUrl}/trending/communities`, warmHeaders);
@@ -160,7 +151,6 @@ export function setup() {
   return { users };
 }
 
-// ── Options ───────────────────────────────────────────────────────────────────
 
 export const options = {
   setupTimeout: '5m',
@@ -182,13 +172,11 @@ export const options = {
   },
 };
 
-// ── VU function ───────────────────────────────────────────────────────────────
 
 export default function (data) {
   const user = randomItem(data.users);
   const authHeaders = { headers: { Authorization: `Bearer ${user.accessToken}` } };
 
-  // GET /trending/communities
   const commRes = http.get(
     `${CONFIG.baseUrl}/trending/communities`,
     { ...authHeaders, tags: { name: 'GET_trending_communities' } }
@@ -200,7 +188,6 @@ export default function (data) {
   trendCommunitiesLatency.add(commRes.timings.duration);
   errorRate.add(!commOk);
 
-  // GET /trending/books
   const booksRes = http.get(
     `${CONFIG.baseUrl}/trending/books`,
     { ...authHeaders, tags: { name: 'GET_trending_books' } }

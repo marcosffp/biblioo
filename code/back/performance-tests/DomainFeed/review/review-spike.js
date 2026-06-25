@@ -31,10 +31,6 @@ const CONFIG = {
   },
 };
 
-// ── Helpers de log estruturado ──────────────────────────────────────────────
-// Centraliza todos os logs com vu/iter para facilitar debug em carga.
-// Guards: __VU/__ITER não existem no contexto de setup() do k6 — acessá-los
-// direto dispara ReferenceError e derruba o setup quando um request falha lá dentro.
 const SAFE_VU   = () => (typeof __VU   !== 'undefined' ? __VU   : 0);
 const SAFE_ITER = () => (typeof __ITER !== 'undefined' ? __ITER : -1);
 
@@ -46,9 +42,6 @@ function logError(context, extra = {}) {
   console.error(JSON.stringify({ vu: SAFE_VU(), iter: SAFE_ITER(), ...context, ...extra }));
 }
 
-// ── parseUserId ─────────────────────────────────────────────────────────────
-// FIX #1: usa b64decode do k6/encoding (atob não é garantido no k6).
-// FIX #2: cobre múltiplos campos de claim, igual ao script de load.
 function parseUserId(token) {
   try {
     const parts = token.split('.');
@@ -70,8 +63,7 @@ function parseUserId(token) {
   }
 }
 
-// ── multipart ────────────────────────────────────────────────────────────────
-// Compatível com @RequestParam no Spring (consumes=MULTIPART_FORM_DATA_VALUE).
+
 function multipart(fields) {
   const boundary = 'K6FormBoundary';
   let body = '';
@@ -82,25 +74,20 @@ function multipart(fields) {
   return { body, contentType: `multipart/form-data; boundary=${boundary}` };
 }
 
-// ── Rotação de bookId ────────────────────────────────────────────────────────
-// Distribui uniformemente entre minBookId..maxBookId por VU+iteração,
-// evitando que o mesmo userId+bookId se repita (anti-duplicata de review).
+
 function currentBookId() {
   const totalBooks = CONFIG.maxBookId - CONFIG.minBookId + 1;
   return CONFIG.minBookId + ((__VU * 37 + __ITER) % totalBooks);
 }
 
-// ── setup ────────────────────────────────────────────────────────────────────
 export function setup() {
   const users   = [];
   const headers = { 'Content-Type': 'application/json' };
 
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
-    // FIX #3: timestamp + índice garante unicidade mesmo em execuções rápidas.
     const ts    = Date.now() + i;
     const email = `${CONFIG.prefix}_${ts}@test.com`;
 
-    // 1. Registrar
     const reg = http.post(
       `${CONFIG.base}/auth/register`,
       JSON.stringify({ username: `${CONFIG.prefix}_${ts}`, email, password: CONFIG.password }),
@@ -112,7 +99,6 @@ export function setup() {
       continue;
     }
 
-    // 2. Login
     const login = http.post(
       `${CONFIG.base}/auth/login`,
       JSON.stringify({ email, password: CONFIG.password }),
@@ -135,7 +121,6 @@ export function setup() {
       continue;
     }
 
-    // FIX #4: não empurra usuário inválido para o pool.
     if (!accessToken || !userId) {
       logWarn({ step: 'setup', userIndex: i, msg: 'accessToken ou userId ausente', userId });
       continue;
@@ -143,7 +128,6 @@ export function setup() {
 
     const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-    // 3. Criar estante
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `Estante ${ts}`, description: 'spike test' }),
@@ -163,9 +147,6 @@ export function setup() {
       continue;
     }
 
-    // 4. Adicionar todos os livros do range à estante com COMPLETED.
-    // Necessário para que qualquer bookId da rotação passe na validação
-    // de ReviewService.createReview (livro deve estar na estante do usuário).
     let allBooksAdded = true;
     for (let b = CONFIG.minBookId; b <= CONFIG.maxBookId; b++) {
       const itemRes = http.post(
@@ -186,7 +167,6 @@ export function setup() {
     users.push({ accessToken, userId });
   }
 
-  // FIX #5: aborta o teste se nenhum usuário for criado, igual ao script de load.
   if (users.length === 0) {
     throw new Error('Nenhum usuário criado com sucesso. Abortando o teste de spike.');
   }
@@ -195,7 +175,6 @@ export function setup() {
   return { users };
 }
 
-// ── options ──────────────────────────────────────────────────────────────────
 export const options = {
   setupTimeout: '1200s',
   stages: [
@@ -211,23 +190,18 @@ export const options = {
   },
 };
 
-// ── default (cenário de spike) ───────────────────────────────────────────────
 export default function (data) {
-  // FIX #6 (distribuição de usuários): __VU começa em 1; sem o -1 o índice 0
-  // nunca é acessado corretamente e a distribuição fica enviesada.
   const user = data.users[(__VU - 1) % data.users.length];
   if (!user) return;
   const { accessToken, userId } = user;
 
   const bookId = currentBookId();
 
-  // ── LIST ────────────────────────────────────────────────────────────────
   const listRes = http.get(
     `${CONFIG.base}/feed/reviews/user/${userId}`,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
-  // FIX #7 (validação mais profunda): verifica status
   check(listRes, {
     'list 200': (r) => r.status === 200,
   });
@@ -238,20 +212,16 @@ export default function (data) {
 
   sleep(CONFIG.sleep.betweenOps);
 
-  // ── CREATE ──────────────────────────────────────────────────────────────
-  // ReviewController: POST /feed/reviews — @RequestParam (sem multipart)
   const createRes = http.post(
     `${CONFIG.base}/feed/reviews?bookId=${bookId}&rating=3&text=${encodeURIComponent(`Spike review VU${__VU} iter${__ITER}`)}`,
     null,
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
-  // 429 é esperado e aceitável em spike: o servidor pode ter rate-limit ativo.
-  // FIX #8 (validação mais profunda): em 201 também valida o id retornado.
   check(createRes, {
     'create 201 ou 429': (r) => r.status === 201 || r.status === 429,
     'create 201 retorna id': (r) => {
-      if (r.status !== 201) return true; // só valida se criou
+      if (r.status !== 201) return true;
       try { return JSON.parse(r.body).id != null; }
       catch { return false; }
     },
@@ -266,7 +236,6 @@ export default function (data) {
     });
   }
 
-  // ── DELETE ──────────────────────────────────────────────────────────────
   if (createRes.status === 201) {
     let reviewId = null;
     try {
@@ -282,7 +251,6 @@ export default function (data) {
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
 
-      // FIX #9: delete agora tem check e log — antes era silencioso.
       check(deleteRes, { 'delete 204': (r) => r.status === 204 });
       if (deleteRes.status !== 204) {
         logWarn({ step: 'delete', reviewId, status: deleteRes.status, body: deleteRes.body });

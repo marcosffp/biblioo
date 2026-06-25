@@ -21,7 +21,6 @@ const CONFIG = {
   },
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function multipart(fields, boundary = 'Boundary123') {
   let body = '';
@@ -37,7 +36,6 @@ function logWarn(msg, x = {}) {
   console.warn(JSON.stringify({ level: 'WARN', msg, vu, iter, ...x }));
 }
 
-// ── Setup ─────────────────────────────────────────────────────────────────────
 
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
@@ -125,7 +123,6 @@ export function setup() {
   if (users.length < CONFIG.poolSize * 0.5)
     throw new Error(`Setup insuficiente: ${users.length}/${CONFIG.poolSize}`);
 
-  // Pre-warm
   if (users.length > 0) {
     const warmHeaders = { headers: { Authorization: `Bearer ${users[0].accessToken}` } };
     http.get(`${CONFIG.baseUrl}/trending/communities`, warmHeaders);
@@ -135,7 +132,6 @@ export function setup() {
   return { users };
 }
 
-// ── Options ───────────────────────────────────────────────────────────────────
 
 export const options = {
   setupTimeout: '5m',
@@ -161,7 +157,6 @@ export const options = {
   },
 };
 
-// ── VU function ───────────────────────────────────────────────────────────────
 
 export default function (data) {
   const user = randomItem(data.users);

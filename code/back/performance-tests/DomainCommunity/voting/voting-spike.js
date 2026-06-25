@@ -11,7 +11,7 @@ const CONFIG = {
 
   spike: {
     duration: '1m',
-    target:   500, // Pico
+    target:   500,
   },
 
   thresholds: {
@@ -29,10 +29,10 @@ export const options = {
   setupTimeout: '10m',
   stages: [
     { duration: '10s', target: 70 },
-    { duration: '5s',  target: CONFIG.spike.target }, // pico abrupto
-    { duration: '20s', target: CONFIG.spike.target }, // mantem
-    { duration: '5s',  target: 70 }, // desce ao base
-    { duration: '10s', target: 0 },  // cooldown
+    { duration: '5s',  target: CONFIG.spike.target },
+    { duration: '20s', target: CONFIG.spike.target },
+    { duration: '5s',  target: 70 },
+    { duration: '10s', target: 0 },
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],
@@ -43,10 +43,6 @@ export const options = {
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // 1. Owner cria pool de comunidades
-  // Math.floor(Date.now() / 1000) gera timestamp em segundos (10 dígitos).
-  // Necessário porque `spikevoting_owner_` (18 chars) + 13 dígitos ms = 31 chars,
-  // ultrapassando o limite de 30 do campo username e derrubando todo o setup.
   const ownerTs    = Math.floor(Date.now() / 1000);
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
 
@@ -66,7 +62,6 @@ export function setup() {
     if (res.status === 201) commIds.push(JSON.parse(res.body).id);
   }
 
-  // 2. Votações base
   const publishedVotings = [];
   for (const commId of commIds) {
     const ts = Date.now();
@@ -84,7 +79,6 @@ export function setup() {
     }
   }
 
-  // 3. Usuários e Joins
   const users = [];
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
     const ts = Date.now() + i;
@@ -105,9 +99,6 @@ export default function (data) {
     return;
   }
 
-  // Seleção determinística por __VU: cada VU sempre usa o mesmo usuário e a mesma
-  // opção. Com lock pessimista no servidor, VUs que compartilham usuário serializam
-  // corretamente (voto / desvoto alternados) e ambos retornam 200.
   const userIdx = (__VU - 1) % data.users.length;
   const user    = data.users[userIdx];
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${user.accessToken}` };

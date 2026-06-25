@@ -1,7 +1,3 @@
-// Cobre CommentInteractionController: like/unlike, replies (criar/listar/deletar).
-// Setup: cria estante → adiciona livro → cria review → cria 1 comentário pai
-// por usuário (esse é o commentId que os cenários vão exercitar).
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
@@ -10,7 +6,7 @@ const CONFIG = {
   userPoolSize: 230,
   password:     'Senha@12345',
   prefix:       'loadcint',
-  bookId:       1,  // seed: livro id=1 deve existir no banco local
+  bookId:       1,
 
   load: {
     crudVus:    150,
@@ -67,7 +63,6 @@ export function setup() {
     const accessToken = JSON.parse(login.body).accessToken;
     const authH = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-    // 1) estante
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `CInt Shelf ${uid}`, description: '' }),
@@ -76,7 +71,6 @@ export function setup() {
     if (shelfRes.status !== 201) continue;
     const shelfId = JSON.parse(shelfRes.body).id;
 
-    // 2) livro na estante (status COMPLETED)
     const itemRes = http.post(
       `${CONFIG.base}/shelves/${shelfId}/items`,
       JSON.stringify({ bookId: CONFIG.bookId, initialStatus: 'COMPLETED' }),
@@ -84,7 +78,6 @@ export function setup() {
     );
     if (itemRes.status !== 201) continue;
 
-    // 3) review (multipart)
     const reviewMp = multipart({
       bookId:  String(CONFIG.bookId),
       rating:  '4',
@@ -99,7 +92,6 @@ export function setup() {
     if (reviewRes.status !== 201) continue;
     const reviewId = JSON.parse(reviewRes.body).id;
 
-    // 4) comentário pai (multipart) — é o alvo dos cenários
     const commentMp = multipart({ text: `Comentário pai ${uid}` });
     const commentRes = http.post(
       `${CONFIG.base}/feed/reviews/${reviewId}/comments`,
@@ -148,12 +140,10 @@ export function crudInteractions(data) {
   const { accessToken, commentId } = user;
   const authH = { Authorization: `Bearer ${accessToken}` };
 
-  // LIKE (toggle on)
   const likeOn = http.post(`${CONFIG.base}/feed/comments/${commentId}/like`, null, { headers: authH });
   check(likeOn, { 'like on 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // CREATE REPLY (query string — endpoint usa @RequestParam sem consumes=)
   const replyText = encodeURIComponent(`Reply VU${__VU} iter${__ITER}`);
   const createReply = http.post(
     `${CONFIG.base}/feed/comments/${commentId}/replies?text=${replyText}`,
@@ -172,14 +162,12 @@ export function crudInteractions(data) {
     const replyId = JSON.parse(createReply.body).id;
     sleep(CONFIG.sleep.betweenSteps);
 
-    // DELETE da reply criada — evita acúmulo no banco
     const delRes = http.del(`${CONFIG.base}/feed/comments/${replyId}`, null, { headers: authH });
     check(delRes, { 'delete reply 204': (r) => r.status === 204 });
   }
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // LIKE (toggle off)
   const likeOff = http.post(`${CONFIG.base}/feed/comments/${commentId}/like`, null, { headers: authH });
   check(likeOff, { 'like off 200': (r) => r.status === 200 });
 

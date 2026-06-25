@@ -7,7 +7,6 @@ const CONFIG = {
   prefix:          'invcomm',
   inviteePoolSize: 230,
 
-  // ID de um livro que existe no banco
   bookId: 1,
 
   load: {
@@ -17,10 +16,10 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 1500,  // ms
-    p95Invite: 2000,   // ms — write
-    p95List:    1500,   // ms — read paginado
-    failRate:   0.05,  // 5% — esperam-se conflitos de "já convidado"
+    p95General: 1500,
+    p95Invite: 2000,
+    p95List:    1500,
+    failRate:   0.05,
   },
 
   sleep: {
@@ -28,10 +27,6 @@ const CONFIG = {
     afterIteration: 0.5,
   },
 };
-
-// ── Setup ─────────────────────────────────────────────────────────────────────
-// 1. Cria owner + 1 comunidade PRIVATE (invites só fazem sentido em PRIVATE).
-// 2. Cria 100 invitees, captura userId e token de cada um.
 
 export const options = {
   setupTimeout: '5m',
@@ -62,7 +57,6 @@ export const options = {
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
-  // ── 1. Owner ────────────────────────────────────────────────────────────────
   const ownerTs    = Date.now();
   const ownerEmail = `${CONFIG.prefix}_owner_${ownerTs}@test.com`;
 
@@ -90,7 +84,6 @@ export function setup() {
     Authorization:  `Bearer ${ownerToken}`,
   };
 
-  // ── 2. Comunidade privada ───────────────────────────────────────────────────
   const commRes = http.post(
     `${CONFIG.base}/communities`,
     JSON.stringify({
@@ -110,7 +103,6 @@ export function setup() {
 
   const communityId = JSON.parse(commRes.body).id;
 
-  // ── 3. Invitees ─────────────────────────────────────────────────────────────
   const invitees = [];
   for (let i = 0; i < CONFIG.inviteePoolSize; i++) {
     const ts    = Date.now() + i;
@@ -140,13 +132,6 @@ export function setup() {
   return { ownerToken, communityId, invitees };
 }
 
-// ── Cenário 1: owner manda convite + invitee declina ─────────────────────────
-// Cada VU age como o owner. O fluxo completo:
-//   1. POST /communities/{id}/invites (owner)
-//   2. GET /communities/invites/pending (invitee) — pega o inviteId
-//   3. POST /communities/invites/{inviteId}/decline (invitee)
-// Decline em vez de accept: mantém o invitee elegível para novos convites.
-
 export function inviteFlow(data) {
   if (!data.invitees || data.invitees.length === 0) return;
 
@@ -155,13 +140,9 @@ export function inviteFlow(data) {
     Authorization:  `Bearer ${data.ownerToken}`,
   };
 
-  // Cada VU opera sobre um invitee EXCLUSIVO (partição por __VU), evitando que
-  // múltiplos VUs disputem o mesmo convite no decline (auto-colisão artificial).
-  // Pré-condição: inviteePoolSize >= inviteVus (230 >= 150) para haver 1 invitee por VU.
   const invitee        = data.invitees[(__VU - 1) % data.invitees.length];
   const inviteeHeaders = { Authorization: `Bearer ${invitee.accessToken}` };
 
-  // 1. Owner convida — 201 esperado, 4xx aceito (pode já ter convite pendente)
   const inviteRes = http.post(
     `${CONFIG.base}/communities/${data.communityId}/invites`,
     JSON.stringify({ inviteeId: invitee.userId }),
@@ -173,14 +154,12 @@ export function inviteFlow(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // 2. Invitee lista os próprios convites pendentes
   const pendingRes = http.get(
     `${CONFIG.base}/communities/invites/pending?page=0&size=10`,
     { headers: inviteeHeaders }
   );
   check(pendingRes, { 'GET /invites/pending 200': (r) => r.status === 200 });
 
-  // 3. Se houver convite pendente, declina o primeiro
   if (pendingRes.status === 200) {
     try {
       const page = JSON.parse(pendingRes.body);
@@ -195,14 +174,12 @@ export function inviteFlow(data) {
         );
         check(declineRes, { 'decline 204': (r) => r.status === 204 });
       }
-    } catch (_) { /* corpo inesperado */ }
+    } catch (_) {}
   }
 
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// ── Cenário 2: leitura pura de convites pendentes ────────────────────────────
-// Pressiona apenas GET /communities/invites/pending isoladamente.
 
 export function listPending(data) {
   if (!data.invitees || data.invitees.length === 0) return;
@@ -219,7 +196,6 @@ export function listPending(data) {
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];

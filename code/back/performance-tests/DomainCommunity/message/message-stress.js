@@ -3,7 +3,6 @@ import ws   from 'k6/ws';
 import { sleep, check } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
-// ── Métricas customizadas ────────────────────────────────────────────────────
 const stompConnectErrors  = new Counter('stomp_connect_errors');
 const stompMessagesSent   = new Counter('stomp_messages_sent');
 const stompMessagesRecv   = new Counter('stomp_messages_received');
@@ -12,7 +11,6 @@ const wsConnectDuration   = new Trend('ws_connect_duration_ms', true);
 const msgDeliveryLatency  = new Trend('msg_delivery_latency_ms', true);
 const msgDeliverySuccess  = new Rate('msg_delivery_success_rate');
 
-// ── Configuração central ─────────────────────────────────────────────────────
 const CONFIG = {
   baseHttp: 'http://localhost:8080',
   baseWs:   'ws://localhost:8080',
@@ -20,14 +18,14 @@ const CONFIG = {
   password: 'Senha@12345',
   prefix:   'msgstress',
 
-  userPoolSize:      150,   // compartilhado entre VUs — aceitável para stress
-  communityPoolSize: 10,   // mais comunidades distribuem o broadcast
+  userPoolSize:      150,
+  communityPoolSize: 10,
 
   bookId: 1,
 
   stress: {
     stageDuration: '30s',
-    stages: [20, 50, 100, 150, 200, 250],  // VUs por stage; último stage → 0
+    stages: [20, 50, 100, 150, 200, 250],
   },
 
   stomp: {
@@ -37,13 +35,11 @@ const CONFIG = {
   },
 
   thresholds: {
-    // Thresholds estritos: o objetivo do stress é encontrar onde degradam
     p95DeliveryMs: 3000,
     failRate:      0.02,
   },
 };
 
-// ── Opções k6 ────────────────────────────────────────────────────────────────
 export const options = {
   setupTimeout: '5m',
 
@@ -63,7 +59,6 @@ export const options = {
   },
 };
 
-// ── Setup ────────────────────────────────────────────────────────────────────
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
@@ -150,20 +145,6 @@ export function setup() {
 
   return { users, commIds };
 }
-
-// ── Cenário: envio de mensagens via WS/STOMP sob stress progressivo ──────────
-//
-// Objetivo: encontrar o ponto de degradação do sistema à medida que conexões
-// WebSocket aumentam progressivamente de 20 para 250 VUs.
-//
-// Cada stage de 30s aumenta a carga. Os thresholds são estritos — espera-se
-// que alguns stages os violem. O ponto de violação é a informação valiosa.
-//
-// Métricas a observar por stage:
-//   - msg_delivery_latency_ms: em que stage p(95) > 3s?
-//   - msg_delivery_success_rate: em que stage o broker começa a perder mensagens?
-//   - stomp_connect_errors: em que stage conexões começam a falhar?
-//   - ws_connect_duration_ms: o handshake degrada junto com a carga?
 
 export default function (data) {
   if (!data.users.length || !data.commIds.length) return;
@@ -295,8 +276,6 @@ export default function (data) {
 
   check(response, { 'WS connect 101': (r) => r && r.status === 101 });
 }
-
-// ── Helpers STOMP ────────────────────────────────────────────────────────────
 
 function stompFrame(command, headers = {}, body = '') {
   let frame = command + '\n';

@@ -18,13 +18,13 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 2000,  // ms
-    failRate:   0.05,  // 5%
+    p95General: 2000,
+    failRate:   0.05,
   },
 
   sleep: {
-    betweenSteps:   0.3,  // s
-    afterIteration: 0.5,  // s
+    betweenSteps:   0.3,
+    afterIteration: 0.5,
   },
 };
 
@@ -32,11 +32,11 @@ export const options = {
   setupTimeout: '3m',
 
   stages: [
-    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },  // aquece na carga base
-    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },  // spike brusco
-    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },  // mantém pico
-    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },  // queda brusca
-    { duration: CONFIG.spike.cooldown,   target: 0                     },  // recuperação
+    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.cooldown,   target: 0                     },
   ],
 
   thresholds: {
@@ -81,21 +81,17 @@ export default function (data) {
   const user    = data.users[__VU % data.users.length];
   const headers = { Authorization: `Bearer ${user.accessToken}` };
 
-  // Perfil próprio — hit de cache mais provável durante o pico
   const meRes = http.get(`${CONFIG.base}/users/me`, { headers });
   check(meRes, { 'GET /me 200': (r) => r.status === 200 });
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // Perfil alheio — varia o alvo para pressionar o banco/cache durante o spike
   const target     = randomItem(data.users);
   const profileRes = http.get(`${CONFIG.base}/users/${target.username}`, { headers });
   check(profileRes, { 'GET /{username} 200': (r) => r.status === 200 });
 
   sleep(CONFIG.sleep.afterIteration);
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];

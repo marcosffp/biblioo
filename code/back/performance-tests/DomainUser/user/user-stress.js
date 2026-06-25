@@ -9,17 +9,17 @@ const CONFIG = {
 
   stress: {
     stageDuration: '30s',
-    stages: [20, 50, 100, 200, 300, 400, 600],  // VUs por estágio (rampa crescente)
+    stages: [20, 50, 100, 200, 300, 400, 600],
   },
 
   thresholds: {
-    p95General: 5000,  // ms — limite relaxado para encontrar o ponto de quebra
-    failRate:   0.10,  // 10%
+    p95General: 5000,
+    failRate:   0.10,
   },
 
   sleep: {
-    betweenSteps:   0.05,  // s
-    afterIteration: 0.1,   // s
+    betweenSteps:   0.05,
+    afterIteration: 0.1,
   },
 };
 
@@ -28,7 +28,7 @@ export const options = {
 
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
-    { duration: CONFIG.stress.stageDuration, target: 0 },  // rampa de descida
+    { duration: CONFIG.stress.stageDuration, target: 0 },
   ],
 
   thresholds: {
@@ -73,13 +73,11 @@ export default function (data) {
   const user    = data.users[__VU % data.users.length];
   const headers = { Authorization: `Bearer ${user.accessToken}` };
 
-  // Leitura do próprio perfil — exercita cache Redis
   const meRes = http.get(`${CONFIG.base}/users/me`, { headers });
   check(meRes, { 'GET /me 200': (r) => r.status === 200 });
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // Leitura de perfil alheio — varia o username para pressionar a camada de busca
   const target     = randomItem(data.users);
   const profileRes = http.get(`${CONFIG.base}/users/${target.username}`, { headers });
   check(profileRes, { 'GET /{username} 200': (r) => r.status === 200 });
@@ -87,7 +85,6 @@ export default function (data) {
   sleep(CONFIG.sleep.afterIteration);
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];

@@ -9,17 +9,17 @@ const CONFIG = {
 
   stress: {
     stageDuration: '30s',
-    stages:        [20, 50, 100, 200, 300, 400, 600],  // VUs por estágio (rampa crescente)
+    stages:        [20, 50, 100, 200, 300, 400, 600],
   },
 
   thresholds: {
-    p95General: 2500,  // ms
-    failRate:   0.05,  // 5% — stress tolera mais erros
+    p95General: 2500,
+    failRate:   0.05,
   },
 
   sleep: {
-    betweenSteps:   0.2,  // s
-    afterIteration: 0.5,  // s
+    betweenSteps:   0.2,
+    afterIteration: 0.5,
   },
 };
 
@@ -51,10 +51,10 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '300s', // setup cria 500 usuários, aumentado para suportar máquina local
+  setupTimeout: '300s',
   stages: [
     ...CONFIG.stress.stages.map((vus) => ({ duration: CONFIG.stress.stageDuration, target: vus })),
-    { duration: CONFIG.stress.stageDuration, target: 0 },  // rampa de descida
+    { duration: CONFIG.stress.stageDuration, target: 0 },
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],

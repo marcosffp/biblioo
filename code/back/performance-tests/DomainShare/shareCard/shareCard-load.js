@@ -1,11 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// IMPORTANTE: ShareCardService cacheia o PNG no Redis por 1h (chave por userId).
-// Com pool fixo de usuários, só a 1ª requisição de cada VU exercita o render
-// real (Java2D/BufferedImage). As demais são Redis HIT. Esse teste mede o
-// comportamento realista em produção (render + cache hit), NÃO é stress puro
-// de renderização. Para isolar custo de render, desabilite o cache no backend.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import http from 'k6/http';
 import { sleep, check } from 'k6';
 
@@ -21,12 +13,12 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 1500,  // ms — render real pode passar de 500ms; cache hit fica <50ms
-    failRate:   0.01,  // 1%
+    p95General: 1500,
+    failRate:   0.01,
   },
 
   sleep: {
-    afterIteration: 1,  // s
+    afterIteration: 1,
   },
 };
 

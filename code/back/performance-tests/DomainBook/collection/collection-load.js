@@ -21,9 +21,9 @@ const CONFIG = {
   },
 
   sleep: {
-    betweenSteps:   0.3,  // s
-    afterIteration: 1,    // s
-    listing:        0.5,  // s
+    betweenSteps:   0.3,
+    afterIteration: 1,
+    listing:        0.5,
   },
 };
 
@@ -52,7 +52,6 @@ export function setup() {
     const { accessToken } = JSON.parse(login.body);
     const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-    // Cria uma estante própria para usar nos testes de add/remove shelf
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `Estante setup ${ts}`, description: 'Criada pelo setup do load test' }),
@@ -97,7 +96,6 @@ export function crudCollections(data) {
     Authorization: `Bearer ${user.accessToken}`,
   };
 
-  // CREATE
   const createRes = http.post(
     `${CONFIG.base}/collections`,
     JSON.stringify({
@@ -122,12 +120,10 @@ export function crudCollections(data) {
   const collectionId = JSON.parse(createRes.body).id;
   sleep(CONFIG.sleep.betweenSteps);
 
-  // GET (detalhe)
   const getRes = http.get(`${CONFIG.base}/collections/${collectionId}`, { headers });
   check(getRes, { 'get collection 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ADD SHELF (estante criada no setup, pertence ao mesmo usuário)
   const addShelfRes = http.patch(
     `${CONFIG.base}/collections/${collectionId}/shelves`,
     JSON.stringify({ shelfId: user.shelfId }),
@@ -136,7 +132,6 @@ export function crudCollections(data) {
   check(addShelfRes, { 'add shelf 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // REMOVE SHELF
   const removeShelfRes = http.del(
     `${CONFIG.base}/collections/${collectionId}/shelves/${user.shelfId}`,
     null,
@@ -145,7 +140,6 @@ export function crudCollections(data) {
   check(removeShelfRes, { 'remove shelf 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // UPDATE
   const updateRes = http.put(
     `${CONFIG.base}/collections/${collectionId}`,
     JSON.stringify({
@@ -157,7 +151,6 @@ export function crudCollections(data) {
   check(updateRes, { 'update 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // DELETE
   const deleteRes = http.del(`${CONFIG.base}/collections/${collectionId}`, null, { headers });
   check(deleteRes, { 'delete 204': (r) => r.status === 204 });
 

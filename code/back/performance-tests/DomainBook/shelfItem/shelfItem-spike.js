@@ -3,11 +3,11 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 500,  // deve ser >= peakVus para evitar que VUs compartilhem usuário/estante
+  userPoolSize: 500,
   password:     'Senha@12345',
   prefix:       'spikeshelfitem',
 
-  bookId: 1,  // ID de um livro existente no banco para usar nos testes
+  bookId: 1,
 
   spike: {
     baseVus:       70,
@@ -20,13 +20,13 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General: 2500,  // ms
-    failRate:   0.05,  // 5% — spike tolera mais erros
+    p95General: 2500,
+    failRate:   0.05,
   },
 
   sleep: {
-    betweenOps:     0.2,  // s
-    afterIteration: 0.5,  // s
+    betweenOps:     0.2,
+    afterIteration: 0.5,
   },
 };
 
@@ -53,7 +53,6 @@ export function setup() {
     const { accessToken } = JSON.parse(login.body);
     const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
 
-    // Cria uma estante própria para usar nos testes de shelf items
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `Estante setup ${ts}`, description: 'Criada pelo setup do spike test' }),
@@ -68,13 +67,13 @@ export function setup() {
 }
 
 export const options = {
-  setupTimeout: '300s',  // setup cria muitos usuários; timeout aumentado para rodar localmente
+  setupTimeout: '300s',
   stages: [
-    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },  // base normal
-    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },  // spike brusco
-    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },  // mantém carga alta
-    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },  // queda brusca
-    { duration: CONFIG.spike.cooldown,   target: 0                     },  // recuperação
+    { duration: CONFIG.spike.rampUpBase, target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.rampToPeak, target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.holdPeak,   target: CONFIG.spike.peakVus  },
+    { duration: CONFIG.spike.rampDown,   target: CONFIG.spike.baseVus  },
+    { duration: CONFIG.spike.cooldown,   target: 0                     },
   ],
   thresholds: {
     http_req_duration: [`p(95)<${CONFIG.thresholds.p95General}`],
@@ -89,7 +88,6 @@ export default function (data) {
     Authorization: `Bearer ${user.accessToken}`,
   };
 
-  // LIST ITEMS
   const listRes = http.get(`${CONFIG.base}/shelves/${user.shelfId}/items`, { headers });
   check(listRes, {
     'list items 200': (r) => r.status === 200,
@@ -101,7 +99,6 @@ export default function (data) {
 
   sleep(CONFIG.sleep.betweenOps);
 
-  // ADD ITEM
   const addRes = http.post(
     `${CONFIG.base}/shelves/${user.shelfId}/items`,
     JSON.stringify({ bookId: CONFIG.bookId, initialStatus: 'READING' }),
@@ -114,7 +111,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenOps);
 
-    // UPDATE PROGRESS
     const progressRes = http.patch(
       `${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}/progress`,
       JSON.stringify({ currentPage: 10 }),
@@ -124,7 +120,6 @@ export default function (data) {
 
     sleep(CONFIG.sleep.betweenOps);
 
-    // REMOVE ITEM
     http.del(`${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}`, null, { headers });
   }
 

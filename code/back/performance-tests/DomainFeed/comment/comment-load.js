@@ -7,7 +7,7 @@ const CONFIG = {
   userPoolSize: 230,
   password:     'Senha@12345',
   prefix:       'loadcomment',
-  bookId:       1, // seed: banco local deve ter livro com id=1
+  bookId:       1,
 
   load: {
     crudVus:    158,
@@ -19,8 +19,6 @@ const CONFIG = {
     p95General:  1500,
     p95Crud:     1500,
     p95Listing:   500,
-    // FIX #1 (threshold menos rígido):
-    // 1% é agressivo demais para ambiente local com alta concorrência.
     failRate:    0.02,
   },
 
@@ -31,7 +29,6 @@ const CONFIG = {
   },
 };
 
-// FIX #2 (log estruturado): helpers centralizados de log, alinhados com review-load.js.
 function logWarn(context, extra = {}) {
   console.warn(JSON.stringify({ vu: typeof __VU !== 'undefined' ? __VU : 0, iter: typeof __ITER !== 'undefined' ? __ITER : 0, ...context, ...extra }));
 }
@@ -40,8 +37,6 @@ function logError(context, extra = {}) {
   console.error(JSON.stringify({ vu: typeof __VU !== 'undefined' ? __VU : 0, iter: typeof __ITER !== 'undefined' ? __ITER : 0, ...context, ...extra }));
 }
 
-// FIX #3 (b64decode): substitui atob() nativo — não disponível em todos os
-// runtimes k6 — pelo b64decode da lib oficial, igual a post-load e review-load.
 function parseUserId(token) {
   try {
     const parts = token.split('.');
@@ -78,12 +73,9 @@ export function setup() {
   const headers = { 'Content-Type': 'application/json' };
 
   for (let i = 0; i < CONFIG.userPoolSize; i++) {
-    // FIX #4 (uid sem colisão): usa índice + random em vez de Date.now()+i,
-    // evitando colisões de timestamp em execuções paralelas rápidas.
     const uid   = `${i}_${Math.floor(Math.random() * 1e9)}`;
     const email = `${CONFIG.prefix}_${uid}@test.com`;
 
-    // 1. Registrar usuário
     const reg = http.post(
       `${CONFIG.base}/auth/register`,
       JSON.stringify({ username: `${CONFIG.prefix}_${uid}`, email, password: CONFIG.password }),
@@ -95,7 +87,6 @@ export function setup() {
       continue;
     }
 
-    // 2. Login
     const login = http.post(
       `${CONFIG.base}/auth/login`,
       JSON.stringify({ email, password: CONFIG.password }),
@@ -128,7 +119,6 @@ export function setup() {
       Authorization:  `Bearer ${accessToken}`,
     };
 
-    // 3. Criar estante
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `Load Test Shelf ${uid}`, description: '' }),
@@ -148,7 +138,6 @@ export function setup() {
       continue;
     }
 
-    // 4. Adicionar livro à estante
     const itemRes = http.post(
       `${CONFIG.base}/shelves/${shelfId}/items`,
       JSON.stringify({ bookId: CONFIG.bookId, initialStatus: 'COMPLETED' }),
@@ -160,9 +149,6 @@ export function setup() {
       continue;
     }
 
-    // 5. Criar review base para comentar durante o teste.
-    // publish=false porque CommentService só exige que o parentId exista
-    // como Commentable ativo — não precisa estar publicado.
     const mp = multipart({
       bookId:  String(CONFIG.bookId),
       rating:  '4',
@@ -196,8 +182,6 @@ export function setup() {
     users.push({ accessToken, userId, reviewId });
   }
 
-  // FIX #5 (guard de usuário mínimo): aborta o teste se nenhum usuário foi
-  // preparado com sucesso, evitando execução silenciosa sem carga real.
   if (users.length === 0) {
     throw new Error('Nenhum usuário foi criado/logado com sucesso. Abortando o teste.');
   }
@@ -230,15 +214,12 @@ export const options = {
 };
 
 export function crudComment(data) {
-  // FIX #6 (distribuição de VUs): __VU começa em 1, então sem o -1 o índice 0
-  // nunca era acessado corretamente e a distribuição ficava enviesada.
   const user = data.users[(__VU - 1) % data.users.length];
   if (!user) return;
   const { accessToken, reviewId } = user;
 
   const authHeaders = { Authorization: `Bearer ${accessToken}` };
 
-  // ── CREATE ────────────────────────────────────────────────────────────────
   const mp = multipart({ text: `Comentário VU${__VU} iter${__ITER}` });
   const createRes = http.post(
     `${CONFIG.base}/feed/reviews/${reviewId}/comments`,
@@ -246,8 +227,6 @@ export function crudComment(data) {
     { headers: { 'Content-Type': mp.contentType, ...authHeaders } }
   );
 
-  // FIX #7 (validação profunda): além de checar o status, valida que o body
-  // contém o id, alinhado com o padrão de review-load.js.
   const createOk = check(createRes, {
     'create 201': (r) => r.status === 201,
     'create retorna id': (r) => {
@@ -256,8 +235,6 @@ export function crudComment(data) {
     },
   });
 
-  // FIX #8 (não mascarar falha de CREATE): usa fail() para que a iteração
-  // apareça como falha nas métricas k6, em vez de retornar silenciosamente.
   if (!createOk || createRes.status !== 201) {
     logWarn({ step: 'create', reviewId, status: createRes.status, body: createRes.body });
     fail(`CREATE falhou: status=${createRes.status}`);
@@ -275,7 +252,6 @@ export function crudComment(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ── GET ──────────────────────────────────────────────────────────────────
   const getRes = http.get(
     `${CONFIG.base}/feed/reviews/${reviewId}/comments/${commentId}`,
     { headers: authHeaders }
@@ -288,7 +264,6 @@ export function crudComment(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ── UPDATE ───────────────────────────────────────────────────────────────
   const updMp = multipart({ text: `Comentário atualizado VU${__VU} iter${__ITER}` });
   const updateRes = http.put(
     `${CONFIG.base}/feed/reviews/${reviewId}/comments/${commentId}`,
@@ -303,7 +278,6 @@ export function crudComment(data) {
 
   sleep(CONFIG.sleep.betweenSteps);
 
-  // ── DELETE ───────────────────────────────────────────────────────────────
   const deleteRes = http.del(
     `${CONFIG.base}/feed/reviews/${reviewId}/comments/${commentId}`,
     null,
@@ -319,7 +293,6 @@ export function crudComment(data) {
 }
 
 export function listComments(data) {
-  // FIX #6 (distribuição de VUs): mesma correção do __VU - 1.
   const user = data.users[(__VU - 1) % data.users.length];
   if (!user) return;
   const { accessToken, reviewId } = user;
@@ -335,7 +308,6 @@ export function listComments(data) {
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
 
-  // FIX #7 (validação profunda): valida estrutura
   check(res, {
     'list 200': (r) => r.status === 200,
   });

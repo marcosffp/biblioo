@@ -6,7 +6,7 @@
 
 ---
 
-## 🛠️ Stack Principal
+## Stack Principal
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
@@ -18,7 +18,7 @@
 
 ---
 
-## 📑 Sumário
+## Sumário
 
 - [Sobre o projeto](#-sobre-o-projeto)
 - [Páginas e rotas](#-páginas-e-rotas)
@@ -39,13 +39,13 @@
 
 ---
 
-## 📖 Sobre o projeto
+## Sobre o projeto
 
 O frontend do **Biblioo** é uma SPA construída com **Next.js 16 (App Router)** e **React 19**. A interface cobre todo o ecossistema da plataforma: autenticação com e-mail/senha ou Google OAuth, organização de livros em estantes e coleções com rastreamento de progresso de leitura, feed social com posts e reviews com imagens/GIFs, comunidades com chat em tempo real via WebSocket/STOMP, recomendações geradas pelos seis algoritmos do backend, DNA Literário, metas de leitura, importação de biblioteca do Goodreads e o assistente conversacional **Bibo** com streaming via SSE.
 
 ---
 
-## 📄 Páginas e rotas
+## Páginas e rotas
 
 | Rota | Arquivo | Descrição |
 |---|---|---|
@@ -68,7 +68,7 @@ O frontend do **Biblioo** é uma SPA construída com **Next.js 16 (App Router)**
 
 ---
 
-## 📁 Estrutura de pastas
+## Estrutura de pastas
 
 ```
 front/
@@ -112,7 +112,7 @@ front/
 
 ---
 
-## 🧩 Componentes
+## Componentes
 
 Os componentes são organizados por domínio dentro de `src/components/`.
 
@@ -223,7 +223,7 @@ Os componentes são organizados por domínio dentro de `src/components/`.
 
 ---
 
-## 🪝 Hooks
+## Hooks
 
 Custom hooks em `src/hooks/` encapsulam a lógica de negócio das páginas e desacoplam completamente os componentes das chamadas de API.
 
@@ -245,7 +245,7 @@ Custom hooks em `src/hooks/` encapsulam a lógica de negócio das páginas e des
 
 ---
 
-## 🌐 Serviços e camada de API
+## Serviços e camada de API
 
 A camada de serviços em `src/services/` abstrai todas as chamadas HTTP ao backend. A configuração base (URL, headers de autenticação) está em `src/lib/`.
 
@@ -364,7 +364,7 @@ Busca global unificada de livros (OpenSearch + Google Books) e usuários (OpenSe
 
 ---
 
-## 📐 Tipagens
+## Tipagens
 
 Todas as tipagens ficam em `src/types/`, organizadas por contexto.
 
@@ -378,7 +378,7 @@ Todas as tipagens ficam em `src/types/`, organizadas por contexto.
 
 ---
 
-## 🛠️ Utilitários e biblioteca
+## Utilitários e biblioteca
 
 ### `src/utils/`
 
@@ -401,7 +401,7 @@ Todas as tipagens ficam em `src/types/`, organizadas por contexto.
 
 ---
 
-## 💬 WebSocket e tempo real
+## WebSocket e tempo real
 
 ### Chat das comunidades — WebSocket / STOMP
 
@@ -429,7 +429,7 @@ O `BiblioChatWidget` usa **`@microsoft/fetch-event-source`** para streaming das 
 
 ---
 
-## 🔑 Variáveis de ambiente
+## Variáveis de ambiente
 
 Crie um arquivo `.env.local` na raiz de `front/`. **Nunca versionar em produção.**
 
@@ -445,11 +445,11 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=seu_client_id_google
 
 ---
 
-## ☁️ Deploy
+## Deploy
 
 O frontend está implantado na **Vercel**, com integração contínua via GitHub: cada push na branch `main` aciona um novo deploy automaticamente.
 
-🔗 **URL de produção:** [biblioo-rust.vercel.app](https://biblioo-rust.vercel.app)
+ **URL de produção:** [biblioo-rust.vercel.app](https://biblioo-rust.vercel.app)
 
 | Variável | Valor configurado na Vercel |
 |---|---|
@@ -460,7 +460,7 @@ O frontend está implantado na **Vercel**, com integração contínua via GitHub
 
 ---
 
-## 🚀 Instalação e execução
+## Instalação e execução
 
 ### Pré-requisitos
 
@@ -502,7 +502,7 @@ A aplicação estará disponível em `http://localhost:3000`.
 
 ---
 
-## 🧪 Testes
+## Testes
 
 Os testes usam **Vitest** + **Testing Library** com jsdom. O setup global está em `src/test/setup.ts`.
 
@@ -527,7 +527,7 @@ Os testes cobrem lógica pura: filtragem de livros por status e texto, mescla de
 
 ---
 
-## 🎨 Padrão de código
+## Padrão de código
 
 - **Linguagem:** TypeScript estrito — sem `any` implícito
 - **Estilo:** Tailwind CSS com utilitário `cn()` (clsx + tailwind-merge) para composição de classes
@@ -538,7 +538,7 @@ Os testes cobrem lógica pura: filtragem de livros por status e texto, mescla de
 
 ---
 
-## 🔒 Regras de arquitetura
+## Regras de arquitetura
 
 | Regra | Motivação |
 |---|---|
@@ -553,7 +553,7 @@ Os testes cobrem lógica pura: filtragem de livros por status e texto, mescla de
 
 ---
 
-## 📦 Tecnologias e dependências
+## Tecnologias e dependências
 
 | Categoria | Tecnologia | Versão |
 |---|---|---|

@@ -3,11 +3,11 @@ import { sleep, check } from 'k6';
 
 const CONFIG = {
   base:         'http://localhost:8080',
-  userPoolSize: 230, // deve ser >= crudVus + listingVus (80) para evitar que VUs compartilhem usuário
+  userPoolSize: 230,
   password:     'Senha@12345',
   prefix:       'loadshelfitem',
 
-  bookId: 1,  // ID de um livro existente no banco para usar nos testes
+  bookId: 1,
 
   load: {
     crudVus:    150,
@@ -16,16 +16,16 @@ const CONFIG = {
   },
 
   thresholds: {
-    p95General:  1000,  // ms
-    p95Crud:     1500,  // ms
-    p95Listing:   1500,  // ms
-    failRate:    0.01,  // 1%
+    p95General:  1000,
+    p95Crud:     1500,
+    p95Listing:   1500,
+    failRate:    0.01,
   },
 
   sleep: {
-    betweenSteps:   0.3,  // s
-    afterIteration: 1,    // s
-    listing:        0.5,  // s
+    betweenSteps:   0.3,
+    afterIteration: 1,
+    listing:        0.5,
   },
 };
 
@@ -53,8 +53,6 @@ export function setup() {
 
     const { accessToken } = JSON.parse(login.body);
     const authHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
-
-    // Cria uma estante própria para usar nos testes de shelf items
     const shelfRes = http.post(
       `${CONFIG.base}/shelves`,
       JSON.stringify({ name: `Estante setup ${ts}`, description: 'Criada pelo setup do load test' }),
@@ -99,7 +97,6 @@ export function crudShelfItems(data) {
     Authorization: `Bearer ${user.accessToken}`,
   };
 
-  // ADD ITEM
   const addRes = http.post(
     `${CONFIG.base}/shelves/${user.shelfId}/items`,
     JSON.stringify({ bookId: CONFIG.bookId, initialStatus: 'READING' }),
@@ -121,12 +118,10 @@ export function crudShelfItems(data) {
   const itemId = JSON.parse(addRes.body).id;
   sleep(CONFIG.sleep.betweenSteps);
 
-  // GET ITEM
   const getRes = http.get(`${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}`, { headers });
   check(getRes, { 'get item 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // UPDATE PROGRESS
   const progressRes = http.patch(
     `${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}/progress`,
     JSON.stringify({ currentPage: 42 }),
@@ -135,7 +130,6 @@ export function crudShelfItems(data) {
   check(progressRes, { 'update progress 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // CHANGE STATUS
   const statusRes = http.patch(
     `${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}/status`,
     JSON.stringify({ newStatus: 'COMPLETED' }),
@@ -144,7 +138,6 @@ export function crudShelfItems(data) {
   check(statusRes, { 'change status 200': (r) => r.status === 200 });
   sleep(CONFIG.sleep.betweenSteps);
 
-  // REMOVE ITEM
   const removeRes = http.del(
     `${CONFIG.base}/shelves/${user.shelfId}/items/${itemId}`,
     null,

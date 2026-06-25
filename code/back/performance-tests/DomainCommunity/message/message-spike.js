@@ -3,7 +3,6 @@ import ws   from 'k6/ws';
 import { sleep, check } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 
-// ── Métricas customizadas ────────────────────────────────────────────────────
 const stompConnectErrors  = new Counter('stomp_connect_errors');
 const stompMessagesSent   = new Counter('stomp_messages_sent');
 const stompMessagesRecv   = new Counter('stomp_messages_received');
@@ -12,7 +11,6 @@ const wsConnectDuration   = new Trend('ws_connect_duration_ms', true);
 const msgDeliveryLatency  = new Trend('msg_delivery_latency_ms', true);
 const msgDeliverySuccess  = new Rate('msg_delivery_success_rate');
 
-// ── Configuração central ─────────────────────────────────────────────────────
 const CONFIG = {
   baseHttp: 'http://localhost:8080',
   baseWs:   'ws://localhost:8080',
@@ -20,8 +18,6 @@ const CONFIG = {
   password: 'Senha@12345',
   prefix:   'msgspike',
 
-  // Pool menor que peakVus — tokens compartilhados entre VUs é aceitável
-  // para spike: o que importa é a carga de conexões WS, não unicidade de usuário
   userPoolSize:      300,
   communityPoolSize: 5,
   bookId:            1,
@@ -29,26 +25,25 @@ const CONFIG = {
   spike: {
     baseVus:    100,
     peakVus:    150,
-    rampUpBase: '10s',  // estabiliza na base antes do spike
-    rampToPeak: '5s',   // ramp agressivo — simula pico súbito
-    holdPeak:   '30s',  // mantém pressão máxima
-    rampDown:   '10s',  // queda brusca
-    cooldown:   '30s',  // observa recuperação do sistema
+    rampUpBase: '10s',
+    rampToPeak: '5s',
+    holdPeak:   '30s',
+    rampDown:   '10s',
+    cooldown:   '30s',
   },
 
   stomp: {
-    sendIntervalSec:   1,     // mais rápido que load test — maximiza carga no pico
+    sendIntervalSec:   1,
     connectTimeoutMs:  5000,
-    deliveryTimeoutMs: 8000,  // tolerância maior: spike causa filas no broker
+    deliveryTimeoutMs: 8000,
   },
 
   thresholds: {
-    p95DeliveryMs: 5000,  // ms — spike tolera latência maior
-    failRate:      0.05,  // 5 % — spike tolera mais falhas
+    p95DeliveryMs: 5000,
+    failRate:      0.05,
   },
 };
 
-// ── Opções k6 ────────────────────────────────────────────────────────────────
 export const options = {
   setupTimeout: '5m',
 
@@ -68,7 +63,6 @@ export const options = {
   },
 };
 
-// ── Setup ────────────────────────────────────────────────────────────────────
 export function setup() {
   const jsonHeaders = { 'Content-Type': 'application/json' };
 
@@ -155,17 +149,6 @@ export function setup() {
 
   return { users, commIds };
 }
-
-// ── Cenário: envio de mensagens via WS/STOMP sob spike ───────────────────────
-//
-// Objetivo: medir como o sistema se comporta quando conexões WebSocket sobem
-// abruptamente de 20 para 150 em 5 segundos.
-//
-// Métricas de interesse:
-//   - ws_connect_duration_ms: tempo de handshake sob pico de conexões simultâneas
-//   - msg_delivery_latency_ms: degradação de latência end-to-end durante o spike
-//   - msg_delivery_success_rate: mensagens confirmadas pelo broadcast
-//   - stomp_connect_errors: falhas de handshake STOMP sob pressão
 
 export default function (data) {
   if (!data.users.length || !data.commIds.length) return;
@@ -297,8 +280,6 @@ export default function (data) {
 
   check(response, { 'WS connect 101': (r) => r && r.status === 101 });
 }
-
-// ── Helpers STOMP ────────────────────────────────────────────────────────────
 
 function stompFrame(command, headers = {}, body = '') {
   let frame = command + '\n';
