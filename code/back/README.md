@@ -541,7 +541,7 @@ Os thresholds são declarados diretamente nos scripts e fazem o teste **falhar**
 | Subdomínio | VUs máx | Throughput | p(95) | Resultado |
 |-----------|---------|-----------|-------|-----------|
 | book | 400 | 545,6/s | 100,89 ms | PASSOU |
-| shelfItem | 600 | 377,6/s | 717,87 ms | PASSOU |
+| shelfItem | 600 | 331,39/s | 717,87 ms | PASSOU |
 | user | 600 | 833,75/s | 349,76 ms | PASSOU |
 | social (grafo) | 200 | 287,85/s | 666,23 ms | PASSOU |
 | feed | 600 | 413,77/s | 303,43 ms | PASSOU |
@@ -552,7 +552,7 @@ Os thresholds são declarados diretamente nos scripts e fazem o teste **falhar**
 | message (WebSocket) | 250 | entrega 100% | 32 ms | PASSOU |
 | recommendation (6 trilhas) | 400 | ~718/s | 1 210 ms | PASSOU |
 | roll-dice | 800 | ~512/s | 420,03 ms | PASSOU |
-| trending | 600 | ~300/s | ~22,8 ms | PASSOU |
+| trending | 600 | ~300/s | ~23,8 ms | PASSOU |
 | shareCard | 600 | ~299,6/s | 57,42 ms | PASSOU |
 | dna | 500 | 150,27/s | 29,88 ms | PASSOU |
 

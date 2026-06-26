@@ -251,7 +251,7 @@
 | `http_req_duration` | 67.5ms | 2.62ms | 22.1ms | 1.7s | 170.84ms | 250.07ms |
 
 **Sumário:**
-- Total de requests: **162.883** (~585/s)
+- Total de requests: **165.283** (~594/s)
 - Iterações completas: 23.269
 - Dados recebidos: **84 MB** (≈302 kB/s)
 - Dados enviados: 75 MB (≈270 kB/s)
@@ -353,7 +353,7 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 2500ms | 120.61ms | Aprovado |
+| `http_req_duration` p(95) | < 2500ms | 128.61ms | Aprovado |
 | `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:**
@@ -370,7 +370,7 @@
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 33.91ms | 2.51ms | 13.95ms | 480.75ms | 98.03ms | 120.61ms |
+| `http_req_duration` | 33.91ms | 2.51ms | 13.95ms | 480.75ms | 98.83ms | 128.61ms |
 
 **Sumário:**
 - Total de requests: **164.588** (594.4/s)
@@ -423,7 +423,7 @@
 | `{scenario:listing}` | 9.2ms | 2.45ms | 6.6ms | 330.84ms | 12.47ms | 19.1ms |
 
 **Sumário:**
-- Total de requests: **54.130** (409.5/s)
+- Total de requests: **54.130** (402.25/s)
 - Iterações completas: 22.012
 - Dados recebidos: **29 MB** (217 kB/s)
 - Dados enviados: 23 MB (172 kB/s)
@@ -500,7 +500,7 @@
 | `http_req_duration` | 249.05ms | 4.25ms | 177.89ms | 1.92s | 599.87ms | 717.87ms |
 
 **Sumário:**
-- Total de requests: **117.768** (377.6/s)
+- Total de requests: **103.345** (331.39/s)
 - Iterações completas: 16.824
 - Dados recebidos: **59 MB** (189 kB/s)
 - Dados enviados: 46 MB (148 kB/s)
@@ -517,13 +517,13 @@
 | book | stress | 400 | 114.684 | 545.6/s | 100.89ms | 0% | Aprovado |
 | collection | load | 210 | 57.031 | 424.57/s | 34.44ms | 0% | Aprovado |
 | collection | spike | 500 | 32.148 | 397.02/s | 574.91ms | 0% | Aprovado |
-| collection | stress | 600 | 162.883 | 585.3/s | 250.07ms | 0% | Aprovado |
+| collection | stress | 600 | 165.283 | 593.97/s | 250.07ms | 0% | Aprovado |
 | shelf | load | 210 | 50.980 | 384.72/s | 47.24ms | 0% | Aprovado |
 | shelf | spike | 500 | 37.507 | 500.90/s | 396.55ms | 0% | Aprovado |
-| shelf | stress | 600 | 164.588 | 594.4/s | 120.61ms | 0% | Aprovado |
-| shelfItem | load | 210 | 54.130 | 409.5/s | 43.89ms | 0% | Aprovado |
+| shelf | stress | 600 | 164.588 | 594.4/s | 128.61ms | 0% | Aprovado |
+| shelfItem | load | 210 | 54.130 | 402.25/s | 43.89ms | 0% | Aprovado |
 | shelfItem | spike | 500 | 27.632 | 344.98/s | 475.65ms | 0% | Aprovado |
-| shelfItem | stress | 600 | 117.768 | 377.6/s | 717.87ms | 0% | Aprovado |
+| shelfItem | stress | 600 | 103.345 | 331.39/s | 717.87ms | 0% | Aprovado |
 
 **Total de requests executados no DomainBook:** ~923.103  
 **Taxa de falhas geral:** 0%  

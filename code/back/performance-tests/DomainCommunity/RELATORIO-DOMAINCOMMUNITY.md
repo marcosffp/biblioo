@@ -72,7 +72,7 @@
 | `{scenario:read}` | 7.35ms | 2.1ms | 6.53ms | 99.44ms | 10.03ms | 10.73ms |
 
 **Sumário:**
-- Total de requests: **25.336** (192.7/s)
+- Total de requests: **25.326** (192.57/s)
 - Iterações completas: 10.355
 - Dados recebidos: **37 MB** (284 kB/s)
 - Dados enviados: 9.6 MB (73 kB/s)
@@ -197,7 +197,7 @@
 | `{scenario:listPending}` | 8ms | 1.66ms | 5.64ms | 225.25ms | 13.4ms | 15.33ms |
 
 **Sumário:**
-- Total de requests: **62.321** (473.8/s)
+- Total de requests: **62.321** (471.55/s)
 - Iterações completas: 30.096
 - Dados recebidos: **29 MB** (217 kB/s)
 - Dados enviados: 25 MB (191 kB/s)
@@ -459,7 +459,7 @@ Os 14 checks do ciclo passaram **100%** nos três testes, com **0% de falha HTTP
 | listing | 48.55ms | 3.9ms | 46.39ms | 180.1ms | 92.53ms | 99.13ms |
 | sync | 22.67ms | 3.19ms | 13.44ms | 137.45ms | 54.9ms | 59.86ms |
 
-**Sumário:** 29.092 req (191.7/s) · 0 falhas · 368 MB recv / 11 MB sent · 2m32s.
+**Sumário:** 29.092 req (191.89/s) · 0 falhas · 368 MB recv / 11 MB sent · 2m32s.
 
 ### 3.2 Spike — `messageRest-spike.js`
 
@@ -483,7 +483,7 @@ Os 14 checks do ciclo passaram **100%** nos três testes, com **0% de falha HTTP
 | `http_req_failed` rate | < 5% | 0.00% | Aprovado |
 
 **Checks:** list 200, before 200, sync 200 — 100%. Métricas: avg 139.48ms / med 74.41ms / max 1.33s / p(95) 525.69ms.
-**Sumário:** 121.497 req (362.53/s) · 0 falhas · **1.3 GB recv** / 47 MB sent · 5m47s.
+**Sumário:** 121.683 req (362.53/s) · 0 falhas · **1.3 GB recv** / 47 MB sent · 5m47s.
 
 ---
 
@@ -563,7 +563,7 @@ Os 14 checks do ciclo passaram **100%** nos três testes, com **0% de falha HTTP
 | `msg_duplicated` | count == 0 | 0 | Aprovado |
 | `msg_overwritten` | count == 0 | 0 | Aprovado |
 | `concurrency_violation_rate` | <= 0 | 0% | Aprovado |
-| `msg_delivery_latency_ms` p(95) | < 3000ms | 181ms | Aprovado |
+| `msg_delivery_latency_ms` p(95) | < 3000ms | 101ms | Aprovado |
 | `http_req_failed` rate | < 1% | 0.00% | Aprovado |
 
 **Métricas WebSocket / STOMP:**
@@ -571,13 +571,13 @@ Os 14 checks do ciclo passaram **100%** nos três testes, com **0% de falha HTTP
 | Métrica | Valor |
 |---------|-------|
 | `stomp_messages_sent` | 7.700 |
-| `msg_delivery_latency_ms` p(95) | 181ms |
+| `msg_delivery_latency_ms` p(95) | 101ms |
 
 **Sumário:** 100 conexões WS · 2m53.5s.
 
 ### Diagnóstico — integridade 100% íntegra
 
-A integridade da concorrência ficou **100% íntegra** (0 duplicadas, 0 sobrescritas, 0 violações) — que é o objetivo deste teste. Os thresholds de entrega (latência p95 181ms, muito abaixo do limite de 3000ms) também passaram.
+A integridade da concorrência ficou **100% íntegra** (0 duplicadas, 0 sobrescritas, 0 violações) — que é o objetivo deste teste. Os thresholds de entrega (latência p95 101ms, muito abaixo do limite de 3000ms) também passaram.
 
 **Nota sobre capacidade local:** testes com pico de 400 conexões simultâneas na mesma máquina tendem a esgotar a fila de accept do SO (`kern.ipc.somaxconn = 128` no macOS), causando timeouts de conexão que degradam os thresholds de entrega sem indicar bug de lógica. A **capacidade WS real deve ser medida contra o ambiente hospedado (Google Cloud)**, com k6 em máquina separada e `net.core.somaxconn` ajustado. Localmente, este teste deve ser lido como validação de **integridade sob concorrência** (que está sólida), não de escala máxima.
 
@@ -626,7 +626,7 @@ Ver também `WebSocketConfig.java`: broker em memória por instância com fan-ou
 |---------|-------|
 | `msg_delivery_success_rate` | 100% (7.400 / 7.400) |
 | `stomp_messages_sent` | 7.400 (45.83/s) |
-| `stomp_messages_received` | 74.988 (464.3/s) |
+| `stomp_messages_received` | 74.888 (464.3/s) |
 | `stomp_send_fail_rate` | 0% (0 / 7.400) |
 
 **Métricas HTTP:**
@@ -645,7 +645,7 @@ Ver também `WebSocketConfig.java`: broker em memória por instância com fan-ou
 - Dados enviados: 4.8 MB (30 kB/s)
 - Duração total: 2m41.5s
 
-> **Veredito:** APROVADO. 160 VUs simultâneos, entrega 100%, zero falhas. Fan-out de 7.400 envios → 74.988 recebimentos — p95 de latência de entrega 128ms (limite 2000ms).
+> **Veredito:** APROVADO. 160 VUs simultâneos, entrega 100%, zero falhas. Fan-out de 7.400 envios → 74.888 recebimentos — p95 de latência de entrega 128ms (limite 2000ms).
 
 ---
 
@@ -767,21 +767,21 @@ Ver também `WebSocketConfig.java`: broker em memória por instância com fan-ou
 
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas HTTP | Resultado |
 |------------|-------|---------|----------|-----------|-------|-------------|-----------|
-| community | load | 90 | 25.336 | 192.7/s | 15.88ms | 0% | Aprovado |
+| community | load | 90 | 25.326 | 192.57/s | 15.88ms | 0% | Aprovado |
 | community | spike | 200 | 13.564 | 255.07/s | 22.5ms | 0% | Aprovado |
 | community | stress | 500 | 102.449 | 476.49/s | 699.66ms | 0% | Aprovado |
-| community-invites | load | 210 | 62.321 | 473.8/s | 28.04ms | 0% | Aprovado |
+| community-invites | load | 210 | 62.321 | 471.55/s | 28.04ms | 0% | Aprovado |
 | community-invites | stress | 500 | 130.917 | 469.97/s | 428.42ms | 6.86% | Aprovado |
 | community-join-requests | load | 210 | 54.607 | ~412/s | 107.08ms | 0% | Aprovado |
 | community-join-requests | stress | 600 | 86.079 | 306.72/s | 1.38s | 16.99% | Aprovado |
 | community-manage | stress | 200 | 106.973 | 497.33/s | 29.55ms | 0% | Aprovado |
-| messageRest | load | 120 | 29.092 | 191.7/s | 94.45ms | 0% | Aprovado |
+| messageRest | load | 120 | 29.092 | 191.89/s | 94.45ms | 0% | Aprovado |
 | messageRest | spike | 500 | 38.778 | 306.32/s | 179.03ms | 0% | Aprovado |
-| messageRest | stress | 600 | 121.497 | 362.53/s | 525.69ms | 0% | Aprovado |
+| messageRest | stress | 600 | 121.683 | 362.53/s | 525.69ms | 0% | Aprovado |
 | voting | load | 210 | 82.760 | 642.80/s | 31.05ms | 0.90% | Aprovado |
 | voting | spike | 500 | 24.667 | 439.54/s | 956.86ms | 0% | Aprovado |
 | voting | stress | 600 | 201.090 | 796.70/s | 404.09ms | 0% | Aprovado |
-| message (WS) | concurrency | 100 | — (STOMP) | 7.700 msg env | latência 181ms | 0% | Aprovado |
+| message (WS) | concurrency | 100 | — (STOMP) | 7.700 msg env | latência 101ms | 0% | Aprovado |
 | message (WS) | load | 160 | — (STOMP) | 7.400 msg env / 74.9K recv | latência 128ms | 0% | Aprovado |
 | message (WS) | spike | 150 | — (STOMP) | 12.810 msg env / 350.7K recv | latência 14ms | 0% | Aprovado |
 | message (WS) | stress | 250 | — (STOMP) | 15.145 msg env / 294.4K recv | latência 32ms | 0% | Aprovado |

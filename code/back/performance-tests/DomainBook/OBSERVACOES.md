@@ -35,12 +35,12 @@
 ### Pontos positivos
 - Load test com CRUD completo (create, get, update, delete) + listagem simultânea: 0 falhas, p(95) de **47.24ms** com 210 VUs.
 - O subdomínio de shelf apresentou o **maior throughput no spike** entre os testes de 500 VUs: 500.90 req/s — melhor que collection e shelfItem no mesmo tipo de teste.
-- Stress test com 600 VUs: p(95) de **120.61ms**, consideravelmente abaixo do threshold de 2500ms, e max de **480.75ms** — sem outliers extremos.
+- Stress test com 600 VUs: p(95) de **128.61ms**, consideravelmente abaixo do threshold de 2500ms, e max de **480.75ms** — sem outliers extremos.
 
 ### Pontos de atenção
 - O p(95) de shelf é o maior entre os subdomínios de Book no load test (47.24ms vs 34.44ms de collection e 43.89ms de shelfItem). O fluxo de CRUD de shelf envolve mais etapas (register + login + create + list + get + update + delete), elevando o tempo médio de iteração.
-- No stress test com 600 VUs, a latência máxima de **480.75ms** sugere contenção de banco em operações de escrita concorrente. O p(90) de 98.03ms indica que 10% das requests demoram mais que o dobro da mediana de 13.95ms.
-- A diferença entre avg (33.91ms) e p(90) (98.03ms) no stress aponta para uma distribuição com cauda — a leitura (list) puxa a média para baixo enquanto create/delete sob 600 VUs causa picos.
+- No stress test com 600 VUs, a latência máxima de **480.75ms** sugere contenção de banco em operações de escrita concorrente. O p(90) de 98.83ms indica que 10% das requests demoram mais que o dobro da mediana de 13.95ms.
+- A diferença entre avg (33.91ms) e p(90) (98.83ms) no stress aponta para uma distribuição com cauda — a leitura (list) puxa a média para baixo enquanto create/delete sob 600 VUs causa picos.
 
 ---
 
@@ -53,7 +53,7 @@
 ### Pontos de atenção
 - **ShelfItem stress é o teste mais exigente do domínio:** com 600 VUs e 7 operações por iteração (list → add → get → update progress → change status → remove), o p(95) chegou a **717.87ms** e o p(90) a **599.87ms**. Ainda dentro do threshold de 3000ms, mas a cauda é expressiva.
 - A mediana de **177.89ms** vs avg de **249.05ms** no stress indica que a maioria das requests é mais rápida que a média — as operações de escrita (`PATCH` progress, `PATCH` status e `DELETE`) têm latência mais alta sob contenção e puxam a média para cima.
-- O throughput do stress (377.6 req/s) é o menor do domínio — reflexo do fluxo sequencial longo (6 requests por iteração com sleeps de 0.2s entre etapas e 0.5s ao final).
+- O throughput do stress (331.39 req/s) é o menor do domínio — reflexo do fluxo sequencial longo (6 requests por iteração com sleeps de 0.2s entre etapas e 0.5s ao final).
 - A lógica de recuperação de **409 Conflict** no `add item` (lista itens → remove remanescente → refaz POST) pode adicionar até 2 requests extras por iteração em momentos de contenção, elevando a latência efetiva medida pelo k6.
 - **ShelfItem spike: p(95) de 475.65ms** com mediana de **299.29ms** — valor de mediana acima da média (247.07ms), sugestivo de distribuição bimodal: requests rápidos (warm path) e um grupo mais lento (escritas em contenção sob pico repentino).
 
