@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Frontend design-tokens (tokens.css)
-  static const _bgCanvas = Color(0xFFE7EEE9);
-  static const _bgSurface = Color(0xFFF4F7F4);
-  static const _bgSoft = Color(0xFFDFE9E1);
-  static const _brand500 = Color(0xFF1F8F3A);
-  static const _brand600 = Color(0xFF17752F);
-  static const _brand100 = Color(0xFFB7DFBB);
-  static const _textPrimary = Color(0xFF122016);
-  static const _textSecondary = Color(0xFF4B5E4F);
-  static const _borderSoft = Color(0xFFB6D2B9);
+  static const _bgCanvas = Color(0xFFF4FBF9);
+  static const _bgSurface = Color(0xFFFFFFFF);
+  static const _bgSoft = Color(0xFFEEFBF7);
+  static const _brand500 = Color(0xFF3FC3A7);
+  static const _brand600 = Color(0xFF13937A);
+  static const _brand100 = Color(0xFFC9F4E8);
+  static const _textPrimary = Color(0xFF0F2F2C);
+  static const _textSecondary = Color(0xFF4C6F69);
+  static const _borderSoft = Color(0xFFD5E9E6);
 
   static const _radiusMd = 12.0;
 
@@ -47,33 +47,33 @@ class AppTheme {
 
   static const _darkScheme = ColorScheme(
     brightness: Brightness.dark,
-    primary: Color(0xFF7FD28B),
-    onPrimary: Color(0xFF003912),
-    primaryContainer: Color(0xFF145726),
-    onPrimaryContainer: Color(0xFFC6F2CC),
-    secondary: Color(0xFF8FC99A),
-    onSecondary: Color(0xFF13361C),
-    secondaryContainer: Color(0xFF244A2D),
-    onSecondaryContainer: Color(0xFFCBEED1),
-    tertiary: Color(0xFFA5D7AF),
-    onTertiary: Color(0xFF12361A),
-    tertiaryContainer: Color(0xFF244A2D),
-    onTertiaryContainer: Color(0xFFD8F5DB),
+    primary: Color(0xFF3FC3A7),
+    onPrimary: Color(0xFF00261E),
+    primaryContainer: Color(0xFF13937A),
+    onPrimaryContainer: Color(0xFFC9F4E8),
+    secondary: Color(0xFF5ECDB5),
+    onSecondary: Color(0xFF00261E),
+    secondaryContainer: Color(0xFF0A4A3C),
+    onSecondaryContainer: Color(0xFFC9F4E8),
+    tertiary: Color(0xFF7FD8C4),
+    onTertiary: Color(0xFF00261E),
+    tertiaryContainer: Color(0xFF0A4A3C),
+    onTertiaryContainer: Color(0xFFC9F4E8),
     error: Color(0xFFFFB4AB),
     onError: Color(0xFF690005),
     errorContainer: Color(0xFF93000A),
     onErrorContainer: Color(0xFFFFDAD6),
-    surface: Color(0xFF101813),
-    onSurface: Color(0xFFE2EFE5),
-    onSurfaceVariant: Color(0xFFB2C5B6),
-    outline: Color(0xFF5E7263),
-    outlineVariant: Color(0xFF324338),
+    surface: Color(0xFF0D1F1C),
+    onSurface: Color(0xFFE0F5F1),
+    onSurfaceVariant: Color(0xFFAAC9C4),
+    outline: Color(0xFF4C7A73),
+    outlineVariant: Color(0xFF1E3D38),
     shadow: Colors.black,
     scrim: Colors.black,
-    inverseSurface: Color(0xFFE2EFE5),
-    onInverseSurface: Color(0xFF1A251D),
-    inversePrimary: _brand500,
-    surfaceContainerHighest: Color(0xFF1E2A22),
+    inverseSurface: Color(0xFFE0F5F1),
+    onInverseSurface: Color(0xFF0D1F1C),
+    inversePrimary: _brand600,
+    surfaceContainerHighest: Color(0xFF1A2E2A),
   );
 
   static final light = ThemeData(
@@ -145,7 +145,7 @@ class AppTheme {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: const Color(0xFF1F8F3A),
+        backgroundColor: _brand500,
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 52),
         shape: RoundedRectangleBorder(

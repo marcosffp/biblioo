@@ -46,7 +46,7 @@ class MainShell extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.group_outlined),
             selectedIcon: Icon(Icons.group),
-            label: 'Comunidades',
+            label: 'Comunidade',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
