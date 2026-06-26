@@ -1,0 +1,14 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/cmake_install.cmake",
+		"/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/flutter/cmake_install.cmake",
+		"/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/runner/cmake_install.cmake",
+		"/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/plugins/file_selector_linux/cmake_install.cmake",
+		"/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/plugins/flutter_secure_storage_linux/cmake_install.cmake",
+		"/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/plugins/gtk/cmake_install.cmake",
+		"/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/plugins/sqlite3_flutter_libs/cmake_install.cmake",
+		"/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/plugins/url_launcher_linux/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

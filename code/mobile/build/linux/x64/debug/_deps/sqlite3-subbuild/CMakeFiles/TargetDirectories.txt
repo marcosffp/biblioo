@@ -1,0 +1,3 @@
+/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/_deps/sqlite3-subbuild/CMakeFiles/sqlite3-populate.dir
+/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/_deps/sqlite3-subbuild/CMakeFiles/edit_cache.dir
+/home/alvim/Desenvolvimento/Github/plf-es-2026-1-ti5-0492100-biblioo/code/mobile/build/linux/x64/debug/_deps/sqlite3-subbuild/CMakeFiles/rebuild_cache.dir

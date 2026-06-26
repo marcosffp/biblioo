@@ -112,7 +112,7 @@ CRUD do catálogo de livros, coleções, prateleiras (`shelf`) e itens de pratel
 | book       | 100 | 14.160 | 117,8/s | 33,8ms | 0% | 100% | Aprovado |
 | collection | 210 | 57.031 | 424,6/s | 34,4ms | 0% | 100% | Aprovado |
 | shelf      | 210 | 50.980 | 384,7/s | 47,2ms | 0% | 100% | Aprovado |
-| shelfItem  | 210 | 54.130 | 409,5/s | 43,9ms | 0% | 100% | Aprovado |
+| shelfItem  | 210 | 54.130 | 402,25/s | 43,9ms | 0% | 100% | Aprovado |
 
 > **Nota (book):** o teste combina busca textual (OpenSearch) e detalhe de livro (`GET /books/{id}`). O endpoint de detalhe aceita **404** como resposta válida (livro inexistente); nesta execução, com o catálogo de livros populado, todos os IDs sorteados existiam, resultando em 0% de falha. Ver §6.2.
 
@@ -131,7 +131,7 @@ Registro/login (JWT), perfil público e o grafo social (seguir/seguidores e soli
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| user            | 210 | 51.960 | 381,3/s | 56,7ms | 0% | 100% | Aprovado |
+| user            | 210 | 51.960 | 391,3/s | 56,7ms | 0% | 100% | Aprovado |
 | social          | 210 | 89.682 | 672,2/s | 27,3ms | 0% | 100% | Aprovado |
 | social-requests | 100 | 32.400 | 245,3/s | 62,3ms | 0% | 100% | Aprovado |
 
@@ -171,15 +171,15 @@ O domínio mais rico: comunidades, convites, solicitações de entrada, mensagen
 
 | Subdomínio | VUs | Requests | Throughput | p(95) | Falhas | Checks | Resultado |
 |------------|-----|----------|-----------|-------|--------|--------|-----------|
-| community       | 90  | 25.336 | 192,7/s | 15,9ms | 0% | 100% | Aprovado |
-| invites         | 210 | 62.321 | 473,8/s | 28,0ms | 0% | 100% | Aprovado |
+| community       | 90  | 25.326 | 192,57/s | 15,9ms | 0% | 100% | Aprovado |
+| invites         | 210 | 62.321 | 471,55/s | 28,0ms | 0% | 100% | Aprovado |
 | join-requests   | 210 | 54.607 | ~412/s | 107,1ms | 0% | 100% | Aprovado |
-| messageRest     | 120 | 29.092 | 191,7/s | 94,5ms | 0% | 100% | Aprovado |
+| messageRest     | 120 | 29.092 | 191,89/s | 94,5ms | 0% | 100% | Aprovado |
 | message (WS)    | 160 | 8.052 (HTTP) | — | 49,3ms / entrega 128ms | 0% | 100%² | Aprovado |
 | voting          | 210 | 82.760 | 642,80/s | 31,05ms | 0,90%³ | 100% | Aprovado |
 | admin           | 210 | 86.935 | ~615/s | 96,74ms | 0% | 100% | Aprovado |
 
-> ² `message` é WebSocket/STOMP: **taxa de entrega de mensagens 100%**, latência de entrega p95 128ms, 7.400 mensagens enviadas / 74.988 recebidas (fan-out de broadcast — cada mensagem enviada é replicada a todos os membros conectados da comunidade).
+> ² `message` é WebSocket/STOMP: **taxa de entrega de mensagens 100%**, latência de entrega p95 128ms, 7.400 mensagens enviadas / 74.888 recebidas (fan-out de broadcast — cada mensagem enviada é replicada a todos os membros conectados da comunidade).
 
 **Análise:** o domínio escala bem. Operações de leitura (community, invites, voting) ficam em p95 < 32ms. Mesmo o `admin`, que executa um ciclo administrativo completo state-mutating (papel, transferência, expulsão, convite por link), sustenta ~615 reqs/s a 210 VUs com 0% de falha. O `message` via WebSocket entrega 100% das mensagens com latência baixa.
 

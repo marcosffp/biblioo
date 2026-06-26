@@ -69,6 +69,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _pagesRead = 0;
   int _readersReached = 0;
   String _daysPerBook = '-';
+  int _activeDays = 0;
   int _goalTarget = _defaultGoalTarget;
   bool _goalLoading = true;
   List<ProfileDnaEntry> _dnaEntries = const [];
@@ -238,7 +239,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _followersCount = 0;
         _followingCount = 0;
         _socialLoading = false;
-
       });
     }
   }
@@ -254,8 +254,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _loadActivity(user);
         _loadCommunities();
         _loadDna(user);
+        _loadActiveDays();
       }
     });
+  }
+
+  Future<void> _loadActiveDays() async {
+    try {
+      final days = await _shelfRepo.getActiveReadingDays();
+      if (!mounted) return;
+      setState(() => _activeDays = days);
+    } catch (_) {
+      // streak é opcional, falha silenciosa
+    }
   }
 
   Future<void> _loadLibrary(User user, {bool refreshRemote = false}) async {
@@ -578,6 +589,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _loadActivity(user, refreshRemote: true);
       await _loadCommunities(refreshRemote: true);
       await _loadDna(user, refreshRemote: true);
+      await _loadActiveDays();
     }
   }
 
@@ -673,6 +685,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               pagesRead: _formatNumber(_pagesRead),
                               daysPerBook: _daysPerBook,
                               readersReached: _formatNumber(_readersReached),
+                              activeDays: _activeDays,
                             ),
                             const SizedBox(height: 16),
                             LayoutBuilder(

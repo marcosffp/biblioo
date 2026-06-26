@@ -20,6 +20,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import 'models/typing_user.dart';
 import 'widgets/community_chat_tab.dart';
 import 'widgets/community_detail_shared.dart';
 import 'widgets/community_detail_tab_bar.dart';
@@ -81,6 +82,15 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   int _reconnectAttempt = 0;
   bool _hasVotingHistory = false;
 
+  // --- Typing indicator ---
+  /// Mapa de userId -> {username, avatarUrl, timestamp} para usuários digitando.
+  final Map<int, _TypingEntry> _typingMap = {};
+  List<TypingUser> _typingUsers = const [];
+  Timer? _typingCleanupTimer;
+  int _lastTypingSentMs = 0;
+  static const int _typingThrottleMs = 800;
+  static const int _typingExpiryMs = 2000;
+
   bool get _isCurrentUserOwner {
     final community = _community;
     final currentUserId = _currentUser?.id;
@@ -138,6 +148,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     _tabController.dispose();
     _messageController.dispose();
     _reconnectTimer?.cancel();
+    _typingCleanupTimer?.cancel();
     _chatSocketSubscription?.cancel();
     _chatSocket?.sink.close();
     super.dispose();
@@ -246,19 +257,23 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   }
 
   Future<void> _connectChatSocket() async {
+    // Garante que o timer anterior seja limpo
     _reconnectTimer?.cancel();
+    _reconnectTimer = null;
 
     final apiUrl = const String.fromEnvironment(
       'API_URL',
       defaultValue: 'http://localhost:8080',
     );
+    // Usa a URL real do ambiente carregada pelo dotenv
     final parsed = Uri.parse(apiUrl);
     final token = await _authSecure.getAccessToken();
 
+    // Endpoint correto para WebSocket puro no Spring Boot é /ws
     final wsUri = parsed.replace(
       scheme: parsed.scheme == 'https' ? 'wss' : 'ws',
-      path: '/ws/community/websocket',
-      query: '',
+      path: '/ws',
+      queryParameters: {},
       fragment: '',
     );
 
@@ -268,7 +283,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     });
 
     await _chatSocketSubscription?.cancel();
+    _chatSocketSubscription = null;
     await _chatSocket?.sink.close();
+    _chatSocket = null;
 
     try {
       final channel = WebSocketChannel.connect(wsUri);
@@ -277,17 +294,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         _handleSocketFrame,
         onError: (_) => _handleSocketDisconnected(),
         onDone: _handleSocketDisconnected,
+        cancelOnError: false,
       );
 
-      final authHeader = token == null || token.isEmpty
-          ? ''
-          : 'Authorization:Bearer $token\n';
+      // Envia o CONNECT com headers serializados corretamente
       _sendStompFrame(
         command: 'CONNECT',
         headers: {
           'accept-version': '1.2',
           'heart-beat': '10000,10000',
-          if (authHeader.isNotEmpty) 'Authorization': 'Bearer $token',
+          if (token != null && token.isNotEmpty)
+            'Authorization': 'Bearer $token',
         },
       );
     } catch (_) {
@@ -312,6 +329,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     }
 
     if (!frame.startsWith('MESSAGE')) return;
+
+    // Verifica se o frame é do tópico de typing
+    final typingDestination = '/topic/community.${widget.communityId}.typing';
+    if (frame.contains('destination:$typingDestination') ||
+        frame.contains('destination: $typingDestination')) {
+      final body = _extractStompBody(frame);
+      if (body != null && body.trim().isNotEmpty) {
+        _handleTypingFrame(body);
+      }
+      return;
+    }
 
     final body = _extractStompBody(frame);
     if (body == null || body.trim().isEmpty) return;
@@ -365,6 +393,85 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     }
   }
 
+  /// Processa um frame de typing recebido via STOMP.
+  /// O payload esperado é: { userId: int, avatarUrl: String? }
+  void _handleTypingFrame(String body) {
+    try {
+      final parsed = jsonDecode(body);
+      if (parsed is! Map<String, dynamic>) return;
+
+      final userId = _asInt(parsed['userId']);
+      if (userId == null) return;
+
+      // Ignora o próprio usuário
+      if (userId == _currentUser?.id) return;
+
+      final avatarUrl = parsed['avatarUrl'] as String?;
+      final username = _resolveAuthorName(userId);
+
+      _typingMap[userId] = _TypingEntry(
+        username: username,
+        avatarUrl: avatarUrl,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
+      _refreshTypingUsers();
+    } catch (_) {
+      // Ignora frames malformados
+    }
+  }
+
+  void _refreshTypingUsers() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final active = <TypingUser>[];
+    _typingMap.forEach((userId, entry) {
+      if (now - entry.timestamp <= _typingExpiryMs) {
+        active.add(
+          TypingUser(
+            userId: userId,
+            username: entry.username,
+            avatarUrl: entry.avatarUrl,
+          ),
+        );
+      }
+    });
+    if (mounted) {
+      setState(() => _typingUsers = active);
+    }
+  }
+
+  void _startTypingCleanupTimer() {
+    _typingCleanupTimer?.cancel();
+    _typingCleanupTimer = Timer.periodic(const Duration(milliseconds: 500), (
+      _,
+    ) {
+      if (!mounted) return;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      bool changed = false;
+      _typingMap.removeWhere((_, entry) {
+        final expired = now - entry.timestamp > _typingExpiryMs;
+        if (expired) changed = true;
+        return expired;
+      });
+      if (changed) _refreshTypingUsers();
+    });
+  }
+
+  /// Publica o evento de typing para o servidor via STOMP (com throttle).
+  void _publishTyping() {
+    if (!_chatSocketConnected) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastTypingSentMs < _typingThrottleMs) return;
+    _lastTypingSentMs = now;
+    _sendStompFrame(
+      command: 'SEND',
+      headers: {
+        'destination': '/app/community/${widget.communityId}/typing',
+        'content-type': 'application/json',
+      },
+      body: '{}',
+    );
+  }
+
   Future<void> _syncAfterReconnect() async {
     final after = _latestMessageId();
     if (after == null) return;
@@ -374,12 +481,22 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         widget.communityId,
         after: after,
       );
-      if (!mounted) return;
+      if (!mounted || synced.isEmpty) return;
+
       setState(() {
-        _messages = _sortMessages(synced);
+        final current = [..._messages];
+        for (final msg in synced) {
+          final idx = current.indexWhere((m) => m.id == msg.id);
+          if (idx == -1) {
+            current.insert(0, msg);
+          } else {
+            current[idx] = msg;
+          }
+        }
+        _messages = _sortMessages(current);
       });
     } catch (_) {
-      // Keep existing list if sync fails; realtime stream continues.
+      // Mantém a lista atual se o sync falhar
     }
   }
 
@@ -388,6 +505,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       '/topic/community.${widget.communityId}',
       '/topic/community.${widget.communityId}.edits',
       '/topic/community.${widget.communityId}.reactions',
+      '/topic/community.${widget.communityId}.typing',
       '/user/queue/errors',
     ];
 
@@ -400,6 +518,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         },
       );
     }
+
+    // Inicia o timer de limpeza dos usuários digitando
+    _startTypingCleanupTimer();
   }
 
   void _handleSocketDisconnected() {
@@ -436,11 +557,23 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     final channel = _chatSocket;
     if (channel == null) return;
 
-    final buffer = StringBuffer()..writeln(command);
-    buffer.writeln();
+    final buffer = StringBuffer();
+    buffer.write(command);
+    buffer.write('\n');
+
+    // Agora os headers são escritos um a um: "chave:valor\n"
+    for (final entry in headers.entries) {
+      buffer.write('${entry.key}:${entry.value}\n');
+    }
+
+    // Linha em branco obrigatória separando headers do body
+    buffer.write('\n');
+
     if (body != null && body.isNotEmpty) {
       buffer.write(body);
     }
+
+    // Null-byte (\u0000) obrigatório encerrando o frame
     buffer.write('\u0000');
 
     channel.sink.add(buffer.toString());
@@ -1363,6 +1496,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   onToggleHeart: _toggleHeart,
                   findMessageById: _findMessageById,
                   resolveAuthorName: _resolveAuthorName,
+                  typingUsers: _typingUsers,
+                  onTyping: _publishTyping,
                 ),
                 if (showVotingTab)
                   BlocProvider(
@@ -1384,4 +1519,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
             ),
     );
   }
+}
+
+/// Dados internos de um usuário digitando (não exposto para a UI diretamente).
+class _TypingEntry {
+  final String username;
+  final String? avatarUrl;
+  final int timestamp;
+
+  const _TypingEntry({
+    required this.username,
+    required this.avatarUrl,
+    required this.timestamp,
+  });
 }
