@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../models/typing_user.dart';
 import 'community_detail_shared.dart';
 
 class CommunityChatTab extends StatelessWidget {
@@ -26,6 +27,12 @@ class CommunityChatTab extends StatelessWidget {
   final CommunityMessage? editingMessage;
   final bool hasSpoilerComposer;
   final List<XFile> pendingImages;
+
+  /// Lista de usuários que estão digitando no momento.
+  final List<TypingUser> typingUsers;
+
+  /// Callback chamado quando o usuário digita no composer (para publicar o evento de typing).
+  final VoidCallback onTyping;
 
   final Future<void> Function() onSendMessage;
   final Future<void> Function() onRetry;
@@ -59,6 +66,8 @@ class CommunityChatTab extends StatelessWidget {
     required this.editingMessage,
     required this.hasSpoilerComposer,
     required this.pendingImages,
+    required this.typingUsers,
+    required this.onTyping,
     required this.onSendMessage,
     required this.onRetry,
     required this.onPickImages,
@@ -169,21 +178,30 @@ class CommunityChatTab extends StatelessWidget {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: _ComposerCard(
-                controller: composerController,
-                busy: composerBusy,
-                uploadingMedia: uploadingMedia,
-                onSendMessage: onSendMessage,
-                currentUserInitials: currentUserInitials,
-                pendingImages: pendingImages,
-                onPickImages: onPickImages,
-                onRemovePendingImage: onRemovePendingImage,
-                hasSpoilerComposer: hasSpoilerComposer,
-                onSpoilerChanged: onSpoilerChanged,
-                replyingTo: replyingTo,
-                editingMessage: editingMessage,
-                onCancelReplying: onCancelReplying,
-                onCancelEditing: onCancelEditing,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (typingUsers.isNotEmpty)
+                    _TypingIndicator(typingUsers: typingUsers),
+                  _ComposerCard(
+                    controller: composerController,
+                    busy: composerBusy,
+                    uploadingMedia: uploadingMedia,
+                    onSendMessage: onSendMessage,
+                    onTyping: onTyping,
+                    currentUserInitials: currentUserInitials,
+                    pendingImages: pendingImages,
+                    onPickImages: onPickImages,
+                    onRemovePendingImage: onRemovePendingImage,
+                    hasSpoilerComposer: hasSpoilerComposer,
+                    onSpoilerChanged: onSpoilerChanged,
+                    replyingTo: replyingTo,
+                    editingMessage: editingMessage,
+                    onCancelReplying: onCancelReplying,
+                    onCancelEditing: onCancelEditing,
+                  ),
+                ],
               ),
             ),
           ),
@@ -237,6 +255,7 @@ class _ComposerCard extends StatelessWidget {
   final bool busy;
   final bool uploadingMedia;
   final Future<void> Function() onSendMessage;
+  final VoidCallback onTyping;
   final String currentUserInitials;
   final List<XFile> pendingImages;
   final Future<void> Function() onPickImages;
@@ -253,6 +272,7 @@ class _ComposerCard extends StatelessWidget {
     required this.busy,
     required this.uploadingMedia,
     required this.onSendMessage,
+    required this.onTyping,
     required this.currentUserInitials,
     required this.pendingImages,
     required this.onPickImages,
@@ -348,6 +368,7 @@ class _ComposerCard extends StatelessWidget {
                     controller: controller,
                     maxLines: 4,
                     minLines: 1,
+                    onChanged: (_) => onTyping(),
                     decoration: InputDecoration(
                       hintText: editingMessage != null
                           ? 'Atualize sua mensagem...'
@@ -1312,6 +1333,115 @@ class _ImageFallback extends StatelessWidget {
       alignment: Alignment.center,
       color: Colors.black.withValues(alpha: 0.15),
       child: Icon(Icons.broken_image_rounded, color: color),
+    );
+  }
+}
+
+/// Indicador visual de "alguém está digitando" exibido acima do composer.
+class _TypingIndicator extends StatefulWidget {
+  final List<TypingUser> typingUsers;
+
+  const _TypingIndicator({required this.typingUsers});
+
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _dotController;
+
+  @override
+  void initState() {
+    super.initState();
+    _dotController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _dotController.dispose();
+    super.dispose();
+  }
+
+  String _buildLabel() {
+    final users = widget.typingUsers;
+    if (users.isEmpty) return '';
+    if (users.length == 1) return '${users.first.username} está digitando';
+    if (users.length == 2) {
+      return '${users[0].username} e ${users[1].username} estão digitando';
+    }
+    return '${users.length} pessoas estão digitando';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final label = _buildLabel();
+    if (label.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 6),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _AnimatedDots(controller: _dotController),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Três pontos animados estilo "digitando".
+class _AnimatedDots extends StatelessWidget {
+  final AnimationController controller;
+
+  const _AnimatedDots({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final t = controller.value;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            // Cada ponto tem um offset de fase de 0.33
+            final phase = (t - i * 0.33).clamp(0.0, 1.0);
+            final scale =
+                0.6 + 0.4 * (1.0 - (phase - 0.5).abs() * 2).clamp(0.0, 1.0);
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+              child: Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }

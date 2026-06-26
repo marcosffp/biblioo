@@ -189,6 +189,16 @@ class ShelfRepository {
   bool _hasPageDetails(ShelfItemModel item) =>
       item.currentPage != null && item.totalPages != null;
 
+  /// Retorna o número de dias ativos de leitura (streak) do usuário.
+  /// Em caso de erro, retorna 0 silenciosamente.
+  Future<int> getActiveReadingDays() async {
+    try {
+      return await _remote.getActiveReadingDays();
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Future<void> _upsertCachedItem(int shelfId, ShelfItemModel model) async {
     final cached = _local.getCachedItems(shelfId);
     final index = cached.indexWhere((item) => item.id == model.id);
