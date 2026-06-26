@@ -51,7 +51,7 @@ function Dice3D({ phase }: { phase: DicePhase }) {
   const animClass =
     phase === "rolling" ? "animate-dice-3d-roll" :
     phase === "stopping" ? "animate-dice-3d-stop" :
-    "";
+    "animate-dice-3d-idle";
 
   return (
     <div
