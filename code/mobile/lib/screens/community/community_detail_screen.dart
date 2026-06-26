@@ -246,19 +246,23 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   }
 
   Future<void> _connectChatSocket() async {
+    // Garante que o timer anterior seja limpo
     _reconnectTimer?.cancel();
+    _reconnectTimer = null;
 
     final apiUrl = const String.fromEnvironment(
       'API_URL',
       defaultValue: 'http://localhost:8080',
     );
+    // Usa a URL real do ambiente carregada pelo dotenv
     final parsed = Uri.parse(apiUrl);
     final token = await _authSecure.getAccessToken();
 
+    // Endpoint correto para WebSocket puro no Spring Boot é /ws
     final wsUri = parsed.replace(
       scheme: parsed.scheme == 'https' ? 'wss' : 'ws',
-      path: '/ws/community/websocket',
-      query: '',
+      path: '/ws',
+      queryParameters: {},
       fragment: '',
     );
 
@@ -268,7 +272,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     });
 
     await _chatSocketSubscription?.cancel();
+    _chatSocketSubscription = null;
     await _chatSocket?.sink.close();
+    _chatSocket = null;
 
     try {
       final channel = WebSocketChannel.connect(wsUri);
@@ -277,17 +283,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         _handleSocketFrame,
         onError: (_) => _handleSocketDisconnected(),
         onDone: _handleSocketDisconnected,
+        cancelOnError: false,
       );
 
-      final authHeader = token == null || token.isEmpty
-          ? ''
-          : 'Authorization:Bearer $token\n';
+      // Envia o CONNECT com headers serializados corretamente
       _sendStompFrame(
         command: 'CONNECT',
         headers: {
           'accept-version': '1.2',
           'heart-beat': '10000,10000',
-          if (authHeader.isNotEmpty) 'Authorization': 'Bearer $token',
+          if (token != null && token.isNotEmpty)
+            'Authorization': 'Bearer $token',
         },
       );
     } catch (_) {
@@ -374,12 +380,22 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         widget.communityId,
         after: after,
       );
-      if (!mounted) return;
+      if (!mounted || synced.isEmpty) return;
+
       setState(() {
-        _messages = _sortMessages(synced);
+        final current = [..._messages];
+        for (final msg in synced) {
+          final idx = current.indexWhere((m) => m.id == msg.id);
+          if (idx == -1) {
+            current.insert(0, msg);
+          } else {
+            current[idx] = msg;
+          }
+        }
+        _messages = _sortMessages(current);
       });
     } catch (_) {
-      // Keep existing list if sync fails; realtime stream continues.
+      // Mantém a lista atual se o sync falhar
     }
   }
 
@@ -436,11 +452,23 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     final channel = _chatSocket;
     if (channel == null) return;
 
-    final buffer = StringBuffer()..writeln(command);
-    buffer.writeln();
+    final buffer = StringBuffer();
+    buffer.write(command);
+    buffer.write('\n');
+
+    // Agora os headers são escritos um a um: "chave:valor\n"
+    for (final entry in headers.entries) {
+      buffer.write('${entry.key}:${entry.value}\n');
+    }
+
+    // Linha em branco obrigatória separando headers do body
+    buffer.write('\n');
+
     if (body != null && body.isNotEmpty) {
       buffer.write(body);
     }
+
+    // Null-byte (\u0000) obrigatório encerrando o frame
     buffer.write('\u0000');
 
     channel.sink.add(buffer.toString());
