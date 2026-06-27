@@ -56,13 +56,13 @@
 | book | stress | 400 | 114.684 | 545.6/s | 100.89ms | 0% | Aprovado |
 | collection | load | 210 | 57.031 | 424.57/s | 34.44ms | 0% | Aprovado |
 | collection | spike | 500 | 32.148 | 397.02/s | 574.91ms | 0% | Aprovado |
-| collection | stress | 600 | 162.883 | 585.3/s | 250.07ms | 0% | Aprovado |
+| collection | stress | 600 | 165.283 | 593.97/s | 250.07ms | 0% | Aprovado |
 | shelf | load | 210 | 50.980 | 384.72/s | 47.24ms | 0% | Aprovado |
 | shelf | spike | 500 | 37.507 | 500.90/s | 396.55ms | 0% | Aprovado |
-| shelf | stress | 600 | 164.588 | 594.4/s | 120.61ms | 0% | Aprovado |
-| shelfItem | load | 210 | 54.130 | 409.5/s | 43.89ms | 0% | Aprovado |
+| shelf | stress | 600 | 164.588 | 594.4/s | 128.61ms | 0% | Aprovado |
+| shelfItem | load | 210 | 54.130 | 402.25/s | 43.89ms | 0% | Aprovado |
 | shelfItem | spike | 500 | 27.632 | 344.98/s | 475.65ms | 0% | Aprovado |
-| shelfItem | stress | 600 | 117.768 | 377.6/s | 717.87ms | 0% | Aprovado |
+| shelfItem | stress | 600 | 103.345 | 331.39/s | 717.87ms | 0% | Aprovado |
 
 **Load**
 
@@ -93,13 +93,13 @@
 
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas | Status |
 |------------|-------|---------|----------|-----------|-------|--------|--------|
-| user | load | 210 | 51.960 | 381.31/s | 56.7ms | 0% | Aprovado |
+| user | load | 210 | 51.960 | 391.31/s | 56.7ms | 0% | Aprovado |
 | user | spike | 500 | 34.860 | 462.80/s | 15.46ms | 0% | Aprovado |
-| user | stress | 600 | 269.082 | 833.75/s | 349.76ms | 0% | Aprovado |
+| user | stress | 600 | 269.802 | 833.75/s | 349.76ms | 0% | Aprovado |
 | social (público) | load | 210 | 89.682 | 672.18/s | 27.34ms | 0% | Aprovado |
 | social (público) | spike | 500 | 43.290 | 552.00/s | 333.3ms | 0% | Aprovado |
 | social (público) | stress | 200¹ | 142.582 | 287.85/s | 666.23ms | 0%² | Aprovado |
-| social-requests (privado) | load | 100 | 32.400 | 245.30/s | 62.28ms | 0% | Aprovado |
+| social-requests (privado) | load | 100 | 32.400 | 245.30/s | 62.26ms | 0% | Aprovado |
 | social-requests (privado) | spike | 500 | 47.436 | 585.13/s | 354.09ms | 4.74%³ | Aprovado |
 | social-requests (privado) | stress | 250 | 157.722 | 603.53/s | 45.4ms | 9.08%³ | Aprovado |
 
@@ -184,10 +184,10 @@
 
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas | Status |
 |------------|-------|---------|----------|-----------|-------|--------|--------|
-| community | load | 90 | 25.336 | 192.7/s | 15.88ms | 0% | Aprovado |
+| community | load | 90 | 25.326 | 192.57/s | 15.88ms | 0% | Aprovado |
 | community | spike | 200 | 13.564 | 255.07/s | 22.5ms | 0% | Aprovado |
 | community | stress | 500 | 102.449 | 476.49/s | 699.66ms | 0% | Aprovado |
-| community-invites | load | 210 | 62.321 | 473.8/s | 28.04ms | 0% | Aprovado |
+| community-invites | load | 210 | 62.321 | 471.55/s | 28.04ms | 0% | Aprovado |
 | community-invites | stress | 500 | 130.917 | 469.97/s | 428.42ms | 6.86%¹ | Aprovado |
 | community-join-requests | load | 210 | 54.607 | ~412/s | 107.08ms | 0% | Aprovado |
 | community-join-requests | stress | 600 | 86.079 | 306.72/s | 1.38s | 16.99%² | Aprovado |
@@ -195,14 +195,14 @@
 | admin | load | 210 | 86.935 | ~615/s | 96.74ms | 0% | Aprovado |
 | admin | spike | 500 | 30.397 | 303.64/s | 955.92ms | 0% | Aprovado |
 | admin | stress | 600 | 164.801 | ~568/s | 605.7ms | 0% | Aprovado |
-| messageRest | load | 120 | 29.092 | 191.7/s | 94.45ms | 0% | Aprovado |
+| messageRest | load | 120 | 29.092 | 191.89/s | 94.45ms | 0% | Aprovado |
 | messageRest | spike | 500 | 38.778 | 306.32/s | 179.03ms | 0% | Aprovado |
-| messageRest | stress | 600 | 121.497 | 362.53/s | 525.69ms | 0% | Aprovado |
+| messageRest | stress | 600 | 121.683 | 362.53/s | 525.69ms | 0% | Aprovado |
 | voting | load | 210 | 82.760 | 642.80/s | 31.05ms | 0.90%³ | Aprovado |
 | voting | spike | 500 | 24.667 | 439.54/s | 956.86ms | 0% | Aprovado |
 | voting | stress | 600 | 201.090 | 796.70/s | 404.09ms | 0% | Aprovado |
-| message (WS) | concurrency | 100 | — (STOMP) | 7.700 msg env | lat. p(95) 181ms | 0% | Aprovado |
-| message (WS) | load | 160 | — (STOMP) | 7.400 env / 74.988 recv | lat. p(95) 128ms | 0% | Aprovado |
+| message (WS) | concurrency | 100 | — (STOMP) | 7.700 msg env | lat. p(95) 101ms | 0% | Aprovado |
+| message (WS) | load | 160 | — (STOMP) | 7.400 env / 74.888 recv | lat. p(95) 128ms | 0% | Aprovado |
 | message (WS) | spike | 150 | — (STOMP) | 12.810 env / 350.741 recv | lat. p(95) 14ms | 0% | Aprovado |
 | message (WS) | stress | 250 | — (STOMP) | 15.145 env / 294.410 recv | lat. p(95) 32ms | 0% | Aprovado |
 
@@ -307,7 +307,7 @@
 |------------|-------|---------|----------|-----------|-------|--------|--------|
 | trending | load | 210 | 51.279 | 341.08/s | 31.3ms | 0% | Aprovado |
 | trending | spike | 500 | 32.271 | 274.52/s | 16.51ms | 0% | Aprovado |
-| trending | stress | 600 | ~102.8k | ~300/s | ~22.8ms | 0.00% (7) | Aprovado |
+| trending | stress | 600 | ~102.8k | ~300/s | ~23.8ms | 0.00% (7) | Aprovado |
 
 > p(95) ≤ 32ms em todos os três tipos — melhor estabilidade de latência da suíte, graças à materialização/cache dos rankings via Redis.
 

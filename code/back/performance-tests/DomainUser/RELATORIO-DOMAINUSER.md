@@ -41,7 +41,7 @@
 | auth | — | 1.8ms | 33.32ms | 571.58ms | 64.44ms | 78.45ms |
 | profile | 10.57ms | 1.8ms | 5.89ms | 352.36ms | 22.55ms | 32.64ms |
 
-**Sumário:** 51.960 requests (381.31/s) · 25.750 iterações · 0 falhas · 36 MB recv / 17 MB sent · 2m.
+**Sumário:** 51.960 requests (391.31/s) · 25.750 iterações · 0 falhas · 36 MB recv / 17 MB sent · 2m.
 
 ---
 
@@ -79,7 +79,7 @@
 | `http_req_duration` p(95) | < 5000ms | 349.76ms | Aprovado |
 | `http_req_failed` rate | < 10% | 0.00% | Aprovado |
 
-**Checks:** register 201, login 200, GET /me 200, GET /{username} 200 — todos 100% (269.082 checks).
+**Checks:** register 201, login 200, GET /me 200, GET /{username} 200 — todos 100% (269.802 checks).
 
 **Métricas HTTP:**
 
@@ -87,7 +87,7 @@
 |---------|-----|-----|-----|-----|-------|-------|
 | geral | 111.3ms | 3.51ms | 79.81ms | 1.38s | 264.75ms | 349.76ms |
 
-**Sumário:** **269.082 requests (833.75/s)** · 134.101 iterações · 0 falhas · 163 MB recv / 101 MB sent · 5m23.6s total (4m VU).
+**Sumário:** **269.802 requests (833.75/s)** · 134.101 iterações · 0 falhas · 163 MB recv / 101 MB sent · 5m23.6s total (4m VU).
 
 ---
 
@@ -156,7 +156,7 @@ Rampa até **200 VUs** (4 estágios: 20→50→100→200 × 30s + descida). Race
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 1500ms | 62.28ms | Aprovado |
+| `http_req_duration` p(95) | < 1500ms | 62.26ms | Aprovado |
 | `http_req_failed` rate | < 1% | 0.00% | Aprovado |
 
 **Checks:** register 201, login 200, visibility 200, follow privado **202**, GET /follow-requests 200, accept 204, unfollow reset 204, reject 204 — todos 100% (32.400 checks).
@@ -165,7 +165,7 @@ Rampa até **200 VUs** (4 estágios: 20→50→100→200 × 30s + descida). Race
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| geral | 23.07ms | 1.72ms | 13.23ms | 408.61ms | 51.89ms | 62.28ms |
+| geral | 23.07ms | 1.72ms | 13.23ms | 408.61ms | 51.89ms | 62.26ms |
 
 **Sumário:** 32.400 requests (245.30/s) · 9.100 iterações · 0 falhas · 13 MB recv / 14 MB sent · 2m.
 
@@ -267,13 +267,13 @@ Força contenção para verificar race condition: 50 owners privados, 400 reques
 
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas | Resultado |
 |------------|-------|---------|----------|-----------|-------|--------|-----------|
-| user | load | 210 | 51.960 | 381.31/s | 56.7ms | 0% | Aprovado |
+| user | load | 210 | 51.960 | 391.31/s | 56.7ms | 0% | Aprovado |
 | user | spike | 500 | 34.860 | 462.80/s | 15.46ms | 0% | Aprovado |
-| user | stress | 600 | 269.082 | 833.75/s | 349.76ms | 0% | Aprovado |
+| user | stress | 600 | 269.802 | 833.75/s | 349.76ms | 0% | Aprovado |
 | social | load (público) | 210 | 89.682 | 672.18/s | 27.34ms | 0% | Aprovado |
 | social | spike (público) | 500 | 43.290 | 552.00/s | 333.3ms | 0% | Aprovado |
 | social | stress (público) | 200¹ | 142.582 | 287.85/s² | 666.23ms | 0%³ | Aprovado⁴ |
-| social | requests load (privado) | 100 | 32.400 | 245.30/s | 62.28ms | 0% | Aprovado |
+| social | requests load (privado) | 100 | 32.400 | 245.30/s | 62.26ms | 0% | Aprovado |
 | social | requests spike (privado) | 500 | 47.436 | 585.13/s | 354.09ms | 4.74%⁵ | Aprovado |
 | social | requests stress (privado) | 250 | 157.722 | 603.53/s | 45.4ms | 9.08%⁶ | Aprovado |
 

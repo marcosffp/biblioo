@@ -86,7 +86,7 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 2000ms | ~22.8ms | Aprovado |
+| `http_req_duration` p(95) | < 2000ms | ~23.8ms | Aprovado |
 | `http_req_failed` rate | < 5% | 0.00% (7/~102.8k) | Aprovado |
 | `trending_error_rate` | < 5% | 0.00% | Aprovado |
 
@@ -96,7 +96,7 @@
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| geral | ~8.82ms | ~2.15ms | ~7.21ms | ~173.42ms | ~17.13ms | ~22.8ms |
+| geral | ~8.82ms | ~2.15ms | ~7.21ms | ~173.42ms | ~17.13ms | ~23.8ms |
 
 **Métricas Customizadas:**
 
@@ -115,7 +115,7 @@
 |------------|-------|---------|----------|-----------|-------|--------|-----------|
 | trending | load | 210 | 51.279 | 341.08/s | 31.3ms | 0% | Aprovado |
 | trending | spike | 500 | 32.271 | 274.52/s | 16.51ms | 0% | Aprovado |
-| trending | stress | 600 | ~102.8k | ~300/s | ~22.8ms | 0.00% (7) | Aprovado |
+| trending | stress | 600 | ~102.8k | ~300/s | ~23.8ms | 0.00% (7) | Aprovado |
 
 **Taxa de falhas geral:** ~0% · **Todos os thresholds:** aprovados.
 **Destaque:** mesmo agregando dados de múltiplos domínios, p(95) ≤ 32ms em todos os testes — forte indício de cache/materialização eficiente dos rankings de trending.

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:biblioo/core/config/app_env.dart';
 import 'package:biblioo/core/di/injector.dart';
 import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/community/bloc/community_voting_bloc.dart';
@@ -20,6 +21,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import 'models/typing_user.dart';
 import 'widgets/community_chat_tab.dart';
 import 'widgets/community_detail_shared.dart';
 import 'widgets/community_detail_tab_bar.dart';
@@ -81,6 +83,18 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   int _reconnectAttempt = 0;
   bool _hasVotingHistory = false;
 
+  /// Cache acumulativo userId -> username: nomes não são removidos quando o
+  /// usuário sai, evitando mensagens antigas mostrarem "Usuario #X".
+  final Map<int, String> _memberNameCache = {};
+
+  // --- Typing indicator ---
+  final Map<int, _TypingEntry> _typingMap = {};
+  List<TypingUser> _typingUsers = const [];
+  Timer? _typingCleanupTimer;
+  int _lastTypingSentMs = 0;
+  static const int _typingThrottleMs = 800;
+  static const int _typingExpiryMs = 2000;
+
   bool get _isCurrentUserOwner {
     final community = _community;
     final currentUserId = _currentUser?.id;
@@ -138,6 +152,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     _tabController.dispose();
     _messageController.dispose();
     _reconnectTimer?.cancel();
+    _typingCleanupTimer?.cancel();
     _chatSocketSubscription?.cancel();
     _chatSocket?.sink.close();
     super.dispose();
@@ -177,6 +192,10 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
           : false;
       if (!mounted) return;
 
+      for (final m in members) {
+        final name = m.username?.trim() ?? '';
+        if (name.isNotEmpty) _memberNameCache[m.userId] = name;
+      }
       setState(() {
         _community = community;
         _book = book;
@@ -190,6 +209,23 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         _headerError = 'Nao foi possivel carregar a comunidade.';
         _headerLoading = false;
       });
+    }
+  }
+
+  Future<void> _refreshMembers() async {
+    try {
+      final members = await _repo.getCommunityMembers(
+        widget.communityId,
+        forceRefresh: true,
+      );
+      if (!mounted) return;
+      for (final m in members) {
+        final name = m.username?.trim() ?? '';
+        if (name.isNotEmpty) _memberNameCache[m.userId] = name;
+      }
+      setState(() => _members = members);
+    } catch (_) {
+      // ignore — manter lista atual se falhar
     }
   }
 
@@ -246,19 +282,18 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   }
 
   Future<void> _connectChatSocket() async {
+    // Garante que o timer anterior seja limpo
     _reconnectTimer?.cancel();
+    _reconnectTimer = null;
 
-    final apiUrl = const String.fromEnvironment(
-      'API_URL',
-      defaultValue: 'http://localhost:8080',
-    );
     final parsed = Uri.parse(apiUrl);
     final token = await _authSecure.getAccessToken();
 
+    // Endpoint correto para WebSocket puro no Spring Boot é /ws
     final wsUri = parsed.replace(
       scheme: parsed.scheme == 'https' ? 'wss' : 'ws',
-      path: '/ws/community/websocket',
-      query: '',
+      path: '/ws',
+      queryParameters: {},
       fragment: '',
     );
 
@@ -268,7 +303,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     });
 
     await _chatSocketSubscription?.cancel();
+    _chatSocketSubscription = null;
     await _chatSocket?.sink.close();
+    _chatSocket = null;
 
     try {
       final channel = WebSocketChannel.connect(wsUri);
@@ -277,17 +314,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         _handleSocketFrame,
         onError: (_) => _handleSocketDisconnected(),
         onDone: _handleSocketDisconnected,
+        cancelOnError: false,
       );
 
-      final authHeader = token == null || token.isEmpty
-          ? ''
-          : 'Authorization:Bearer $token\n';
+      // Envia o CONNECT com headers serializados corretamente
       _sendStompFrame(
         command: 'CONNECT',
         headers: {
           'accept-version': '1.2',
           'heart-beat': '10000,10000',
-          if (authHeader.isNotEmpty) 'Authorization': 'Bearer $token',
+          if (token != null && token.isNotEmpty)
+            'Authorization': 'Bearer $token',
         },
       );
     } catch (_) {
@@ -313,6 +350,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
 
     if (!frame.startsWith('MESSAGE')) return;
 
+    // Verifica se o frame é do tópico de typing
+    final typingDestination = '/topic/community.${widget.communityId}.typing';
+    if (frame.contains('destination:$typingDestination') ||
+        frame.contains('destination: $typingDestination')) {
+      final body = _extractStompBody(frame);
+      if (body != null && body.trim().isNotEmpty) {
+        _handleTypingFrame(body);
+      }
+      return;
+    }
+
     final body = _extractStompBody(frame);
     if (body == null || body.trim().isEmpty) return;
 
@@ -336,7 +384,12 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     switch (eventType) {
       case 'MESSAGE_CREATED':
         if (messageId == null) return;
-        _upsertMessage(_toCommunityMessage(data));
+        final msg = _toCommunityMessage(data);
+        _upsertMessage(msg);
+        final msgType = data['type']?.toString();
+        if (msgType == 'MEMBER_JOINED' || msgType == 'MEMBER_LEFT') {
+          _refreshMembers();
+        }
         break;
       case 'MESSAGE_UPDATED':
         if (messageId == null) return;
@@ -365,6 +418,85 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     }
   }
 
+  /// Processa um frame de typing recebido via STOMP.
+  /// O payload esperado é: { userId: int, avatarUrl: String? }
+  void _handleTypingFrame(String body) {
+    try {
+      final parsed = jsonDecode(body);
+      if (parsed is! Map<String, dynamic>) return;
+
+      final userId = _asInt(parsed['userId']);
+      if (userId == null) return;
+
+      // Ignora o próprio usuário
+      if (userId == _currentUser?.id) return;
+
+      final avatarUrl = parsed['avatarUrl'] as String?;
+      final username = _resolveAuthorName(userId);
+
+      _typingMap[userId] = _TypingEntry(
+        username: username,
+        avatarUrl: avatarUrl,
+        timestamp: DateTime.now().millisecondsSinceEpoch,
+      );
+      _refreshTypingUsers();
+    } catch (_) {
+      // Ignora frames malformados
+    }
+  }
+
+  void _refreshTypingUsers() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final active = <TypingUser>[];
+    _typingMap.forEach((userId, entry) {
+      if (now - entry.timestamp <= _typingExpiryMs) {
+        active.add(
+          TypingUser(
+            userId: userId,
+            username: entry.username,
+            avatarUrl: entry.avatarUrl,
+          ),
+        );
+      }
+    });
+    if (mounted) {
+      setState(() => _typingUsers = active);
+    }
+  }
+
+  void _startTypingCleanupTimer() {
+    _typingCleanupTimer?.cancel();
+    _typingCleanupTimer = Timer.periodic(const Duration(milliseconds: 500), (
+      _,
+    ) {
+      if (!mounted) return;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      bool changed = false;
+      _typingMap.removeWhere((_, entry) {
+        final expired = now - entry.timestamp > _typingExpiryMs;
+        if (expired) changed = true;
+        return expired;
+      });
+      if (changed) _refreshTypingUsers();
+    });
+  }
+
+  /// Publica o evento de typing para o servidor via STOMP (com throttle).
+  void _publishTyping() {
+    if (!_chatSocketConnected) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastTypingSentMs < _typingThrottleMs) return;
+    _lastTypingSentMs = now;
+    _sendStompFrame(
+      command: 'SEND',
+      headers: {
+        'destination': '/app/community/${widget.communityId}/typing',
+        'content-type': 'application/json',
+      },
+      body: '{}',
+    );
+  }
+
   Future<void> _syncAfterReconnect() async {
     final after = _latestMessageId();
     if (after == null) return;
@@ -374,12 +506,22 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         widget.communityId,
         after: after,
       );
-      if (!mounted) return;
+      if (!mounted || synced.isEmpty) return;
+
       setState(() {
-        _messages = _sortMessages(synced);
+        final current = [..._messages];
+        for (final msg in synced) {
+          final idx = current.indexWhere((m) => m.id == msg.id);
+          if (idx == -1) {
+            current.insert(0, msg);
+          } else {
+            current[idx] = msg;
+          }
+        }
+        _messages = _sortMessages(current);
       });
     } catch (_) {
-      // Keep existing list if sync fails; realtime stream continues.
+      // Mantém a lista atual se o sync falhar
     }
   }
 
@@ -388,6 +530,7 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       '/topic/community.${widget.communityId}',
       '/topic/community.${widget.communityId}.edits',
       '/topic/community.${widget.communityId}.reactions',
+      '/topic/community.${widget.communityId}.typing',
       '/user/queue/errors',
     ];
 
@@ -400,6 +543,9 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         },
       );
     }
+
+    // Inicia o timer de limpeza dos usuários digitando
+    _startTypingCleanupTimer();
   }
 
   void _handleSocketDisconnected() {
@@ -436,11 +582,23 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     final channel = _chatSocket;
     if (channel == null) return;
 
-    final buffer = StringBuffer()..writeln(command);
-    buffer.writeln();
+    final buffer = StringBuffer();
+    buffer.write(command);
+    buffer.write('\n');
+
+    // Agora os headers são escritos um a um: "chave:valor\n"
+    for (final entry in headers.entries) {
+      buffer.write('${entry.key}:${entry.value}\n');
+    }
+
+    // Linha em branco obrigatória separando headers do body
+    buffer.write('\n');
+
     if (body != null && body.isNotEmpty) {
       buffer.write(body);
     }
+
+    // Null-byte (\u0000) obrigatório encerrando o frame
     buffer.write('\u0000');
 
     channel.sink.add(buffer.toString());
@@ -476,10 +634,16 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       if (current.trim().isNotEmpty) return current;
     }
 
+    final cached = _memberNameCache[authorId];
+    if (cached != null && cached.isNotEmpty) return cached;
+
     for (final member in _members) {
       if (member.userId == authorId) {
-        final username = member.username ?? '';
-        if (username.trim().isNotEmpty) return username;
+        final username = member.username?.trim() ?? '';
+        if (username.isNotEmpty) {
+          _memberNameCache[authorId] = username;
+          return username;
+        }
       }
     }
 
@@ -857,6 +1021,140 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       _showSnack(message);
     } catch (_) {
       _showSnack('Nao foi possivel sair da comunidade.');
+    }
+  }
+
+  Future<void> _removeMember(CommunityMember member) async {
+    final username = member.username ?? 'este membro';
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remover membro?'),
+        content: Text(
+          'Tem certeza que deseja remover $username da comunidade?',
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repo.removeMember(widget.communityId, member.userId);
+      if (!mounted) return;
+      _showSnack('$username foi removido da comunidade.');
+      await _reloadScreenData();
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ?? 'Nao foi possivel remover o membro.',
+      );
+    } catch (_) {
+      _showSnack('Nao foi possivel remover o membro.');
+    }
+  }
+
+  Future<void> _changeMemberRole(
+    CommunityMember member,
+    String newRole,
+  ) async {
+    final username = member.username ?? 'este membro';
+    final isPromoting =
+        newRole.toUpperCase() == 'MODERATOR' ||
+        newRole.toUpperCase() == 'ADMIN';
+    final actionLabel = isPromoting ? 'Tornar admin' : 'Remover de admin';
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('$actionLabel?'),
+        content: Text(
+          isPromoting
+              ? 'Deseja tornar $username administrador desta comunidade?'
+              : 'Deseja remover $username do cargo de administrador?',
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repo.changeMemberRole(widget.communityId, member.userId, newRole);
+      if (!mounted) return;
+      _showSnack(
+        isPromoting
+            ? '$username agora é administrador.'
+            : '$username não é mais administrador.',
+      );
+      await _reloadScreenData();
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ??
+            'Nao foi possivel alterar o cargo do membro.',
+      );
+    } catch (_) {
+      _showSnack('Nao foi possivel alterar o cargo do membro.');
+    }
+  }
+
+  Future<void> _deleteCommunity() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir comunidade?'),
+        content: const Text(
+          'Esta ação é irreversível. Todos os membros serão removidos e as mensagens serão apagadas permanentemente.',
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repo.deleteCommunity(widget.communityId);
+      if (!mounted) return;
+      Navigator.of(context).maybePop();
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ?? 'Nao foi possivel excluir a comunidade.',
+      );
+    } catch (_) {
+      _showSnack('Nao foi possivel excluir a comunidade.');
     }
   }
 
@@ -1302,9 +1600,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               book: _book,
               members: _members,
               joinRequestPending: _joinRequestPending,
+              currentUserId: _currentUser?.id,
               onJoinOrLeave: _handleJoinOrLeave,
               onRefresh: _reloadScreenData,
               onShare: _handleShareFromOverview,
+              onDeleteCommunity: _deleteCommunity,
+              onRemoveMember: _removeMember,
+              onChangeMemberRole: _changeMemberRole,
               accessNoticeTitle: accessNoticeTitle,
               accessNoticeDescription: accessNoticeDescription,
             )
@@ -1316,9 +1618,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   book: _book,
                   members: _members,
                   joinRequestPending: _joinRequestPending,
+                  currentUserId: _currentUser?.id,
                   onJoinOrLeave: _handleJoinOrLeave,
                   onRefresh: _reloadScreenData,
                   onShare: _handleShareFromOverview,
+                  onDeleteCommunity: _deleteCommunity,
+                  onRemoveMember: _removeMember,
+                  onChangeMemberRole: _changeMemberRole,
                 ),
                 CommunityChatTab(
                   loading: _messagesLoading && !_messagesLoaded,
@@ -1363,6 +1669,8 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   onToggleHeart: _toggleHeart,
                   findMessageById: _findMessageById,
                   resolveAuthorName: _resolveAuthorName,
+                  typingUsers: _typingUsers,
+                  onTyping: _publishTyping,
                 ),
                 if (showVotingTab)
                   BlocProvider(
@@ -1384,4 +1692,17 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
             ),
     );
   }
+}
+
+/// Dados internos de um usuário digitando (não exposto para a UI diretamente).
+class _TypingEntry {
+  final String username;
+  final String? avatarUrl;
+  final int timestamp;
+
+  const _TypingEntry({
+    required this.username,
+    required this.avatarUrl,
+    required this.timestamp,
+  });
 }

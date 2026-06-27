@@ -9,7 +9,7 @@ import 'package:biblioo/features/shelf/bloc/shelf_event.dart';
 import 'package:biblioo/screens/collection/widgets/collection_statistics_section.dart';
 import 'package:biblioo/screens/shelf/widgets/shelf_card.dart';
 import 'package:biblioo/screens/shelf/widgets/create_shelf_sheet.dart';
-import 'package:biblioo/shared/widgets/bibi_fab.dart';
+import 'package:biblioo/shared/widgets/bibo_fab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:biblioo/screens/shelf/shelf_list_screen.dart';
@@ -239,7 +239,7 @@ class _CollectionDetailViewState extends State<_CollectionDetailView> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const BibiFab(mini: true),
+          const BiboFab(mini: true, heroTag: 'collection_detail_bibo_fab'),
           const SizedBox(height: 8),
           FloatingActionButton.extended(
             onPressed: () => _showAddShelfDialog(context),

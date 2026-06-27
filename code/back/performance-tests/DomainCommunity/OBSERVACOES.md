@@ -12,7 +12,7 @@
 - Spike test com 200 VUs: p(95) de 22.5ms — praticamente sem degradação comparado ao load test.
 
 ### Pontos de atenção
-- **Degradação expressiva no stress:** p(95) saltou de 15.88ms no load (90 VUs) para 699.66ms no stress (500 VUs), com avg indo de ~9ms para 194.5ms e max chegando a 1.98s. O throughput caiu de 192.7/s para 476.49/s (o menor dos três testes, refletindo a duração das requisições individuais). Isso indica que os endpoints de listagem/busca de comunidades não escalam linearmente sob 500 VUs — possível gargalo em JOIN ou full table scan sob concorrência extrema.
+- **Degradação expressiva no stress:** p(95) saltou de 15.88ms no load (90 VUs) para 699.66ms no stress (500 VUs), com avg indo de ~9ms para 194.5ms e max chegando a 1.98s. O throughput caiu de 192.57/s para 476.49/s (o menor dos três testes, refletindo a duração das requisições individuais). Isso indica que os endpoints de listagem/busca de comunidades não escalam linearmente sob 500 VUs — possível gargalo em JOIN ou full table scan sob concorrência extrema.
 - O cenário `leaveJoin` (join + leave em loop) tem latência ~2× maior que `read` no load test (21.56ms vs 10.73ms). Operações de membership têm custo de escrita, o que é esperado, mas merece índice na tabela de membros para evitar table scan em operações de join concorrentes.
 - O stress test não inclui operações de leitura detalhada (GET /communities/{id} com membros, GET /book/{bookId}) — focou apenas em create e list. Os testes mais completos ficaram no load test.
 
@@ -71,7 +71,7 @@
 - `msg_duplicated`: **0** — nenhuma mensagem entregue em duplicata.
 - `msg_overwritten`: **0** — nenhum conteúdo sobrescrito por escrita concorrente.
 - `concurrency_violation_rate`: **0%** — nenhuma violação de integridade.
-- `msg_delivery_latency_ms` p(95): **181ms** (limite 3000ms) — com ampla margem.
+- `msg_delivery_latency_ms` p(95): **101ms** (limite 3000ms) — com ampla margem.
 
 **O que foi comprovado:** a integridade de mensagens sob concorrência é sólida. Não há duplicatas, sobrescrita ou violação de ordem.
 
@@ -86,7 +86,7 @@ A **capacidade WS real deve ser medida contra o backend hospedado (Google Cloud)
 Os três testes de carga/pico/stress para WebSocket + STOMP foram executados localmente e **aprovaram com entrega 100% em todos os cenários**.
 
 **Pontos positivos:**
-- `message-load.js` (160 VUs, 2 cenários): `msg_delivery_success_rate` 100%, `stomp_send_fail_rate` 0%, p95 de latência de entrega **128ms** (limite 2000ms). Fan-out de 7.400 envios → 74.988 recebimentos sem nenhuma falha.
+- `message-load.js` (160 VUs, 2 cenários): `msg_delivery_success_rate` 100%, `stomp_send_fail_rate` 0%, p95 de latência de entrega **128ms** (limite 2000ms). Fan-out de 7.400 envios → 74.888 recebimentos sem nenhuma falha.
 - `message-spike.js` (até 150 VUs): entrega 100%, `ws_connect_duration_ms` p95 **18.54ms** — sem degradação de conexão em carga moderada.
 - `message-stress.js` (até 250 VUs, 7 estágios): entrega 100%, latência p95 **32ms**, `ws_connect_duration_ms` p95 **31ms**. Sem degradação progressiva conforme a carga sobe — o sistema STOMP escala linearmente localmente até 250 conexões.
 

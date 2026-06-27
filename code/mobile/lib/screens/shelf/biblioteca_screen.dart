@@ -4,7 +4,7 @@ import 'package:biblioo/features/shelf/bloc/shelf_bloc.dart';
 import 'package:biblioo/features/shelf/bloc/shelf_event.dart';
 import 'package:biblioo/screens/collection/widgets/create_collection_sheet.dart';
 import 'package:biblioo/screens/shelf/widgets/create_shelf_sheet.dart';
-import 'package:biblioo/shared/widgets/bibi_fab.dart';
+import 'package:biblioo/shared/widgets/bibo_fab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'widgets/biblioteca_tab_bar.dart';
@@ -58,7 +58,7 @@ class _BibliotecaScreenState extends State<BibliotecaScreen>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const BibiFab(mini: true),
+          const BiboFab(mini: true, heroTag: 'biblioteca_bibo_fab'),
           const SizedBox(height: 8),
           _tabController.index == 0
               ? FloatingActionButton(

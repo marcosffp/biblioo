@@ -30,10 +30,10 @@ class ShelfRemoteDatasource {
     required String name,
     String? description,
   }) async {
-    final response = await _dio.post('/shelves', data: {
-      'name': name,
-      'description': description,
-    });
+    final response = await _dio.post(
+      '/shelves',
+      data: {'name': name, 'description': description},
+    );
     return ShelfModel.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -43,10 +43,10 @@ class ShelfRemoteDatasource {
     required String name,
     String? description,
   }) async {
-    final response = await _dio.put('/shelves/$shelfId', data: {
-      'name': name,
-      'description': description,
-    });
+    final response = await _dio.put(
+      '/shelves/$shelfId',
+      data: {'name': name, 'description': description},
+    );
     return ShelfModel.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -78,10 +78,13 @@ class ShelfRemoteDatasource {
     required int bookId,
     ReadingStatus? initialStatus,
   }) async {
-    final response = await _dio.post('/shelves/$shelfId/items', data: {
-      'bookId': bookId,
-      if (initialStatus != null) 'initialStatus': initialStatus.toJson(),
-    });
+    final response = await _dio.post(
+      '/shelves/$shelfId/items',
+      data: {
+        'bookId': bookId,
+        if (initialStatus != null) 'initialStatus': initialStatus.toJson(),
+      },
+    );
     return ShelfItemModel.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -114,5 +117,18 @@ class ShelfRemoteDatasource {
       data: {'newStatus': newStatus.toJson()},
     );
     return ShelfItemModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// GET /shelves/me/active-reading-days
+  /// Retorna o número de dias em que o usuário atualizou o progresso de algum livro.
+  Future<int> getActiveReadingDays() async {
+    final response = await _dio.get('/shelves/me/active-reading-days');
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      final count = data['count'];
+      if (count is int) return count;
+      if (count is num) return count.toInt();
+    }
+    return 0;
   }
 }

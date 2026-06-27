@@ -10,7 +10,7 @@
 - **Leitura agregada muito rápida.** Mesmo combinando rankings de comunidades e de livros (dados de múltiplos domínios), o p(95) ficou entre **16.5ms e 32ms** nos três testes. Confirma que os rankings são pré-computados / materializados, não calculados a cada request.
 - **Load melhorou em relação à execução anterior:** p(95) caiu de 37.62ms para 31.3ms com número de requests praticamente idêntico (51.279 vs 51.029). Os dois endpoints têm comportamento simétrico (books p(95) 31.76ms, communities p(95) 31.62ms).
 - Spike de 500 VUs com p(95) de **16.51ms** e 0% de erro — absorve picos de navegação na home/descoberta sem esforço.
-- **Stress com p(95) ~22.8ms e latência máxima ~173ms** — muito abaixo do threshold de 2000ms e muito melhor que a execução anterior (440ms). Folga de ~87× no threshold.
+- **Stress com p(95) ~23.8ms e latência máxima ~173ms** — muito abaixo do threshold de 2000ms e muito melhor que a execução anterior (440ms). Folga de ~87× no threshold.
 
 ### Pontos de atenção
 - **Username do owner em `trending-stress.js` ainda excede o limite de 30 chars.** `trendstress_owner_` (18 chars) + timestamp de 13 dígitos = 31 chars. O owner falha a registrar silenciosamente, nenhuma comunidade é criada no setup do stress, e o `trending/communities` retorna dados acumulados de outras execuções — não dados gerados por este teste. O check `owner register 201` foi removido do script, mas a causa raiz (username longo) deve ser corrigida (ex.: usar `trendstress_o_` + sufixo curto ≤ 12 chars).

@@ -35,20 +35,61 @@ const DICE_DOTS: Record<1 | 2 | 3 | 4 | 5 | 6, [number, number][]> = {
   6: [[30, 28], [70, 28], [30, 50], [70, 50], [30, 72], [70, 72]],
 };
 
-function DiceFace({ value }: { value: 1 | 2 | 3 | 4 | 5 | 6 }) {
+const CUBE_SIZE = 42;
+const HALF = CUBE_SIZE / 2;
+
+const CUBE_FACES: Array<{ value: 1 | 2 | 3 | 4 | 5 | 6; faceTransform: string }> = [
+  { value: 1, faceTransform: `translateZ(${HALF}px)` },
+  { value: 6, faceTransform: `rotateY(180deg) translateZ(${HALF}px)` },
+  { value: 2, faceTransform: `rotateY(90deg) translateZ(${HALF}px)` },
+  { value: 5, faceTransform: `rotateY(-90deg) translateZ(${HALF}px)` },
+  { value: 3, faceTransform: `rotateX(-90deg) translateZ(${HALF}px)` },
+  { value: 4, faceTransform: `rotateX(90deg) translateZ(${HALF}px)` },
+];
+
+function Dice3D({ phase }: { phase: DicePhase }) {
+  const animClass =
+    phase === "rolling" ? "animate-dice-3d-roll" :
+    phase === "stopping" ? "animate-dice-3d-stop" :
+    "animate-dice-3d-idle";
+
   return (
-    <svg viewBox="0 0 100 100" className="h-9 w-9" aria-hidden="true">
-      <rect
-        x="5" y="5" width="90" height="90" rx="20"
-        fill="rgba(255,255,255,0.15)"
-        stroke="rgba(255,255,255,0.95)"
-        strokeWidth="5"
-      />
-      {DICE_DOTS[value].map(([cx, cy], i) => (
-        // eslint-disable-next-line react/no-array-index-key
-        <circle key={i} cx={cx} cy={cy} r="10" fill="white" />
-      ))}
-    </svg>
+    <div
+      aria-hidden="true"
+      style={{ perspective: `${CUBE_SIZE * 6}px`, width: CUBE_SIZE, height: CUBE_SIZE }}
+    >
+      <div
+        className={animClass}
+        style={{ width: CUBE_SIZE, height: CUBE_SIZE, position: "relative", transformStyle: "preserve-3d" }}
+      >
+        {CUBE_FACES.map(({ value, faceTransform }) => (
+          <div
+            key={value}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: CUBE_SIZE,
+              height: CUBE_SIZE,
+              transform: faceTransform,
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              background: "rgba(255,255,255,0.12)",
+              border: "2.5px solid rgba(255,255,255,0.9)",
+              borderRadius: 8,
+              overflow: "hidden",
+            }}
+          >
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              {DICE_DOTS[value].map(([cx, cy], i) => (
+                // eslint-disable-next-line react/no-array-index-key
+                <circle key={i} cx={cx} cy={cy} r="10" fill="white" />
+              ))}
+            </svg>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -65,7 +106,6 @@ function DiceRollButton({
   onAnimationStart?: () => void;
   onAnimationComplete?: () => void;
 }) {
-  const [face, setFace] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [phase, setPhase] = useState<DicePhase>("idle");
 
   useEffect(() => {
@@ -79,32 +119,13 @@ function DiceRollButton({
     if (!rolling && phase === "rolling") setPhase("stopping");
   }, [rolling, phase]);
 
-  // fast cycling while API is loading
-  useEffect(() => {
-    if (phase !== "rolling") return;
-    const id = setInterval(() => setFace((f) => ((f % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6), 80);
-    return () => clearInterval(id);
-  }, [phase]);
-
-  // exponential slowdown after API resolves
   useEffect(() => {
     if (phase !== "stopping") return;
-    let timer: ReturnType<typeof setTimeout>;
-    let delay = 140;
-    let count = 0;
-    const step = () => {
-      setFace((f) => ((f % 6) + 1) as 1 | 2 | 3 | 4 | 5 | 6);
-      count++;
-      if (count >= 5) {
-        setPhase("idle");
-        onAnimationComplete?.();
-        return;
-      }
-      delay = Math.round(delay * 1.8);
-      timer = setTimeout(step, delay);
-    };
-    timer = setTimeout(step, delay);
-    return () => clearTimeout(timer);
+    const id = setTimeout(() => {
+      setPhase("idle");
+      onAnimationComplete?.();
+    }, 1150);
+    return () => clearTimeout(id);
   }, [phase, onAnimationComplete]);
 
   const isAnimating = phase !== "idle";
@@ -122,9 +143,7 @@ function DiceRollButton({
           : "border-white/30 bg-white/10 hover:bg-white/20 hover:border-white/50",
       ].join(" ")}
     >
-      <span className={isAnimating ? "animate-dice-roll" : "transition-transform duration-300"}>
-        <DiceFace value={face} />
-      </span>
+      <Dice3D phase={phase} />
       <span className="tracking-wide uppercase">
         {isAnimating ? "Sorteando..." : "Sortear"}
       </span>
