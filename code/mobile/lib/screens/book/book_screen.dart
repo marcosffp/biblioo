@@ -1265,31 +1265,45 @@ class _ProgressSectionState extends State<_ProgressSection> {
                   style: IconButton.styleFrom(minimumSize: const Size(40, 40)),
                 ),
                 const SizedBox(width: 16),
-                SizedBox(
-                  width: 96,
-                  child: TextField(
-                    controller: _pageController,
-                    focusNode: _pageFocusNode,
-                    enabled: !_awaitingProgressSave,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 8,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      child: TextField(
+                        controller: _pageController,
+                        focusNode: _pageFocusNode,
+                        enabled: !_awaitingProgressSave,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: _onPageFieldChanged,
+                        onSubmitted: (_) => _save(context),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      suffixText: _totalPages > 0 ? '/ $_totalPages' : null,
                     ),
-                    onChanged: _onPageFieldChanged,
-                    onSubmitted: (_) => _save(context),
-                  ),
+                    if (_totalPages > 0) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '/ $_totalPages',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(width: 16),
                 IconButton.filled(

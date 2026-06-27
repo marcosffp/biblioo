@@ -123,10 +123,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Spacer(flex: 2),
 
-                      Icon(
-                        Icons.menu_book_outlined,
-                        size: 56,
-                        color: theme.colorScheme.primary,
+                      Image.asset(
+                        theme.brightness == Brightness.dark
+                            ? 'assets/images/biblioo-carinha-branca-logo.png'
+                            : 'assets/images/biblioo-carinha-logo.png',
+                        width: 72,
+                        height: 72,
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -203,18 +205,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         child: FilledButton(
                           onPressed: isLoading ? null : _onLogin,
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
                           child: isLoading
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
+                                    color: Colors.white,
                                   ),
                                 )
-                              : const Text('Entrar'),
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('Entrar'),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_forward, size: 16),
+                                  ],
+                                ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       Align(
                         alignment: Alignment.centerRight,
@@ -229,7 +244,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       Row(
                         children: [
-                          const Expanded(child: Divider()),
+                          Expanded(
+                            child: Divider(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
+                          ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
@@ -239,7 +258,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
-                          const Expanded(child: Divider()),
+                          Expanded(
+                            child: Divider(
+                              color: theme.colorScheme.outlineVariant,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -248,21 +271,48 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           onPressed: isLoading ? null : _onGoogleLogin,
-                          icon: const Icon(Icons.g_mobiledata),
-                          label: const Text('Entrar com Google'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: theme.colorScheme.onSurface,
+                            backgroundColor: theme.colorScheme.surface,
+                            side: BorderSide(
+                              color: theme.colorScheme.outline,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: const _GoogleLogo(size: 20),
+                          label: const Text(
+                            'Continuar com Google',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
-                      // Criar conta
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: isLoading
-                              ? null
-                              : () => context.push('/register'),
-                          child: const Text('Criar uma conta'),
-                        ),
+                      // Link: Não tem conta?
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Não tem conta? ',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: isLoading
+                                ? null
+                                : () => context.push('/register'),
+                            child: Text(
+                              'Criar uma conta',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
 
                       const Spacer(flex: 1),
@@ -276,4 +326,92 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+}
+
+class _GoogleLogo extends StatelessWidget {
+  final double size;
+  const _GoogleLogo({this.size = 18});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = size.width / 18.0;
+    canvas.save();
+    canvas.scale(scale, scale);
+
+    // Blue
+    canvas.drawPath(
+      Path()
+        ..moveTo(17.64, 9.2)
+        ..cubicTo(17.64, 8.563, 17.583, 7.949, 17.476, 7.36)
+        ..lineTo(9, 7.36)
+        ..lineTo(9, 10.841)
+        ..lineTo(13.844, 10.841)
+        ..cubicTo(13.635, 11.966, 13.001, 12.919, 12.048, 13.558)
+        ..lineTo(12.048, 15.816)
+        ..lineTo(14.956, 15.816)
+        ..cubicTo(16.658, 14.013, 17.64, 11.705, 17.64, 9.2)
+        ..close(),
+      Paint()..color = const Color(0xFF4285F4),
+    );
+
+    // Green
+    canvas.drawPath(
+      Path()
+        ..moveTo(9, 18)
+        ..cubicTo(11.43, 18, 13.467, 17.194, 14.956, 15.82)
+        ..lineTo(12.048, 13.561)
+        ..cubicTo(11.242, 14.101, 10.211, 14.421, 9, 14.421)
+        ..cubicTo(6.656, 14.421, 4.672, 12.837, 3.964, 10.71)
+        ..lineTo(0.957, 10.71)
+        ..lineTo(0.957, 13.042)
+        ..cubicTo(2.438, 15.983, 5.482, 18, 9, 18)
+        ..close(),
+      Paint()..color = const Color(0xFF34A853),
+    );
+
+    // Yellow
+    canvas.drawPath(
+      Path()
+        ..moveTo(3.964, 10.71)
+        ..cubicTo(3.784, 10.17, 3.682, 9.593, 3.682, 9)
+        ..cubicTo(3.682, 8.407, 3.784, 7.83, 3.964, 7.29)
+        ..lineTo(3.964, 4.958)
+        ..lineTo(0.957, 4.958)
+        ..cubicTo(0.347, 6.173, 0, 7.548, 0, 9)
+        ..cubicTo(0, 10.452, 0.348, 11.827, 0.957, 13.042)
+        ..lineTo(3.964, 10.71)
+        ..close(),
+      Paint()..color = const Color(0xFFFBBC05),
+    );
+
+    // Red
+    canvas.drawPath(
+      Path()
+        ..moveTo(9, 3.58)
+        ..cubicTo(10.321, 3.58, 11.508, 4.034, 12.44, 4.925)
+        ..lineTo(15.022, 2.345)
+        ..cubicTo(13.463, 0.891, 11.426, 0, 9, 0)
+        ..cubicTo(5.482, 0, 2.438, 2.017, 0.957, 4.958)
+        ..lineTo(3.964, 7.29)
+        ..cubicTo(4.672, 5.163, 6.656, 3.58, 9, 3.58)
+        ..close(),
+      Paint()..color = const Color(0xFFEA4335),
+    );
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

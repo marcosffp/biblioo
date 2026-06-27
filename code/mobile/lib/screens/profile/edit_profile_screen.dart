@@ -109,11 +109,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
+    final usernameChanged = username != _originalUser?.username;
+    final bioChanged = bio != (_originalUser?.bio ?? '');
+
     setState(() => _saving = true);
     bloc.add(
       UpdateProfile(
-        username: username,
-        bio: bio,
+        username: usernameChanged ? username : null,
+        bio: bioChanged ? bio : null,
         avatarFilePath: _avatarFilePath,
         bannerFilePath: _bannerFilePath,
         isPrivate: _isPrivate,

@@ -1,3 +1,5 @@
+import 'package:biblioo/core/di/injector.dart';
+import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/feed/bloc/feed_bloc.dart';
 import 'package:biblioo/features/feed/bloc/feed_event.dart';
 import 'package:biblioo/features/feed/domain/feed_item.dart';
@@ -313,38 +315,50 @@ class _AuthorRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final canNavigate = author.isNotEmpty;
+
+    void goToProfile() {
+      if (canNavigate) context.push('/user/$author');
+    }
+
     return Row(
       children: [
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: theme.colorScheme.primaryContainer,
-          backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
-              ? NetworkImage(avatarUrl!)
-              : null,
-          child: avatarUrl == null || avatarUrl!.isEmpty
-              ? Text(
-                  _initials(author),
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                )
-              : null,
+        GestureDetector(
+          onTap: goToProfile,
+          child: CircleAvatar(
+            radius: 18,
+            backgroundColor: theme.colorScheme.primaryContainer,
+            backgroundImage: avatarUrl != null && avatarUrl!.isNotEmpty
+                ? NetworkImage(avatarUrl!)
+                : null,
+            child: avatarUrl == null || avatarUrl!.isEmpty
+                ? Text(
+                    _initials(author),
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                : null,
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(author, style: theme.textTheme.labelLarge),
-              Text(
-                _relativeTime(createdAt),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+          child: GestureDetector(
+            onTap: goToProfile,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(author, style: theme.textTheme.labelLarge),
+                Text(
+                  _relativeTime(createdAt),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         if (trailing != null) trailing!,
@@ -360,14 +374,45 @@ class _AuthorRow extends StatelessWidget {
   }
 }
 
-class _BookReviewSummary extends StatelessWidget {
+class _BookReviewSummary extends StatefulWidget {
   final FeedContent content;
 
   const _BookReviewSummary({required this.content});
 
   @override
+  State<_BookReviewSummary> createState() => _BookReviewSummaryState();
+}
+
+class _BookReviewSummaryState extends State<_BookReviewSummary> {
+  Book? _fetchedBook;
+
+  @override
+  void initState() {
+    super.initState();
+    // Same fallback as the web: when title is absent but bookId exists, fetch the book
+    if (widget.content.bookTitle == null && widget.content.bookId != null) {
+      Injector.instance.bookRepo
+          .getById(widget.content.bookId!)
+          .then((book) {
+            if (mounted) setState(() => _fetchedBook = book);
+          })
+          .catchError((_) {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final title =
+        widget.content.bookTitle ?? _fetchedBook?.title ?? 'Livro';
+    final authors = widget.content.bookAuthors.isNotEmpty
+        ? widget.content.bookAuthors
+        : (_fetchedBook?.authorsText.isNotEmpty == true
+              ? [_fetchedBook!.authorsText]
+              : const <String>[]);
+    final coverUrl = widget.content.bookCoverUrl ??
+        _fetchedBook?.coverUrl;
+
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -376,30 +421,30 @@ class _BookReviewSummary extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _BookCover(url: content.bookCoverUrl),
+          _BookCover(url: coverUrl),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  content.bookTitle ?? 'Livro',
+                  title,
                   style: theme.textTheme.labelLarge,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (content.bookAuthors.isNotEmpty)
+                if (authors.isNotEmpty)
                   Text(
-                    content.bookAuthors.join(', '),
+                    authors.join(', '),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                if (content.rating != null) ...[
+                if (widget.content.rating != null) ...[
                   const SizedBox(height: 4),
-                  _RatingStars(rating: content.rating!),
+                  _RatingStars(rating: widget.content.rating!),
                 ],
               ],
             ),

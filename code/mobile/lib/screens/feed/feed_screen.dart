@@ -7,7 +7,7 @@ import 'package:biblioo/features/notification/bloc/notification_bloc.dart';
 import 'package:biblioo/features/notification/bloc/notification_event.dart';
 import 'package:biblioo/features/notification/bloc/notification_state.dart';
 import 'package:biblioo/screens/feed/widgets/feed_item_card.dart';
-import 'package:biblioo/shared/widgets/bibi_fab.dart';
+import 'package:biblioo/shared/widgets/bibo_fab.dart';
 import 'package:biblioo/utils/cooldown_refresh.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -170,7 +170,7 @@ class _FeedScreenState extends State<FeedScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const BibiFab(mini: true),
+            const BiboFab(mini: true, heroTag: 'feed_bibo_fab'),
             const SizedBox(height: 8),
             _FeedFab(
               onCreatePost: _openCreatePost,

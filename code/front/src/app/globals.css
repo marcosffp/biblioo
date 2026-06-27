@@ -50,6 +50,11 @@ select:focus-visible {
   box-shadow: none;
 }
 
+@keyframes dice-3d-idle {
+  0%   { transform: rotateX(18deg) rotateY(0deg);   }
+  100% { transform: rotateX(18deg) rotateY(360deg); }
+}
+
 @keyframes dice-3d-roll {
   0%   { transform: rotateX(0deg)   rotateY(0deg)   rotateZ(0deg);   }
   100% { transform: rotateX(360deg) rotateY(540deg) rotateZ(120deg); }
@@ -70,6 +75,9 @@ select:focus-visible {
 }
 
 @layer utilities {
+  .animate-dice-3d-idle {
+    animation: dice-3d-idle 5s linear infinite;
+  }
   .animate-dice-3d-roll {
     animation: dice-3d-roll 0.35s linear infinite;
   }

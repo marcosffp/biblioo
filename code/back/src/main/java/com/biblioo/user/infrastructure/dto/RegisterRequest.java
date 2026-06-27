@@ -9,13 +9,13 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "Dados para criação de conta")
 public record RegisterRequest(
     @Schema(
-            description = "Nome de usuário único (letras, números e _)",
+            description = "Nome de usuário único (letras, números, _ e -)",
             example = "leitor_literario")
         @NotBlank
         @Size(min = 3, max = 30)
         @Pattern(
-            regexp = "^[a-zA-Z0-9_]+$",
-            message = "Username can only contain letters, numbers and underscores")
+            regexp = "^[a-zA-Z0-9_-]+$",
+            message = "Username can only contain letters, numbers, underscores and hyphens")
         String username,
     @Schema(description = "E-mail válido", example = "leitor@biblioo.app")
         @NotBlank

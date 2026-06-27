@@ -5,6 +5,7 @@ import 'package:biblioo/features/feed/bloc/feed_comments_state.dart';
 import 'package:biblioo/features/feed/domain/comment.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 Future<void> showFeedCommentsSheet({
   required BuildContext context,
@@ -383,7 +384,12 @@ class _CommentTileState extends State<_CommentTile> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _CommentAvatar(comment: comment),
+              GestureDetector(
+                onTap: comment.authorUsername != null
+                    ? () => context.push('/user/${comment.authorUsername}')
+                    : null,
+                child: _CommentAvatar(comment: comment),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -393,9 +399,16 @@ class _CommentTileState extends State<_CommentTile> {
                       spacing: 6,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text(
-                          comment.authorUsername ?? 'Leitor ${comment.userId}',
-                          style: theme.textTheme.labelLarge,
+                        GestureDetector(
+                          onTap: comment.authorUsername != null
+                              ? () => context.push(
+                                  '/user/${comment.authorUsername}')
+                              : null,
+                          child: Text(
+                            comment.authorUsername ??
+                                'Leitor ${comment.userId}',
+                            style: theme.textTheme.labelLarge,
+                          ),
                         ),
                         Text(
                           _relativeTime(comment.createdAt),
@@ -571,15 +584,25 @@ class _ReplyTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CommentAvatar(comment: reply, small: true),
+          GestureDetector(
+            onTap: reply.authorUsername != null
+                ? () => context.push('/user/${reply.authorUsername}')
+                : null,
+            child: _CommentAvatar(comment: reply, small: true),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  reply.authorUsername ?? 'Leitor ${reply.userId}',
-                  style: theme.textTheme.labelMedium,
+                GestureDetector(
+                  onTap: reply.authorUsername != null
+                      ? () => context.push('/user/${reply.authorUsername}')
+                      : null,
+                  child: Text(
+                    reply.authorUsername ?? 'Leitor ${reply.userId}',
+                    style: theme.textTheme.labelMedium,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(reply.text, style: theme.textTheme.bodySmall),
