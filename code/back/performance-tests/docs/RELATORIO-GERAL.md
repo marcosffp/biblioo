@@ -94,13 +94,13 @@
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas | Status |
 |------------|-------|---------|----------|-----------|-------|--------|--------|
 | user | load | 210 | 51.960 | 391.31/s | 56.7ms | 0% | Aprovado |
-| user | spike | 500 | 34.860 | 462.80/s | 15.46ms | 0% | Aprovado |
+| user | spike | 500 | 34.860 | 442.80/s | 15.46ms | 0% | Aprovado |
 | user | stress | 600 | 269.802 | 833.75/s | 349.76ms | 0% | Aprovado |
 | social (público) | load | 210 | 89.682 | 672.18/s | 27.34ms | 0% | Aprovado |
 | social (público) | spike | 500 | 43.290 | 552.00/s | 333.3ms | 0% | Aprovado |
 | social (público) | stress | 200¹ | 142.582 | 287.85/s | 666.23ms | 0%² | Aprovado |
 | social-requests (privado) | load | 100 | 32.400 | 245.30/s | 62.26ms | 0% | Aprovado |
-| social-requests (privado) | spike | 500 | 47.436 | 585.13/s | 354.09ms | 4.74%³ | Aprovado |
+| social-requests (privado) | spike | 500 | 53.090 | 680.45/s | 282.08ms | 5.17%³ | Aprovado |
 | social-requests (privado) | stress | 250 | 157.722 | 603.53/s | 45.4ms | 9.08%³ | Aprovado |
 
 ¹ Script atualizado para 200 VUs (4 estágios). Ver §3.2 do relatório de domínio para contexto completo.  
@@ -147,7 +147,7 @@
 | commentInteraction | stress | 200¹ | 40.352 | 203.58/s | 36.92ms | 0% | Aprovado |
 | review | load | 210 | 51.913 | 338.42/s | 58.64ms | 0% | Aprovado |
 | review | spike | 500 | 34.807 | 134.76/s | 681.75ms | 0% | Aprovado |
-| review | stress | 600 | ~98.720² | ~334/s² | 928.98ms | 0% | Aprovado |
+| review | stress | 600 | ~98.720² | ~109/s² | 928.98ms | 0% | Aprovado |
 
 ¹ Script atualizado para 4 estágios (max 200 VUs); p(95) baixo reflete carga moderada.  
 ² Inclui ~18.400 requests de setup pesado (800 usuários × 23 req). Taxa efetiva durante fase de VUs (~4m): ~334/s.
