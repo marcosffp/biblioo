@@ -286,14 +286,6 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
 
-<<<<<<< HEAD
-=======
-    final apiUrl = const String.fromEnvironment(
-      'API_URL',
-      defaultValue: 'http://localhost:8080',
-    );
-    // Usa a URL real do ambiente carregada pelo dotenv
->>>>>>> origin/prod
     final parsed = Uri.parse(apiUrl);
     final token = await _authSecure.getAccessToken();
 
