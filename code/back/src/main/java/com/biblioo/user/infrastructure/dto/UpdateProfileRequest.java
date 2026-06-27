@@ -10,8 +10,8 @@ public record UpdateProfileRequest(
     @Schema(description = "Nome de usuário único", example = "joao_silva")
         @Size(min = 3, max = 30)
         @Pattern(
-            regexp = "^[a-zA-Z0-9_]+$",
-            message = "Username deve conter apenas letras, números e underscores")
+            regexp = "^[a-zA-Z0-9_-]+$",
+            message = "Username deve conter apenas letras, números, underscores e hífens")
         String username,
     @Schema(
             description = "Biografia do usuário",

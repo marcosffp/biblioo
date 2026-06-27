@@ -14,7 +14,7 @@ import 'package:biblioo/screens/collection/widgets/collection_shimmer.dart';
 import 'package:biblioo/screens/collection/widgets/create_collection_sheet.dart';
 import 'package:biblioo/screens/collection/collection_detail_screen.dart';
 import 'package:biblioo/screens/search/book_search_screen.dart';
-import 'package:biblioo/shared/widgets/bibi_fab.dart';
+import 'package:biblioo/shared/widgets/bibo_fab.dart';
 import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/shelf/domain/reading_status.dart';
 import 'widgets/shelf_card.dart';
@@ -103,7 +103,7 @@ class _ShelfListScreenState extends State<ShelfListScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const BibiFab(mini: true),
+          const BiboFab(mini: true, heroTag: 'shelf_list_bibo_fab'),
           const SizedBox(height: 8),
           FloatingActionButton.small(
             heroTag: 'collection_create_fab',

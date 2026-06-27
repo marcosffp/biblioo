@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:biblioo/shared/widgets/bibi_fab.dart';
+import 'package:biblioo/shared/widgets/bibo_fab.dart';
 
 class MainShell extends StatelessWidget {
   final StatefulNavigationShell shell;
@@ -11,15 +11,15 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCurrentRoute = ModalRoute.of(context)?.isCurrent ?? true;
-    final showGlobalBibi =
+    final showGlobalBibo =
         isCurrentRoute &&
         !_tabHasPrimaryFab(shell.currentIndex) &&
         !_isCommunityDetail(currentUri);
 
     return Scaffold(
       body: shell,
-      // FAB flutuante da Bibi — acessível de qualquer aba (igual ao web)
-      floatingActionButton: showGlobalBibi ? const BibiFab() : null,
+      // FAB flutuante do Bibo — acessível de qualquer aba (igual ao web)
+      floatingActionButton: showGlobalBibo ? const BiboFab() : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (index) => shell.goBranch(

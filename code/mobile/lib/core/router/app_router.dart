@@ -170,6 +170,26 @@ final appRouter = GoRouter(
       ),
     ),
 
+    // ── DETALHE DE COMUNIDADE (fora do shell — evita duplicate page key
+    //    quando navegado de /user/:username ou de outras rotas externas) ────
+    GoRoute(
+      path: '/community/:communityId',
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        child: CommunityDetailScreen(
+          communityId: int.parse(state.pathParameters['communityId']!),
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+      ),
+    ),
+
     // ── CHAT (desativado por enquanto; rota/tela não disponível) ───
     // GoRoute(
     //   path: '/community/:communityId/chat',

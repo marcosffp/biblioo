@@ -125,7 +125,7 @@ class _AssistantScreenState extends State<AssistantScreen>
       builder: (ctx) => AlertDialog(
         title: const Text('Limpar conversa'),
         content: const Text(
-          'Isso apagará todo o histórico com a Bibi. Deseja continuar?',
+          'Isso apagará todo o histórico com o Bibo. Deseja continuar?',
         ),
         actions: [
           TextButton(
@@ -220,7 +220,7 @@ class _AssistantScreenState extends State<AssistantScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Bibi',
+                'Bibo',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Text(
@@ -558,7 +558,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                 minLines: 1,
                 onSubmitted: state.isLoading ? null : _sendMessage,
                 decoration: InputDecoration(
-                  hintText: 'Pergunte algo à Bibi...',
+                  hintText: 'Pergunte algo ao Bibo...',
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
                   border: OutlineInputBorder(

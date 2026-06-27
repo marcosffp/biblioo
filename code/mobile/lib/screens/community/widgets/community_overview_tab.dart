@@ -12,9 +12,14 @@ class CommunityOverviewTab extends StatelessWidget {
   final Book? book;
   final List<CommunityMember> members;
   final bool joinRequestPending;
+  final int? currentUserId;
   final Future<void> Function() onJoinOrLeave;
   final Future<void> Function()? onRefresh;
   final Future<void> Function()? onShare;
+  final Future<void> Function()? onDeleteCommunity;
+  final Future<void> Function(CommunityMember member)? onRemoveMember;
+  final Future<void> Function(CommunityMember member, String newRole)?
+  onChangeMemberRole;
   final String? accessNoticeTitle;
   final String? accessNoticeDescription;
 
@@ -24,9 +29,13 @@ class CommunityOverviewTab extends StatelessWidget {
     required this.book,
     required this.members,
     required this.joinRequestPending,
+    this.currentUserId,
     required this.onJoinOrLeave,
     this.onRefresh,
     this.onShare,
+    this.onDeleteCommunity,
+    this.onRemoveMember,
+    this.onChangeMemberRole,
     this.accessNoticeTitle,
     this.accessNoticeDescription,
   });
@@ -75,68 +84,50 @@ class CommunityOverviewTab extends StatelessWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 16),
-              // Badges à esquerda, botões à direita
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              const SizedBox(height: 12),
+              // Badges
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  // Badges
-                  Expanded(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        CommunityDetailPill(
-                          label: community.isPublic ? 'Pública' : 'Privada',
-                          icon: community.isPublic
-                              ? Icons.language_rounded
-                              : Icons.lock_rounded,
-                        ),
-                        CommunityDetailPill(
-                          label: '${community.memberCount} membros',
-                          icon: Icons.group_rounded,
-                        ),
-                      ],
-                    ),
+                  CommunityDetailPill(
+                    label: community.isPublic ? 'Pública' : 'Privada',
+                    icon: community.isPublic
+                        ? Icons.language_rounded
+                        : Icons.lock_rounded,
                   ),
-                  const SizedBox(width: 12),
-                  // Botões com tamanho intrínseco
-                  IntrinsicWidth(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (community.isMember) ...[
-                          IntrinsicWidth(
-                            child: OutlinedButton.icon(
-                              onPressed: onJoinOrLeave,
-                              icon: const Icon(Icons.logout_rounded, size: 16),
-                              label: const Text('Sair'),
-                              style: OutlinedButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        IntrinsicWidth(
-                          child: FilledButton.icon(
-                            onPressed: community.isMember ? onShare : null,
-                            icon: const Icon(Icons.share_rounded, size: 16),
-                            label: const Text('Compartilhar'),
-                            style: FilledButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                          ),
+                  CommunityDetailPill(
+                    label: '${community.memberCount} membros',
+                    icon: Icons.group_rounded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Botões numa linha separada, ocupam largura total
+              Row(
+                children: [
+                  if (community.isMember) ...[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onJoinOrLeave,
+                        icon: const Icon(Icons.logout_rounded, size: 16),
+                        label: const Text('Sair'),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
                         ),
-                      ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton.icon(
+                      onPressed: community.isMember ? onShare : null,
+                      icon: const Icon(Icons.share_rounded, size: 16),
+                      label: const Text('Compartilhar'),
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
                   ),
                 ],
@@ -276,8 +267,31 @@ class CommunityOverviewTab extends StatelessWidget {
 
         if (!community.isMember) const SizedBox(height: 16),
 
-        CommunityMembersCard(members: members),
+        CommunityMembersCard(
+          members: members,
+          currentUserId: currentUserId,
+          communityOwnerId: community.ownerId,
+          onRemoveMember: onRemoveMember,
+          onChangeMemberRole: onChangeMemberRole,
+        ),
         const SizedBox(height: 16),
+
+        if (currentUserId != null &&
+            currentUserId == community.ownerId &&
+            onDeleteCommunity != null) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onDeleteCommunity,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.colorScheme.error,
+                side: BorderSide(color: theme.colorScheme.error),
+              ),
+              child: const Text('Excluir comunidade'),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ],
     );
 

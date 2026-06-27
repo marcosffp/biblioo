@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:biblioo/core/config/app_env.dart';
 import 'package:biblioo/core/di/injector.dart';
 import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/community/bloc/community_voting_bloc.dart';
@@ -82,8 +83,11 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
   int _reconnectAttempt = 0;
   bool _hasVotingHistory = false;
 
+  /// Cache acumulativo userId -> username: nomes não são removidos quando o
+  /// usuário sai, evitando mensagens antigas mostrarem "Usuario #X".
+  final Map<int, String> _memberNameCache = {};
+
   // --- Typing indicator ---
-  /// Mapa de userId -> {username, avatarUrl, timestamp} para usuários digitando.
   final Map<int, _TypingEntry> _typingMap = {};
   List<TypingUser> _typingUsers = const [];
   Timer? _typingCleanupTimer;
@@ -188,6 +192,10 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
           : false;
       if (!mounted) return;
 
+      for (final m in members) {
+        final name = m.username?.trim() ?? '';
+        if (name.isNotEmpty) _memberNameCache[m.userId] = name;
+      }
       setState(() {
         _community = community;
         _book = book;
@@ -201,6 +209,23 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
         _headerError = 'Nao foi possivel carregar a comunidade.';
         _headerLoading = false;
       });
+    }
+  }
+
+  Future<void> _refreshMembers() async {
+    try {
+      final members = await _repo.getCommunityMembers(
+        widget.communityId,
+        forceRefresh: true,
+      );
+      if (!mounted) return;
+      for (final m in members) {
+        final name = m.username?.trim() ?? '';
+        if (name.isNotEmpty) _memberNameCache[m.userId] = name;
+      }
+      setState(() => _members = members);
+    } catch (_) {
+      // ignore — manter lista atual se falhar
     }
   }
 
@@ -261,11 +286,6 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
 
-    final apiUrl = const String.fromEnvironment(
-      'API_URL',
-      defaultValue: 'http://localhost:8080',
-    );
-    // Usa a URL real do ambiente carregada pelo dotenv
     final parsed = Uri.parse(apiUrl);
     final token = await _authSecure.getAccessToken();
 
@@ -364,7 +384,12 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
     switch (eventType) {
       case 'MESSAGE_CREATED':
         if (messageId == null) return;
-        _upsertMessage(_toCommunityMessage(data));
+        final msg = _toCommunityMessage(data);
+        _upsertMessage(msg);
+        final msgType = data['type']?.toString();
+        if (msgType == 'MEMBER_JOINED' || msgType == 'MEMBER_LEFT') {
+          _refreshMembers();
+        }
         break;
       case 'MESSAGE_UPDATED':
         if (messageId == null) return;
@@ -609,10 +634,16 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       if (current.trim().isNotEmpty) return current;
     }
 
+    final cached = _memberNameCache[authorId];
+    if (cached != null && cached.isNotEmpty) return cached;
+
     for (final member in _members) {
       if (member.userId == authorId) {
-        final username = member.username ?? '';
-        if (username.trim().isNotEmpty) return username;
+        final username = member.username?.trim() ?? '';
+        if (username.isNotEmpty) {
+          _memberNameCache[authorId] = username;
+          return username;
+        }
       }
     }
 
@@ -990,6 +1021,140 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
       _showSnack(message);
     } catch (_) {
       _showSnack('Nao foi possivel sair da comunidade.');
+    }
+  }
+
+  Future<void> _removeMember(CommunityMember member) async {
+    final username = member.username ?? 'este membro';
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remover membro?'),
+        content: Text(
+          'Tem certeza que deseja remover $username da comunidade?',
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repo.removeMember(widget.communityId, member.userId);
+      if (!mounted) return;
+      _showSnack('$username foi removido da comunidade.');
+      await _reloadScreenData();
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ?? 'Nao foi possivel remover o membro.',
+      );
+    } catch (_) {
+      _showSnack('Nao foi possivel remover o membro.');
+    }
+  }
+
+  Future<void> _changeMemberRole(
+    CommunityMember member,
+    String newRole,
+  ) async {
+    final username = member.username ?? 'este membro';
+    final isPromoting =
+        newRole.toUpperCase() == 'MODERATOR' ||
+        newRole.toUpperCase() == 'ADMIN';
+    final actionLabel = isPromoting ? 'Tornar admin' : 'Remover de admin';
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('$actionLabel?'),
+        content: Text(
+          isPromoting
+              ? 'Deseja tornar $username administrador desta comunidade?'
+              : 'Deseja remover $username do cargo de administrador?',
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repo.changeMemberRole(widget.communityId, member.userId, newRole);
+      if (!mounted) return;
+      _showSnack(
+        isPromoting
+            ? '$username agora é administrador.'
+            : '$username não é mais administrador.',
+      );
+      await _reloadScreenData();
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ??
+            'Nao foi possivel alterar o cargo do membro.',
+      );
+    } catch (_) {
+      _showSnack('Nao foi possivel alterar o cargo do membro.');
+    }
+  }
+
+  Future<void> _deleteCommunity() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir comunidade?'),
+        content: const Text(
+          'Esta ação é irreversível. Todos os membros serão removidos e as mensagens serão apagadas permanentemente.',
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _repo.deleteCommunity(widget.communityId);
+      if (!mounted) return;
+      Navigator.of(context).maybePop();
+    } on DioException catch (e) {
+      _showSnack(
+        _extractBackendMessage(e) ?? 'Nao foi possivel excluir a comunidade.',
+      );
+    } catch (_) {
+      _showSnack('Nao foi possivel excluir a comunidade.');
     }
   }
 
@@ -1435,9 +1600,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
               book: _book,
               members: _members,
               joinRequestPending: _joinRequestPending,
+              currentUserId: _currentUser?.id,
               onJoinOrLeave: _handleJoinOrLeave,
               onRefresh: _reloadScreenData,
               onShare: _handleShareFromOverview,
+              onDeleteCommunity: _deleteCommunity,
+              onRemoveMember: _removeMember,
+              onChangeMemberRole: _changeMemberRole,
               accessNoticeTitle: accessNoticeTitle,
               accessNoticeDescription: accessNoticeDescription,
             )
@@ -1449,9 +1618,13 @@ class _CommunityDetailScreenState extends State<CommunityDetailScreen>
                   book: _book,
                   members: _members,
                   joinRequestPending: _joinRequestPending,
+                  currentUserId: _currentUser?.id,
                   onJoinOrLeave: _handleJoinOrLeave,
                   onRefresh: _reloadScreenData,
                   onShare: _handleShareFromOverview,
+                  onDeleteCommunity: _deleteCommunity,
+                  onRemoveMember: _removeMember,
+                  onChangeMemberRole: _changeMemberRole,
                 ),
                 CommunityChatTab(
                   loading: _messagesLoading && !_messagesLoaded,

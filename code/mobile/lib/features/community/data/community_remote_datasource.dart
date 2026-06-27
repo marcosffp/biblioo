@@ -247,6 +247,25 @@ class CommunityRemoteDatasource {
         .toList();
   }
 
+  Future<void> removeMember(int communityId, int userId) async {
+    await _dio.delete('/communities/$communityId/members/$userId');
+  }
+
+  Future<void> changeMemberRole(
+    int communityId,
+    int userId,
+    String role,
+  ) async {
+    await _dio.put(
+      '/communities/$communityId/members/$userId/role',
+      data: {'role': role},
+    );
+  }
+
+  Future<void> deleteCommunity(int communityId) async {
+    await _dio.delete('/communities/$communityId');
+  }
+
   List<CommunityModel> _parsePage(Map<String, dynamic> json) {
     final content = json['content'];
     if (content is! List<dynamic>) return [];

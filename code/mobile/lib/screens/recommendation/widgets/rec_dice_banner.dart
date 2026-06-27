@@ -6,7 +6,7 @@ import 'package:biblioo/shared/widgets/book_cover_placeholder.dart';
 import 'package:flutter/material.dart';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-const double _kCubeSize = 42.0;
+const double _kCubeSize = 34.0;
 const double _kCubeHalf = _kCubeSize / 2;
 const double _kCameraZ  = 252.0; // equivalent to CSS perspective: 252px
 
@@ -162,19 +162,17 @@ class _Dice3DPainter extends CustomPainter {
     final path      = Path()..addPolygon(corners, true);
     final brightness = (nz * 0.5 + 0.5).clamp(0.0, 1.0);
 
-    // Fundo semi-transparente (espelha web: rgba(255,255,255,0.12))
     canvas.drawPath(
       path,
-      Paint()..color = color.withValues(alpha: 0.12 * brightness),
+      Paint()..color = color.withValues(alpha: 0.15 * brightness),
     );
 
-    // Borda branca (espelha web: border: 2.5px solid rgba(255,255,255,0.9))
     canvas.drawPath(
       path,
       Paint()
-        ..color = color.withValues(alpha: 0.9)
+        ..color = color.withValues(alpha: (0.4 + 0.5 * brightness).clamp(0.0, 0.9))
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
+        ..strokeWidth = 2.0,
     );
 
     // Pontos: raio proporcional ao tamanho aparente da face

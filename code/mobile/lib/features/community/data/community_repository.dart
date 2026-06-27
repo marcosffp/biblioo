@@ -273,6 +273,22 @@ class CommunityRepository {
     }
   }
 
+  Future<void> removeMember(int communityId, int userId) {
+    return _remote.removeMember(communityId, userId);
+  }
+
+  Future<void> changeMemberRole(
+    int communityId,
+    int userId,
+    String role,
+  ) {
+    return _remote.changeMemberRole(communityId, userId, role);
+  }
+
+  Future<void> deleteCommunity(int communityId) {
+    return _remote.deleteCommunity(communityId);
+  }
+
   Future<void> _insertIntoMineCache(CommunityModel model) async {
     final mine = _local.getCachedMine();
     final suggestions = _local.getCachedSuggestions()

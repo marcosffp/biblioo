@@ -13,6 +13,17 @@ migrate_working_dir/
 build/
 **/build/
 
+# Allow only the release APK files (re-ignore everything except the specific path)
+!build/
+build/**
+!build/app/
+build/app/**
+!build/app/outputs/
+build/app/outputs/**
+!build/app/outputs/flutter-apk/
+build/app/outputs/flutter-apk/**
+!build/app/outputs/flutter-apk/app-release.apk
+
 # IntelliJ related
 *.iml
 *.ipr
