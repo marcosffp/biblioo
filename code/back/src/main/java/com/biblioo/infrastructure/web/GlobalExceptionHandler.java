@@ -84,6 +84,34 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
   }
 
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingClosedException.class)
+  ResponseEntity<ErrorResponse> handleVotingClosed(
+      com.biblioo.community.domain.exception.VotingClosedException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingNotActiveException.class)
+  ResponseEntity<ErrorResponse> handleVotingNotActive(
+      com.biblioo.community.domain.exception.VotingNotActiveException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingAlreadyActiveException.class)
+  ResponseEntity<ErrorResponse> handleVotingAlreadyActive(
+      com.biblioo.community.domain.exception.VotingAlreadyActiveException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.AlreadyVotedDifferentOptionException.class)
+  ResponseEntity<ErrorResponse> handleAlreadyVotedDifferentOption(
+      com.biblioo.community.domain.exception.AlreadyVotedDifferentOptionException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
   @ExceptionHandler(com.biblioo.feed.domain.exception.ReviewBusinessException.class)
   ResponseEntity<ErrorResponse> handleReviewBusiness(
       com.biblioo.feed.domain.exception.ReviewBusinessException ex, HttpServletRequest request) {

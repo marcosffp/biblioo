@@ -47,7 +47,11 @@ public class VotingBroadcastAdapter implements VotingBroadcastPort {
   }
 
   private void deliverLocally(String destination, VotingEventPayload event) {
-    messagingTemplate.convertAndSend(destination, event);
+    try {
+      messagingTemplate.convertAndSend(destination, event);
+    } catch (Exception e) {
+      log.warn("[VotingBroadcast] Falha ao entregar localmente dest={}: {}", destination, e.getMessage());
+    }
   }
 
   private void publishToOtherInstances(String destination, VotingEventPayload event) {

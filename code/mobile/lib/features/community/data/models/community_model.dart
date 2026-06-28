@@ -40,9 +40,9 @@ class CommunityModel {
         ownerId: (json['ownerId'] as num?)?.toInt() ?? 0,
         currentUserRole: json['currentUserRole'] as String?,
         type: (json['type'] as String?) ?? 'PUBLIC',
-        bookTitle: 'Livro #${(json['bookId'] as num?)?.toInt() ?? 0}',
-        bookAuthor: '',
-        bookCoverUrl: null,
+        bookTitle: (json['bookTitle'] as String?) ?? '',
+        bookAuthor: (json['bookAuthor'] as String?) ?? '',
+        bookCoverUrl: json['bookCoverUrl'] as String?,
         memberCount: (json['memberCount'] as num).toInt(),
         isMember: json['isMember'] as bool? ?? json['currentUserRole'] != null,
         createdAt: DateTime.parse(json['createdAt'] as String),
@@ -56,9 +56,7 @@ class CommunityModel {
     ownerId: (json['ownerId'] as num?)?.toInt() ?? 0,
     currentUserRole: json['currentUserRole'] as String?,
     type: (json['type'] as String?) ?? 'PUBLIC',
-    bookTitle:
-        (json['bookTitle'] as String?) ??
-        'Livro #${(json['bookId'] as num?)?.toInt() ?? 0}',
+    bookTitle: (json['bookTitle'] as String?) ?? '',
     bookAuthor: (json['bookAuthor'] as String?) ?? '',
     bookCoverUrl: json['bookCoverUrl'] as String?,
     memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
