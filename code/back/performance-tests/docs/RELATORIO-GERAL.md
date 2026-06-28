@@ -190,7 +190,7 @@
 | community-invites | load | 210 | 62.321 | 471.55/s | 28.04ms | 0% | Aprovado |
 | community-invites | stress | 500 | 130.917 | 469.97/s | 428.42ms | 6.86%¹ | Aprovado |
 | community-join-requests | load | 210 | 54.607 | ~412/s | 107.08ms | 0% | Aprovado |
-| community-join-requests | stress | 600 | 86.079 | 306.72/s | 1.38s | 16.99%² | Aprovado |
+| community-join-requests | stress | 600 | 100.437 | 358.65/s | 1.03s | 0.41%² | Aprovado |
 | community-manage | stress | 200 | 106.973 | 497.33/s | 29.55ms | 0% | Aprovado |
 | admin | load | 210 | 86.935 | ~615/s | 96.74ms | 0% | Aprovado |
 | admin | spike | 500 | 30.397 | 303.64/s | 955.92ms | 0% | Aprovado |
@@ -207,7 +207,7 @@
 | message (WS) | stress | 250 | — (STOMP) | 15.145 env / 294.410 recv | lat. p(95) 32ms | 0% | Aprovado |
 
 ¹ Conflitos de convite (negócio) sob alta concorrência — dentro do threshold < 30%.  
-² Race condition em `JoinRequest` sob contenção extrema (600 VUs, recurso compartilhado) — dentro do threshold < 40%. O design do teste foi corrigido (1 comunidade por VU); no redesign, 0% de falhas. A race condition no código persiste (ausência de `@Version` em `JoinRequest`).  
+² Race condition em `JoinRequest` sob contenção extrema (600 VUs, recurso compartilhado) — mitigada. `@Version` adicionado à entidade `CommunityJoinRequest` e operações de `approve`/`reject` reescritas com `updateStatusIfPending()` (UPDATE atômico `WHERE status = PENDING`). Na reexecução do stress, 0,41% de conflitos residuais esperados (conflitos de negócio, dentro do threshold < 40%), contra 16,99% antes da mitigação.  
 ³ Chamadas `close voting` retornam 4xx sob concorrência no cenário `manage` — comportamento correto do backend, dentro do threshold < 1%.
 
 **Load**
