@@ -160,6 +160,16 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
   }
 
+  @ExceptionHandler(org.springframework.dao.PessimisticLockingFailureException.class)
+  ResponseEntity<ErrorResponse> handlePessimisticLock(
+      org.springframework.dao.PessimisticLockingFailureException ex,
+      HttpServletRequest request) {
+    // Lock conflict on refresh_tokens row — treat as invalid token so the
+    // client clears its session instead of retrying indefinitely.
+    return buildError(
+        HttpStatus.UNAUTHORIZED, "Token de atualização inválido ou expirado", request);
+  }
+
   @ExceptionHandler(GoogleAuthException.class)
   ResponseEntity<ErrorResponse> handleGoogleAuth(
       GoogleAuthException ex, HttpServletRequest request) {

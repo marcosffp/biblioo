@@ -14,6 +14,7 @@ import type { Community } from "../../hooks/useCommunity";
 export interface CommunityChatViewProps {
   community: Community;
   onBack: () => void;
+  onLeave?: () => Promise<void>;
   onUpdateCommunity: (community: Community) => void;
   onInviteUser: (communityId: string, inviteeId: number) => Promise<void>;
 }
@@ -21,6 +22,7 @@ export interface CommunityChatViewProps {
 export function CommunityChatView({
   community,
   onBack,
+  onLeave,
   onUpdateCommunity,
   onInviteUser,
 }: Readonly<CommunityChatViewProps>) {
@@ -67,6 +69,7 @@ export function CommunityChatView({
 
   const handleLeaveGroup = async () => {
     await leaveCommunity(Number(community.id));
+    await onLeave?.();
     onBack();
   };
 

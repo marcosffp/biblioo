@@ -15,6 +15,7 @@ function ComunidadesPageContent() {
     isLoadingCommunities,
     communitiesError,
     isSubmittingCreate,
+    refreshCommunities,
     inviteUser,
     pendingJoinRequestIds,
     filteredCommunities,
@@ -80,6 +81,7 @@ function ComunidadesPageContent() {
         <CommunityChatView
           community={selectedCommunity}
           onBack={handleCloseChatView}
+          onLeave={refreshCommunities}
           onUpdateCommunity={(community) => { void handleUpdateCommunity(community); }}
           onInviteUser={inviteUser}
         />
