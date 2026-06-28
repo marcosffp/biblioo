@@ -24,6 +24,9 @@ public class CommunityJoinRequest {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Version
+  private Long version;
+
   @Column(name = "community_id", nullable = false)
   private Long communityId;
 

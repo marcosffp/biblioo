@@ -300,8 +300,8 @@
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 5000ms | 1.38s | Aprovado |
-| `http_req_failed` rate | < 40% | 16.99% | Aprovado |
+| `http_req_duration` p(95) | < 5000ms | 1.03s | Aprovado |
+| `http_req_failed` rate | < 40% | 0.41% | Aprovado |
 
 
 **Checks:**
@@ -321,16 +321,16 @@
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| `http_req_duration` | 193.99ms | 2.2ms | 54.21ms | 7.81s | 496.51ms | 1.38s |
-| `{ expected_response:true }` | 208.15ms | 3.12ms | 47.67ms | 7.81s | 632.52ms | 1.13s |
+| `http_req_duration` | 210.71ms | 2.66ms | 57.48ms | 3.76s | 554.66ms | 1.03s |
+| `{ expected_response:true }` | 211.44ms | 2.66ms | 57.86ms | 3.76s | 556.66ms | 1.03s |
 
 **Sumário:**
-- Total de requests: **86.079** (306.72/s)
-- Falhas HTTP: **14.624 (16.99%)**
-- Iterações completas: 34.588
-- Dados recebidos: **85 MB** (304 kB/s)
-- Dados enviados: 43 MB (154 kB/s)
-- Duração total: 4m39.6s
+- Total de requests: **100.437** (358.65/s)
+- Falhas HTTP: **420 (0.41%)**
+- Iterações completas: 32.896
+- Dados recebidos: **76 MB** (272 kB/s)
+- Dados enviados: 41 MB (146 kB/s)
+- Duração total: 4m40.0s
 
 ---
 
@@ -773,7 +773,7 @@ Ver também `WebSocketConfig.java`: broker em memória por instância com fan-ou
 | community-invites | load | 210 | 62.321 | 471.55/s | 28.04ms | 0% | Aprovado |
 | community-invites | stress | 500 | 130.917 | 469.97/s | 428.42ms | 6.86% | Aprovado |
 | community-join-requests | load | 210 | 54.607 | ~412/s | 107.08ms | 0% | Aprovado |
-| community-join-requests | stress | 600 | 86.079 | 306.72/s | 1.38s | 16.99% | Aprovado |
+| community-join-requests | stress | 600 | 100.437 | 358.65/s | 1.03s | 0.41% | Aprovado |
 | community-manage | stress | 200 | 106.973 | 497.33/s | 29.55ms | 0% | Aprovado |
 | messageRest | load | 120 | 29.092 | 191.89/s | 94.45ms | 0% | Aprovado |
 | messageRest | spike | 500 | 38.778 | 306.32/s | 179.03ms | 0% | Aprovado |
@@ -788,5 +788,5 @@ Ver também `WebSocketConfig.java`: broker em memória por instância com fan-ou
 
 **Testes executados:** 18 de 18 (todos concluídos).  
 **Testes com threshold violado:** 0 (join-requests-load redesenhado em 2026-06-01; execução original com 31.19% de falha documentada em OBSERVACOES.md).  
-**Testes com falhas dentro do threshold:** 3 (invites stress 6.86%, join-requests stress 16.99%, voting load 0.76%).  
+**Testes com falhas dentro do threshold:** 3 (invites stress 6.86%, join-requests stress 0.41%, voting load 0.76%).  
 **Nota:** `message-load/spike/stress` executados em 2026-06-01 — todos aprovados com entrega 100%. `message-concurrency` validou integridade com 100 VUs; integridade 100% confirmada.

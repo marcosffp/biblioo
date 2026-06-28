@@ -9,8 +9,13 @@ import type { BackendCommunityResponse } from "@/types/api";
 import { getAccessToken } from "@/services/auth";
 import { getBookById } from "@/services/bookcase";
 
+interface BookInfo {
+  title: string;
+  coverUrl?: string | null;
+}
+
 function useCommunityBooks(communities: BackendCommunityResponse[]) {
-  const [bookTitles, setBookTitles] = useState<Record<number, string>>({});
+  const [bookInfos, setBookInfos] = useState<Record<number, BookInfo>>({});
 
   useEffect(() => {
     if (communities.length === 0) return;
@@ -20,21 +25,21 @@ function useCommunityBooks(communities: BackendCommunityResponse[]) {
       bookIds.map(async (bookId) => {
         try {
           const book = await getBookById(bookId);
-          return { bookId, title: book.title };
+          return { bookId, info: { title: book.title, coverUrl: book.coverUrl } };
         } catch {
-          return { bookId, title: "Livro desconhecido" };
+          return { bookId, info: { title: "Livro desconhecido" } };
         }
       }),
     ).then((results) => {
-      const map: Record<number, string> = {};
-      results.forEach(({ bookId, title }) => {
-        map[bookId] = title;
+      const map: Record<number, BookInfo> = {};
+      results.forEach(({ bookId, info }) => {
+        map[bookId] = info;
       });
-      setBookTitles(map);
+      setBookInfos(map);
     });
   }, [communities]);
 
-  return bookTitles;
+  return bookInfos;
 }
 
 export type UserCommunitiesTabProps = {
@@ -50,7 +55,7 @@ export function UserCommunitiesTab({
   const [communities, setCommunities] = useState<BackendCommunityResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const bookTitles = useCommunityBooks(communities);
+  const bookInfos = useCommunityBooks(communities);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,12 +126,13 @@ export function UserCommunitiesTab({
           key={community.id}
           name={community.name}
           description={community.description ?? undefined}
-          bookTitle={bookTitles[community.bookId] ?? "Carregando..."}
+          bookTitle={bookInfos[community.bookId]?.title ?? "Carregando..."}
+          bookCoverUrl={bookInfos[community.bookId]?.coverUrl}
           visibility={community.type}
           members={community.memberCount}
-          onClick={() => router.push(`/community/${community.id}`)}
+          onClick={() => router.push(`/community?communityId=${community.id}&open=1`)}
           actionLabel="Ver comunidade"
-          onActionClick={() => router.push(`/community/${community.id}`)}
+          onActionClick={() => router.push(`/community?communityId=${community.id}&open=1`)}
         />
       ))}
     </div>
