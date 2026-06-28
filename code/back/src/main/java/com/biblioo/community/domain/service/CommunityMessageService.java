@@ -81,14 +81,12 @@ public class CommunityMessageService implements CommunityMessageUseCase {
 
   @EventListener
   public void handleMessageEdited(MessageEditedEvent event) {
-    cachePort.invalidate(event.message().getCommunityId());
+    Long communityId = event.message().getCommunityId();
+    cachePort.invalidate(communityId);
+    List<CommunityMessage> messages =
+        messageRepository.findRecentByCommunityId(communityId, RECENT_MESSAGES_LIMIT);
+    messages.forEach(m -> cachePort.pushMessage(communityId, m));
     broadcastPort.broadcastEdit(event.message());
-  }
-
-  @EventListener
-  public void handleMessageDeleted(MessageDeletedEvent event) {
-    cachePort.invalidate(event.communityId());
-    broadcastPort.broadcastDelete(event.communityId(), event.messageId());
   }
 
   @EventListener
@@ -280,8 +278,12 @@ public class CommunityMessageService implements CommunityMessageUseCase {
 
     if (!urlsToDelete.isEmpty()) feedImagePort.deleteImages(urlsToDelete);
 
-    cachePort.invalidate(deletedMessage.getCommunityId());
-    broadcastPort.broadcastDelete(deletedMessage.getCommunityId(), messageId);
+    Long communityId = deletedMessage.getCommunityId();
+    cachePort.invalidate(communityId);
+    List<CommunityMessage> messages =
+        messageRepository.findRecentByCommunityId(communityId, RECENT_MESSAGES_LIMIT);
+    messages.forEach(m -> cachePort.pushMessage(communityId, m));
+    broadcastPort.broadcastDelete(communityId, messageId);
   }
 
   @Override
@@ -324,23 +326,21 @@ public class CommunityMessageService implements CommunityMessageUseCase {
     Optional<LocalDateTime> joinedAt = memberRepository.findJoinedAt(communityId, userId);
 
     List<CommunityMessage> cached = cachePort.getRecentMessages(communityId);
-    if (!cached.isEmpty()) {
-      if (joinedAt.isEmpty()) return cached;
-      LocalDateTime joined = joinedAt.get();
-      List<CommunityMessage> filtered =
-          cached.stream().filter(m -> !m.getCreatedAt().isBefore(joined)).toList();
-      if (!filtered.isEmpty()) return filtered;
+    if (cached.isEmpty()) {
+      // Cache miss (TTL expiry or first load) — populate from DB
+      cached = messageRepository.findRecentByCommunityId(communityId, RECENT_MESSAGES_LIMIT);
+      cached.forEach(m -> cachePort.pushMessage(communityId, m));
     }
 
-    if (joinedAt.isEmpty()) {
-      List<CommunityMessage> messages =
-          messageRepository.findRecentByCommunityId(communityId, RECENT_MESSAGES_LIMIT);
-      messages.forEach(m -> cachePort.pushMessage(communityId, m));
-      return messages;
-    }
+    if (joinedAt.isEmpty()) return cached;
+    LocalDateTime joined = joinedAt.get();
+    List<CommunityMessage> filtered =
+        cached.stream().filter(m -> !m.getCreatedAt().isBefore(joined)).toList();
+    if (!filtered.isEmpty()) return filtered;
 
+    // All cached messages are before joinedAt — user joined after all cached messages
     return messageRepository.findRecentByCommunityIdAndJoinedAt(
-        communityId, joinedAt.get(), RECENT_MESSAGES_LIMIT);
+        communityId, joined, RECENT_MESSAGES_LIMIT);
   }
 
   @Override

@@ -64,7 +64,7 @@
 |---------|-----|-----|-----|-----|-------|-------|
 | geral | 6.75ms | 2.03ms | 5.64ms | 88.71ms | 10.07ms | 15.46ms |
 
-**Sumário:** 34.860 requests (462.80/s) · 0 falhas · 21 MB recv / 13 MB sent · 1m15.3s.
+**Sumário:** 34.860 requests (442.80/s) · 0 falhas · 21 MB recv / 13 MB sent · 1m15.3s.
 
 ---
 
@@ -190,8 +190,8 @@ Pico súbito 70→500 VUs sobre contas privadas. 50 owners privados, 550 request
 
 | Métrica | Threshold | Resultado | Status |
 |---------|-----------|-----------|--------|
-| `http_req_duration` p(95) | < 5000ms | 354.09ms | Aprovado |
-| `http_req_failed` rate | < 40% | 4.74% | Aprovado |
+| `http_req_duration` p(95) | < 5000ms | 282.08ms | Aprovado |
+| `http_req_failed` rate | < 40% | 5.17% | Aprovado |
 
 **Checks:**
 
@@ -207,18 +207,18 @@ Pico súbito 70→500 VUs sobre contas privadas. 50 owners privados, 550 request
 
 | Métrica | avg | min | med | max | p(90) | p(95) |
 |---------|-----|-----|-----|-----|-------|-------|
-| geral | 158.78ms | 17µs | 157.24ms | 735.88ms | 304.38ms | 354.09ms |
-| `{ expected_response:true }` | 157.39ms | 17µs | 157.24ms | 718.55ms | 302.8ms | 351.39ms |
+| geral | 128.27ms | 1.85ms | 127.02ms | 668.15ms | 248.99ms | 282.08ms |
+| `{ expected_response:true }` | 127.01ms | 1.85ms | 125.85ms | 668.15ms | 246.5ms | 280.92ms |
 
 **Sumário:**
-- Total de requests: **47.436** (585.13/s)
-- Iterações completas: 15.402 (189.99/s)
-- Falhas HTTP: **2.230 (4.74%)** — 4xx de contenção esperados sob 10 VUs por owner
-- Dados recebidos: **31 MB** (381 kB/s)
-- Dados enviados: 19 MB (239 kB/s)
-- Duração total: 1m21.1s
+- Total de requests: **53.090** (680.45/s)
+- Iterações completas: 17.280 (221.48/s)
+- Falhas HTTP: **2.749 (5.17%)** — 4xx de contenção esperados sob 10 VUs por owner
+- Dados recebidos: **35 MB** (442 kB/s)
+- Dados enviados: 22 MB (278 kB/s)
+- Duração total: 1m18.0s
 
-> **Veredito:** APROVADO. Thresholds ✓ nos dois critérios. Os 4.74% de falha HTTP são 4xx de conflito esperados sob contenção de 10:1 — padrão idêntico ao do `social-requests-stress`. Zero falhas de check. O pico de 500 VUs em rajada não produz race patológica.
+> **Veredito:** APROVADO. Thresholds ✓ nos dois critérios. Os 5.17% de falha HTTP são 4xx de conflito esperados sob contenção de 10:1 — padrão idêntico ao do `social-requests-stress`. Zero falhas de check. O pico de 500 VUs em rajada não produz race patológica.
 
 ### 2.3 Social Requests — Stress — `social-requests-stress.js`
 
@@ -268,13 +268,13 @@ Força contenção para verificar race condition: 50 owners privados, 400 reques
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas | Resultado |
 |------------|-------|---------|----------|-----------|-------|--------|-----------|
 | user | load | 210 | 51.960 | 391.31/s | 56.7ms | 0% | Aprovado |
-| user | spike | 500 | 34.860 | 462.80/s | 15.46ms | 0% | Aprovado |
+| user | spike | 500 | 34.860 | 442.80/s | 15.46ms | 0% | Aprovado |
 | user | stress | 600 | 269.802 | 833.75/s | 349.76ms | 0% | Aprovado |
 | social | load (público) | 210 | 89.682 | 672.18/s | 27.34ms | 0% | Aprovado |
 | social | spike (público) | 500 | 43.290 | 552.00/s | 333.3ms | 0% | Aprovado |
 | social | stress (público) | 200¹ | 142.582 | 287.85/s² | 666.23ms | 0%³ | Aprovado⁴ |
 | social | requests load (privado) | 100 | 32.400 | 245.30/s | 62.26ms | 0% | Aprovado |
-| social | requests spike (privado) | 500 | 47.436 | 585.13/s | 354.09ms | 4.74%⁵ | Aprovado |
+| social | requests spike (privado) | 500 | 53.090 | 680.45/s | 282.08ms | 5.17%⁵ | Aprovado |
 | social | requests stress (privado) | 250 | 157.722 | 603.53/s | 45.4ms | 9.08%⁶ | Aprovado |
 
 ¹ Script atualizado para 200 VUs (4 estágios); resultado da tabela é da execução anterior com 600 VUs — ver 2.1.2.

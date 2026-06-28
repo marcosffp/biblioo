@@ -14,6 +14,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+class _CuratedGenre {
+  final String id;
+  final String label;
+  final String emoji;
+  final Color bg;
+  final List<String> keywords;
+
+  const _CuratedGenre({
+    required this.id,
+    required this.label,
+    required this.emoji,
+    required this.bg,
+    required this.keywords,
+  });
+}
+
+const _kCuratedGenres = <_CuratedGenre>[
+  _CuratedGenre(id: 'romance', label: 'Romance', emoji: '❤️', bg: Color(0xFFFCE4EC), keywords: ['romance', 'love stories']),
+  _CuratedGenre(id: 'sci-fi', label: 'Ficção Científica', emoji: '🚀', bg: Color(0xFFE3F2FD), keywords: ['science fiction', 'sci-fi', 'scifi', 'scientific']),
+  _CuratedGenre(id: 'fantasy', label: 'Fantasia', emoji: '🧙', bg: Color(0xFFEDE7F6), keywords: ['fantasy']),
+  _CuratedGenre(id: 'mystery', label: 'Mistério', emoji: '🔍', bg: Color(0xFFECEFF1), keywords: ['mystery', 'detective', 'crime fiction']),
+  _CuratedGenre(id: 'horror', label: 'Terror', emoji: '👻', bg: Color(0xFFFFEBEE), keywords: ['horror', 'ghost stories', 'supernatural fiction']),
+  _CuratedGenre(id: 'thriller', label: 'Thriller', emoji: '⚡', bg: Color(0xFFFFF3E0), keywords: ['thriller', 'suspense']),
+  _CuratedGenre(id: 'adventure', label: 'Aventura', emoji: '🧭', bg: Color(0xFFE8F5E9), keywords: ['adventure']),
+  _CuratedGenre(id: 'historical', label: 'Histórico', emoji: '🏛️', bg: Color(0xFFFFF8E1), keywords: ['historical', 'history']),
+  _CuratedGenre(id: 'self-help', label: 'Autoajuda', emoji: '✨', bg: Color(0xFFFFFDE7), keywords: ['self-help', 'self help', 'personal development', 'motivational']),
+  _CuratedGenre(id: 'classics', label: 'Clássicos', emoji: '📚', bg: Color(0xFFF5F5F5), keywords: ['classic', 'literary fiction', 'literature']),
+  _CuratedGenre(id: 'poetry', label: 'Poesia', emoji: '🪶', bg: Color(0xFFFFF0F3), keywords: ['poetry', 'poems', 'verse']),
+  _CuratedGenre(id: 'philosophy', label: 'Filosofia', emoji: '🧠', bg: Color(0xFFF3E5F5), keywords: ['philosophy', 'philosophical']),
+  _CuratedGenre(id: 'biography', label: 'Biografia', emoji: '👤', bg: Color(0xFFE0F7FA), keywords: ['biography', 'autobiography', 'memoir']),
+  _CuratedGenre(id: 'young-adult', label: 'Jovem Adulto', emoji: '⭐', bg: Color(0xFFF9FBE7), keywords: ['young adult', 'teen fiction', 'juvenile']),
+  _CuratedGenre(id: 'comics', label: 'HQ / Mangá', emoji: '🎨', bg: Color(0xFFE8EAF6), keywords: ['comics', 'graphic novel', 'manga']),
+  _CuratedGenre(id: 'humor', label: 'Humor', emoji: '😄', bg: Color(0xFFE0F2F1), keywords: ['humor', 'comedy', 'humorous', 'satire']),
+];
+
 /// Onboarding em duas etapas:
 ///  1. seleção de gêneros (mínimo 3)
 ///  2. busca + seleção de livros (opcional, melhora as recomendações)
@@ -258,23 +293,8 @@ class _GenresStep extends StatelessWidget {
     if (state.status == PreferencesStatus.loadingGenres) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (state.status == PreferencesStatus.genresError) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(state.errorMessage ?? 'Erro ao carregar gêneros'),
-            const SizedBox(height: 12),
-            FilledButton.tonal(
-              onPressed: () => context
-                  .read<PreferencesBloc>()
-                  .add(PreferencesGenresLoadRequested()),
-              child: const Text('Tentar novamente'),
-            ),
-          ],
-        ),
-      );
-    }
+    // Always show curated genres; backend genres are only needed for keyword matching.
+    // On error, the grid falls back to curated IDs as values.
     return _GenreGrid(
       genres: state.genres,
       selected: selectedGenres,
@@ -294,6 +314,16 @@ class _GenreGrid extends StatelessWidget {
     required this.onToggle,
   });
 
+  String _matchBackend(List<String> keywords) {
+    for (final genre in genres) {
+      final lower = genre.original.toLowerCase();
+      for (final kw in keywords) {
+        if (lower.contains(kw)) return genre.original;
+      }
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
@@ -302,15 +332,19 @@ class _GenreGrid extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
-        childAspectRatio: 2.8,
+        childAspectRatio: 1.55,
       ),
-      itemCount: genres.length,
+      itemCount: _kCuratedGenres.length,
       itemBuilder: (context, index) {
-        final genre = genres[index];
-        return GenreChip(
-          genre: genre,
-          isSelected: selected.contains(genre.original),
-          onTap: () => onToggle(genre.original),
+        final curated = _kCuratedGenres[index];
+        final backendOriginal = _matchBackend(curated.keywords);
+        final effectiveValue = backendOriginal.isNotEmpty ? backendOriginal : curated.id;
+        return GenreCard(
+          emoji: curated.emoji,
+          label: curated.label,
+          backgroundColor: curated.bg,
+          isSelected: selected.contains(effectiveValue),
+          onTap: () => onToggle(effectiveValue),
         );
       },
     );

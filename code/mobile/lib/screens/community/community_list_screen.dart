@@ -529,6 +529,8 @@ class _MyCommunityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasBook =
+        community.bookTitle.isNotEmpty || community.bookAuthor.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -538,84 +540,145 @@ class _MyCommunityCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 8,
-          ),
-          leading: const _CommunityAvatar(),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  community.name,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => context.push('/community/${community.id}'),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _CommunityAvatar(coverUrl: community.bookCoverUrl),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            community.name,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                community.isPublic
+                                    ? Icons.language_rounded
+                                    : Icons.lock_rounded,
+                                size: 13,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                community.isPublic ? 'Pública' : 'Privada',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.group_rounded,
+                                size: 13,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${community.memberCount} membros',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'leave') {
+                          context.read<CommunityBloc>().add(
+                            CommunityLeaveRequested(community.id),
+                          );
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem<String>(
+                          value: 'leave',
+                          child: Text('Sair da comunidade'),
+                        ),
+                      ],
+                      icon: const Icon(Icons.more_horiz_rounded),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                community.isPublic
-                    ? Icons.language_rounded
-                    : Icons.lock_rounded,
-                size: 14,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 2),
-              Text(
-                community.bookAuthor.isEmpty
-                    ? community.bookTitle
-                    : '${community.bookTitle} - ${community.bookAuthor}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    Icons.group_rounded,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
+                if (community.description != null &&
+                    community.description!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
                   Text(
-                    '${community.memberCount}  •  ${_timeAgo(community.createdAt)}',
+                    community.description!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
-              ),
-            ],
+                if (hasBook) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer.withValues(
+                        alpha: 0.4,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'LEITURA ATUAL',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          community.bookTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (community.bookAuthor.isNotEmpty)
+                          Text(
+                            community.bookAuthor,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-          trailing: PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'leave') {
-                context.read<CommunityBloc>().add(
-                  CommunityLeaveRequested(community.id),
-                );
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem<String>(
-                value: 'leave',
-                child: Text('Sair da comunidade'),
-              ),
-            ],
-            icon: const Icon(Icons.more_horiz_rounded),
-          ),
-          onTap: () => context.push('/community/${community.id}'),
         ),
       ),
     );
@@ -643,7 +706,7 @@ class _SuggestionCard extends StatelessWidget {
             horizontal: 16,
             vertical: 8,
           ),
-          leading: const _CommunityAvatar(),
+          leading: _CommunityAvatar(coverUrl: community.bookCoverUrl),
           title: Row(
             children: [
               Expanded(
@@ -666,12 +729,29 @@ class _SuggestionCard extends StatelessWidget {
               ),
             ],
           ),
-          subtitle: Text(
-            '${community.memberCount} membros',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${community.memberCount} membros',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (community.bookTitle.isNotEmpty)
+                Text(
+                  community.bookAuthor.isEmpty
+                      ? community.bookTitle
+                      : '${community.bookTitle} · ${community.bookAuthor}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+            ],
           ),
+          isThreeLine: community.bookTitle.isNotEmpty,
           trailing: community.isPublic
               ? FilledButton(
                   onPressed: () {
@@ -720,10 +800,27 @@ class _SuggestionCard extends StatelessWidget {
 }
 
 class _CommunityAvatar extends StatelessWidget {
-  const _CommunityAvatar();
+  final String? coverUrl;
+  const _CommunityAvatar({this.coverUrl});
 
   @override
   Widget build(BuildContext context) {
+    if (coverUrl != null && coverUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          coverUrl!,
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _defaultAvatar(context),
+        ),
+      );
+    }
+    return _defaultAvatar(context);
+  }
+
+  Widget _defaultAvatar(BuildContext context) {
     return CircleAvatar(
       backgroundColor: Theme.of(context).colorScheme.primaryContainer,
       child: Icon(
@@ -758,11 +855,3 @@ class _CircularActionButton extends StatelessWidget {
   }
 }
 
-String _timeAgo(DateTime dt) {
-  final diff = DateTime.now().difference(dt);
-  if (diff.inSeconds < 60) return 'agora';
-  if (diff.inMinutes < 60) return 'Há ${diff.inMinutes} min';
-  if (diff.inHours < 24) return 'Há ${diff.inHours}h';
-  if (diff.inDays == 1) return 'Há 1 dia';
-  return 'Há ${diff.inDays} dias';
-}
