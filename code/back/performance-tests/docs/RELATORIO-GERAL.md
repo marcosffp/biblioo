@@ -9,12 +9,12 @@
 
 ## 1. Status Geral
 
-**72 de 72 testes executados — 100% aprovados.**
+**71 de 71 testes executados — 100% aprovados.**
 
 | Domain | Subdomínios | Testes | Status |
 |--------|-------------|--------|--------|
 | DomainBook | book, collection, shelf, shelfItem | 12/12 | Completo |
-| DomainCommunity | community, invites, join-requests, manage, messageRest, voting, message (WS), admin | 21/21 | Completo |
+| DomainCommunity | community, invites, join-requests, admin, messageRest, voting, message (WS) | 20/20 | Completo |
 | DomainDna | dna | 3/3 | Completo |
 | DomainFeed | feed, post, comment, commentInteraction, review | 15/15 | Completo |
 | DomainRecommendation | recommendation, roll-dice | 6/6 | Completo |

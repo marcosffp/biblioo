@@ -526,7 +526,7 @@ Advice bookStatsRetryInterceptor() {
 
 O Biblioo executa operações computacionalmente pesadas: consultas a seis bancos de dados distintos, algoritmos de grafo (Neo4j), fanout de feed e mensageria assíncrona. Por isso, **requisitos não funcionais de desempenho** são tratados como cidadãos de primeira classe — latência máxima aceitável, taxa de erro tolerada e comportamento sob carga inesperada são definidos como SLAs explícitos e verificados automaticamente pelos testes.
 
-**72 testes executados — 100% aprovados.** A suíte cobre **8 domínios** e **24 subdomínios**, com três perfis por subdomínio:
+**71 testes executados — 100% aprovados.** A suíte cobre **8 domínios** e **24 subdomínios**, com três perfis por subdomínio:
 
 | Perfil | Dinâmica de carga | Objetivo |
 |---|---|---|
@@ -556,7 +556,7 @@ Os thresholds são declarados diretamente nos scripts e fazem o teste **falhar**
 | shareCard | 600 | ~299,6/s | 57,42 ms | PASSOU |
 | dna | 500 | 150,27/s | 29,88 ms | PASSOU |
 
-**0 falhas sistêmicas (5xx)** em todos os 72 testes. Relatório técnico completo em [`performance-tests/docs/RELATORIO-GERAL.md`](performance-tests/docs/RELATORIO-GERAL.md).
+**0 falhas sistêmicas (5xx)** em todos os 71 testes. Relatório técnico completo em [`performance-tests/docs/RELATORIO-GERAL.md`](performance-tests/docs/RELATORIO-GERAL.md).
 
 ### Padrão dos testes autenticados
 
@@ -569,7 +569,7 @@ Os testes de recomendação disparam as **6 trilhas em batch paralelo** (`http.b
 ```
 performance-tests/
 ├── docs/
-│   ├── RELATORIO-GERAL.md                  # Resultados consolidados dos 72 testes
+│   ├── RELATORIO-GERAL.md                  # Resultados consolidados dos 71 testes
 │   └── DOCUMENTO-AVALIACAO-PERFORMANCE.md  # Avaliação com evidências de load
 ├── evidencias/
 │   ├── load/                               # 24 prints de carga normal
