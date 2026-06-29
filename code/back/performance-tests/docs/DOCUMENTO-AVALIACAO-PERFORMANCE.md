@@ -17,7 +17,7 @@ Este documento avalia o comportamento do backend do Biblioo sob carga, comprovad
 2. **Onde estão os limites e os gargalos** de cada domínio funcional?
 3. **A aplicação é estável** (ausência de erros sistêmicos) sob concorrência alta?
 
-A suíte completa de performance do projeto contém **72 testes** (load, spike e stress) distribuídos em **8 domínios**. Este documento de avaliação concentra a **evidência fotográfica na bateria de _load_** — o cenário mais representativo do uso real em produção — com **24 testes de carga**, um por subdomínio. Os resultados de _spike_ e _stress_ são referenciados a partir dos relatórios técnicos da suíte (`RELATORIO-GERAL.md` e `RELATORIO-<DOMAIN>.md`).
+A suíte completa de performance do projeto contém **1 testes** (load, spike e stress) distribuídos em **8 domínios**. Este documento de avaliação concentra a **evidência fotográfica na bateria de _load_** — o cenário mais representativo do uso real em produção — com **24 testes de carga**, um por subdomínio. Os resultados de _spike_ e _stress_ são referenciados a partir dos relatórios técnicos da suíte (`RELATORIO-GERAL.md` e `RELATORIO-<DOMAIN>.md`).
 
 ---
 

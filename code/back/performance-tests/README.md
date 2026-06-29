@@ -26,7 +26,7 @@ performance-tests/
 │
 ├── docs/
 │   ├── DOCUMENTO-AVALIACAO-PERFORMANCE.md  ← avaliação formal com evidências load
-│   └── RELATORIO-GERAL.md                  ← todos os 72 testes com evidências load/spike/stress
+│   └── RELATORIO-GERAL.md                  ← todos os 71 testes com evidências load/spike/stress
 │
 ├── DomainBook/
 │   ├── RELATORIO-DOMAINBOOK.md
@@ -206,13 +206,13 @@ As evidências são referenciadas nos relatórios de cada domínio e no [`docs/R
 | Arquivo | Quando ler |
 |---------|-----------|
 | [`docs/DOCUMENTO-AVALIACAO-PERFORMANCE.md`](docs/DOCUMENTO-AVALIACAO-PERFORMANCE.md) | Ponto de entrada para avaliadores — evidências visuais dos load tests, análise por domínio |
-| [`docs/RELATORIO-GERAL.md`](docs/RELATORIO-GERAL.md) | Consolidação de todos os 72 testes com evidências load/spike/stress e links para cada domínio |
+| [`docs/RELATORIO-GERAL.md`](docs/RELATORIO-GERAL.md) | Consolidação de todos os 71 testes com evidências load/spike/stress e links para cada domínio |
 | `DomainXxx/RELATORIO-DomainXxx.md` | Métricas detalhadas (requests, throughput, p95, checks, falhas) por subdomínio e teste |
 | `DomainXxx/OBSERVACOES.md` | Análise técnica: comportamentos não óbvios, gargalos, race conditions, decisões de design dos scripts |
 
 **Ordem de leitura sugerida:**
 1. [`docs/DOCUMENTO-AVALIACAO-PERFORMANCE.md`](docs/DOCUMENTO-AVALIACAO-PERFORMANCE.md) — visão geral com evidências
-2. [`docs/RELATORIO-GERAL.md`](docs/RELATORIO-GERAL.md) — números completos de todos os 72 testes
+2. [`docs/RELATORIO-GERAL.md`](docs/RELATORIO-GERAL.md) — números completos de todos os 71 testes
 3. `DomainXxx/RELATORIO-DomainXxx.md` + `DomainXxx/OBSERVACOES.md` — aprofundamento por domínio
 
 ---

@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
-import React from "react";
+import React, { useState } from "react";
+import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { TopHeader } from "./TopHeader";
 import BiblioChatWidget from "@/components/chat/BiblioChatWidget";
@@ -10,6 +13,9 @@ export interface AppShellProps {
 }
 
 export function AppShell({ children, className }: Readonly<AppShellProps>) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const close = () => setSidebarOpen(false);
+
   return (
     <div
       className={`relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,#e7f7f0_0%,#f7faf9_45%,#f7f9f8_100%)] ${className ?? ""}`.trim()}
@@ -20,7 +26,24 @@ export function AppShell({ children, className }: Readonly<AppShellProps>) {
         <div className="absolute bottom-[-15%] left-1/3 h-80 w-80 rounded-full bg-[rgba(31,61,58,0.12)] blur-3xl" />
       </div>
       <TopHeader />
-      <Sidebar />
+      {/* aba lateral para abrir o menu em telas pequenas */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Abrir menu"
+          className="fixed left-0 top-[72px] z-50 flex items-center justify-center rounded-r-lg bg-white/90 px-1 py-2.5 shadow-md text-[var(--text-secondary)] lg:hidden"
+        >
+          <Menu size={18} />
+        </button>
+      )}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden"
+          onClick={close}
+          aria-hidden="true"
+        />
+      )}
+      <Sidebar isOpen={sidebarOpen} onClose={close} />
       <main className="w-full pt-16 lg:pl-64">
         <div className="px-4 py-8 sm:px-8 lg:px-12 lg:py-10">
           <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
