@@ -32,7 +32,7 @@ _Instituto de Informática e Ciências Exatas – Pontifícia Universidade Cató
 
 ---
 
-_**Resumo**. O Biblioo é uma plataforma de comunidade literária web e mobile desenvolvida para leitores ativos brasileiros. O sistema resolve a fragmentação das experiências digitais de leitura ao reunir em um único ambiente: organização de estantes personalizadas com rastreamento de progresso, feed social com posts e reviews, comunidades com chat em tempo real via WebSocket, seis algoritmos independentes de recomendação personalizada — combinando grafo de relacionamentos (Neo4j), filtragem colaborativa, aprendizado bayesiano (Thompson Sampling) e repetição espaçada —, DNA Literário com arquétipo e perfil de leitura do usuário, notificações em tempo real e o assistente conversacional Bibo, integrado ao Google Gemini, capaz de executar ações diretamente na plataforma. A arquitetura segue o estilo Hexagonal em um monólito modular com 11 domínios, implantado em dois ambientes no Google Cloud Run com pipeline CI/CD automatizado. Uma suíte de 72 testes de performance (K6) validou os requisitos não funcionais definidos — nenhuma falha funcional foi registrada em toda a carga de testes, com throughput máximo de 1 538 req/s e latência p95 de 11 ms para o chat em tempo real._
+_**Resumo**. O Biblioo é uma plataforma de comunidade literária web e mobile desenvolvida para leitores ativos brasileiros. O sistema resolve a fragmentação das experiências digitais de leitura ao reunir em um único ambiente: organização de estantes personalizadas com rastreamento de progresso, feed social com posts e reviews, comunidades com chat em tempo real via WebSocket, seis algoritmos independentes de recomendação personalizada — combinando grafo de relacionamentos (Neo4j), filtragem colaborativa, aprendizado bayesiano (Thompson Sampling) e repetição espaçada —, DNA Literário com arquétipo e perfil de leitura do usuário, notificações em tempo real e o assistente conversacional Bibo, integrado ao Google Gemini, capaz de executar ações diretamente na plataforma. A arquitetura segue o estilo Hexagonal em um monólito modular com 11 domínios, implantado em dois ambientes no Google Cloud Run com pipeline CI/CD automatizado. Uma suíte de 71 testes de performance (K6) validou os requisitos não funcionais definidos — nenhuma falha funcional foi registrada em toda a carga de testes, com throughput máximo de 1 538 req/s e latência p95 de 11 ms para o chat em tempo real._
 
 ---
 
@@ -69,16 +69,6 @@ _**Resumo**. O Biblioo é uma plataforma de comunidade literária web e mobile d
    - 7.1. Cenários
    - 7.2. Avaliação (ATAM — 5 cenários com dados de testes K6)
    - 7.3. Avaliação Geral da Arquitetura
-
-8. [ATAM](8.atam.md#atam "Architecture Tradeoff Analysis Method")
-   - 8.1. Resumo Executivo
-   - 8.2. Objetivos de Negócio e Direcionadores Arquiteturais
-   - 8.3. Topologia e Abordagem da Arquitetura (serviços externos, tabela de componentes)
-   - 8.4. Árvore de Utilidade e Inventário de Cenários (C-01 a C-06)
-   - 8.5. Inventário Analítico Rastreável (Riscos R-01/R-02 · Não-Riscos NR-01 a NR-05 · Tradeoffs T-01 a T-04 · Sensibilidades S-01 a S-03)
-   - 8.6. Evidências de Teste e Comprovação (E-01 a E-07 · 72/72 aprovados)
-   - 8.7. Comprovações de Mensageria (topologia de filas, análise por fila, fluxo de notificação)
-   - 8.8. Plano de Ação e Recomendações Técnicas (Ações 1 a 6)
 
 ---
 

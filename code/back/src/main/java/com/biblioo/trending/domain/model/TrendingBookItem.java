@@ -7,6 +7,7 @@ public record TrendingBookItem(
     Long bookId,
     String title,
     String coverUrl,
+    String author,
     Long newReviews,
     Long shelfAdditions,
     Long progressUpdates,

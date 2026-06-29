@@ -13,19 +13,12 @@ import {
   SkeletonBlock,
 } from "@/components";
 import { FeedApiError, getFeed } from "@/services/feed";
+import { getTrendingBooks, type TrendingBook } from "@/services/trending";
 import { formatFeedTime } from "@/utils/date";
 import type { FeedItem } from "@/types/api";
 import { deleteBookReview } from "@/services/bookcase";
 import { getAccessToken } from "@/services/auth";
 import { getJwtUserId } from "@/utils/jwt";
-
-const TRENDING_BOOKS = [
-  { id: 1, title: "A Empregada", author: "Freida McFadden", readers: 1234 },
-  { id: 2, title: "É Assim Que Acaba", author: "Colleen Hoover", readers: 987 },
-  { id: 3, title: "Verity", author: "Colleen Hoover", readers: 876 },
-  { id: 4, title: "O Problema de Ser Perfeita", author: "Sally Thorne", readers: 754 },
-  { id: 5, title: "Adeus, Coisas", author: "Fumio Sasaki", readers: 631 },
-];
 
 interface EditingReview {
   id: number;
@@ -45,10 +38,15 @@ export default function FeedPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingReview, setEditingReview] = useState<EditingReview | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [trendingBooks, setTrendingBooks] = useState<TrendingBook[]>([]);
 
   useEffect(() => {
     const token = getAccessToken();
     if (token) setCurrentUserId(getJwtUserId(token));
+  }, []);
+
+  useEffect(() => {
+    getTrendingBooks().then(setTrendingBooks).catch(() => {});
   }, []);
 
   const loadFeed = useCallback(async (cursor?: string | null) => {
@@ -208,20 +206,24 @@ export default function FeedPage() {
               <h3 className="text-sm font-semibold text-foreground">Em Alta</h3>
             </div>
             <div className="space-y-3">
-              {TRENDING_BOOKS.map((book, index) => (
-                <div key={book.id} className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-emerald-600">
-                    {index + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-foreground">{book.title}</p>
-                    <p className="truncate text-xs text-emerald-600">{book.author}</p>
+              {trendingBooks.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum livro em alta no momento.</p>
+              ) : (
+                trendingBooks.slice(0, 5).map((book, index) => (
+                  <div key={book.bookId} className="flex items-center gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-emerald-600">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-foreground">{book.title}</p>
+                      <p className="truncate text-xs text-emerald-600">{book.author}</p>
+                    </div>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {(book.shelfAdditions + book.progressUpdates).toLocaleString("pt-BR")} lendo
+                    </span>
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {book.readers.toLocaleString("pt-BR")} lendo
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </aside>
