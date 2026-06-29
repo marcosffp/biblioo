@@ -18,10 +18,6 @@
 
 - [PR #275](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/275)
 
-## Semana 2 (08/06/2026 - 14/06/2026)
-
-Sem commits confirmados com meu nome nesse período.
-
 ## Semana 3 (15/06/2026 - 21/06/2026)
 
 **O que foi feito:**
@@ -32,7 +28,7 @@ Sem commits confirmados com meu nome nesse período.
 
 - `9f1a101`
 
-## Semana 5 (22/06/2026 - 29/06/2026)
+## Semana 4 (22/06/2026 - 29/06/2026)
 
 **O que foi feito:**
 
