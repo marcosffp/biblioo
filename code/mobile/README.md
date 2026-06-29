@@ -1,7 +1,3 @@
-<!--
-<div align="center" style="background:#1a1a2e;padding:32px 0;border-radius:12px">
-<div align="center" style="background:#3fc3a7;padding:32px 80px;border-radius:12px;width:85%">
--->
 <img width="1600" style="height:auto; border-radius: 12px;" alt="banner" src="../../docs/imagens/banner.png" />
 
 # Mobile
@@ -28,36 +24,38 @@
 
 ## Sumário
 
-- [Sobre o app](#-sobre-o-app)
-- [Arquitetura](#-arquitetura)
-- [Estrutura de módulos](#-estrutura-de-módulos)
-- [Estrutura de pastas](#-estrutura-de-pastas)
-- [Navegação e rotas](#-navegação-e-rotas)
-- [Features](#-features)
-- [Screens](#-screens)
-- [Core](#-core)
-- [Shared](#-shared)
-- [Regras de arquitetura](#-regras-de-arquitetura)
-- [Fluxo de dados](#-fluxo-de-dados)
-- [Variáveis de ambiente](#-variáveis-de-ambiente)
-- [Instalação e execução](#-instalação-e-execução)
-- [Build e distribuição](#-build-e-distribuição)
-- [Testes](#-testes)
-- [Tecnologias e dependências](#-tecnologias-e-dependências)
+- [Sobre o app](#sobre-o-app)
+- [Arquitetura](#arquitetura)
+- [Estratégia offline-first](#estratégia-offline-first)
+- [Banco de dados local](#banco-de-dados-local)
+- [Estrutura de módulos](#estrutura-de-módulos)
+- [BLoCs em detalhe](#blocs-em-detalhe)
+- [Estrutura de pastas](#estrutura-de-pastas)
+- [Navegação e rotas](#navegação-e-rotas)
+- [Screens](#screens)
+- [Core](#core)
+- [Shared](#shared)
+- [Regras de arquitetura](#regras-de-arquitetura)
+- [Fluxo de dados](#fluxo-de-dados)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Instalação e execução](#instalação-e-execução)
+- [Build e distribuição](#build-e-distribuição)
+- [Testes](#testes)
+- [Tecnologias e dependências](#tecnologias-e-dependências)
 
 ---
 
 ## Sobre o app
 
-O app mobile do **Biblioo** é o ponto principal de uso do produto em dispositivos Android e iOS. Funciona **offline-first** — exibe dados em cache enquanto sem conexão e sincroniza com a API quando a rede retorna. A arquitetura separa **features** (domínio, dados e estado) de **screens** (composição de UI) para manter o código escalável, previsível e independente por domínio.
+O app mobile do **Biblioo** é o ponto principal de uso do produto em dispositivos Android e iOS. Funciona **offline-first** — exibe dados em cache enquanto sem conexão e sincroniza com a API quando a rede retorna. Cada feature é um módulo isolado com suas próprias camadas de dados, domínio e estado, sem importar diretamente outros módulos.
 
-O app cobre todo o ecossistema da plataforma: autenticação com e-mail/senha ou Google OAuth, biblioteca pessoal com estantes e coleções, rastreamento de progresso de leitura, feed social com posts e reviews, comunidades com chat em tempo real via WebSocket, recomendações geradas pelos seis algoritmos do backend com Roll Dice, DNA Literário, notificações push, compartilhamento de cápsulas de leitura e o assistente conversacional **Bibo** com streaming via API.
+O app cobre todo o ecossistema da plataforma: autenticação com e-mail/senha ou Google OAuth, biblioteca pessoal com estantes e coleções, rastreamento de progresso de leitura página a página, feed social com posts e reviews, comunidades com chat em tempo real via WebSocket, seis trilhas de recomendação com carregamento paralelo incremental, DNA Literário, notificações push via Firebase FCM, compartilhamento de cápsulas de leitura e o assistente conversacional **Bibo** com streaming de respostas token a token.
 
 ---
 
 ## Arquitetura
 
-O projeto segue **Feature-first com Screen layer**, com conceitos pontuais de DDD (Value Objects e Aggregate Roots). Não é Clean Architecture completa: sem use cases formais e sem interfaces de repository.
+O projeto segue **Feature-first com Screen layer**, com conceitos pontuais de DDD (Value Objects e Aggregate Roots). Não é Clean Architecture completa: sem use cases formais e sem interfaces de repository — a simplicidade é intencional para manter o projeto navegável por uma equipe pequena.
 
 ```mermaid
 graph TD
@@ -77,13 +75,99 @@ graph TD
 
 | Padrão | Onde se aplica |
 |---|---|
-| Offline-first | Repository sempre tenta local primeiro, depois sincroniza remoto |
-| Auth Interceptor | Injeta JWT em todo request e renova token em 401 automaticamente |
+| Offline-first | Repository tenta local primeiro, depois sincroniza remoto |
+| Auth Interceptor | Injeta JWT em todo request e renova token automaticamente em 401 |
 | Retry Interceptor | Backoff exponencial em erros de rede e 5xx |
 | Hive Cache | Cache leve de respostas de API por feature (recomendações, feed) |
-| Secure Storage | JWT tokens em FlutterSecureStorage (criptografado por plataforma) |
-| Global BLoC Providers | 13 BLoCs provisionados globalmente via MultiBlocProvider no bootstrap |
+| Secure Storage | JWT em `FlutterSecureStorage` — criptografado pelo Keychain (iOS) e Keystore (Android) |
+| Global BLoC Providers | 13 BLoCs provisionados globalmente via `MultiBlocProvider` no bootstrap |
 | Cooldown Manager | Rate limiting local para chamadas de refresh frequentes |
+
+---
+
+## Estratégia offline-first
+
+O app prioriza sempre o dado local para garantir que a interface responda instantaneamente — sem spinner de carregamento na abertura de uma tela que o usuário já visitou.
+
+### Fluxo de leitura
+
+```
+Repository.getData()
+    ├── 1. Emite dados do cache local (Drift/Hive) imediatamente
+    │         → UI renderiza com dado em cache
+    └── 2. Busca atualização no backend (se online)
+              → Se diferente do cache: atualiza local + emite novo estado
+              → Se erro de rede: mantém cache sem mostrar erro ao usuário
+```
+
+### Sincronização ao retornar online
+
+O `connectivity_plus` monitora mudanças de conectividade. Quando a conexão é restaurada após um período offline, os BLoCs que tinham dados em cache pendentes de atualização disparam um evento de refresh automático.
+
+### O que é cacheado localmente
+
+| Dado | Armazenamento | TTL |
+|---|---|---|
+| Itens das estantes | Drift (SQLite) | Permanente (até sync) |
+| Metadados de livros | Drift (SQLite) | Permanente (até sync) |
+| Feed social | Hive | Curto — expira entre sessões |
+| Recomendações (6 trilhas) | Hive (1 box por trilha) | Médio — expira após período configurável |
+| Perfil do usuário | Drift | Permanente (até sync) |
+| Histórico do assistente | SharedPreferences | Por sessão |
+| JWT | FlutterSecureStorage | Até logout ou expiração |
+
+### O que nunca é cacheado
+
+- Mensagens de chat das comunidades (sempre buscadas ao entrar)
+- Notificações (sempre buscadas ao abrir o dropdown)
+- Resultados de busca
+
+---
+
+## Banco de dados local
+
+O **Drift** (anteriormente Moor) é o ORM para SQLite usado no app. Tabelas são definidas em Dart com type-safety total, e o Drift gera automaticamente os métodos de query, os DAOs e as migrações.
+
+### Tabelas principais
+
+| Tabela | Colunas principais | Uso |
+|---|---|---|
+| `shelf_items` | `id`, `shelfId`, `bookId`, `bookTitle`, `bookCoverUrl`, `status`, `currentPage`, `totalPages`, `progressPercent` | Cache dos itens das estantes do usuário |
+| `shelves` | `id`, `name`, `description`, `itemCount` | Cache das estantes |
+| `books_cache` | `id`, `title`, `authors`, `coverUrl`, `pageCount`, `averageRating` | Cache de metadados de livros visitados |
+| `collections` | `id`, `name`, `description`, `shelfCount` | Cache de coleções |
+| `user_profile` | `id`, `username`, `email`, `avatarUrl`, `bannerUrl`, `bio`, `isPrivate` | Perfil do usuário logado |
+
+### Acesso via DAOs
+
+Cada feature tem seu próprio DAO (Data Access Object), acessado pelo `LocalDatasource`. Exemplo do domínio `shelf`:
+
+```dart
+// ShelfItem — entidade de domínio pura
+class ShelfItem {
+  final int id;
+  final int bookId;
+  final String bookTitle;
+  final String? bookCoverUrl;
+  final ReadingStatus status;
+  final int? currentPage;
+  final int? totalPages;
+  final int? progressPercent;
+
+  // Regra de negócio: tem barra de progresso para exibir?
+  bool get hasProgress => progressPercent != null && progressPercent! > 0;
+
+  // Regra de negócio: progresso como string formatada
+  String get progressLabel =>
+    currentPage != null && totalPages != null
+      ? '$currentPage / $totalPages páginas'
+      : '';
+}
+```
+
+### Cache com Hive
+
+Dados menos estruturados e com TTL mais curto (feed, recomendações) usam **Hive** ao invés de Drift. Cada feature tem uma box nomeada própria. O `RecommendationRepository` usa uma box por trilha, armazenando a lista serializada como JSON com timestamp de geração para invalidação.
 
 ---
 
@@ -91,19 +175,79 @@ graph TD
 
 | Módulo | Responsabilidade |
 |---|---|
-| `assistant` | Assistente Bibo — chat com histórico persistido, streaming de resposta |
-| `auth` | Autenticação e-mail/senha + Google OAuth, sessão JWT segura |
-| `book` | Catálogo de livros, busca, detalhes e avaliação |
-| `collection` | Coleções de estantes com estatísticas agregadas |
-| `community` | Comunidades públicas/privadas, chat WebSocket, votação de livros, convites |
-| `dna` | DNA Literário — snapshots de perfil de leitura, arquétipos, temas |
-| `feed` | Feed social com posts e reviews, paginação por cursor, curtidas |
-| `notification` | Notificações push e in-app, badge de não lidas |
-| `preferences` | Preferências de gêneros e livros (onboarding) |
-| `recommendation` | 6 trilhas de recomendação + Roll Dice, carregamento paralelo incremental |
-| `share` | Geração de cápsulas de compartilhamento de leitura |
-| `shelf` | Estantes, itens, status de leitura e progresso de páginas |
-| `user` | Perfil próprio e público, seguidores, edição, visibilidade |
+| `assistant` | Assistente Bibo — chat com histórico persistido em SharedPreferences, streaming de resposta token a token. Chips de sugestões configuráveis. Animação typewriter nas respostas. |
+| `auth` | Autenticação com e-mail/senha e Google Sign-In. Sessão JWT em FlutterSecureStorage. Restauração automática de sessão no startup via `AuthStarted`. Renovação automática de token em 401 pelo Auth Interceptor do Dio. |
+| `book` | Catálogo de livros com busca por título, autor ou ISBN. Cache de metadados de livros visitados. Cálculo de estrelas (fullStars + halfStar a partir do `averageRating`). |
+| `collection` | Coleções de estantes com estatísticas agregadas (livros, páginas, distribuição de status) calculadas no backend. |
+| `community` | Comunidades públicas e privadas. Chat em tempo real via WebSocket com `web_socket_channel`. Votação de livros com ciclo completo de estados. Convites por código e diretos. Solicitações de entrada com aprovação. |
+| `dna` | DNA Literário — exibe perfil com arquétipo literário, velocidade de leitura, taxa de abandono, distribuição de gêneros e temas. Requer mínimo de livros lidos para exibição. |
+| `feed` | Feed social com scroll infinito (cursor-based pagination), pull-to-refresh, curtidas com atualização otimista e flag de spoiler. |
+| `notification` | Notificações in-app com badge de não lidas. Push via Firebase FCM quando o app está em background. Roteamento por `actionUrl` ao abrir notificação. |
+| `preferences` | Seleção de gêneros (mín. 3 obrigatórios) e livros no onboarding. POST único combina gêneros + livros. Flag de onboarding concluído por userId em SharedPreferences. |
+| `recommendation` | 6 trilhas de recomendação carregadas em paralelo com atualização incremental da UI conforme cada trilha resolve. Cache Hive por trilha. Roll Dice como trilha adicional. |
+| `share` | Cápsulas de compartilhamento geradas como imagem no backend. Cache local com timestamp para evitar regeneração frequente. |
+| `shelf` | Estantes e itens com status de leitura e progresso de páginas. Transições de status (QUERO LER → LENDO → LIDO). |
+| `user` | Perfil próprio e público. Seguidores e seguidos. Upload de avatar e banner. Toggle de privacidade. Exclusão de conta. Busca por username. |
+
+---
+
+## BLoCs em detalhe
+
+### AuthBloc
+
+Gerencia o ciclo de vida da sessão JWT. É o primeiro BLoC a ser inicializado — os demais dependem do estado de autenticação para decidir o que carregar.
+
+| Evento | O que faz |
+|---|---|
+| `AuthStarted` | Restaura sessão do `FlutterSecureStorage`. Se token válido, emite `AuthAuthenticated`. Se expirado, tenta refresh. Se falhar, emite `AuthUnauthenticated`. |
+| `LoginRequested` | POST /auth/login. Salva tokens no SecureStorage. |
+| `LoginWithGoogleRequested` | Abre o fluxo Google Sign-In, troca o `idToken` por JWT do Biblioo via POST /auth/google. |
+| `RegisterRequested` | POST /auth/register. Navega para onboarding após sucesso. |
+| `LogoutRequested` | POST /auth/logout para invalidar o refresh token. Limpa SecureStorage e SharedPreferences. |
+
+### ShelfBloc
+
+Gerencia estantes e itens. A regra de negócio de status de leitura vive no `ShelfItem.status` (Value Object).
+
+| Evento | O que faz |
+|---|---|
+| `ShelfLoadRequested` | Emite do cache local imediatamente, depois sincroniza com o backend |
+| `ShelfItemProgressUpdated` | PATCH /shelves/{id}/items/{itemId}/progress. Atualiza cache local otimisticamente |
+| `ShelfItemStatusChanged` | PATCH /shelves/{id}/items/{itemId}/status. Dispara eventos de domínio no backend (completar um livro → recomputar 5 trilhas de recomendação via RabbitMQ) |
+| `ShelfItemAddRequested` | POST /shelves/{id}/items. Verifica duplicata no cache antes da chamada |
+| `ShelfItemRemoveRequested` | DELETE /shelves/{id}/items/{itemId}. Remove do cache local antes da resposta do servidor |
+
+### FeedBloc
+
+Feed com scroll infinito e curtidas otimistas.
+
+| Evento | O que faz |
+|---|---|
+| `FeedLoadRequested` | Carrega primeira página do cache Hive, depois busca página mais recente da API |
+| `FeedLoadMoreRequested` | Busca próxima página usando o cursor retornado pelo backend |
+| `FeedReviewLikeToggled` | Atualiza o estado de curtida localmente antes da chamada à API (otimista). Reverte em caso de erro |
+| `FeedPostLikeToggled` | Mesmo comportamento — atualização otimista com rollback |
+| `FeedReviewDeleteRequested` | Remove o item da lista local. Chama DELETE /feed/reviews/{id} em background |
+| `FeedCommentCountChanged` | Atualiza o contador de comentários de um item específico sem recarregar o feed |
+
+### RecommendationBloc
+
+Carrega as 6 trilhas em paralelo e emite estados parciais conforme cada uma resolve — a UI atualiza progressivamente.
+
+| Evento | O que faz |
+|---|---|
+| `RecommendationLoadRequested` | Dispara 7 Futures em paralelo (6 trilhas + Roll Dice). A cada Future resolvida, emite um `RecommendationState` parcial com aquela trilha preenchida |
+| `RecommendationDiceRolled` | Chama `/recommendations/roll-dice` e exibe o livro sorteado na `DiceScreen` |
+| `RecommendationTrailRefreshed` | Recarrega uma trilha específica sem resetar as outras |
+
+### CommunityBloc
+
+| Evento | O que faz |
+|---|---|
+| `CommunityLoadRequested` | Lista comunidades do usuário + sugestões. Cache Hive. |
+| `CommunityJoinRequested` | POST /communities/{id}/join. Atualiza estado local otimisticamente. |
+| `CommunityJoinByInviteRequested` | POST /communities/join/{token}. Navega para a comunidade após sucesso. |
+| `CommunityLeaveRequested` | DELETE /communities/{id}/leave. Remove da lista local. |
 
 ---
 
@@ -111,52 +255,52 @@ graph TD
 
 ```
 mobile/
-├── .env                           # Variáveis de ambiente (nunca versionar)
-├── .env.example                   # Template de variáveis
+├── .env                            # Variáveis de ambiente (nunca versionar)
+├── .env.example                    # Template de variáveis
 ├── pubspec.yaml
 ├── android/
 │   └── app/src/main/
-│       └── AndroidManifest.xml    # Deep link biblioo://, permissões
+│       └── AndroidManifest.xml     # Deep link biblioo://, permissões FCM
 ├── ios/
 │   └── Runner/
-│       └── Info.plist             # URL scheme biblioo://, orientações
+│       └── Info.plist              # URL scheme biblioo://, orientações
 ├── assets/
 │   └── images/
 │       └── biblioo-carinha-branca-logo.png
 └── lib/
-    ├── main.dart                  # Entry point — inicialização do app
-    ├── bootstrap.dart             # App widget raiz com MultiBlocProvider
+    ├── main.dart                   # Entry point — carrega .env, inicializa DI e app
+    ├── bootstrap.dart              # App widget raiz com MultiBlocProvider
     ├── core/
     │   ├── config/
-    │   │   └── app_env.dart       # Leitura de .env (API_URL)
+    │   │   └── app_env.dart        # Lê API_URL e GOOGLE_WEB_CLIENT_ID do .env
     │   ├── di/
-    │   │   └── injector.dart      # GetIt — registro de todos os BLoCs e repos
+    │   │   └── injector.dart       # GetIt — registra todos os BLoCs, repositórios e datasources
     │   ├── network/
-    │   │   ├── dio_client.dart    # Dio configurado (timeout, log, interceptors)
-    │   │   ├── auth_interceptor.dart  # Injeta JWT, renova token em 401
-    │   │   └── retry_interceptor.dart # Retry com backoff exponencial
+    │   │   ├── dio_client.dart     # Dio com timeout 10s, LogInterceptor em debug
+    │   │   ├── auth_interceptor.dart  # Injeta JWT; renova token em 401 via /auth/refresh
+    │   │   └── retry_interceptor.dart # Retry com backoff exponencial em erros de rede e 5xx
     │   ├── router/
-    │   │   ├── app_router.dart    # GoRouter — 18+ rotas e guard de autenticação
-    │   │   └── deep_link_handler.dart # Processa biblioo:// (reset de senha)
+    │   │   ├── app_router.dart     # GoRouter — 18+ rotas com guard de autenticação em 3 níveis
+    │   │   └── deep_link_handler.dart # Intercepta biblioo://reset-password
     │   ├── shell/
-    │   │   └── main_shell.dart    # Bottom nav com 5 tabs + FAB global
+    │   │   └── main_shell.dart     # Bottom nav com 5 tabs + FAB global (BibiFab)
     │   └── theme/
-    │       ├── app_theme.dart     # Tema claro e escuro (Material 3, teal palette)
-    │       └── theme_mode_cubit.dart # Toggle claro/escuro persistido
+    │       ├── app_theme.dart      # Tema claro e escuro (Material 3, paleta teal/menta)
+    │       └── theme_mode_cubit.dart # Toggle claro/escuro persistido em SharedPreferences
     ├── features/
-    │   ├── assistant/             # Bibo — chat + histórico
-    │   ├── auth/                  # Autenticação e sessão
-    │   ├── book/                  # Catálogo e busca
-    │   ├── collection/            # Coleções de estantes
-    │   ├── community/             # Comunidades e chat
-    │   ├── dna/                   # DNA Literário
-    │   ├── feed/                  # Feed social
-    │   ├── notification/          # Notificações
-    │   ├── preferences/           # Preferências de gênero
-    │   ├── recommendation/        # Recomendações + Roll Dice
-    │   ├── share/                 # Cápsulas de compartilhamento
-    │   ├── shelf/                 # Estantes e itens
-    │   └── user/                  # Perfil e seguidores
+    │   ├── assistant/
+    │   ├── auth/
+    │   ├── book/
+    │   ├── collection/
+    │   ├── community/
+    │   ├── dna/
+    │   ├── feed/
+    │   ├── notification/
+    │   ├── preferences/
+    │   ├── recommendation/
+    │   ├── share/
+    │   ├── shelf/
+    │   └── user/
     ├── screens/
     │   ├── assistant/
     │   ├── auth/
@@ -171,8 +315,8 @@ mobile/
     │   ├── search/
     │   └── shelf/
     └── shared/
-        ├── widgets/               # Widgets reutilizáveis globais
-        └── utils/                 # Utilitários puros (emojis, cooldown)
+        ├── widgets/                # Widgets reutilizáveis globais
+        └── utils/                 # Utilitários puros (emojis de gênero, cooldown)
 ```
 
 ### Estrutura padrão de uma feature
@@ -182,11 +326,11 @@ features/{feature}/
 ├── data/
 │   ├── {feature}_local_datasource.dart   # Drift / Hive / SharedPreferences
 │   ├── {feature}_remote_datasource.dart  # Dio — chamadas à API REST
-│   ├── {feature}_repository.dart         # Orquestra local vs remoto
+│   ├── {feature}_repository.dart         # Orquestra local vs. remoto (offline-first)
 │   └── models/
 │       └── {feature}_model.dart          # Freezed + json_serializable
 ├── domain/
-│   ├── {feature}.dart                    # Entidade pura (sem dependência de framework)
+│   ├── {feature}.dart                    # Entidade pura — sem dependência de Flutter, Dio ou Drift
 │   └── value_objects/
 │       └── {value_object}.dart
 └── bloc/
@@ -195,24 +339,17 @@ features/{feature}/
     └── {feature}_state.dart
 ```
 
-### Estrutura padrão de uma screen
-
-```
-screens/{screen}/
-├── {screen}_screen.dart
-└── widgets/
-    └── {widget_name}.dart
-```
+A separação entre `model` (camada de dados, com serialização JSON) e entidade de `domain` (pura, sem dependências de framework) garante que a lógica de negócio possa ser testada sem inicializar Flutter ou banco de dados.
 
 ---
 
 ## Navegação e rotas
 
-O roteamento usa **GoRouter** com guard de autenticação em três níveis:
+O roteamento usa **GoRouter** com guard de autenticação em três níveis que são verificados em cada navegação:
 
 1. **Não autenticado** → restrito a `/login`, `/register`, `/forgot-password`
 2. **Autenticado, onboarding pendente** → restrito a `/onboarding`
-3. **Autenticado e onboarded** → acesso completo a todas as rotas
+3. **Autenticado e onboarded** → acesso completo
 
 ```
 /login                         → LoginScreen
@@ -220,14 +357,14 @@ O roteamento usa **GoRouter** com guard de autenticação em três níveis:
 /forgot-password               → ForgotPasswordScreen
 /onboarding                    → OnboardingScreen
 
-/search                        → BookSearchScreen          (sem bottom nav)
-/post/create                   → CreatePostScreen          (sem bottom nav)
-/notifications                 → NotificationScreen        (sem bottom nav)
-/assistant                     → AssistantScreen           (sem bottom nav)
-/book/:id                      → BookScreen                (modal slide-up)
-/user/:username                → ProfileScreen             (modal slide-up)
+/search                        → BookSearchScreen       (sem bottom nav)
+/post/create                   → CreatePostScreen       (sem bottom nav)
+/notifications                 → NotificationScreen     (sem bottom nav)
+/assistant                     → AssistantScreen        (sem bottom nav)
+/book/:id                      → BookScreen             (modal slide-up)
+/user/:username                → ProfileScreen          (modal slide-up)
 
-[Shell com bottom nav — 5 tabs]
+[Shell com bottom nav — 5 tabs, estado preservado]
   Tab 0  /feed                 → FeedScreen
   Tab 1  /recommendation       → RecommendationScreen
            /recommendation/dice → DiceScreen
@@ -240,162 +377,9 @@ O roteamento usa **GoRouter** com guard de autenticação em três níveis:
            /profile/dna        → DnaScreen
 ```
 
-**Deep links** registrados: `biblioo://reset-password` (redirecionado a partir do e-mail de redefinição de senha).
+O `StatefulNavigationShell` do GoRouter preserva o estado de cada tab ao trocar — o feed não é recarregado ao voltar para ele após visitar outra aba.
 
----
-
-## Features
-
-### Assistant
-
-Assistente conversacional **Bibo** integrado ao Google Gemini via API REST.
-
-- **BLoC** — eventos: `AssistantMessageSent`, `AssistantHistoryCleared`; states: lista de mensagens, loading, erro
-- **Datasources** — remote: `/assistant/chat` e `/assistant/conversations`; local: histórico persistido em SharedPreferences
-- **Domínio** — `ChatMessage` (id, content, isUser, timestamp)
-- **Destaques:** mensagem de boas-vindas no primeiro acesso · histórico persistente entre sessões · animação typewriter nas respostas
-
----
-
-### Auth
-
-Autenticação e gerenciamento de sessão JWT.
-
-- **BLoC** — eventos: `AuthStarted`, `LoginRequested`, `LoginWithGoogleRequested`, `RegisterRequested`, `LogoutRequested`; states: `AuthInitial`, `AuthLoading`, `AuthAuthenticated`, `AuthUnauthenticated`, `AuthError`
-- **Datasources** — remote: `/auth/*`; secure: `FlutterSecureStorage` para tokens JWT; local: flag de sessão em SharedPreferences
-- **Domínio** — `AuthSession` (accessToken, refreshToken, user), `AuthUser`, `AuthFailure`
-- **Destaques:** restauração automática de sessão no startup (`AuthStarted`) · Google Sign-In com troca de ID token · interceptor de autenticação cuida do refresh em 401 automaticamente
-
----
-
-### Book
-
-Catálogo de livros com busca e detalhes.
-
-- **BLoC** — eventos: carregar, buscar, detalhar; states: loading, loaded, erro
-- **Datasources** — remote: `/books/search`, `/books/{id}`; local: cache de metadados
-- **Domínio** — `Book` (id, title, authors, coverUrl, pageCount, averageRating, description, readerCount)
-- **Destaques:** cálculo de estrelas (fullStars + halfStar) · concatenação de autores
-
----
-
-### Collection
-
-Coleções de estantes com estatísticas agregadas.
-
-- **BLoC** — eventos: `CollectionLoadRequested`, `CollectionCreateRequested`, `CollectionUpdateRequested`, `CollectionDeleteRequested`; states: loading, loaded, mutating, success, erro
-- **Datasources** — remote: `/collections/*`; local: cache
-- **Domínio** — `Collection` (id, name, description, shelfCount, shelfPreviews), `ShelfPreview`
-- **Destaques:** estatísticas calculadas no backend (livros, páginas, status) e exibidas na tela de detalhe
-
----
-
-### Community
-
-Comunidades com chat em tempo real, votação de livros e sistema de convites.
-
-- **BLoC** — eventos: `CommunityLoadRequested`, `CommunityCreateRequested`, `CommunityJoinRequested`, `CommunityJoinByInviteRequested`, `CommunityLeaveRequested`; states: loading, loaded, mutating, success, erro
-- **Datasources** — remote: `/communities/*`, `/voting/*`; WebSocket para chat; local: cache de comunidades e convites
-- **Domínio** — `Community`, `CommunityMember`, `CommunityMessage`, `BookVoting`, `BookVotingOption`, `CommunityInvite`, `CommunityJoinRequest`, `CommunityVisibility` (public/private)
-- **Destaques:** link de convite por código · votação de livro com ciclo completo (draft → publish → vote → close → approve/reject) · chat WebSocket com `web_socket_channel`
-
----
-
-### DNA
-
-DNA Literário — análise de perfil e hábitos de leitura.
-
-- **Datasources** — remote: `/dna`; local: cache de snapshots
-- **Domínio** — `DnaSnapshot` (isComputed, booksRead, dominantArchetype, complexity, avgDaysPerBook, rereadRate, pagesByYear, themes), `DnaTheme`
-- **Destaques:** exige mínimo de livros lidos antes do cálculo · exibe velocidade de leitura, taxa de abandono e distribuição de gêneros
-
----
-
-### Feed
-
-Feed social com posts e reviews, paginação por cursor e curtidas com atualização otimista.
-
-- **BLoCs** — `FeedBloc` (feed + paginação), `ReviewBloc` (criar/editar review), `PostBloc` (criar post com imagens/GIF)
-- **Eventos**: `FeedLoadRequested`, `FeedLoadMoreRequested`, `FeedReviewLikeToggled`, `FeedPostLikeToggled`, `FeedReviewDeleteRequested`, `FeedPostDeleteRequested`, `FeedCommentCountChanged`
-- **Datasources** — remote: `/feed`, `/feed/posts/*`, `/feed/reviews/*`; local: cache do feed
-- **Domínio** — `FeedItem` (contentId, contentType, author, score, createdAt, content), `FeedContent` (texto, imagens, gifUrl, tags, spoiler, likeCount, commentCount, likedByCurrentUser), `FeedPage`
-- **Destaques:** scroll infinito com cursor-based pagination · curtida otimista sem esperar resposta da API · flag de spoiler · suporte a imagens e GIF
-
----
-
-### Notification
-
-Notificações in-app e push via Firebase FCM.
-
-- **BLoC** — eventos: `NotificationLoadRequested`, `NotificationUnreadCountRequested`, `NotificationMarkAsReadRequested`, `NotificationMarkAllAsReadRequested`; states: loading, loaded, erro
-- **Datasources** — remote: `/notifications/*`; sem cache local
-- **Domínio** — `Notification` (id, type, userId, message, isRead, actionUrl, createdAt)
-- **Destaques:** badge de não lidas · roteamento por `actionUrl` ao abrir notificação
-
----
-
-### Preferences
-
-Preferências de gêneros e livros coletadas no onboarding.
-
-- **BLoC** — eventos: `PreferencesGenresLoadRequested`, `PreferencesSubmitted`, `PreferencesSkipped`; states: `loadingGenres`, `genresLoaded`, `submitting`, `done`, `genresError`
-- **Datasources** — remote: `GET /genres`, `POST /preferences`; local: flag de onboarding concluído por userId em SharedPreferences
-- **Domínio** — `Genre` (id, name, original, emoji)
-- **Destaques:** mínimo de 3 gêneros obrigatórios · seleção opcional de até 50 livros · POST único combina gêneros + livros · trata 422 graciosamente (preferências já cadastradas)
-
----
-
-### Recommendation
-
-6 trilhas de recomendação carregadas em paralelo com atualização incremental da UI.
-
-- **BLoC** — eventos: `RecommendationLoadRequested`, `RecommendationDiceRolled`, `RecommendationTrailRefreshed`; states: emissão parcial à medida que cada trilha completa (7 cargas paralelas com updates incrementais)
-- **Datasources** — remote: `/recommendations/*`; local: Hive cache por trilha
-- **Domínio** — `RecommendedBook` (id, title, authors, coverUrl, reason, score), `BecauseYouReadResult`, `FavoriteGenreNowResult`
-
-| Trilha | Rota | Algoritmo |
-|---|---|---|
-| T1 — BecauseYouRead | `because-you-read` | Co-leitura via Neo4j |
-| T2 — FavoriteGenreNow | `favorite-genre-now` | 3 gêneros dominantes atuais |
-| T3 — TrendingInCommunities | `trending-in-communities` | Decay exponencial de engajamento |
-| T4 — CatalogSurprise | `catalog-surprise` | Thompson Sampling (Beta(α,β)) |
-| T5 — SimilarAuthors | `similar-authors` | Filtragem colaborativa 2 níveis |
-| T6 — RereadWorthIt | `reread-worth-it` | Repetição espaçada |
-| Roll Dice | `roll-dice` | Seleção aleatória das 6 trilhas |
-
----
-
-### Share
-
-Geração de cápsulas de compartilhamento de leitura.
-
-- **BLoC** — eventos: gerar cápsula; states: generating, generated, erro
-- **Datasources** — remote: `/share` retorna bytes da imagem gerada no backend; local: Hive cache com timestamp para evitar regeneração
-- **Domínio** — `ShareCapsule` (bytes, cachedAt)
-- **Destaques:** imagem gerada no backend · cache local evita nova geração dentro de intervalo de tempo
-
----
-
-### Shelf
-
-Biblioteca pessoal organizada em estantes com rastreamento de leitura.
-
-- **BLoC** — eventos: `ShelfLoadRequested`, `ShelfCreateRequested`, `ShelfUpdateRequested`, `ShelfDeleteRequested`, `ShelfItemsLoadRequested`, `ShelfItemAddRequested`, `ShelfItemRemoveRequested`, `ShelfItemProgressUpdated`, `ShelfItemStatusChanged`; states: loading, loaded, mutating, success, erro
-- **Datasources** — remote: `/shelves/*`, `/shelves/{id}/items/*`; local: cache de metadados
-- **Domínio** — `Shelf` (id, name, description, itemCount, coverPreview), `ShelfItem` (book + status), `ReadingStatus` (reading, read, abandoned, wantToRead), `ShelfPreview`
-- **Destaques:** itens carregados por estante · atualização de progresso (página atual) · transições de status (QUERO_LER → LENDO → LIDO)
-
----
-
-### User
-
-Perfil próprio e público, gestão de seguidores e edição de conta.
-
-- **BLoCs** — `UserBloc` (perfil e ações), `UserSearchBloc` (busca por username)
-- **Eventos**: `LoadMyProfile`, `LoadUserProfile`, `UpdateProfile`, `UpdateVisibility`, `FollowUser`, `UnfollowUser`, `DeleteAccount`
-- **Datasources** — remote: `/users/*`; local: cache de perfil
-- **Domínio** — `User` (id, username, email, bio, avatarUrl, bannerUrl, isPrivate, followerCount, followingCount, createdAt), `FollowPage`
-- **Destaques:** upload de avatar e banner · toggle de privacidade (público/privado) · exclusão de conta
+**Deep links:** `biblioo://reset-password` é interceptado pelo `deep_link_handler.dart` e redireciona para a tela de redefinição de senha, processando o token da URL automaticamente.
 
 ---
 
@@ -403,28 +387,28 @@ Perfil próprio e público, gestão de seguidores e edição de conta.
 
 | Screen | Arquivo | Descrição |
 |---|---|---|
-| **Login** | `auth/login_screen.dart` | E-mail/senha + botão Google OAuth, validação de formulário |
-| **Register** | `auth/register_screen.dart` | Cadastro com validação de e-mail, username e senha |
-| **Forgot Password** | `auth/forgot_password_screen.dart` | Token via deep link `biblioo://reset-password`, nova senha |
-| **Onboarding** | `onboarding/onboarding_screen.dart` | Seleção de gêneros (mín. 3) + escolha de livros (máx. 50), opção de pular |
-| **Feed** | `feed/feed_screen.dart` | Feed com scroll infinito, pull-to-refresh, FeedItemCard com curtida e comentários |
-| **Create Post** | `feed/create_post_screen.dart` | Post com texto, image picker, GIF, rating slider para reviews, flag de spoiler |
-| **Recommendation** | `recommendation/recommendation_screen.dart` | Banner do Roll Dice + 6 seções de trilhas com carregamento paralelo incremental |
-| **Dice Roll** | `recommendation/dice_screen.dart` | Tela full-screen com animação de dado e card do livro sorteado |
-| **Biblioteca** | `shelf/biblioteca_screen.dart` | TabBar: Estantes (lista de estantes) + Coleções |
-| **Shelf Detail** | `shelf/shelf_list_screen.dart` | Livros de uma estante com ShelfItemCard, status e progresso |
-| **Collection Detail** | `collection/collection_detail_screen.dart` | Estatísticas agregadas + previews das estantes da coleção |
-| **Book Detail** | `book/book_screen.dart` | Capa, avaliação, descrição, reviews e botão de adicionar à estante |
-| **Community List** | `community/community_list_screen.dart` | Minhas comunidades + sugestões + entrada por código de convite |
-| **Community Detail** | `community/community_detail_screen.dart` | TabBar: Overview (membros, info) · Chat (WebSocket) · Voting (votação de livros) |
-| **Search** | `search/book_search_screen.dart` | Busca full-text de livros e usuários com shimmer de carregamento |
-| **Profile (próprio)** | `profile/profile_screen.dart` | Header, stats, 3 tabs (Biblioteca · Atividade · Comunidades), botões de editar e configurações |
-| **Profile (público)** | `profile/profile_screen.dart` | Mesmo layout, botão de seguir no lugar de editar, sem acesso a configurações |
-| **Edit Profile** | `profile/edit_profile_screen.dart` | Bio, username, avatar (image picker), banner (image picker), toggle de visibilidade |
-| **Settings** | `profile/settings_screen.dart` | Toggle de tema claro/escuro, logout, exclusão de conta |
-| **DNA** | `profile/dna_screen.dart` | Arquétipo literário, velocidade de leitura, distribuição de gêneros, taxa de releitura |
-| **Notifications** | `notification/notification_screen.dart` | Lista paginada de notificações, marcar como lida, roteamento por ação |
-| **Assistant** | `assistant/assistant_screen.dart` | Chat com Bibo — lista de mensagens, chips de sugestão, input, animação typewriter |
+| **Login** | `auth/login_screen.dart` | E-mail/senha + botão Google Sign-In. Navega para onboarding no primeiro acesso ou para o feed se já onboarded |
+| **Register** | `auth/register_screen.dart` | Cadastro com validação inline de e-mail, username (sem espaços) e força de senha |
+| **Forgot Password** | `auth/forgot_password_screen.dart` | Solicita e-mail. Instrui o usuário a clicar no link recebido (deep link `biblioo://reset-password`) |
+| **Onboarding** | `onboarding/onboarding_screen.dart` | Seleção de gêneros com chips visuais (mín. 3) + busca de livros por nome ou autor. Opção de pular. POST único ao confirmar |
+| **Feed** | `feed/feed_screen.dart` | Feed com scroll infinito, pull-to-refresh, `FeedItemCard` com curtida otimista e contador de comentários |
+| **Create Post** | `feed/create_post_screen.dart` | Texto + image picker (múltiplas imagens) + GIF + rating slider para reviews + flag de spoiler |
+| **Recommendation** | `recommendation/recommendation_screen.dart` | Banner do Roll Dice + 6 seções que aparecem progressivamente conforme as trilhas carregam |
+| **Dice Roll** | `recommendation/dice_screen.dart` | Tela full-screen com animação de dado rolando e card do livro sorteado com opção de adicionar à estante |
+| **Biblioteca** | `shelf/biblioteca_screen.dart` | TabBar: Estantes (lista de estantes do usuário) + Coleções. FAB para criar nova estante |
+| **Shelf Detail** | `shelf/shelf_list_screen.dart` | Grid de livros com `ShelfItemCard` mostrando capa, status com badge colorido e barra de progresso |
+| **Collection Detail** | `collection/collection_detail_screen.dart` | Estatísticas agregadas no topo (total de livros, páginas lidas, status) + previews das estantes da coleção |
+| **Book Detail** | `book/book_screen.dart` | Slide-up modal com capa grande, avaliação média com estrelas, sinopse expansível, reviews recentes e botão de adicionar à estante |
+| **Community List** | `community/community_list_screen.dart` | Minhas comunidades + comunidades sugeridas + campo de entrada por código de convite |
+| **Community Detail** | `community/community_detail_screen.dart` | TabBar: Overview (info, membros, moderação) · Chat (WebSocket) · Voting (votações ativas e encerradas) |
+| **Search** | `search/book_search_screen.dart` | Busca full-text de livros e usuários com shimmer enquanto carrega |
+| **Profile (próprio)** | `profile/profile_screen.dart` | Header com avatar/banner, stats (livros lidos, páginas, streak), 3 tabs (Biblioteca · Atividade · Comunidades), botões de editar e configurações |
+| **Profile (público)** | `profile/profile_screen.dart` | Mesmo layout, botão de seguir/deixar de seguir no lugar de editar. Mostra se é privado |
+| **Edit Profile** | `profile/edit_profile_screen.dart` | Bio, username, image picker para avatar e banner, toggle de visibilidade pública/privada |
+| **Settings** | `profile/settings_screen.dart` | Toggle de tema claro/escuro, logout e exclusão permanente de conta com confirmação |
+| **DNA** | `profile/dna_screen.dart` | Arquétipo literário com descrição, velocidade de leitura, taxa de abandono, distribuição de gêneros em gráfico |
+| **Notifications** | `notification/notification_screen.dart` | Lista paginada com marcação individual ou em massa, ícone por tipo de evento, navegação por `actionUrl` |
+| **Assistant** | `assistant/assistant_screen.dart` | Chat com Bibo — lista de mensagens com avatar, chips de sugestões rápidas, campo de input, resposta progressiva token a token |
 
 ---
 
@@ -432,41 +416,63 @@ Perfil próprio e público, gestão de seguidores e edição de conta.
 
 ### Injeção de dependência (`core/di/injector.dart`)
 
-Inicializado uma vez no `main()` via `Injector.init()`. O resultado é passado para o `MultiBlocProvider` raiz que provisiona **13 BLoCs globalmente**:
+Inicializado uma vez em `main()` via `Injector.init()`. O resultado é passado para o `MultiBlocProvider` raiz que provisiona **13 BLoCs globalmente**, todos acessíveis em qualquer ponto da árvore de widgets via `context.read<T>()`.
 
-`ThemeModeCubit` · `AuthBloc` · `UserBloc` · `UserSearchBloc` · `BookBloc` · `ShelfBloc` · `CollectionBloc` · `FeedBloc` · `ReviewBloc` · `PostBloc` · `NotificationBloc` · `AssistantBloc` · `RecommendationBloc`
+```
+BLoCs provisionados globalmente:
+ThemeModeCubit · AuthBloc · UserBloc · UserSearchBloc · BookBloc
+ShelfBloc · CollectionBloc · FeedBloc · ReviewBloc · PostBloc
+NotificationBloc · AssistantBloc · RecommendationBloc
+```
 
-**Ordem de inicialização:**
-1. Carrega `.env`
+**Ordem de inicialização no `main()`:**
+1. Carrega o arquivo `.env` (flutter_dotenv)
 2. Inicializa `SharedPreferences` e `FlutterSecureStorage`
-3. Cria `Dio` com `RetryInterceptor` + `AuthInterceptor`
-4. Instancia todos os repositórios
-5. Cria todos os BLoCs
+3. Abre os boxes do Hive (um por feature que usa cache Hive)
+4. Cria o banco de dados Drift (SQLite)
+5. Cria a instância do Dio com `RetryInterceptor` + `AuthInterceptor`
+6. Instancia todos os datasources (local e remoto)
+7. Instancia todos os repositórios
+8. Cria todos os BLoCs e registra no GetIt
+9. Roda o app via `runApp(Bootstrap())`
 
 ### Rede (`core/network/`)
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `dio_client.dart` | Dio configurado com connect/receive timeout de 10 s, `LogInterceptor` em debug |
-| `auth_interceptor.dart` | Injeta `Authorization: Bearer {token}` em todo request · renova token em 401 via `/auth/refresh` · persiste novo token no `FlutterSecureStorage` |
-| `retry_interceptor.dart` | Retry automático em erros de rede, timeout e 5xx · backoff exponencial |
+**`dio_client.dart`** — Dio configurado com:
+- Connect timeout: 10s
+- Receive timeout: 10s
+- `LogInterceptor` em modo debug (loga headers, body e resposta)
+
+**`auth_interceptor.dart`** — Em cada request:
+1. Lê o access token do `FlutterSecureStorage`
+2. Injeta `Authorization: Bearer {token}` no header
+3. Se a resposta for 401: chama `POST /auth/refresh` com o refresh token
+4. Persiste o novo access token no `FlutterSecureStorage`
+5. Reexecuta o request original com o novo token
+
+O interceptor usa um `Completer` para serializar chamadas de refresh concorrentes — se múltiplos requests retornam 401 ao mesmo tempo, apenas um refresh é feito.
+
+**`retry_interceptor.dart`** — Retry automático com backoff exponencial (1s, 2s, 4s) em:
+- Erros de rede (`SocketException`, timeout)
+- Respostas 5xx (exceto 501)
+- Máximo de 3 tentativas
 
 ### Roteamento (`core/router/`)
 
-| Arquivo | Responsabilidade |
-|---|---|
-| `app_router.dart` | GoRouter com 18+ rotas · guard `_authRedirect()` em 3 níveis (não autenticado → onboarding pendente → autenticado) |
-| `deep_link_handler.dart` | Intercepta `biblioo://reset-password` e navega para a tela correta |
+**`app_router.dart`** — GoRouter com 18+ rotas. O guard `_authRedirect()` é executado antes de cada navegação:
+- Sem token → redireciona para `/login`
+- Com token, sem onboarding → redireciona para `/onboarding`
+- Com token e onboarding completo → permite navegação
+
+**`deep_link_handler.dart`** — Intercepta `biblioo://reset-password?token=...` e navega para `ForgotPasswordScreen` com o token extraído da URL.
 
 ### Shell (`core/shell/main_shell.dart`)
 
-- **5 tabs** com `StatefulNavigationShell` (preserva estado ao trocar de tab)
-- **FAB global** `BibiFab` visível em todas as tabs (oculto no detalhe da comunidade)
-- Tabs: Feed · For You · Biblioteca · Comunidades · Perfil
+5 tabs com `StatefulNavigationShell` — o estado de cada tab (posição de scroll, dados carregados) é preservado ao trocar entre tabs. O **FAB global** `BibiFab` é visível em todas as tabs, com dois botões: atalho para o assistente Bibo e criação de novo post. O FAB se oculta automaticamente dentro da tela de detalhe de comunidade (para não sobrepor o chat).
 
 ### Tema (`core/theme/`)
 
-Material 3 com paleta teal/menta alinhada ao design do frontend web.
+Material 3 com paleta teal/menta alinhada ao frontend web:
 
 | Token | Valor |
 |---|---|
@@ -476,11 +482,7 @@ Material 3 com paleta teal/menta alinhada ao design do frontend web.
 | Text Primary | `#0F2F2C` |
 | Dark Background | `#0F1A17` |
 
-`ThemeModeCubit` persiste a preferência claro/escuro em SharedPreferences.
-
-### Configuração de ambiente (`core/config/app_env.dart`)
-
-Lê `API_URL` do arquivo `.env` via `flutter_dotenv`. Fallback: `http://localhost:8080`. Remove barras finais automaticamente.
+`ThemeModeCubit` persiste a preferência claro/escuro em SharedPreferences e é o único cubit de UI na lista global.
 
 ---
 
@@ -490,17 +492,17 @@ Lê `API_URL` do arquivo `.env` via `flutter_dotenv`. Fallback: `http://localhos
 
 | Widget | Descrição |
 |---|---|
-| `BibiFab` | FAB global flutuante com atalho para o assistente Bibo e criação de posts |
-| `BiblioWordmark` | Logo/branding do app |
-| `BookCoverPlaceholder` | Fallback visual para capas de livros sem imagem |
-| `StatItem` | Exibição padronizada de label + valor (stats de perfil, coleções) |
+| `BibiFab` | FAB flutuante global com atalho para o assistente e criação de posts. Posicionado acima do bottom nav. |
+| `BiblioWordmark` | Logo/branding do app — usado nas telas de autenticação |
+| `BookCoverPlaceholder` | Fallback visual para livros sem capa: gradiente com inicial do título |
+| `StatItem` | Exibe um label + valor formatado — usado em estatísticas de perfil, coleções e DNA |
 
-### Utilitários (`utils/`)
+### Utilitários (`shared/utils/`)
 
 | Arquivo | Descrição |
 |---|---|
-| `genre_emoji.dart` | Mapeamento de 30+ gêneros literários para emoji (ex.: "Science Fiction" → ) com fallback `` |
-| `cooldown_refresh.dart` | Rate limiting local — previne múltiplas chamadas de refresh num curto intervalo, com backoff exponencial e contador de tentativas persistido em SharedPreferences |
+| `genre_emoji.dart` | Mapeia 30+ gêneros literários para emoji (`"Science Fiction"` → `🚀`, `"Romance"` → `💕`). Fallback `📚` para gêneros não mapeados |
+| `cooldown_refresh.dart` | Rate limiting local para chamadas frequentes de refresh. Backoff exponencial com contador de tentativas persistido em SharedPreferences. Evita spam de requisições quando a conectividade é instável |
 
 ---
 
@@ -508,15 +510,15 @@ Lê `API_URL` do arquivo `.env` via `flutter_dotenv`. Fallback: `http://localhos
 
 | Regra | Motivação |
 |---|---|
-| `features/` nunca importa outra feature | Evita acoplamento entre domínios |
-| `features/` nunca importa `screens/` | Features não conhecem UI |
-| `screens/` pode importar múltiplas features | Composição de domínios na camada de apresentação |
-| `shared/` não importa `features/` nem `screens/` | Widgets e utils permanecem genéricos |
-| `domain/` não depende de Flutter, Dio, Drift ou DI | Entidades de domínio são Dart puro, testáveis sem framework |
-| BLoC chama apenas Repository, nunca DataSource diretamente | Garante que a lógica de offline-first fique isolada no Repository |
-| Repository sempre tenta local primeiro | Offline-first: UI responde mesmo sem conexão |
-| Tokens JWT somente em `FlutterSecureStorage` | Nunca em SharedPreferences ou memória não criptografada |
-| BLoCs provisionados globalmente via `MultiBlocProvider` | Um único ponto de acesso evita instâncias duplicadas |
+| `features/` nunca importa outra feature | Evita acoplamento entre domínios — comunicação entre features só por eventos ou via BLoC global |
+| `features/` nunca importa `screens/` | Features não conhecem UI — testáveis sem Flutter |
+| `screens/` pode importar múltiplas features | Composição de domínios na camada de apresentação é esperada |
+| `shared/` não importa `features/` nem `screens/` | Widgets e utils permanecem genéricos e reutilizáveis |
+| `domain/` não depende de Flutter, Dio, Drift ou DI | Entidades são Dart puro — testáveis com `dart test` sem inicializar o framework |
+| BLoC chama apenas Repository, nunca DataSource diretamente | A lógica de offline-first fica isolada no Repository |
+| Repository sempre tenta local primeiro | A UI responde imediatamente com dado em cache |
+| JWT somente em `FlutterSecureStorage` | Nunca em SharedPreferences (não criptografado) ou variáveis de memória não protegidas |
+| BLoCs provisionados globalmente via `MultiBlocProvider` | Um único ponto de acesso evita instâncias duplicadas e conflitos de estado |
 
 ---
 
@@ -527,34 +529,38 @@ flowchart TD
     SC["Screen"]
     BL["BLoC via context.read()"]
     RP["Repository"]
-    LD["LocalDatasource\nDrift / Hive / SharedPrefs ← primeiro"]
-    RD["RemoteDatasource\nDio + interceptors ← quando online"]
+    LD["LocalDatasource\nDrift / Hive / SharedPrefs — resposta imediata"]
+    RD["RemoteDatasource\nDio + interceptors — quando online"]
 
-    SC -->|"Widget dispara Event"| BL
+    SC -->|"Dispara Event"| BL
     BL -->|"chama"| RP
-    RP --> LD
-    RP --> RD
+    RP -->|"1. emite dado local"| LD
+    RP -->|"2. sincroniza"| RD
     BL -->|"emite State"| SC
 ```
+
+O padrão de dois emits (local imediato + remoto assíncrono) é implementado com `yield*` no BLoC, garantindo que a UI nunca trave aguardando a rede.
 
 ---
 
 ## Variáveis de ambiente
 
-Crie um `.env` em `code/mobile/` com base no `.env.example`. **Nunca versionar em produção.**
+Crie `.env` em `code/mobile/` com base no `.env.example`. **Nunca versionar em produção.**
 
 ```dotenv
 # Web Client ID do Google OAuth (Google Cloud Console)
-GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+GOOGLE_WEB_CLIENT_ID=seu-web-client-id.apps.googleusercontent.com
 
-# Base URL da API REST do backend (sem barra final)
+# URL base da API REST do backend (sem barra final)
 API_URL=http://localhost:8080
 ```
 
+Para Android em emulador, use `http://10.0.2.2:8080` em vez de `localhost`. Para dispositivo físico na mesma rede, use o IP local da máquina.
+
 | Variável | Uso |
 |---|---|
-| `GOOGLE_WEB_CLIENT_ID` | ID Web do OAuth do Google — usado para gerar o `idToken` no login com Google |
-| `API_URL` | URL base do backend Biblioo. Em produção: URL do Cloud Run |
+| `GOOGLE_WEB_CLIENT_ID` | ID Web do OAuth do Google — necessário para gerar o `idToken` no login com Google. É o Web Client ID, não o Android/iOS Client ID. |
+| `API_URL` | URL base do backend. Em produção: URL do Cloud Run |
 
 ---
 
@@ -563,7 +569,7 @@ API_URL=http://localhost:8080
 ### Pré-requisitos
 
 - Flutter SDK >= 3.11
-- Android SDK (para Android)
+- Android SDK (para Android) — recomendado via Android Studio
 - Xcode >= 15 (para iOS, apenas macOS)
 - Backend Biblioo rodando (ver [README do backend](../back/README.md))
 
@@ -572,67 +578,73 @@ API_URL=http://localhost:8080
 ```bash
 cd code/mobile
 
-# 1. Instalar dependências
+# Instalar dependências
 flutter pub get
 
-# 2. Criar arquivo de variáveis de ambiente
+# Criar arquivo de variáveis de ambiente
 cp .env.example .env
-# edite .env com suas credenciais
+# preencher GOOGLE_WEB_CLIENT_ID e API_URL
 
-# 3. Gerar código (Freezed, json_serializable, Drift, injectable)
+# Gerar código (Freezed, json_serializable, Drift, injectable)
+# Executar sempre após alterar modelos, entidades ou tabelas Drift
 dart run build_runner build --delete-conflicting-outputs
 
-# 4. Rodar no device/emulador conectado
+# Verificar dispositivos disponíveis
+flutter devices
+
+# Rodar no device conectado
 flutter run
+
+# Rodar em device específico
+flutter run -d <device-id>
 ```
+
+### Durante a execução
+
+| Atalho | Ação |
+|---|---|
+| `r` | Hot reload (preserva estado) |
+| `R` | Hot restart (reinicia o app) |
+| `q` | Encerrar |
 
 ### Comandos úteis
 
 ```bash
-# Verificar dispositivos disponíveis
-flutter devices
-
-# Rodar em dispositivo específico
-flutter run -d <device-id>
-
-# Hot reload (durante execução): r
-# Hot restart (durante execução): R
-# Quit (durante execução): q
-
-# Regenerar código após alterar modelos Freezed/Drift
-dart run build_runner build --delete-conflicting-outputs
-
-# Verificar problemas de linting
+# Analisar problemas de lint
 flutter analyze
 
 # Rodar testes
 flutter test
+
+# Regenerar código após alterar modelos Freezed/Drift
+dart run build_runner build --delete-conflicting-outputs
+
+# Limpar build cache
+flutter clean && flutter pub get
 ```
 
 ---
 
 ## Build e distribuição
 
+> Um APK Android já compilado está disponível em `mobile/build/app/outputs/apk/flutter-apk/app-release.apk`. Para instalar diretamente em um dispositivo Android, basta transferir e abrir o arquivo (habilitar "Fontes desconhecidas" nas configurações de segurança do Android, se necessário).
+
 ```bash
-# ── Android ────────────────────────────────
-# APK para distribuição direta / testes
+# Android — APK para distribuição direta / testes
 flutter build apk --release
 
-# App Bundle para Google Play Store
+# Android — App Bundle para Google Play Store
 flutter build appbundle --release
 
-# ── iOS (requer macOS + Xcode) ─────────────
-# IPA para TestFlight / App Store
+# iOS — IPA para TestFlight / App Store (requer macOS + Xcode)
 flutter build ipa --release
 ```
 
-**Saídas principais** (caminhos relativos à raiz do repositório):
-
 | Plataforma | Arquivo | Localização |
 |---|---|---|
-| Android APK | `app-release.apk` | `code/mobile/build/app/outputs/flutter-apk/app-release.apk` |
-| Android AAB | `app-release.aab` | `code/mobile/build/app/outputs/bundle/release/app-release.aab` |
-| iOS IPA | `Runner.ipa` | `code/mobile/build/ios/ipa/Runner.ipa` |
+| Android APK | `app-release.apk` | `build/app/outputs/apk/flutter-apk/app-release.apk` |
+| Android AAB | `app-release.aab` | `build/app/outputs/bundle/release/app-release.aab` |
+| iOS IPA | `Runner.ipa` | `build/ios/ipa/Runner.ipa` |
 
 ---
 
@@ -642,7 +654,7 @@ flutter build ipa --release
 flutter test
 ```
 
-Atualmente há um smoke test em `test/widget_test.dart` que valida a inicialização do app com o injetor. A cobertura é expandida conforme novas features são adicionadas.
+Atualmente há um smoke test em `test/widget_test.dart` que valida a inicialização do app com o injetor de dependência. A cobertura cresce conforme novas features são adicionadas. Lógica pura de domínio (entidades, value objects) é prioritária para testes unitários.
 
 ---
 

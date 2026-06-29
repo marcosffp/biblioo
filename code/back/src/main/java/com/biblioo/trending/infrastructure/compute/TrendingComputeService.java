@@ -93,6 +93,7 @@ public class TrendingComputeService implements TrendingComputePort {
           ab.book_id,
           b.title,
           b.cover_url,
+          COALESCE(ba.authors, '')         AS author,
           COALESCE(rv.review_count, 0)     AS new_reviews,
           COALESCE(si.shelf_count, 0)      AS shelf_additions,
           COALESCE(pg.progress_count, 0)   AS progress_updates,
@@ -128,6 +129,11 @@ public class TrendingComputeService implements TrendingComputePort {
             AND status IN ('READING', 'REREADING')
       ) ab
       JOIN books b ON b.id = ab.book_id
+      LEFT JOIN (
+          SELECT book_id, GROUP_CONCAT(author ORDER BY author SEPARATOR ', ') AS authors
+          FROM book_authors
+          GROUP BY book_id
+      ) ba ON ba.book_id = ab.book_id
       LEFT JOIN (
           SELECT rvs.book_id,
                  COUNT(*)                                                                    AS review_count,
@@ -219,6 +225,7 @@ public class TrendingComputeService implements TrendingComputePort {
                 rs.getLong("book_id"),
                 rs.getString("title"),
                 rs.getString("cover_url"),
+                rs.getString("author"),
                 rs.getLong("new_reviews"),
                 rs.getLong("shelf_additions"),
                 rs.getLong("progress_updates"),
