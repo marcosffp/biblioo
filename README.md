@@ -177,9 +177,9 @@ O frontend web está implantado na **Vercel**, com integração direta ao reposi
 
 ## Performance
 
-A suíte de testes de performance foi desenvolvida em **K6** com 72 testes cobrindo 8 domínios funcionais, cada um com três perfis obrigatórios: `load` (carga normal sustentada), `spike` (pico abrupto) e `stress` (degradação progressiva).
+A suíte de testes de performance foi desenvolvida em **K6** com 71 testes cobrindo 8 domínios funcionais, cada um com três perfis obrigatórios: `load` (carga normal sustentada), `spike` (pico abrupto) e `stress` (degradação progressiva).
 
-**Resultado final: 72/72 testes aprovados · 0 falhas funcionais (5xx)**
+**Resultado final: 71/71 testes aprovados · 0 falhas funcionais (5xx)**
 
 | Destaque | Resultado |
 |---|---|
@@ -223,7 +223,7 @@ A suíte de testes de performance foi desenvolvida em **K6** com 72 testes cobri
 
 | Documento | Conteúdo |
 |---|---|
-| [Relatório Geral](code/back/performance-tests/docs/RELATORIO-GERAL.md) | Visão consolidada dos 72 testes — todos os domínios, resultados e análise |
+| [Relatório Geral](code/back/performance-tests/docs/RELATORIO-GERAL.md) | Visão consolidada dos 71 testes — todos os domínios, resultados e análise |
 | [Documento de Avaliação](code/back/performance-tests/docs/DOCUMENTO-AVALIACAO-PERFORMANCE.md) | Critérios de aprovação, thresholds e metodologia |
 | [DomainFeed — Relatório](code/back/performance-tests/DomainFeed/RELATORIO-DOMAINFEED.md) | Resultados detalhados: feed, post, comment, review |
 | [DomainFeed — Observações](code/back/performance-tests/DomainFeed/OBSERVACOES.md) | Análise técnica dos testes de feed |
@@ -255,7 +255,7 @@ A suíte de testes de performance foi desenvolvida em **K6** com 72 testes cobri
 biblioo/
 ├── code/
 │   ├── back/                    # Backend — Spring Boot 4 · Java 25
-│   │   └── performance-tests/   # Suíte K6: 72 testes · 8 domínios
+│   │   └── performance-tests/   # Suíte K6: 71 testes · 8 domínios
 │   ├── front/                   # Frontend — Next.js 16 · React 19
 │   └── mobile/                  # App mobile — Flutter 3.11
 ├── docs/                        # Documentação arquitetural

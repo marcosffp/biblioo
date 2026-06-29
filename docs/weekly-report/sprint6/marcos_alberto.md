@@ -51,10 +51,21 @@
 ### O que foi feito:
 
 - Realização de merges finais com a branch `prod` para consolidação das últimas entregas da sprint em produção.
-- Atualização e finalização da documentação do projeto: revisão dos requisitos funcionais e não funcionais, correção do modelo de dados (49 tabelas alinhadas ao diagrama relacional), elaboração do relatório ATAM completo com evidências dos 72 testes de performance e adição das comprovações de compatibilidade de interface.
+- Atualização e finalização da documentação do projeto: revisão dos requisitos funcionais e não funcionais, correção do modelo de dados (49 tabelas alinhadas ao diagrama relacional), elaboração do relatório ATAM completo com evidências dos 71 testes de performance e adição das comprovações de compatibilidade de interface.
 
 ### Links dos Pull Requests:
 
 - [PR #299](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/299)
 - [PR #300](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/300)
 - [PR #301](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/301)
+- [PR #303](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/303)
+- [PR #304](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/304)
+- [PR #305](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/305)
+- [PR #306](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/306)
+- [PR #309](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/309)
+- [PR #311](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/311)
+- [PR #312](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/312)
+- [PR #313](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/313)
+- [PR #314](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/314)
+- [PR #316](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/316)
+- [PR #317](https://github.com/ICEI-PUC-Minas-PPLES-TI/plf-es-2026-1-ti5-0492100-biblioo/pull/317)

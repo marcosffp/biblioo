@@ -1,9 +1,9 @@
 # Divulgação do Projeto
 
-Liste os artefatos produzidos, com suas localizaçãoes e descrição do conteúdo.
+Artefatos de divulgação produzidos pelo projeto.
 
 * `/presentation`
-    * Slides da apresentacao do projeto
+    * Slides de apresentação do projeto (arquivos PDF)
 * `/video`
-	* Vídeo de apresentacao do projeto
+    * Vídeo de divulgação disponível no YouTube (sem arquivo de vídeo no repositório)
 
