@@ -1,128 +1,84 @@
 @startuml
 !theme plain
 skinparam componentStyle uml2
-skinparam defaultFontSize 11
-skinparam ArrowFontSize 9
-skinparam PackageBorderColor #888888
-skinparam PackageBorderThickness 1
-skinparam ComponentBorderColor #555555
-skinparam ArrowColor #444444
-skinparam DatabaseBorderColor #555555
-skinparam QueueBorderColor #555555
-skinparam CloudBorderColor #777777
+' Força o layout a seguir uma direção mais linear
+left to right direction 
 
-title "Sistema Biblioo - Arquitetura de Componentes"
+title "Sistema Biblioo - Arquitetura Organizada"
 
-' ══════ CLIENTES ══════
-together {
-  [Web\n(Next.js)] as Web
-  [Mobile\n(Flutter)] as Mobile
+' --- CLIENT TIER (Topo) ---
+package "Client Tier" {
+    [Web (React)] as Web
+    [Mobile (Flutter)] as Mobile
 }
 
-' ══════ INTERFACES ══════
-together {
-  interface "REST / HTTPS" as REST
-  interface "WebSocket (STOMP)" as WS
-  interface "SSE" as SSE
+' --- INTERFACES ---
+interface "REST API" as API
+interface "WebSocket" as WS
+
+' --- APPLICATION SERVER (Centro) ---
+node "Application Server" {
+    
+    package "Core Business" {
+        [User Module] as User
+        [Books Module] as Books
+        [Shelf Module] as Shelf
+    }
+    
+    package "Social & Intelligence" {
+        [Community Module] as Community
+        [Feed Module] as Feed
+        [Recommendation Module] as Rec
+        [Identity (DNA) Module] as DNA
+    }
 }
 
-' ══════ APPLICATION SERVER ══════
-package "Application Server (Spring Boot)" as AppServer {
-  together {
-    [User] as User
-    [Books / Shelf /\nCollection] as Books
-    [Community] as Community
-    [Feed] as Feed
-    [Notification] as Notif
-  }
-  together {
-    [Recommendation] as Rec
-    [DNA] as DNA
-    [Assistant] as Asst
-    [Trending] as Trend
-    [Share] as Share
-  }
-}
-
-' ══════ MENSAGERIA ══════
-queue "RabbitMQ" as MQ
-
-' ══════ PERSISTÊNCIA ══════
-package "Persistência" {
-  together {
+' --- INFRASTRUCTURE (Base) ---
+' Usamos um grupo para manter todos no mesmo nível inferior
+package "Data & Messaging" {
+    queue "RabbitMQ" as MQ
     database "MySQL" as MySQL
     database "Redis" as Redis
     database "OpenSearch" as OS
-  }
 }
 
-' ══════ EXTERNOS ══════
-cloud "Serviços Externos" {
-  together {
-    [Google Books] as GBooks
-    [Google OAuth] as GOAuth
-  }
-  together {
-    [Cloudinary] as Cloud
-    [LLM\n(OpenAI/Gemini)] as LLM
-  }
+cloud "External" {
+    [Google Books API] as GBooks
 }
 
-' ══════ CONEXÕES ══════
+' --- FLUXO DE LAYOUT ---
 
-' Clientes → Interfaces
-Web    --> REST
-Web    --> WS
-Web    --> SSE
-Mobile --> REST
+' 1. Conexões de Entrada (Top -> Down)
+Web --> API
+Mobile --> API
+Web --> WS
 Mobile --> WS
-Mobile --> SSE
 
-' Interfaces → AppServer
-REST --> AppServer
-WS   --> Community
-Notif --> SSE
+' 2. Distribuição da API para Módulos
+API --> User
+API --> Books
+API --> Shelf
+API --> Community
 
-' AppServer → MQ (produtores)
-User      --> MQ : "publica"
-Books     --> MQ
-Feed      --> MQ
-Community --> MQ
-Rec       --> MQ
+' 3. Comunicação Interna e Eventos (Uso de direções específicas para evitar cruzamento)
+Shelf -down-> MQ : "Publish"
+Community -down-> MQ : "Publish"
+User -down-> MQ : "Publish"
 
-' MQ → AppServer (consumidores)
-MQ --> Feed      : "consome"
-MQ --> Notif
-MQ --> DNA
-MQ --> Rec
-MQ --> Books
-MQ --> Trend
-MQ --> Community
+MQ -up-> Feed : "Consume"
+MQ -up-> Rec : "Consume"
+MQ -up-> DNA : "Consume"
 
-' Persistência
-User      --> MySQL
-Books     --> MySQL
-Feed      --> MySQL
-Community --> MySQL
-DNA       --> MySQL
-Notif     --> MySQL
-Rec       --> MySQL
+' 4. Persistência e Serviços (Down)
+User -down-> MySQL
+Books -down-> MySQL
+Shelf -down-> MySQL
+Community -down-> MySQL
 
-Feed      --> Redis
-Asst      --> Redis
-Community --> Redis
-User      --> Redis
-Rec       --> Redis
+Books -right-> OS : "Search"
+Books -right-> GBooks
 
-Books --> OS
-User  --> OS
-
-' Externos
-Books     -right-> GBooks
-User      -right-> GOAuth
-User      -right-> Cloud
-Community -right-> Cloud
-Rec       -right-> LLM
-Asst      -right-> LLM
+Feed -down-> Redis : "Cache"
+Feed -left-> WS : "Push"
 
 @enduml

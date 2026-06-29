@@ -405,8 +405,11 @@ public class CommunityService implements CommunityUseCase {
       throw new CommunityBusinessException("Você já é membro desta comunidade.");
     }
 
-    if (joinRequestRepository.existsPending(communityId, userId, JoinRequestStatus.PENDING)) {
-      throw new CommunityBusinessException("Já existe uma solicitação pendente.");
+    List<CommunityJoinRequest> existing =
+        joinRequestRepository.findByUserCommunityAndStatus(
+            communityId, userId, JoinRequestStatus.PENDING);
+    if (!existing.isEmpty()) {
+      return existing.get(0);
     }
 
     if (inviteRepository.existsPending(communityId, userId, InviteStatus.PENDING)) {
@@ -442,22 +445,39 @@ public class CommunityService implements CommunityUseCase {
             .findById(requestId)
             .orElseThrow(() -> new CommunityBusinessException("Solicitação não encontrada."));
 
+    Community community = getActiveCommunity(request.getCommunityId());
+    requireOwnerOrMod(request.getCommunityId(), actorId);
+
+    if (request.getStatus() == JoinRequestStatus.APPROVED) {
+      return;
+    }
+
     if (request.getStatus() != JoinRequestStatus.PENDING) {
       throw new CommunityBusinessException("Esta solicitação já foi processada.");
     }
 
-    Community community = getActiveCommunity(request.getCommunityId());
-    requireOwnerOrMod(request.getCommunityId(), actorId);
+    int updated =
+        joinRequestRepository.updateStatusIfPending(
+            requestId,
+            JoinRequestStatus.PENDING,
+            JoinRequestStatus.APPROVED,
+            actorId,
+            LocalDateTime.now());
 
-    request.setStatus(JoinRequestStatus.APPROVED);
-    request.setReviewedBy(actorId);
-    request.setReviewedAt(LocalDateTime.now());
-    joinRequestRepository.save(request);
+    if (updated == 0) {
+      CommunityJoinRequest fresh =
+          joinRequestRepository
+              .findById(requestId)
+              .orElseThrow(() -> new CommunityBusinessException("Solicitação não encontrada."));
+      if (fresh.getStatus() != JoinRequestStatus.APPROVED) {
+        throw new CommunityBusinessException("Esta solicitação já foi processada.");
+      }
+      return;
+    }
 
     addMember(request.getCommunityId(), request.getUserId(), CommunityRole.MEMBER);
     messageUseCase.createSystemMessage(
         request.getCommunityId(), request.getUserId(), MessageType.MEMBER_JOINED);
-
     eventPublisher.publishJoinRequestApproved(
         request.getCommunityId(), community.getName(), request.getUserId());
     eventPublisher.publishMemberJoinedForTrending(request.getUserId(), community.getBookId());
@@ -471,16 +491,33 @@ public class CommunityService implements CommunityUseCase {
             .findById(requestId)
             .orElseThrow(() -> new CommunityBusinessException("Solicitação não encontrada."));
 
+    requireOwnerOrMod(request.getCommunityId(), actorId);
+
+    if (request.getStatus() == JoinRequestStatus.REJECTED) {
+      return;
+    }
+
     if (request.getStatus() != JoinRequestStatus.PENDING) {
       throw new CommunityBusinessException("Esta solicitação já foi processada.");
     }
 
-    requireOwnerOrMod(request.getCommunityId(), actorId);
+    int updated =
+        joinRequestRepository.updateStatusIfPending(
+            requestId,
+            JoinRequestStatus.PENDING,
+            JoinRequestStatus.REJECTED,
+            actorId,
+            LocalDateTime.now());
 
-    request.setStatus(JoinRequestStatus.REJECTED);
-    request.setReviewedBy(actorId);
-    request.setReviewedAt(LocalDateTime.now());
-    joinRequestRepository.save(request);
+    if (updated == 0) {
+      CommunityJoinRequest fresh =
+          joinRequestRepository
+              .findById(requestId)
+              .orElseThrow(() -> new CommunityBusinessException("Solicitação não encontrada."));
+      if (fresh.getStatus() != JoinRequestStatus.REJECTED) {
+        throw new CommunityBusinessException("Esta solicitação já foi processada.");
+      }
+    }
   }
 
   @Override

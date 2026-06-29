@@ -1,17 +1,18 @@
-import 'package:biblioo/features/preferences/domain/genre.dart';
-import 'package:biblioo/utils/genre_emoji.dart';
 import 'package:flutter/material.dart';
 
-/// Chip selecionável de gênero — widget burro (recebe dados, emite callback).
-/// Exibe um emoji representativo (via [genreEmoji]) ao lado do nome traduzido.
-class GenreChip extends StatelessWidget {
-  final Genre genre;
+/// Card selecionável de gênero com emoji grande, label e cor de fundo.
+class GenreCard extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final Color backgroundColor;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const GenreChip({
+  const GenreCard({
     super.key,
-    required this.genre,
+    required this.emoji,
+    required this.label,
+    required this.backgroundColor,
     required this.isSelected,
     required this.onTap,
   });
@@ -19,49 +20,67 @@ class GenreChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? theme.colorScheme.primaryContainer
-            : theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
           color: isSelected
-              ? theme.colorScheme.primary
-              : theme.colorScheme.outlineVariant,
-          width: isSelected ? 2 : 1,
+              ? theme.colorScheme.primary.withValues(alpha: 0.08)
+              : backgroundColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outlineVariant,
+            width: isSelected ? 2 : 1,
+          ),
         ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            children: [
-              Text(
-                genreEmoji(genre.original),
-                style: const TextStyle(fontSize: 20),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  genre.translated,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                    color: isSelected
-                        ? theme.colorScheme.onPrimaryContainer
-                        : theme.colorScheme.onSurface,
+        child: Stack(
+          children: [
+            if (isSelected)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    shape: BoxShape.circle,
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  child: Icon(
+                    Icons.check,
+                    size: 12,
+                    color: theme.colorScheme.onPrimary,
+                  ),
                 ),
               ),
-              if (isSelected)
-                Icon(Icons.check_circle,
-                    size: 18, color: theme.colorScheme.primary),
-            ],
-          ),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(emoji, style: const TextStyle(fontSize: 28)),
+                    const SizedBox(height: 6),
+                    Text(
+                      label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurface,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

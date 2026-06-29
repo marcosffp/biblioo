@@ -669,6 +669,7 @@ export function useCommunityPage() {
     isLoadingCommunities,
     communitiesError,
     isSubmittingCreate,
+    refreshCommunities,
     inviteUser,
     pendingJoinRequestIds,
 

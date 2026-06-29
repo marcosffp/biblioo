@@ -84,6 +84,34 @@ public class GlobalExceptionHandler {
     return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), request);
   }
 
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingClosedException.class)
+  ResponseEntity<ErrorResponse> handleVotingClosed(
+      com.biblioo.community.domain.exception.VotingClosedException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingNotActiveException.class)
+  ResponseEntity<ErrorResponse> handleVotingNotActive(
+      com.biblioo.community.domain.exception.VotingNotActiveException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.VotingAlreadyActiveException.class)
+  ResponseEntity<ErrorResponse> handleVotingAlreadyActive(
+      com.biblioo.community.domain.exception.VotingAlreadyActiveException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(com.biblioo.community.domain.exception.AlreadyVotedDifferentOptionException.class)
+  ResponseEntity<ErrorResponse> handleAlreadyVotedDifferentOption(
+      com.biblioo.community.domain.exception.AlreadyVotedDifferentOptionException ex,
+      HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, ex.getMessage(), request);
+  }
+
   @ExceptionHandler(com.biblioo.feed.domain.exception.ReviewBusinessException.class)
   ResponseEntity<ErrorResponse> handleReviewBusiness(
       com.biblioo.feed.domain.exception.ReviewBusinessException ex, HttpServletRequest request) {
@@ -130,6 +158,20 @@ public class GlobalExceptionHandler {
   ResponseEntity<ErrorResponse> handleInvalidToken(
       InvalidTokenException ex, HttpServletRequest request) {
     return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(org.springframework.dao.PessimisticLockingFailureException.class)
+  ResponseEntity<ErrorResponse> handlePessimisticLock(
+      org.springframework.dao.PessimisticLockingFailureException ex,
+      HttpServletRequest request) {
+    String uri = request.getRequestURI();
+    if (uri.contains("/auth/")) {
+      // Lock conflict on refresh_tokens row — treat as invalid token so the
+      // client clears its session instead of retrying indefinitely.
+      return buildError(
+          HttpStatus.UNAUTHORIZED, "Token de atualização inválido ou expirado", request);
+    }
+    return buildError(HttpStatus.CONFLICT, "Conflito de acesso simultâneo. Tente novamente.", request);
   }
 
   @ExceptionHandler(GoogleAuthException.class)
@@ -256,6 +298,27 @@ public class GlobalExceptionHandler {
   ResponseEntity<ErrorResponse> handleGoodreadsImport(
       com.biblioo.share.domain.exception.GoodreadsImportException ex, HttpServletRequest request) {
     return buildError(HttpStatus.valueOf(422), ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(org.springframework.orm.ObjectOptimisticLockingFailureException.class)
+  ResponseEntity<ErrorResponse> handleOptimisticLock(
+      org.springframework.orm.ObjectOptimisticLockingFailureException ex,
+      HttpServletRequest request) {
+    return buildError(
+        HttpStatus.CONFLICT, "Esta solicitação já foi processada por outro moderador.", request);
+  }
+
+  @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+  ResponseEntity<ErrorResponse> handleDataIntegrity(
+      org.springframework.dao.DataIntegrityViolationException ex, HttpServletRequest request) {
+    return buildError(HttpStatus.CONFLICT, "Operação conflitante. Tente novamente.", request);
+  }
+
+  @ExceptionHandler(org.springframework.dao.DataAccessResourceFailureException.class)
+  ResponseEntity<ErrorResponse> handleDataAccessResource(
+      org.springframework.dao.DataAccessResourceFailureException ex, HttpServletRequest request) {
+    return buildError(
+        HttpStatus.SERVICE_UNAVAILABLE, "Serviço temporariamente indisponível. Tente novamente.", request);
   }
 
   @ExceptionHandler(org.springframework.dao.InvalidDataAccessApiUsageException.class)

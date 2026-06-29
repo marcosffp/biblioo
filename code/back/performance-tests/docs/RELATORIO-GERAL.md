@@ -9,12 +9,12 @@
 
 ## 1. Status Geral
 
-**72 de 72 testes executados — 100% aprovados.**
+**71 de 71 testes executados — 100% aprovados.**
 
 | Domain | Subdomínios | Testes | Status |
 |--------|-------------|--------|--------|
 | DomainBook | book, collection, shelf, shelfItem | 12/12 | Completo |
-| DomainCommunity | community, invites, join-requests, manage, messageRest, voting, message (WS), admin | 21/21 | Completo |
+| DomainCommunity | community, invites, join-requests, admin, messageRest, voting, message (WS) | 20/20 | Completo |
 | DomainDna | dna | 3/3 | Completo |
 | DomainFeed | feed, post, comment, commentInteraction, review | 15/15 | Completo |
 | DomainRecommendation | recommendation, roll-dice | 6/6 | Completo |
@@ -94,13 +94,13 @@
 | Subdomínio | Teste | VUs máx | Requests | Throughput | p(95) | Falhas | Status |
 |------------|-------|---------|----------|-----------|-------|--------|--------|
 | user | load | 210 | 51.960 | 391.31/s | 56.7ms | 0% | Aprovado |
-| user | spike | 500 | 34.860 | 462.80/s | 15.46ms | 0% | Aprovado |
+| user | spike | 500 | 34.860 | 442.80/s | 15.46ms | 0% | Aprovado |
 | user | stress | 600 | 269.802 | 833.75/s | 349.76ms | 0% | Aprovado |
 | social (público) | load | 210 | 89.682 | 672.18/s | 27.34ms | 0% | Aprovado |
 | social (público) | spike | 500 | 43.290 | 552.00/s | 333.3ms | 0% | Aprovado |
 | social (público) | stress | 200¹ | 142.582 | 287.85/s | 666.23ms | 0%² | Aprovado |
 | social-requests (privado) | load | 100 | 32.400 | 245.30/s | 62.26ms | 0% | Aprovado |
-| social-requests (privado) | spike | 500 | 47.436 | 585.13/s | 354.09ms | 4.74%³ | Aprovado |
+| social-requests (privado) | spike | 500 | 53.090 | 680.45/s | 282.08ms | 5.17%³ | Aprovado |
 | social-requests (privado) | stress | 250 | 157.722 | 603.53/s | 45.4ms | 9.08%³ | Aprovado |
 
 ¹ Script atualizado para 200 VUs (4 estágios). Ver §3.2 do relatório de domínio para contexto completo.  
@@ -147,7 +147,7 @@
 | commentInteraction | stress | 200¹ | 40.352 | 203.58/s | 36.92ms | 0% | Aprovado |
 | review | load | 210 | 51.913 | 338.42/s | 58.64ms | 0% | Aprovado |
 | review | spike | 500 | 34.807 | 134.76/s | 681.75ms | 0% | Aprovado |
-| review | stress | 600 | ~98.720² | ~334/s² | 928.98ms | 0% | Aprovado |
+| review | stress | 600 | ~98.720² | ~109/s² | 928.98ms | 0% | Aprovado |
 
 ¹ Script atualizado para 4 estágios (max 200 VUs); p(95) baixo reflete carga moderada.  
 ² Inclui ~18.400 requests de setup pesado (800 usuários × 23 req). Taxa efetiva durante fase de VUs (~4m): ~334/s.
@@ -190,7 +190,7 @@
 | community-invites | load | 210 | 62.321 | 471.55/s | 28.04ms | 0% | Aprovado |
 | community-invites | stress | 500 | 130.917 | 469.97/s | 428.42ms | 6.86%¹ | Aprovado |
 | community-join-requests | load | 210 | 54.607 | ~412/s | 107.08ms | 0% | Aprovado |
-| community-join-requests | stress | 600 | 86.079 | 306.72/s | 1.38s | 16.99%² | Aprovado |
+| community-join-requests | stress | 600 | 100.437 | 358.65/s | 1.03s | 0.41%² | Aprovado |
 | community-manage | stress | 200 | 106.973 | 497.33/s | 29.55ms | 0% | Aprovado |
 | admin | load | 210 | 86.935 | ~615/s | 96.74ms | 0% | Aprovado |
 | admin | spike | 500 | 30.397 | 303.64/s | 955.92ms | 0% | Aprovado |
@@ -207,7 +207,7 @@
 | message (WS) | stress | 250 | — (STOMP) | 15.145 env / 294.410 recv | lat. p(95) 32ms | 0% | Aprovado |
 
 ¹ Conflitos de convite (negócio) sob alta concorrência — dentro do threshold < 30%.  
-² Race condition em `JoinRequest` sob contenção extrema (600 VUs, recurso compartilhado) — dentro do threshold < 40%. O design do teste foi corrigido (1 comunidade por VU); no redesign, 0% de falhas. A race condition no código persiste (ausência de `@Version` em `JoinRequest`).  
+² Race condition em `JoinRequest` sob contenção extrema (600 VUs, recurso compartilhado) — mitigada. `@Version` adicionado à entidade `CommunityJoinRequest` e operações de `approve`/`reject` reescritas com `updateStatusIfPending()` (UPDATE atômico `WHERE status = PENDING`). Na reexecução do stress, 0,41% de conflitos residuais esperados (conflitos de negócio, dentro do threshold < 40%), contra 16,99% antes da mitigação.  
 ³ Chamadas `close voting` retornam 4xx sob concorrência no cenário `manage` — comportamento correto do backend, dentro do threshold < 1%.
 
 **Load**

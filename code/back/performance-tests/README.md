@@ -3,7 +3,7 @@
 # Testes de Performance — Biblioo Backend
 
 > Suíte k6 para avaliação de requisitos não funcionais do backend Biblioo.
-> 8 domínios · 72 testes · 3 perfis por subdomínio (load / spike / stress) · **72/72 aprovados**.
+> 8 domínios · 71 testes · 3 perfis por subdomínio (load / spike / stress) · **71/71 aprovados**.
 
 ---
 

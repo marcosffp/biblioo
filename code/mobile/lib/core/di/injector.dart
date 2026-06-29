@@ -129,7 +129,7 @@ class Injector {
   CommunityRemoteDatasource get _communityRemote =>
       CommunityRemoteDatasource(_dio);
   CommunityRepository get communityRepo =>
-      CommunityRepository(_communityRemote, _communityLocal);
+      CommunityRepository(_communityRemote, _communityLocal, bookRepo);
 
   FeedLocalDatasource get _feedLocal => FeedLocalDatasource(_prefs);
   FeedRemoteDatasource get _feedRemote => FeedRemoteDatasource(_dio);

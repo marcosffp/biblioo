@@ -1,3 +1,5 @@
+import 'package:biblioo/features/book/data/book_repository.dart';
+import 'package:biblioo/features/book/domain/book.dart';
 import 'package:biblioo/features/community/domain/community.dart';
 import 'package:biblioo/features/community/domain/community_invite.dart';
 import 'package:biblioo/features/community/domain/community_join_request.dart';
@@ -32,8 +34,9 @@ class CommunityListResult {
 class CommunityRepository {
   final CommunityRemoteDatasource _remote;
   final CommunityLocalDatasource _local;
+  final BookRepository _bookRepo;
 
-  const CommunityRepository(this._remote, this._local);
+  const CommunityRepository(this._remote, this._local, this._bookRepo);
 
   List<Community> getCachedMineCommunities() {
     return _local.getCachedMine().map((m) => m.toEntity()).toList();
@@ -44,6 +47,37 @@ class CommunityRepository {
   }
 
   DateTime? getCachedCommunitiesUpdatedAt() => _local.getLastUpdatedAt();
+
+  Future<Map<int, Book>> _loadBookInfo(List<int> bookIds) async {
+    final uniqueIds = bookIds.toSet().toList();
+    final results = await Future.wait(
+      uniqueIds.map((id) async {
+        try {
+          final book = await _bookRepo.getById(id);
+          return MapEntry(id, book);
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+    return Map.fromEntries(results.whereType<MapEntry<int, Book>>());
+  }
+
+  List<CommunityModel> _enrichWithBookInfo(
+    List<CommunityModel> communities,
+    Map<int, Book> bookInfo,
+  ) {
+    return communities.map((c) {
+      final book = bookInfo[c.bookId];
+      if (book == null) return c;
+      final author = book.authors.join(', ');
+      return c.copyWith(
+        bookTitle: book.title.isNotEmpty ? book.title : c.bookTitle,
+        bookAuthor: author.isNotEmpty ? author : c.bookAuthor,
+        bookCoverUrl: book.coverUrl ?? c.bookCoverUrl,
+      );
+    }).toList();
+  }
 
   Future<CommunityListResult> getCommunities({String? query}) async {
     try {
@@ -56,11 +90,22 @@ class CommunityRepository {
           .map((c) => c.copyWith(isMember: false))
           .toList();
 
-      await _local.saveFromEntities(mine: remoteMine, suggestions: suggestions);
+      final allBookIds = [...remoteMine, ...suggestions]
+          .map((c) => c.bookId)
+          .toList();
+      final bookInfo = await _loadBookInfo(allBookIds);
+
+      final enrichedMine = _enrichWithBookInfo(remoteMine, bookInfo);
+      final enrichedSuggestions = _enrichWithBookInfo(suggestions, bookInfo);
+
+      await _local.saveFromEntities(
+        mine: enrichedMine,
+        suggestions: enrichedSuggestions,
+      );
 
       return CommunityListResult(
-        mine: remoteMine.map((m) => m.toEntity()).toList(),
-        suggestions: suggestions.map((m) => m.toEntity()).toList(),
+        mine: enrichedMine.map((m) => m.toEntity()).toList(),
+        suggestions: enrichedSuggestions.map((m) => m.toEntity()).toList(),
         fromCache: false,
         lastSyncedAt: DateTime.now(),
       );
